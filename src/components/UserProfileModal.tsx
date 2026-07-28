@@ -64,7 +64,7 @@ export function UserProfileModal({ open, onOpenChange }: UserProfileModalProps) 
 
   const handleSave = () => {
     if (!nome.trim()) {
-      toast.error("Informe seu Nome de Exibição.");
+      toast.error("Informe seu Nome de Exibio.");
       return;
     }
 
@@ -80,7 +80,7 @@ export function UserProfileModal({ open, onOpenChange }: UserProfileModalProps) 
 
 
 
-    // 3. Sincronizar com Módulo Usuários (IAM) se houver registro correspondente
+    // 3. Sincronizar com Mdulo Usurios (IAM) se houver registro correspondente
     const userCorrespondente = usuarios.find(u => u.nome === activeUser.nome || u.email === activeUser.email || u.nome === updatedUser.nome);
     if (userCorrespondente) {
       updateUser(userCorrespondente.id, {
@@ -104,12 +104,12 @@ export function UserProfileModal({ open, onOpenChange }: UserProfileModalProps) 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md bg-background border shadow-2xl p-6">
         <DialogHeader className="mb-2">
-          {/* SEM O ÍCONE DA FOTO 2 DE ACORDO COM A SOLICITAÇÃO */}
+          {/* SEM O CONE DA FOTO 2 DE ACORDO COM A SOLICITAO */}
           <DialogTitle className="text-lg font-bold">
-            Personalização do Perfil
+            Personalizao do Perfil
           </DialogTitle>
           <DialogDescription className="text-xs">
-            Altere seu nome, cargo e foto de perfil de exibição na plataforma.
+            Altere seu nome, cargo e foto de perfil de exibio na plataforma.
           </DialogDescription>
         </DialogHeader>
 
@@ -134,12 +134,12 @@ export function UserProfileModal({ open, onOpenChange }: UserProfileModalProps) 
                 title="Clique para alterar a foto de perfil"
               />
             </div>
-            <span className="text-[11px] text-muted-foreground font-medium">Clique no ícone da câmera para enviar a foto</span>
+            <span className="text-[11px] text-muted-foreground font-medium">Clique no cone da cmera para enviar a foto</span>
           </div>
 
           <div className="space-y-2">
             <Label className="font-semibold flex items-center gap-1.5">
-              <User className="w-3.5 h-3.5 text-primary" /> Nome de Exibição *
+              <User className="w-3.5 h-3.5 text-primary" /> Nome de Exibio *
             </Label>
             <Input 
               placeholder="Ex: Adriano Leal" 
@@ -150,7 +150,7 @@ export function UserProfileModal({ open, onOpenChange }: UserProfileModalProps) 
 
           <div className="space-y-2">
             <Label className="font-semibold flex items-center gap-1.5">
-              <Briefcase className="w-3.5 h-3.5 text-primary" /> Cargo / Posição *
+              <Briefcase className="w-3.5 h-3.5 text-primary" /> Cargo / Posio *
             </Label>
             <Input 
               placeholder="Ex: CEO / Diretor de Tecnologia" 
@@ -175,7 +175,7 @@ export function UserProfileModal({ open, onOpenChange }: UserProfileModalProps) 
         <DialogFooter className="mt-4 flex justify-end gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={handleSave} className="bg-orange-600 hover:bg-orange-700 text-white gap-2">
-            <Save className="w-4 h-4" /> Salvar Alterações
+            <Save className="w-4 h-4" /> Salvar Alteraes
           </Button>
         </DialogFooter>
       </DialogContent>

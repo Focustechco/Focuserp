@@ -42,7 +42,7 @@ export function ProjecoesSection() {
   const limiteDias = Number(horizonteDias);
   const dataLimite = new Date(hoje.getTime() + limiteDias * 86400000);
 
-  // Filtrar títulos com vencimento no horizonte futuro
+  // Filtrar ttulos com vencimento no horizonte futuro
   const titulosFuturos = titulos.filter((t) => {
     if (t.status === 'Cancelado' || t.status === 'Recebido') return false;
     const dt = new Date(t.dataVencimento || Date.now());
@@ -55,14 +55,14 @@ export function ProjecoesSection() {
     return dt >= hoje && dt <= dataLimite;
   });
 
-  // Saldo Atual Realizado (soma das movimentações confirmadas)
+  // Saldo Atual Realizado (soma das movimentaes confirmadas)
   const saldoAtualRealizado = fluxoConsolidado.length > 0 ? fluxoConsolidado[fluxoConsolidado.length - 1].saldoAcumuladoDia : 0;
 
-  // Cálculo das entradas e saídas no período selecionado
+  // Clculo das entradas e sadas no perodo selecionado
   const entradasBase = titulosFuturos.reduce((acc, t) => acc + (t.valorOriginal - (t.valorRecebido || 0)), 0);
   const saidasBase = contasFuturas.reduce((acc, c) => acc + (c.valorOriginal - (c.valorPago || 0)), 0);
 
-  // Ajustes de Cenários
+  // Ajustes de Cenrios
   let fatorEntrada = 1.0;
   let fatorSaida = 1.0;
 
@@ -70,7 +70,7 @@ export function ProjecoesSection() {
     fatorEntrada = 1.1; // +10% novos contratos/recebimentos
     fatorSaida = 0.95; // -5% economia operacional
   } else if (cenario === 'pessimista') {
-    fatorEntrada = 0.85; // 15% de inadimplência/atraso
+    fatorEntrada = 0.85; // 15% de inadimplncia/atraso
     fatorSaida = 1.05; // +5% de imprevistos
   }
 
@@ -79,7 +79,7 @@ export function ProjecoesSection() {
   const resultadoProjetadoPeriodo = entradasProjetadas - saidasProjetadas;
   const saldoFinalProjetado = saldoAtualRealizado + resultadoProjetadoPeriodo;
 
-  // Agrupamento por Semanas/Períodos no horizonte selecionado
+  // Agrupamento por Semanas/Perodos no horizonte selecionado
   const projecoesSemanais: Array<{
     periodoLabel: string;
     entradas: number;
@@ -123,14 +123,14 @@ export function ProjecoesSection() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* HEADER DE PROJEÇÕES */}
+      {/* HEADER DE PROJEES */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" /> Projeções de Fluxo de Caixa Futuro
+            <Sparkles className="h-5 w-5 text-primary" /> Projees de Fluxo de Caixa Futuro
           </h2>
           <p className="text-xs text-muted-foreground">
-            Modelagem preditiva baseada estritamente nas obrigações reais a pagar e títulos a receber cadastrados
+            Modelagem preditiva baseada estritamente nas obrigaes reais a pagar e ttulos a receber cadastrados
           </p>
         </div>
 
@@ -142,31 +142,31 @@ export function ProjecoesSection() {
                 <SelectValue placeholder="Horizonte" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="30">Próximos 30 dias</SelectItem>
-                <SelectItem value="60">Próximos 60 dias</SelectItem>
-                <SelectItem value="90">Próximos 90 dias</SelectItem>
-                <SelectItem value="180">Próximos 180 dias</SelectItem>
+                <SelectItem value="30">Prximos 30 dias</SelectItem>
+                <SelectItem value="60">Prximos 60 dias</SelectItem>
+                <SelectItem value="90">Prximos 90 dias</SelectItem>
+                <SelectItem value="180">Prximos 180 dias</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {/* Seletor de Cenário */}
+          {/* Seletor de Cenrio */}
           <div className="w-36">
             <Select value={cenario} onValueChange={(val: any) => setCenario(val)}>
               <SelectTrigger className="text-xs font-semibold">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="realista">Cenário Realista</SelectItem>
-                <SelectItem value="otimista">Cenário Otimista</SelectItem>
-                <SelectItem value="pessimista">Cenário Pessimista</SelectItem>
+                <SelectItem value="realista">Cenrio Realista</SelectItem>
+                <SelectItem value="otimista">Cenrio Otimista</SelectItem>
+                <SelectItem value="pessimista">Cenrio Pessimista</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
       </div>
 
-      {/* KPIS DE PROJEÇÃO */}
+      {/* KPIS DE PROJEO */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -193,7 +193,7 @@ export function ProjecoesSection() {
               +{formatCurrency(entradasProjetadas)}
             </div>
             <p className="text-[11px] text-muted-foreground mt-1">
-              {titulosFuturos.length} título(s) a receber
+              {titulosFuturos.length} ttulo(s) a receber
             </p>
           </CardContent>
         </Card>
@@ -201,7 +201,7 @@ export function ProjecoesSection() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Saídas Projetadas ({horizonteDias}d)
+              Sadas Projetadas ({horizonteDias}d)
             </CardTitle>
             <ArrowDownRight className="h-4 w-4 text-rose-600" />
           </CardHeader>
@@ -233,18 +233,18 @@ export function ProjecoesSection() {
         </Card>
       </div>
 
-      {/* TABELA DE PROJEÇÃO SEMANAL */}
+      {/* TABELA DE PROJEO SEMANAL */}
       <Card>
         <CardHeader className="py-4">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-sm font-semibold">Evolução Projetada por Período</CardTitle>
+              <CardTitle className="text-sm font-semibold">Evoluo Projetada por Perodo</CardTitle>
               <CardDescription className="text-xs">
                 Demonstrativo semana a semana do fluxo financeiro previsto
               </CardDescription>
             </div>
             <Badge variant="outline" className="text-[10px] capitalize">
-              Cenário: {cenario}
+              Cenrio: {cenario}
             </Badge>
           </div>
         </CardHeader>
@@ -252,10 +252,10 @@ export function ProjecoesSection() {
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
-                <TableHead className="text-xs">Período Semanal</TableHead>
+                <TableHead className="text-xs">Perodo Semanal</TableHead>
                 <TableHead className="text-xs text-right">Entradas Previstas</TableHead>
-                <TableHead className="text-xs text-right">Saídas Previstas</TableHead>
-                <TableHead className="text-xs text-right">Resultado do Período</TableHead>
+                <TableHead className="text-xs text-right">Sadas Previstas</TableHead>
+                <TableHead className="text-xs text-right">Resultado do Perodo</TableHead>
                 <TableHead className="text-xs text-right bg-muted/20">Saldo Projetado Final</TableHead>
               </TableRow>
             </TableHeader>
@@ -263,7 +263,7 @@ export function ProjecoesSection() {
               {projecoesSemanais.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center py-8 text-xs text-muted-foreground">
-                    Sem lançamentos futuros para os próximos {horizonteDias} dias.
+                    Sem lanamentos futuros para os prximos {horizonteDias} dias.
                   </TableCell>
                 </TableRow>
               ) : (

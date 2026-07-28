@@ -122,7 +122,7 @@ export function DmsExplorerView() {
         </div>
       </div>
 
-      {/* ÁRVORE E NAVEGAÇÃO DMS */}
+      {/* RVORE E NAVEGAO DMS */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {/* Painel Esquerdo: Estrutura de Pastas Raiz */}
         <Card className="md:col-span-1 p-3 space-y-2">
@@ -157,7 +157,7 @@ export function DmsExplorerView() {
           </div>
         </Card>
 
-        {/* Painel Direito: Conteúdo da Pasta Selecionada */}
+        {/* Painel Direito: Contedo da Pasta Selecionada */}
         <Card className="md:col-span-3 p-4">
           {/* Breadcrumbs do Caminho */}
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground pb-3 mb-4 border-b">
@@ -170,10 +170,10 @@ export function DmsExplorerView() {
             )}
           </div>
 
-          {/* VISUALIZAÇÃO EM GRADE (GRID) */}
+          {/* VISUALIZAO EM GRADE (GRID) */}
           {viewMode === 'grid' ? (
             <div className="space-y-6">
-              {/* Seção de Pastas */}
+              {/* Seo de Pastas */}
               {visibleFolders.length > 0 && (
                 <div>
                   <h4 className="text-xs font-bold text-muted-foreground uppercase mb-2">Pastas</h4>
@@ -195,7 +195,7 @@ export function DmsExplorerView() {
                 </div>
               )}
 
-              {/* Seção de Arquivos */}
+              {/* Seo de Arquivos */}
               <div>
                 <h4 className="text-xs font-bold text-muted-foreground uppercase mb-2">Arquivos ({visibleDocs.length})</h4>
                 {visibleDocs.length === 0 ? (
@@ -227,7 +227,7 @@ export function DmsExplorerView() {
                           <div className="flex flex-col items-center text-center my-2">
                             {renderFileIcon(doc.extensao)}
                             <p className="font-semibold text-xs truncate w-full mt-2" title={doc.nome}>{doc.nome}</p>
-                            <p className="text-[10px] text-muted-foreground mt-0.5">{doc.tamanho} • v{doc.versaoAtual}</p>
+                            <p className="text-[10px] text-muted-foreground mt-0.5">{doc.tamanho} " v{doc.versaoAtual}</p>
                           </div>
                         </div>
 
@@ -242,17 +242,17 @@ export function DmsExplorerView() {
               </div>
             </div>
           ) : (
-            /* VISUALIZAÇÃO EM LISTA (TABELA) */
+            /* VISUALIZAO EM LISTA (TABELA) */
             <div className="border rounded-lg overflow-hidden bg-card text-xs">
               <table className="w-full">
                 <thead className="bg-muted/50 border-b text-left">
                   <tr>
                     <th className="p-3">Nome do Arquivo</th>
-                    <th className="p-3">Módulo</th>
-                    <th className="p-3">Versão</th>
+                    <th className="p-3">Mdulo</th>
+                    <th className="p-3">Verso</th>
                     <th className="p-3">Tamanho</th>
                     <th className="p-3">Upload</th>
-                    <th className="p-3 text-right">Ações</th>
+                    <th className="p-3 text-right">Aes</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -306,7 +306,7 @@ export function DmsExplorerView() {
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Pré-Visualização Interna */}
+      {/* Modal de Pr-Visualizao Interna */}
       <DmsPreviewModal 
         documento={selectedDoc} 
         isOpen={!!selectedDoc} 

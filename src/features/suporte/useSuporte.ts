@@ -41,16 +41,16 @@ export function useSuporte() {
       chamadoId: 'tk-1001',
       autorNome: 'Carlos Andrade (CTO)',
       autorPapel: 'Cliente',
-      conteudo: 'Olá equipe de suporte! Identificamos que na nota fiscal de serviços emitida para SP a alíquota saiu 5% em vez de 2%. Podem verificar?',
+      conteudo: 'Ol equipe de suporte! Identificamos que na nota fiscal de servios emitida para SP a alquota saiu 5% em vez de 2%. Podem verificar?',
       tipoMensagem: 'Publico',
       dataHora: '2026-07-24T09:30:00.000Z',
     },
     {
       id: 'msg-2',
       chamadoId: 'tk-1001',
-      autorNome: 'Ana Clara (Nível 2)',
+      autorNome: 'Ana Clara (Nvel 2)',
       autorPapel: 'Suporte',
-      conteudo: 'Olá Carlos! Analisamos a parametrização e identificamos que o código do serviço no cadastro do item precisa de um ajuste na alíquota reduzida. Já estamos tratando.',
+      conteudo: 'Ol Carlos! Analisamos a parametrizao e identificamos que o cdigo do servio no cadastro do item precisa de um ajuste na alquota reduzida. J estamos tratando.',
       tipoMensagem: 'Publico',
       dataHora: '2026-07-24T10:15:00.000Z',
     },
@@ -73,13 +73,13 @@ export function useSuporte() {
       id: 'tl-2',
       chamadoId: 'tk-1001',
       dataHora: '2026-07-24T10:15:00.000Z',
-      tipoEvento: 'Atribuição',
+      tipoEvento: 'Atribuio',
       usuario: 'Ana Clara (Suporte)',
-      descricao: 'Chamado atribuído a Ana Clara. Primeira resposta registrada.',
+      descricao: 'Chamado atribudo a Ana Clara. Primeira resposta registrada.',
     },
   ]);
 
-  // Consumir coleções de Clientes, Produtos, Projetos, CS e Dev
+  // Consumir colees de Clientes, Produtos, Projetos, CS e Dev
   const { data: clientes } = useLocalStorageState<Cliente>('focus_clientes', []);
   const { data: produtos } = useLocalStorageState<ProdutoFocus>('focus_produtos', []);
   const { data: projetos } = useLocalStorageState<Projeto>('focus_projetos', []);
@@ -165,13 +165,13 @@ export function useSuporte() {
       id: `tl-${Date.now()}`,
       chamadoId,
       dataHora: new Date().toISOString(),
-      tipoEvento: 'Comentário',
+      tipoEvento: 'Comentrio',
       usuario: autorNome,
-      descricao: `Interação adicionada (${tipoMensagem}). Status: ${novoStatus || chamado.status}`,
+      descricao: `Interao adicionada (${tipoMensagem}). Status: ${novoStatus || chamado.status}`,
     });
   };
 
-  // CONVERTER CHAMADO EM TAREFA NO MÓDULO DESENVOLVIMENTO (INTEGRAÇÃO NATIVA SUPORTE -> DEV)
+  // CONVERTER CHAMADO EM TAREFA NO MDULO DESENVOLVIMENTO (INTEGRAO NATIVA SUPORTE -> DEV)
   const converterEmTarefaDev = (chamadoId: string, projetoIdTarget: string) => {
     const chamado = chamados.find((c) => c.id === chamadoId);
     if (!chamado) return;
@@ -182,16 +182,16 @@ export function useSuporte() {
     const taskId = `dev-from-tk-${Date.now()}`;
     const taskTitulo = `[Suporte ${chamado.numero}] ${chamado.titulo}`;
 
-    if (chamado.tipo === 'Bug' || chamado.tipo === 'Incidente' || chamado.tipo === 'Correção') {
-      // Cria Bug no Módulo Desenvolvimento
+    if (chamado.tipo === 'Bug' || chamado.tipo === 'Incidente' || chamado.tipo === 'Correo') {
+      // Cria Bug no Mdulo Desenvolvimento
       const newBug: BugItem = {
         id: taskId,
         projetoId: projetoIdTarget,
         titulo: taskTitulo,
-        descricao: `Oriundo do Chamado ${chamado.numero} (${chamado.clienteNome}). Descrição: ${chamado.descricao}`,
-        severidade: chamado.prioridade === 'Crítica' ? 'Crítico' : chamado.prioridade === 'Alta' ? 'Alto' : 'Médio',
+        descricao: `Oriundo do Chamado ${chamado.numero} (${chamado.clienteNome}). Descrio: ${chamado.descricao}`,
+        severidade: chamado.prioridade === 'Crtica' ? 'Crtico' : chamado.prioridade === 'Alta' ? 'Alto' : 'Mdio',
         prioridade: chamado.prioridade,
-        ambiente: 'Produção',
+        ambiente: 'Produo',
         responsavel: 'Dev Team',
         status: 'Aberto',
         createdAt: new Date().toISOString(),
@@ -204,7 +204,7 @@ export function useSuporte() {
         projetoId: projetoIdTarget,
         tipoItem: chamado.tipo === 'Nova Funcionalidade' ? 'Funcionalidade' : 'Melhoria',
         titulo: taskTitulo,
-        descricao: `Solicitação do cliente ${chamado.clienteNome} via Chamado ${chamado.numero}. ${chamado.descricao}`,
+        descricao: `Solicitao do cliente ${chamado.clienteNome} via Chamado ${chamado.numero}. ${chamado.descricao}`,
         prioridade: chamado.prioridade,
         status: 'Backlog',
         responsavel: 'Product Owner',
@@ -214,7 +214,7 @@ export function useSuporte() {
       addDevBacklogItem(newBacklog);
     }
 
-    // Atualiza Chamado com vínculo direto
+    // Atualiza Chamado com vnculo direto
     updateChamado(chamadoId, {
       status: 'Em Desenvolvimento',
       devTaskId: taskId,
@@ -230,7 +230,7 @@ export function useSuporte() {
       dataHora: new Date().toISOString(),
       tipoEvento: 'DevSync',
       usuario: 'Suporte Integration',
-      descricao: `Demanda de engenharia criada no módulo Desenvolvimento (Task ID: ${taskId}) para o projeto ${projNome}`,
+      descricao: `Demanda de engenharia criada no mdulo Desenvolvimento (Task ID: ${taskId}) para o projeto ${projNome}`,
     });
   };
 

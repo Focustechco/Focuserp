@@ -39,13 +39,13 @@ export function ClickUpConfigView() {
 
   return (
     <div className="space-y-6 animate-fade-in pt-2">
-      {/* SEÇÃO CONEXÃO API REAL CLICKUP */}
+      {/* SEO CONEXO API REAL CLICKUP */}
       <Card className="border-2 border-primary/20 shadow-md">
         <CardHeader className="border-b pb-4">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <div>
               <CardTitle className="text-base flex items-center gap-2">
-                <Key className="w-5 h-5 text-orange-500" /> Conexão Oficial da Conta ClickUp (REST API v2)
+                <Key className="w-5 h-5 text-orange-500" /> Conexo Oficial da Conta ClickUp (REST API v2)
               </CardTitle>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Conecte a API real da sua empresa para importar e sincronizar tarefas, leads e oportunidades bidirecionalmente em tempo real.
@@ -70,7 +70,7 @@ export function ClickUpConfigView() {
           <form onSubmit={handleConnectRealClickUp} className="space-y-4">
             <div className="p-3 border rounded-lg bg-muted/40 space-y-2">
               <Label className="font-bold text-foreground flex items-center gap-1.5">
-                <Key className="w-4 h-4 text-orange-500" /> ClickUp Personal API Token (Obrigatório) *
+                <Key className="w-4 h-4 text-orange-500" /> ClickUp Personal API Token (Obrigatrio) *
               </Label>
               <Input 
                 type="password" 
@@ -80,7 +80,7 @@ export function ClickUpConfigView() {
                 className="font-mono text-xs bg-background"
               />
               <p className="text-[11px] text-muted-foreground">
-                Para obter seu token: Acesse <strong>ClickUp → Settings → Apps → Personal API Token</strong> e clique em <em>Generate</em>.
+                Para obter seu token: Acesse <strong>ClickUp  Settings  Apps  Personal API Token</strong> e clique em <em>Generate</em>.
               </p>
             </div>
 
@@ -93,7 +93,7 @@ export function ClickUpConfigView() {
                   onChange={e => setListId(e.target.value)} 
                   className="font-mono text-xs"
                 />
-                <p className="text-[10px] text-muted-foreground">Copie os números finais da URL da sua lista no ClickUp.</p>
+                <p className="text-[10px] text-muted-foreground">Copie os nmeros finais da URL da sua lista no ClickUp.</p>
               </div>
 
               <div className="space-y-2">
@@ -120,7 +120,7 @@ export function ClickUpConfigView() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-2 border-t">
               <div className="flex items-center gap-3">
                 <Switch defaultChecked={config.autoSync} />
-                <span className="font-semibold text-xs">Sincronização Bidirecional Automática Ativada</span>
+                <span className="font-semibold text-xs">Sincronizao Bidirecional Automtica Ativada</span>
               </div>
 
               <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -130,7 +130,7 @@ export function ClickUpConfigView() {
                   className="gap-2 bg-orange-600 hover:bg-orange-700 text-white text-xs w-full sm:w-auto"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${isLoadingClickUp ? 'animate-spin' : ''}`} />
-                  {isLoadingClickUp ? 'Testando Conexão...' : 'Testar & Salvar Conexão ClickUp'}
+                  {isLoadingClickUp ? 'Testando Conexo...' : 'Testar & Salvar Conexo ClickUp'}
                 </Button>
 
                 {config.statusConexao === 'Conectado ClickUp API' && (
@@ -159,7 +159,7 @@ export function ClickUpConfigView() {
         </CardHeader>
         <CardContent className="flex flex-wrap gap-3">
           <Button variant="outline" onClick={carregarDadosDemo} className="gap-2 text-xs">
-            <Layers className="w-3.5 h-3.5 text-blue-500" /> Carregar Dados de Demonstração (Mock Opcional)
+            <Layers className="w-3.5 h-3.5 text-blue-500" /> Carregar Dados de Demonstrao (Mock Opcional)
           </Button>
 
           <Button variant="outline" onClick={limparDadosCrm} className="gap-2 text-xs border-rose-500 text-rose-600 hover:bg-rose-50">
@@ -168,11 +168,11 @@ export function ClickUpConfigView() {
         </CardContent>
       </Card>
 
-      {/* SEÇÃO LOGS DE AUDITORIA DO CLICKUP */}
+      {/* SEO LOGS DE AUDITORIA DO CLICKUP */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-emerald-500" /> Log de Auditoria & Conexão ClickUp API
+            <ShieldCheck className="w-5 h-5 text-emerald-500" /> Log de Auditoria & Conexo ClickUp API
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -180,10 +180,10 @@ export function ClickUpConfigView() {
             <table className="w-full">
               <thead className="bg-muted/50 border-b text-left">
                 <tr>
-                  <th className="p-3">Horário</th>
+                  <th className="p-3">Horrio</th>
                   <th className="p-3">ClickUp Task / API</th>
                   <th className="p-3">Entidade</th>
-                  <th className="p-3">Ação Executada</th>
+                  <th className="p-3">Ao Executada</th>
                   <th className="p-3">Status</th>
                   <th className="p-3 text-right">Mensagem de Retorno</th>
                 </tr>
@@ -191,7 +191,7 @@ export function ClickUpConfigView() {
               <tbody>
                 {syncLogs.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="p-4 text-center text-muted-foreground">Nenhum evento registrado no log até o momento.</td>
+                    <td colSpan={6} className="p-4 text-center text-muted-foreground">Nenhum evento registrado no log at o momento.</td>
                   </tr>
                 ) : (
                   syncLogs.map(log => (

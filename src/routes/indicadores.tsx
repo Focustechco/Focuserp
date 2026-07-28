@@ -1,4 +1,4 @@
-﻿import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { VisaoGeralTab } from "@/features/indicadores/components/VisaoGeralTab";
 import { MetricasSaaSTab } from "@/features/indicadores/components/MetricasSaaSTab";
@@ -19,9 +19,9 @@ function IndicadoresPage() {
           <LineChart className="w-6 h-6 text-primary" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Indicadores EstratÃ©gicos (KPIs)</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Indicadores Estratégicos (KPIs)</h1>
           <p className="text-muted-foreground mt-1">
-            Centro de inteligÃªncia gerencial e performance da operaÃ§Ã£o.
+            Centro de inteligência gerencial e performance da operação.
           </p>
         </div>
       </div>
@@ -42,7 +42,7 @@ function IndicadoresPage() {
               <Users className="w-4 h-4" /> Clientes
             </TabsTrigger>
             <TabsTrigger value="dashboard" className="gap-2 flex-1 min-w-[200px]">
-              <Activity className="w-4 h-4" /> VisÃ£o Global (C-Level)
+              <Activity className="w-4 h-4" /> Visão Global (C-Level)
             </TabsTrigger>
           </TabsList>
         </div>

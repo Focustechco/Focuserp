@@ -13,20 +13,20 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useNotificacoesStore } from '../useNotificacoesStore';
 import { Notificacao, NotificationCategory, NotificationPriority, NotificationType } from '../types';
 
-// Utilitário para formatar tempo decorrido
+// Utilitrio para formatar tempo decorrido
 function formatTimeAgo(isoString: string): string {
   try {
     const diff = Math.floor((Date.now() - new Date(isoString).getTime()) / 1000);
     if (diff < 60) return 'agora';
-    if (diff < 3600) return `há ${Math.floor(diff / 60)} min`;
-    if (diff < 86400) return `há ${Math.floor(diff / 3600)}h`;
-    return `há ${Math.floor(diff / 86400)}d`;
+    if (diff < 3600) return `h ${Math.floor(diff / 60)} min`;
+    if (diff < 86400) return `h ${Math.floor(diff / 3600)}h`;
+    return `h ${Math.floor(diff / 86400)}d`;
   } catch {
     return 'recentemente';
   }
 }
 
-// Retorna o ícone apropriado por categoria
+// Retorna o cone apropriado por categoria
 function getCategoryIcon(categoria: NotificationCategory) {
   switch (categoria) {
     case 'Projetos': return <Briefcase className="w-4 h-4 text-blue-500" />;
@@ -84,7 +84,7 @@ export function NotificationBellDropdown() {
           variant="ghost" 
           size="icon" 
           className={`relative transition-all duration-300 ${hasNewArrival ? 'animate-bounce text-primary' : ''}`}
-          title="Notificações do Focus ERP"
+          title="Notificaes do Focus ERP"
         >
           <Bell className="h-4 w-4" />
           {naoLidasCount > 0 && (
@@ -98,7 +98,7 @@ export function NotificationBellDropdown() {
       <PopoverContent align="end" className="w-[380px] sm:w-[420px] p-0 shadow-2xl border">
         <div className="flex items-center justify-between border-b px-4 py-3 bg-muted/30">
           <div className="flex items-center gap-2">
-            <h3 className="font-semibold text-sm">Notificações</h3>
+            <h3 className="font-semibold text-sm">Notificaes</h3>
             {naoLidasCount > 0 && (
               <Badge variant="secondary" className="text-xs bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300">
                 {naoLidasCount} nova{naoLidasCount > 1 ? 's' : ''}
@@ -122,7 +122,7 @@ export function NotificationBellDropdown() {
               size="icon" 
               className="h-7 w-7" 
               onClick={() => { navigate({ to: '/configuracoes' }); setOpen(false); }}
-              title="Preferências de Notificações"
+              title="Preferncias de Notificaes"
             >
               <Settings className="w-3.5 h-3.5 text-muted-foreground" />
             </Button>
@@ -136,7 +136,7 @@ export function NotificationBellDropdown() {
                 Todas ({notificacoes.length})
               </TabsTrigger>
               <TabsTrigger value="naoLidas" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-8 text-xs px-1">
-                Não Lidas ({notificacoesNaoLidas.length})
+                No Lidas ({notificacoesNaoLidas.length})
               </TabsTrigger>
             </TabsList>
           </div>
@@ -147,7 +147,7 @@ export function NotificationBellDropdown() {
               {notificacoes.length === 0 ? (
                 <div className="p-8 text-center text-muted-foreground space-y-2">
                   <Bell className="w-8 h-8 opacity-20 mx-auto" />
-                  <p className="text-xs font-medium">Nenhuma notificação no momento.</p>
+                  <p className="text-xs font-medium">Nenhuma notificao no momento.</p>
                 </div>
               ) : (
                 <div className="divide-y">
@@ -174,7 +174,7 @@ export function NotificationBellDropdown() {
                         </p>
                         <div className="flex items-center gap-2 pt-1">
                           <span className="text-[10px] font-medium text-muted-foreground/80">{notif.origem}</span>
-                          <span className="text-muted-foreground/30">•</span>
+                          <span className="text-muted-foreground/30">"</span>
                           {getPriorityBadge(notif.prioridade)}
                           {!notif.lida && (
                             <span className="w-1.5 h-1.5 rounded-full bg-blue-600 ml-auto" />
@@ -211,13 +211,13 @@ export function NotificationBellDropdown() {
             </ScrollArea>
           </TabsContent>
 
-          {/* ABA NÃO LIDAS */}
+          {/* ABA NO LIDAS */}
           <TabsContent value="naoLidas" className="m-0">
             <ScrollArea className="h-[360px]">
               {notificacoesNaoLidas.length === 0 ? (
                 <div className="p-8 text-center text-muted-foreground space-y-2">
                   <CheckCircle2 className="w-8 h-8 text-emerald-500/30 mx-auto" />
-                  <p className="text-xs font-medium">Todas as notificações foram lidas!</p>
+                  <p className="text-xs font-medium">Todas as notificaes foram lidas!</p>
                 </div>
               ) : (
                 <div className="divide-y">
@@ -244,7 +244,7 @@ export function NotificationBellDropdown() {
                         </p>
                         <div className="flex items-center gap-2 pt-1">
                           <span className="text-[10px] font-medium">{notif.origem}</span>
-                          <span className="text-muted-foreground/30">•</span>
+                          <span className="text-muted-foreground/30">"</span>
                           {getPriorityBadge(notif.prioridade)}
                         </div>
                       </div>
@@ -263,7 +263,7 @@ export function NotificationBellDropdown() {
             className="w-full text-xs font-semibold text-primary hover:text-primary/90 h-8"
             onClick={() => { navigate({ to: '/notificacoes' }); setOpen(false); }}
           >
-            Ver Todas as Notificações <ExternalLink className="w-3.5 h-3.5 ml-1.5" />
+            Ver Todas as Notificaes <ExternalLink className="w-3.5 h-3.5 ml-1.5" />
           </Button>
         </div>
       </PopoverContent>

@@ -36,7 +36,7 @@ export function MetasOkrsView() {
       titulo: novaMeta.titulo || 'Nova Meta',
       aplicadaA: novaMeta.aplicadaA || 'Equipe',
       valorMetaR$: Number(novaMeta.valorMetaR$) || 0,
-      periodo: novaMeta.periodo || 'Mês Atual',
+      periodo: novaMeta.periodo || 'Ms Atual',
     } as MetaComercial);
     setOpenMeta(false);
   };
@@ -56,7 +56,7 @@ export function MetasOkrsView() {
 
   return (
     <div className="space-y-6 animate-fade-in pt-2">
-      {/* SEÇÃO 1: METAS COMERCIAIS */}
+      {/* SEO 1: METAS COMERCIAIS */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-base flex items-center gap-2">
@@ -71,7 +71,7 @@ export function MetasOkrsView() {
               <form onSubmit={handleAddMeta} className="space-y-4 pt-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2 col-span-2">
-                    <Label>Título da Meta</Label>
+                    <Label>Ttulo da Meta</Label>
                     <Input required value={novaMeta.titulo || ''} onChange={e => setNovaMeta({...novaMeta, titulo: e.target.value})} />
                   </div>
                   <div className="space-y-2">
@@ -99,11 +99,11 @@ export function MetasOkrsView() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Aplicada A (Responsável/Equipe)</Label>
+                    <Label>Aplicada A (Responsvel/Equipe)</Label>
                     <Input required value={novaMeta.aplicadaA || ''} onChange={e => setNovaMeta({...novaMeta, aplicadaA: e.target.value})} />
                   </div>
                   <div className="space-y-2">
-                    <Label>Período (Ex: Q1 2026)</Label>
+                    <Label>Perodo (Ex: Q1 2026)</Label>
                     <Input required value={novaMeta.periodo || ''} onChange={e => setNovaMeta({...novaMeta, periodo: e.target.value})} />
                   </div>
                   <div className="space-y-2">
@@ -165,7 +165,7 @@ export function MetasOkrsView() {
         </CardContent>
       </Card>
 
-      {/* SEÇÃO 2: OKRs COMERCIAIS */}
+      {/* SEO 2: OKRs COMERCIAIS */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-base flex items-center gap-2">
@@ -188,11 +188,11 @@ export function MetasOkrsView() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Responsável</Label>
+                    <Label>Responsvel</Label>
                     <Input required value={novoOkr.responsavel || ''} onChange={e => setNovoOkr({...novoOkr, responsavel: e.target.value})} />
                   </div>
                   <div className="space-y-2">
-                    <Label>Período</Label>
+                    <Label>Perodo</Label>
                     <Input required value={novoOkr.periodo || ''} onChange={e => setNovoOkr({...novoOkr, periodo: e.target.value})} />
                   </div>
                 </div>
@@ -216,11 +216,11 @@ export function MetasOkrsView() {
                       <span className="font-bold text-sm">{okr.objetivo}</span>
                     </div>
                     <p className="text-muted-foreground">Key Result: {okr.keyResult}</p>
-                    <p className="text-[10px] text-muted-foreground">Responsável: {okr.responsavel}</p>
+                    <p className="text-[10px] text-muted-foreground">Responsvel: {okr.responsavel}</p>
                   </div>
                   <div className="w-full md:w-48 space-y-1">
                     <div className="flex justify-between text-[11px]">
-                      <span>Conclusão:</span>
+                      <span>Concluso:</span>
                       <span className="font-bold">{okr.percentualConclusao}%</span>
                     </div>
                     <Progress value={okr.percentualConclusao} className="h-2" />

@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { createFileRoute } from "@tanstack/react-router";
 import { ConfiguracoesLayout } from "@/features/configuracoes/components/ConfiguracoesLayout";
 import { ConfigDashboard } from "@/features/configuracoes/components/ConfigDashboard";
@@ -29,9 +29,9 @@ function ConfiguracoesPage() {
           <Settings className="w-6 h-6 text-primary" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">ConfiguraÃ§Ãµes da Plataforma</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Configurações da Plataforma</h1>
           <p className="text-muted-foreground mt-1">
-            ParametrizaÃ§Ã£o global, seguranÃ§a, central de comunicaÃ§Ã£o e integraÃ§Ãµes.
+            Parametrização global, segurança, central de comunicação e integrações.
           </p>
         </div>
       </div>

@@ -45,11 +45,11 @@ export function ColaboradorSheet({ open, onOpenChange, colaboradorParaEditar }: 
   const [telefone, setTelefone] = useState('');
   const [emailCorporativo, setEmailCorporativo] = useState('');
 
-  // Método de Pagamento
+  // Mtodo de Pagamento
   const [formaPagamento, setFormaPagamento] = useState<FormaPagamentoRH>('PIX');
   const [tipoChavePix, setTipoChavePix] = useState('CPF');
   const [chavePix, setChavePix] = useState('');
-  const [banco, setBanco] = useState('Itaú Unibanco');
+  const [banco, setBanco] = useState('Ita Unibanco');
   const [agencia, setAgencia] = useState('');
   const [conta, setConta] = useState('');
   const [tipoConta, setTipoConta] = useState('Conta Corrente');
@@ -57,15 +57,15 @@ export function ColaboradorSheet({ open, onOpenChange, colaboradorParaEditar }: 
 
   // Aba Profissionais
   const [dataAdmissao, setDataAdmissao] = useState('');
-  const [tipoContrato, setTipoContrato] = useState<'CLT' | 'PJ' | 'Estágio' | 'Jovem Aprendiz' | 'Freelancer'>('CLT');
+  const [tipoContrato, setTipoContrato] = useState<'CLT' | 'PJ' | 'Estgio' | 'Jovem Aprendiz' | 'Freelancer'>('CLT');
   const [cargo, setCargo] = useState('');
   const [departamento, setDepartamento] = useState('Tecnologia');
   const [centroCusto, setCentroCusto] = useState('');
   const [gestorImediatoNome, setGestorImediatoNome] = useState('Adriano Leal');
-  const [regime, setRegime] = useState<'Presencial' | 'Híbrido' | 'Remoto'>('Presencial');
+  const [regime, setRegime] = useState<'Presencial' | 'Hbrido' | 'Remoto'>('Presencial');
   const [salarioBase, setSalarioBase] = useState('7500');
-  const [jornadaTrabalho, setJornadaTrabalho] = useState('Seg a Sex 09:00 às 18:00');
-  const [status, setStatus] = useState<'Ativo' | 'Inativo' | 'Férias' | 'Afastado' | 'Em Experiência'>('Ativo');
+  const [jornadaTrabalho, setJornadaTrabalho] = useState('Seg a Sex 09:00 s 18:00');
+  const [status, setStatus] = useState<'Ativo' | 'Inativo' | 'Frias' | 'Afastado' | 'Em Experincia'>('Ativo');
 
   // Aba Documentos
   const [documentos, setDocumentos] = useState<DocumentoAnexoRh[]>([]);
@@ -88,7 +88,7 @@ export function ColaboradorSheet({ open, onOpenChange, colaboradorParaEditar }: 
       setFormaPagamento(colaboradorParaEditar.metodoPagamento?.formaPagamento || 'PIX');
       setTipoChavePix(colaboradorParaEditar.metodoPagamento?.tipoChavePix || 'CPF');
       setChavePix(colaboradorParaEditar.metodoPagamento?.chavePix || '');
-      setBanco(colaboradorParaEditar.metodoPagamento?.banco || 'Itaú Unibanco');
+      setBanco(colaboradorParaEditar.metodoPagamento?.banco || 'Ita Unibanco');
       setAgencia(colaboradorParaEditar.metodoPagamento?.agencia || '');
       setConta(colaboradorParaEditar.metodoPagamento?.conta || '');
       setTipoConta(colaboradorParaEditar.metodoPagamento?.tipoConta || 'Conta Corrente');
@@ -123,7 +123,7 @@ export function ColaboradorSheet({ open, onOpenChange, colaboradorParaEditar }: 
     }
   }, [colaboradorParaEditar, open]);
 
-  // SALVAMENTO GARANTIDO COM INTEGRAÇÃO DMS E SUPORTE A FOTO
+  // SALVAMENTO GARANTIDO COM INTEGRAO DMS E SUPORTE A FOTO
   const handleSave = () => {
     if (!nomeCompleto.trim()) {
       toast.error("Por favor, preencha o Nome Completo do colaborador.");
@@ -137,7 +137,7 @@ export function ColaboradorSheet({ open, onOpenChange, colaboradorParaEditar }: 
     const colabNome = nomeCompleto.trim();
     const emailFinal = emailCorporativo.trim() || `${colabNome.toLowerCase().replace(/\s+/g, '.')}@focustecnologia.com.br`;
 
-    // Integração com Pasta DMS /RH/{NomeColaborador}
+    // Integrao com Pasta DMS /RH/{NomeColaborador}
     const caminhoDmsEsperado = `/RH/${colabNome}`;
     let pastaRhColab = pastas.find(p => p.caminhoCompleto === caminhoDmsEsperado || p.nome === colabNome);
 
@@ -187,13 +187,13 @@ export function ColaboradorSheet({ open, onOpenChange, colaboradorParaEditar }: 
       tipoContrato: tipoContrato || 'CLT',
       regime: regime || 'Presencial',
       salarioBase: salarioBase ? parseFloat(salarioBase) : 7500,
-      jornadaTrabalho: jornadaTrabalho || 'Seg a Sex 09:00 às 18:00',
+      jornadaTrabalho: jornadaTrabalho || 'Seg a Sex 09:00 s 18:00',
       status: status || 'Ativo',
       metodoPagamento: {
         formaPagamento,
         tipoChavePix: formaPagamento === 'PIX' ? (tipoChavePix as any) : undefined,
         chavePix: formaPagamento === 'PIX' ? (chavePix.trim() || cpf.trim()) : undefined,
-        banco: banco.trim() || 'Itaú Unibanco',
+        banco: banco.trim() || 'Ita Unibanco',
         agencia: agencia.trim(),
         conta: conta.trim(),
         tipoConta: tipoConta as any,
@@ -210,7 +210,7 @@ export function ColaboradorSheet({ open, onOpenChange, colaboradorParaEditar }: 
       toast.success(`Colaborador "${colabNome}" criado com sucesso! Pasta no DMS gerada em /RH/${colabNome}.`);
     }
 
-    // Disparar Notificação Real
+    // Disparar Notificao Real
     notificar({
       titulo: `Novo Colaborador no RH: ${novoColab.nomeCompleto}`,
       descricao: `Perfil de ${novoColab.cargo} registrado em ${novoColab.departamento}. Pasta DMS criada em /RH/${novoColab.nomeCompleto}.`,
@@ -218,7 +218,7 @@ export function ColaboradorSheet({ open, onOpenChange, colaboradorParaEditar }: 
       tipo: 'Sucesso',
       prioridade: 'Alta',
       targetUrl: '/rh',
-      usuarioDestino: gestorImediatoNome || 'Você'
+      usuarioDestino: gestorImediatoNome || 'Voc'
     });
 
     onOpenChange(false);
@@ -235,7 +235,7 @@ export function ColaboradorSheet({ open, onOpenChange, colaboradorParaEditar }: 
               {colaboradorParaEditar ? `Editar Perfil de ${colaboradorParaEditar.nomeCompleto}` : 'Novo Colaborador RH'}
             </SheetTitle>
             <SheetDescription>
-              Gestão do colaborador, foto de perfil, método de pagamento e arquivos no DMS.
+              Gesto do colaborador, foto de perfil, mtodo de pagamento e arquivos no DMS.
             </SheetDescription>
           </SheetHeader>
         </div>
@@ -246,10 +246,10 @@ export function ColaboradorSheet({ open, onOpenChange, colaboradorParaEditar }: 
               <TabsTrigger value="pessoais" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-2 pb-2.5 pt-0 gap-2"><User className="w-4 h-4" /> Pessoais & Pagamento</TabsTrigger>
               <TabsTrigger value="profissionais" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-2 pb-2.5 pt-0 gap-2"><Briefcase className="w-4 h-4" /> Profissionais</TabsTrigger>
               <TabsTrigger value="documentos" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-2 pb-2.5 pt-0 gap-2"><FileText className="w-4 h-4" /> Documentos ({documentos.length})</TabsTrigger>
-              <TabsTrigger value="beneficios" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-2 pb-2.5 pt-0 gap-2"><HeartPulse className="w-4 h-4" /> Benefícios</TabsTrigger>
-              <TabsTrigger value="ferias" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-2 pb-2.5 pt-0 gap-2"><Palmtree className="w-4 h-4" /> Férias</TabsTrigger>
+              <TabsTrigger value="beneficios" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-2 pb-2.5 pt-0 gap-2"><HeartPulse className="w-4 h-4" /> Benefcios</TabsTrigger>
+              <TabsTrigger value="ferias" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-2 pb-2.5 pt-0 gap-2"><Palmtree className="w-4 h-4" /> Frias</TabsTrigger>
               <TabsTrigger value="treinamentos" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-2 pb-2.5 pt-0 gap-2"><GraduationCap className="w-4 h-4" /> Treinamentos</TabsTrigger>
-              <TabsTrigger value="avaliacoes" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-2 pb-2.5 pt-0 gap-2"><Target className="w-4 h-4" /> Avaliações</TabsTrigger>
+              <TabsTrigger value="avaliacoes" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-2 pb-2.5 pt-0 gap-2"><Target className="w-4 h-4" /> Avaliaes</TabsTrigger>
               <TabsTrigger value="equipamentos" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-2 pb-2.5 pt-0 gap-2"><Laptop className="w-4 h-4" /> Equipamentos</TabsTrigger>
             </TabsList>
           </div>

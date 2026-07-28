@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dashboard } from "@/features/agenda/components/Dashboard";
@@ -27,7 +27,7 @@ function AgendaPage() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Agenda Financeira</h1>
             <p className="text-muted-foreground mt-1">
-              CalendÃ¡rio inteligente agregando TÃ­tulos, Projetos, Contratos e Impostos automaticamente.
+              Calendário inteligente agregando Títulos, Projetos, Contratos e Impostos automaticamente.
             </p>
           </div>
         </div>
@@ -46,7 +46,7 @@ function AgendaPage() {
               <LayoutList className="w-4 h-4" /> Lista / Timeline
             </TabsTrigger>
             <TabsTrigger value="mensal" className="gap-2 text-primary font-medium">
-              <Calendar className="w-4 h-4" /> CalendÃ¡rio Mensal
+              <Calendar className="w-4 h-4" /> Calendário Mensal
             </TabsTrigger>
             <TabsTrigger value="dashboard" className="gap-2">
               <MapPin className="w-4 h-4" /> Dashboard

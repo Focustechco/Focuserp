@@ -94,7 +94,7 @@ export function EquipamentosView() {
     dataAquisicao: new Date().toISOString().split('T')[0],
     valorCompra: 8500,
     garantiaMeses: 24,
-    situacao: 'Disponível' as SituacaoEquipamento,
+    situacao: 'Disponvel' as SituacaoEquipamento,
     departamento: 'Engenharia de Software',
     colaboradorNome: '',
     localFisica: 'Estoque Central TI',
@@ -118,18 +118,18 @@ export function EquipamentosView() {
     conexoes: 'HDMI, DisplayPort, USB-C',
   });
 
-  // Form State: Transferência
+  // Form State: Transferncia
   const [transfForm, setTransfForm] = useState({
     novoResponsavel: '',
     novoDepartamento: 'Engenharia de Software',
-    novaLocalizacao: 'Estação de Trabalho / Home Office',
-    observacao: 'Troca de responsável de equipamento.',
+    novaLocalizacao: 'Estao de Trabalho / Home Office',
+    observacao: 'Troca de responsvel de equipamento.',
   });
 
-  // Form State: Manutenção
+  // Form State: Manuteno
   const [manutForm, setManutForm] = useState({
     tipo: 'Preventiva' as 'Preventiva' | 'Corretiva' | 'Upgrade' | 'Troca',
-    descricao: 'Limpeza física interna e substituição de pasta térmica.',
+    descricao: 'Limpeza fsica interna e substituio de pasta trmica.',
     valor: 150,
     responsavel: 'Suporte Interno TI',
   });
@@ -257,7 +257,7 @@ export function EquipamentosView() {
         <div>
           <h2 className="text-xl font-bold tracking-tight text-foreground">Equipamentos & Hardware ITAM</h2>
           <p className="text-xs text-muted-foreground">
-            Cadastro centralizado de ativos físicos, atribuições a colaboradores e histórico de ciclo de vida
+            Cadastro centralizado de ativos fsicos, atribuies a colaboradores e histrico de ciclo de vida
           </p>
         </div>
         <Button onClick={() => setIsNovoModalOpen(true)} className="gap-2 text-xs">
@@ -271,7 +271,7 @@ export function EquipamentosView() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar por código patrimonial, marca, modelo, serial ou responsável..."
+              placeholder="Buscar por cdigo patrimonial, marca, modelo, serial ou responsvel..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9 text-xs"
@@ -295,13 +295,13 @@ export function EquipamentosView() {
           <div className="w-full md:w-40">
             <Select value={situacaoFilter} onValueChange={setSituacaoFilter}>
               <SelectTrigger className="text-xs">
-                <SelectValue placeholder="Situação" />
+                <SelectValue placeholder="Situao" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="todos">Todas Situações</SelectItem>
+                <SelectItem value="todos">Todas Situaes</SelectItem>
                 <SelectItem value="Em Uso">Em Uso</SelectItem>
-                <SelectItem value="Disponível">Disponível</SelectItem>
-                <SelectItem value="Manutenção">Manutenção</SelectItem>
+                <SelectItem value="Disponvel">Disponvel</SelectItem>
+                <SelectItem value="Manuteno">Manuteno</SelectItem>
                 <SelectItem value="Baixa">Baixa</SelectItem>
               </SelectContent>
             </Select>
@@ -320,13 +320,13 @@ export function EquipamentosView() {
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
-                <TableHead className="text-xs">Patrimônio / Dispositivo</TableHead>
+                <TableHead className="text-xs">Patrimnio / Dispositivo</TableHead>
                 <TableHead className="text-xs">Categoria</TableHead>
-                <TableHead className="text-xs">Responsável / Setor</TableHead>
-                <TableHead className="text-xs">Especificações / Serial</TableHead>
+                <TableHead className="text-xs">Responsvel / Setor</TableHead>
+                <TableHead className="text-xs">Especificaes / Serial</TableHead>
                 <TableHead className="text-xs">Valor / Garantia</TableHead>
-                <TableHead className="text-xs">Situação</TableHead>
-                <TableHead className="text-xs text-right">Ações</TableHead>
+                <TableHead className="text-xs">Situao</TableHead>
+                <TableHead className="text-xs text-right">Aes</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -409,14 +409,14 @@ export function EquipamentosView() {
                           Em Uso
                         </Badge>
                       )}
-                      {eq.situacao === 'Disponível' && (
+                      {eq.situacao === 'Disponvel' && (
                         <Badge variant="outline" className="text-[10px] bg-blue-500/10 text-blue-600 border-blue-500/30">
-                          Disponível
+                          Disponvel
                         </Badge>
                       )}
-                      {eq.situacao === 'Manutenção' && (
+                      {eq.situacao === 'Manuteno' && (
                         <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-600 border-amber-500/30">
-                          Manutenção
+                          Manuteno
                         </Badge>
                       )}
                       {eq.situacao === 'Baixa' && (
@@ -428,19 +428,19 @@ export function EquipamentosView() {
 
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
-                        {/* Botão Transferir */}
+                        {/* Boto Transferir */}
                         <Button
                           variant="ghost"
                           size="sm"
                           className="h-7 text-xs gap-1"
-                          title="Transferir Responsável"
+                          title="Transferir Responsvel"
                           onClick={() => {
                             setSelectedEquipamento(eq);
                             setTransfForm({
                               novoResponsavel: eq.colaboradorNome || '',
                               novoDepartamento: eq.departamento || 'Engenharia de Software',
-                              novaLocalizacao: eq.localFisica || 'Estação de Trabalho',
-                              observacao: 'Mudança de titularidade.',
+                              novaLocalizacao: eq.localFisica || 'Estao de Trabalho',
+                              observacao: 'Mudana de titularidade.',
                             });
                             setIsTransferModalOpen(true);
                           }}
@@ -448,12 +448,12 @@ export function EquipamentosView() {
                           <ArrowRightLeft className="h-3.5 w-3.5 text-blue-600" />
                         </Button>
 
-                        {/* Botão Timeline */}
+                        {/* Boto Timeline */}
                         <Button
                           variant="ghost"
                           size="sm"
                           className="h-7 text-xs gap-1"
-                          title="Histórico / Timeline"
+                          title="Histrico / Timeline"
                           onClick={() => {
                             setSelectedEquipamento(eq);
                             setIsTimelineModalOpen(true);
@@ -462,12 +462,12 @@ export function EquipamentosView() {
                           <History className="h-3.5 w-3.5 text-indigo-600" />
                         </Button>
 
-                        {/* Botão Manutenção */}
+                        {/* Boto Manuteno */}
                         <Button
                           variant="ghost"
                           size="sm"
                           className="h-7 text-xs gap-1"
-                          title="Abrir Manutenção"
+                          title="Abrir Manuteno"
                           onClick={() => {
                             setSelectedEquipamento(eq);
                             setIsManutencaoModalOpen(true);
@@ -495,7 +495,7 @@ export function EquipamentosView() {
         </CardContent>
       </Card>
 
-      {/* MODAL: CADASTRO DE NOVO EQUIPAMENTO (COM CAMPOS DINÂMICOS CONFORME CATEGORIA) */}
+      {/* MODAL: CADASTRO DE NOVO EQUIPAMENTO (COM CAMPOS DINMICOS CONFORME CATEGORIA) */}
       <Dialog open={isNovoModalOpen} onOpenChange={setIsNovoModalOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -503,12 +503,12 @@ export function EquipamentosView() {
               <Laptop className="h-5 w-5 text-primary" /> Cadastrar Novo Equipamento Corporativo
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Preencha os dados gerais. O formulário exibirá automaticamente campos específicos conforme a Categoria (ex: Notebooks e Monitores).
+              Preencha os dados gerais. O formulrio exibir automaticamente campos especficos conforme a Categoria (ex: Notebooks e Monitores).
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleCreateEquipamento} className="space-y-4 py-2">
-            {/* SEÇÃO 1: DADOS GERAIS */}
+            {/* SEO 1: DADOS GERAIS */}
             <div className="border border-border/60 rounded-xl p-4 space-y-3 bg-muted/20">
               <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
                 <FileText className="h-3.5 w-3.5" /> Dados Gerais do Ativo
@@ -516,7 +516,7 @@ export function EquipamentosView() {
 
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1">
-                  <Label className="text-xs">Código Patrimonial *</Label>
+                  <Label className="text-xs">Cdigo Patrimonial *</Label>
                   <Input
                     required
                     value={novoForm.codigoPatrimonial}
@@ -566,7 +566,7 @@ export function EquipamentosView() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">Número de Série (S/N) *</Label>
+                  <Label className="text-xs">Nmero de Srie (S/N) *</Label>
                   <Input
                     required
                     placeholder="Ex: C02G1234MD6R"
@@ -579,7 +579,7 @@ export function EquipamentosView() {
 
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1">
-                  <Label className="text-xs">Data de Aquisição *</Label>
+                  <Label className="text-xs">Data de Aquisio *</Label>
                   <Input
                     type="date"
                     required
@@ -611,11 +611,11 @@ export function EquipamentosView() {
               </div>
             </div>
 
-            {/* SEÇÃO 2: CAMPOS DINÂMICOS SE CATEGORIA FOR NOTEBOOK */}
+            {/* SEO 2: CAMPOS DINMICOS SE CATEGORIA FOR NOTEBOOK */}
             {novoForm.categoria === 'Notebook' && (
               <div className="border border-blue-500/30 rounded-xl p-4 space-y-3 bg-blue-500/5">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
-                  <Cpu className="h-3.5 w-3.5" /> Especificações Técnicas de Notebook
+                  <Cpu className="h-3.5 w-3.5" /> Especificaes Tcnicas de Notebook
                 </h4>
 
                 <div className="grid grid-cols-3 gap-3">
@@ -629,7 +629,7 @@ export function EquipamentosView() {
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs">Memória RAM</Label>
+                    <Label className="text-xs">Memria RAM</Label>
                     <Input
                       placeholder="Ex: 32 GB DDR5"
                       value={novoForm.memoriaRam}
@@ -659,7 +659,7 @@ export function EquipamentosView() {
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs">Service Tag / Tag de Serviço</Label>
+                    <Label className="text-xs">Service Tag / Tag de Servio</Label>
                     <Input
                       placeholder="Ex: DELL-SERVICE-TAG"
                       value={novoForm.serviceTag}
@@ -668,7 +668,7 @@ export function EquipamentosView() {
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs">Endereço MAC Address</Label>
+                    <Label className="text-xs">Endereo MAC Address</Label>
                     <Input
                       placeholder="Ex: 00:1A:2B:3C:4D:5E"
                       value={novoForm.macAddress}
@@ -680,11 +680,11 @@ export function EquipamentosView() {
               </div>
             )}
 
-            {/* SEÇÃO 3: CAMPOS DINÂMICOS SE CATEGORIA FOR MONITOR */}
+            {/* SEO 3: CAMPOS DINMICOS SE CATEGORIA FOR MONITOR */}
             {novoForm.categoria === 'Monitor' && (
               <div className="border border-indigo-500/30 rounded-xl p-4 space-y-3 bg-indigo-500/5">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
-                  <Monitor className="h-3.5 w-3.5" /> Especificações de Display / Monitor
+                  <Monitor className="h-3.5 w-3.5" /> Especificaes de Display / Monitor
                 </h4>
 
                 <div className="grid grid-cols-4 gap-3">
@@ -698,7 +698,7 @@ export function EquipamentosView() {
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs">Resolução</Label>
+                    <Label className="text-xs">Resoluo</Label>
                     <Input
                       placeholder="Ex: 3840 x 2160 4K"
                       value={novoForm.resolucao}
@@ -716,7 +716,7 @@ export function EquipamentosView() {
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs">Conexões</Label>
+                    <Label className="text-xs">Conexes</Label>
                     <Input
                       placeholder="HDMI, DisplayPort, USB-C"
                       value={novoForm.conexoes}
@@ -728,15 +728,15 @@ export function EquipamentosView() {
               </div>
             )}
 
-            {/* SEÇÃO 4: ALOCAÇÃO E LOCALIZAÇÃO */}
+            {/* SEO 4: ALOCAO E LOCALIZAO */}
             <div className="border border-border/60 rounded-xl p-4 space-y-3 bg-muted/20">
               <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                <User className="h-3.5 w-3.5" /> Atribuição de Responsável e Localização
+                <User className="h-3.5 w-3.5" /> Atribuio de Responsvel e Localizao
               </h4>
 
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1">
-                  <Label className="text-xs">Colaborador Responsável</Label>
+                  <Label className="text-xs">Colaborador Responsvel</Label>
                   <Input
                     placeholder="Ex: Carlos Silva (Vazio = Estoque)"
                     value={novoForm.colaboradorNome}
@@ -754,9 +754,9 @@ export function EquipamentosView() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">Localização Física</Label>
+                  <Label className="text-xs">Localizao Fsica</Label>
                   <Input
-                    placeholder="Ex: Estação ENG-04 / Head Office"
+                    placeholder="Ex: Estao ENG-04 / Head Office"
                     value={novoForm.localFisica}
                     onChange={(e) => setNovoForm({ ...novoForm, localFisica: e.target.value })}
                     className="text-xs"
@@ -765,14 +765,14 @@ export function EquipamentosView() {
               </div>
             </div>
 
-            {/* INTEGRAÇÃO FINANCEIRA */}
+            {/* INTEGRAO FINANCEIRA */}
             <div className="flex items-center justify-between p-3 rounded-xl border border-primary/20 bg-primary/5">
               <div className="flex items-center gap-2">
                 <CreditCard className="h-4 w-4 text-primary" />
                 <div>
                   <h5 className="text-xs font-bold text-foreground">Vincular ao Financeiro (Contas a Pagar)</h5>
                   <p className="text-[10px] text-muted-foreground">
-                    Gerar registro de despesa no módulo Contas a Pagar automaticamente
+                    Gerar registro de despesa no mdulo Contas a Pagar automaticamente
                   </p>
                 </div>
               </div>
@@ -794,7 +794,7 @@ export function EquipamentosView() {
         </DialogContent>
       </Dialog>
 
-      {/* MODAL: TRANSFERÊNCIA DE EQUIPAMENTO */}
+      {/* MODAL: TRANSFERNCIA DE EQUIPAMENTO */}
       <Dialog open={isTransferModalOpen} onOpenChange={setIsTransferModalOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -802,13 +802,13 @@ export function EquipamentosView() {
               <ArrowRightLeft className="h-4 w-4 text-blue-600" /> Transferir Equipamento
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Altere o colaborador responsável, setor ou localização do equipamento {selectedEquipamento?.codigoPatrimonial}.
+              Altere o colaborador responsvel, setor ou localizao do equipamento {selectedEquipamento?.codigoPatrimonial}.
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleConfirmTransfer} className="space-y-3 py-2">
             <div className="space-y-1">
-              <Label className="text-xs">Novo Colaborador Responsável</Label>
+              <Label className="text-xs">Novo Colaborador Responsvel</Label>
               <Input
                 placeholder="Ex: Ana Souza (Deixe em branco para devolver ao Estoque)"
                 value={transfForm.novoResponsavel}
@@ -828,7 +828,7 @@ export function EquipamentosView() {
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs">Nova Localização Física *</Label>
+              <Label className="text-xs">Nova Localizao Fsica *</Label>
               <Input
                 required
                 value={transfForm.novaLocalizacao}
@@ -838,7 +838,7 @@ export function EquipamentosView() {
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs">Observações do Registro</Label>
+              <Label className="text-xs">Observaes do Registro</Label>
               <Textarea
                 rows={2}
                 value={transfForm.observacao}
@@ -852,14 +852,14 @@ export function EquipamentosView() {
                 Cancelar
               </Button>
               <Button type="submit" size="sm">
-                Confirmar Transferência
+                Confirmar Transferncia
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* MODAL: TIMELINE E HISTÓRICO COMPLETO DO EQUIPAMENTO */}
+      {/* MODAL: TIMELINE E HISTRICO COMPLETO DO EQUIPAMENTO */}
       <Dialog open={isTimelineModalOpen} onOpenChange={setIsTimelineModalOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
@@ -867,7 +867,7 @@ export function EquipamentosView() {
               <History className="h-5 w-5 text-indigo-600" /> Timeline do Equipamento
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Histórico rastreável desde a aquisição, movimentações, manutenções e trocas de responsável.
+              Histrico rastrevel desde a aquisio, movimentaes, manutenes e trocas de responsvel.
             </DialogDescription>
           </DialogHeader>
 
@@ -900,7 +900,7 @@ export function EquipamentosView() {
                       <p className="text-xs text-muted-foreground">{ev.descricao}</p>
                       {ev.responsavel && (
                         <span className="text-[10px] text-primary font-medium block">
-                          Responsável: {ev.responsavel}
+                          Responsvel: {ev.responsavel}
                         </span>
                       )}
                     </div>
@@ -920,12 +920,12 @@ export function EquipamentosView() {
         </DialogContent>
       </Dialog>
 
-      {/* MODAL: ABRIR MANUTENÇÃO */}
+      {/* MODAL: ABRIR MANUTENO */}
       <Dialog open={isManutencaoModalOpen} onOpenChange={setIsManutencaoModalOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="text-base font-bold flex items-center gap-2">
-              <Wrench className="h-4 w-4 text-amber-600" /> Abrir Ordem de Manutenção
+              <Wrench className="h-4 w-4 text-amber-600" /> Abrir Ordem de Manuteno
             </DialogTitle>
             <DialogDescription className="text-xs">
               Registre uma ordem preventiva, corretiva ou upgrade para o equipamento {selectedEquipamento?.codigoPatrimonial}.
@@ -934,7 +934,7 @@ export function EquipamentosView() {
 
           <form onSubmit={handleAbrirManutencaoSubmit} className="space-y-3 py-2">
             <div className="space-y-1">
-              <Label className="text-xs">Tipo de Manutenção *</Label>
+              <Label className="text-xs">Tipo de Manuteno *</Label>
               <Select
                 value={manutForm.tipo}
                 onValueChange={(val: any) => setManutForm({ ...manutForm, tipo: val })}
@@ -952,7 +952,7 @@ export function EquipamentosView() {
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs">Descrição dos Serviços *</Label>
+              <Label className="text-xs">Descrio dos Servios *</Label>
               <Textarea
                 required
                 rows={2}
@@ -975,10 +975,10 @@ export function EquipamentosView() {
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Técnico / Responsável *</Label>
+                <Label className="text-xs">Tcnico / Responsvel *</Label>
                 <Input
                   required
-                  placeholder="Ex: Assistência Autorizada Dell / Suporte Interno"
+                  placeholder="Ex: Assistncia Autorizada Dell / Suporte Interno"
                   value={manutForm.responsavel}
                   onChange={(e) => setManutForm({ ...manutForm, responsavel: e.target.value })}
                   className="text-xs"

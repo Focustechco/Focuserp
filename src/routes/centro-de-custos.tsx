@@ -1,4 +1,4 @@
-﻿import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dashboard } from "@/features/centro-de-custos/components/Dashboard";
 import { CentroCustosList } from "@/features/centro-de-custos/components/CentroCustosList";
@@ -13,7 +13,7 @@ function CentroCustosPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Centro de Custos</h1>
         <p className="text-muted-foreground mt-2">
-          Estrutura organizacional de classificaÃ§Ã£o financeira para receitas, despesas, departamentos e projetos.
+          Estrutura organizacional de classificação financeira para receitas, despesas, departamentos e projetos.
         </p>
       </div>
 
@@ -21,7 +21,7 @@ function CentroCustosPage() {
         <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
           
           <TabsTrigger value="lista">Explorar Estrutura</TabsTrigger>
-          <TabsTrigger value="dashboard">VisÃ£o Geral</TabsTrigger>
+          <TabsTrigger value="dashboard">Visão Geral</TabsTrigger>
         </TabsList>
         
         <TabsContent value="lista" className="space-y-4 outline-none">

@@ -48,7 +48,7 @@ export function SuporteScreen() {
             <Headphones className="h-8 w-8 text-primary" /> Suporte (Service Desk ITSM)
           </h1>
           <p className="text-muted-foreground mt-1 text-sm">
-            Central de suporte técnico, solicitações, incidentes, SLAs, base de conhecimento e integração com Desenvolvimento
+            Central de suporte tcnico, solicitaes, incidentes, SLAs, base de conhecimento e integrao com Desenvolvimento
           </p>
         </div>
       </div>
@@ -111,7 +111,7 @@ export function SuporteScreen() {
         </TabsContent>
       </Tabs>
 
-      {/* MODAL DE CRIAÇÃO */}
+      {/* MODAL DE CRIAO */}
       <NovoChamadoModal
         open={isNovoModalOpen}
         onOpenChange={setIsNovoModalOpen}

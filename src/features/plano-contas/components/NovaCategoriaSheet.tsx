@@ -89,7 +89,7 @@ export function NovaCategoriaSheet({ isOpen, onClose, categoriaParaEditar }: Nov
           </SheetHeader>
         </div>
 
-        {/* TABS E CONTEÚDO */}
+        {/* TABS E CONTEDO */}
         <div className="flex-1 overflow-hidden flex flex-col">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col w-full h-full">
             <div className="px-6 pt-4 border-b bg-background">
@@ -103,10 +103,10 @@ export function NovaCategoriaSheet({ isOpen, onClose, categoriaParaEditar }: Nov
                 {isEditing && (
                   <>
                     <TabsTrigger value="utilizacao" className="data-[state=active]:border-primary data-[state=active]:bg-transparent border-b-2 border-transparent rounded-none px-4 py-2">
-                      Utilização
+                      Utilizao
                     </TabsTrigger>
                     <TabsTrigger value="historico" className="data-[state=active]:border-primary data-[state=active]:bg-transparent border-b-2 border-transparent rounded-none px-4 py-2">
-                      Histórico
+                      Histrico
                     </TabsTrigger>
                   </>
                 )}
@@ -119,7 +119,7 @@ export function NovaCategoriaSheet({ isOpen, onClose, categoriaParaEditar }: Nov
               <TabsContent value="gerais" className="space-y-6 mt-0">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Código Contábil</Label>
+                    <Label>Cdigo Contbil</Label>
                     <Input placeholder="Ex: 2.1.3" value={codigo} onChange={e => setCodigo(e.target.value)} />
                     <p className="text-[11px] text-muted-foreground">Sugerido automaticamente pela Hierarquia.</p>
                   </div>
@@ -145,8 +145,8 @@ export function NovaCategoriaSheet({ isOpen, onClose, categoriaParaEditar }: Nov
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Receita">Receita (Entrada)</SelectItem>
-                        <SelectItem value="Despesa">Despesa (Saída)</SelectItem>
-                        <SelectItem value="Transferência">Transferência</SelectItem>
+                        <SelectItem value="Despesa">Despesa (Sada)</SelectItem>
+                        <SelectItem value="Transferncia">Transferncia</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -161,7 +161,7 @@ export function NovaCategoriaSheet({ isOpen, onClose, categoriaParaEditar }: Nov
                         <SelectItem value="Administrativa">Administrativa</SelectItem>
                         <SelectItem value="Comercial">Comercial</SelectItem>
                         <SelectItem value="Financeira">Financeira</SelectItem>
-                        <SelectItem value="Tributária">Tributária</SelectItem>
+                        <SelectItem value="Tributria">Tributria</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -169,7 +169,7 @@ export function NovaCategoriaSheet({ isOpen, onClose, categoriaParaEditar }: Nov
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Setor Responsável</Label>
+                    <Label>Setor Responsvel</Label>
                     <Select defaultValue={categoriaParaEditar?.setor || 'Geral'}>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione o Setor" />
@@ -186,7 +186,7 @@ export function NovaCategoriaSheet({ isOpen, onClose, categoriaParaEditar }: Nov
                     <Label>Centro de Custo (Opcional)</Label>
                     <Select>
                       <SelectTrigger>
-                        <SelectValue placeholder="Vincular CC padrão" />
+                        <SelectValue placeholder="Vincular CC padro" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="cc-01">Marketing Digital (CC-001)</SelectItem>
@@ -226,7 +226,7 @@ export function NovaCategoriaSheet({ isOpen, onClose, categoriaParaEditar }: Nov
                 </div>
 
                 <div className="border rounded-md p-4 bg-background">
-                  <Label className="text-muted-foreground">Preview da Estrutura Contábil</Label>
+                  <Label className="text-muted-foreground">Preview da Estrutura Contbil</Label>
                   <div className="mt-3 flex items-center gap-2 text-sm">
                     <span className="text-muted-foreground">2.0 Despesas</span>
                     <ArrowRight className="w-3 h-3 text-muted-foreground" />
@@ -237,16 +237,16 @@ export function NovaCategoriaSheet({ isOpen, onClose, categoriaParaEditar }: Nov
                 </div>
               </TabsContent>
 
-              {/* ABA: UTILIZAÇÃO (Somente Modo Edição) */}
+              {/* ABA: UTILIZAO (Somente Modo Edio) */}
               {isEditing && (
                 <TabsContent value="utilizacao" className="space-y-4 mt-0">
                   <div className="grid grid-cols-2 gap-4 mb-6">
                     <div className="border rounded-lg p-4 bg-background text-center shadow-sm">
-                      <p className="text-sm text-muted-foreground">Lançamentos Vinculados</p>
+                      <p className="text-sm text-muted-foreground">Lanamentos Vinculados</p>
                       <p className="text-2xl font-bold mt-1">{categoriaParaEditar?.qtdLancamentos || 0}</p>
                     </div>
                     <div className="border rounded-lg p-4 bg-background text-center shadow-sm">
-                      <p className="text-sm text-muted-foreground">Saldo Base Histórico</p>
+                      <p className="text-sm text-muted-foreground">Saldo Base Histrico</p>
                       <p className={`text-xl font-bold mt-1 ${categoriaParaEditar?.tipo === 'Receita' ? 'text-emerald-600' : 'text-rose-600'}`}>
                         R$ {(categoriaParaEditar?.saldoAcumuladoMensal || 0).toLocaleString('pt-BR')}
                       </p>
@@ -254,20 +254,20 @@ export function NovaCategoriaSheet({ isOpen, onClose, categoriaParaEditar }: Nov
                   </div>
 
                   <div className="bg-amber-50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-400 p-4 rounded-lg border border-amber-200 dark:border-amber-900 text-sm">
-                    <strong>Atenção:</strong> Como esta categoria possui {categoriaParaEditar?.qtdLancamentos} lançamentos financeiros, sua exclusão estrutural foi bloqueada pelo banco de dados. Você pode inativá-la na aba Dados Gerais para evitar novos lançamentos.
+                    <strong>Ateno:</strong> Como esta categoria possui {categoriaParaEditar?.qtdLancamentos} lanamentos financeiros, sua excluso estrutural foi bloqueada pelo banco de dados. Voc pode inativ-la na aba Dados Gerais para evitar novos lanamentos.
                   </div>
                 </TabsContent>
               )}
 
-              {/* ABA: HISTÓRICO (Somente Modo Edição) */}
+              {/* ABA: HISTRICO (Somente Modo Edio) */}
               {isEditing && (
                 <TabsContent value="historico" className="space-y-6 mt-0">
                   <div className="relative border-l-2 border-muted ml-3 space-y-6">
                     
                     <div className="relative pl-6">
                       <div className="absolute -left-[9px] top-1 bg-background border-2 border-primary w-4 h-4 rounded-full"></div>
-                      <p className="text-sm font-semibold">Alteração de Natureza</p>
-                      <p className="text-xs text-muted-foreground">Ontem às 14:32 por Maria Controller</p>
+                      <p className="text-sm font-semibold">Alterao de Natureza</p>
+                      <p className="text-xs text-muted-foreground">Ontem s 14:32 por Maria Controller</p>
                       <div className="mt-2 text-sm bg-background border rounded p-2 text-muted-foreground">
                         Mudou de <span className="line-through">Administrativa</span> para <span className="font-medium text-foreground">Operacional</span>.
                       </div>
@@ -276,7 +276,7 @@ export function NovaCategoriaSheet({ isOpen, onClose, categoriaParaEditar }: Nov
                     <div className="relative pl-6">
                       <div className="absolute -left-[9px] top-1 bg-background border-2 border-muted w-4 h-4 rounded-full"></div>
                       <p className="text-sm font-semibold">Cadastro da Categoria</p>
-                      <p className="text-xs text-muted-foreground">Há 4 meses por Sistema Admin</p>
+                      <p className="text-xs text-muted-foreground">H 4 meses por Sistema Admin</p>
                     </div>
                     
                   </div>
@@ -291,7 +291,7 @@ export function NovaCategoriaSheet({ isOpen, onClose, categoriaParaEditar }: Nov
         <div className="p-6 border-t bg-background flex items-center justify-between">
           <Button variant="outline" onClick={onClose}>Cancelar Cadastro</Button>
           <Button className="gap-2" onClick={handleSave}>
-            <Save className="w-4 h-4" /> Salvar Definições
+            <Save className="w-4 h-4" /> Salvar Definies
           </Button>
         </div>
       </SheetContent>

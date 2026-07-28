@@ -1,4 +1,4 @@
-﻿import React, { useState } from "react";
+import React, { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ReportDashboard } from "@/features/relatorios/components/ReportDashboard";
@@ -18,7 +18,7 @@ function CentralRelatoriosPage() {
 
   return (
     <div className="flex flex-col gap-6 p-6 max-w-[1400px] mx-auto w-full animate-fade-in">
-      {/* CabeÃ§alho da Central de RelatÃ³rios */}
+      {/* Cabeçalho da Central de Relatórios */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-xl bg-orange-500/10 text-orange-600 flex items-center justify-center shadow-sm">
@@ -26,24 +26,24 @@ function CentralRelatoriosPage() {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-3xl font-bold tracking-tight">Central de RelatÃ³rios</h1>
+              <h1 className="text-3xl font-bold tracking-tight">Central de Relatórios</h1>
               <Badge variant="outline" className="border-orange-500/40 text-orange-600 font-semibold gap-1 bg-orange-50 dark:bg-orange-950/40">
                 <ShieldCheck className="w-3.5 h-3.5" /> Enterprise Reporting Engine
               </Badge>
             </div>
             <p className="text-muted-foreground mt-1 text-sm">
-              Mecanismo corporativo Ãºnico para geraÃ§Ã£o, padronizaÃ§Ã£o, agendamento e exportaÃ§Ã£o de documentos do Focus Finance.
+              Mecanismo corporativo único para geração, padronização, agendamento e exportação de documentos do Focus Finance.
             </p>
           </div>
         </div>
       </div>
 
-      {/* NavegaÃ§Ã£o por Abas Principais */}
+      {/* Navegação por Abas Principais */}
       <Tabs defaultValue="catalogo" className="space-y-6 mt-2" onValueChange={setActiveTab}>
         <div className="border-b pb-2">
           <TabsList className="bg-muted/50 p-1">
             <TabsTrigger value="catalogo" className="gap-2">
-              <FileSpreadsheet className="w-4 h-4" /> CatÃ¡logo de RelatÃ³rios
+              <FileSpreadsheet className="w-4 h-4" /> Catálogo de Relatórios
             </TabsTrigger>
             <TabsTrigger value="dashboard" className="gap-2">
               <LayoutGrid className="w-4 h-4" /> Dashboard Executivo
@@ -52,7 +52,7 @@ function CentralRelatoriosPage() {
               <Wand2 className="w-4 h-4" /> Gerador Wizard
             </TabsTrigger>
             <TabsTrigger value="historico" className="gap-2">
-              <Clock className="w-4 h-4" /> HistÃ³rico & Auditoria
+              <Clock className="w-4 h-4" /> Histórico & Auditoria
             </TabsTrigger>
             <TabsTrigger value="agendamentos" className="gap-2">
               <Calendar className="w-4 h-4" /> Agendamentos

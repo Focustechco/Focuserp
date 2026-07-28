@@ -51,10 +51,10 @@ export function CatalogoProdutos({ produtos, onSelectProduto, onAddProduto, onUp
         return <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 font-bold text-[10px]">Ativo</Badge>;
       case 'Em Desenvolvimento':
         return <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/30 font-bold text-[10px]">Em Desenvolvimento</Badge>;
-      case 'Em Implantação':
-        return <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/30 font-bold text-[10px]">Em Implantação</Badge>;
-      case 'Manutenção':
-        return <Badge className="bg-purple-500/10 text-purple-600 border-purple-500/30 font-bold text-[10px]">Manutenção</Badge>;
+      case 'Em Implantao':
+        return <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/30 font-bold text-[10px]">Em Implantao</Badge>;
+      case 'Manuteno':
+        return <Badge className="bg-purple-500/10 text-purple-600 border-purple-500/30 font-bold text-[10px]">Manuteno</Badge>;
       default:
         return <Badge variant="secondary" className="text-[10px]">Descontinuado</Badge>;
     }
@@ -69,7 +69,7 @@ export function CatalogoProdutos({ produtos, onSelectProduto, onAddProduto, onUp
             <div className="relative flex-1">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por produto, código ou tecnologia..."
+                placeholder="Buscar por produto, cdigo ou tecnologia..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-9 text-xs"
@@ -83,13 +83,13 @@ export function CatalogoProdutos({ produtos, onSelectProduto, onAddProduto, onUp
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todas Categorias</SelectItem>
-                  <SelectItem value="ERP & Gestão">ERP & Gestão</SelectItem>
+                  <SelectItem value="ERP & Gesto">ERP & Gesto</SelectItem>
                   <SelectItem value="CRM & Vendas">CRM & Vendas</SelectItem>
                   <SelectItem value="Business Intelligence">Business Intelligence</SelectItem>
                   <SelectItem value="Fintech & Pay">Fintech & Pay</SelectItem>
-                  <SelectItem value="Logística">Logística</SelectItem>
-                  <SelectItem value="Educação / EAD">Educação / EAD</SelectItem>
-                  <SelectItem value="Inovação & IA">Inovação & IA</SelectItem>
+                  <SelectItem value="Logstica">Logstica</SelectItem>
+                  <SelectItem value="Educao / EAD">Educao / EAD</SelectItem>
+                  <SelectItem value="Inovao & IA">Inovao & IA</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -103,7 +103,7 @@ export function CatalogoProdutos({ produtos, onSelectProduto, onAddProduto, onUp
                   <SelectItem value="todos">Todos os Status</SelectItem>
                   <SelectItem value="Ativo">Ativo</SelectItem>
                   <SelectItem value="Em Desenvolvimento">Em Desenvolvimento</SelectItem>
-                  <SelectItem value="Em Implantação">Em Implantação</SelectItem>
+                  <SelectItem value="Em Implantao">Em Implantao</SelectItem>
                   <SelectItem value="Descontinuado">Descontinuado</SelectItem>
                 </SelectContent>
               </Select>
@@ -111,7 +111,7 @@ export function CatalogoProdutos({ produtos, onSelectProduto, onAddProduto, onUp
           </div>
 
           <div className="flex items-center gap-3 shrink-0">
-            {/* CONTROLE DE MODO DE VISUALIZAÇÃO */}
+            {/* CONTROLE DE MODO DE VISUALIZAO */}
             <div className="flex items-center gap-1 bg-muted p-1 rounded-lg">
               <Button
                 variant={viewMode === 'cards' ? 'default' : 'ghost'}
@@ -149,14 +149,14 @@ export function CatalogoProdutos({ produtos, onSelectProduto, onAddProduto, onUp
         </CardContent>
       </Card>
 
-      {/* EXIBIÇÃO DE PRODUTOS */}
+      {/* EXIBIO DE PRODUTOS */}
       {filteredProdutos.length === 0 ? (
         <Card className="p-12 text-center border-dashed">
           <CardContent className="flex flex-col items-center justify-center gap-2">
             <Boxes className="h-10 w-10 text-muted-foreground/60" />
             <h3 className="text-base font-bold text-foreground">Nenhum produto encontrado</h3>
             <p className="text-xs text-muted-foreground max-w-sm">
-              Tente alterar os termos de pesquisa ou crie um novo produto no portfólio.
+              Tente alterar os termos de pesquisa ou crie um novo produto no portflio.
             </p>
             <Button onClick={() => setIsNovoModalOpen(true)} size="sm" className="mt-2 gap-1.5 text-xs">
               <Plus className="h-4 w-4" /> Cadastrar Produto
@@ -183,7 +183,7 @@ export function CatalogoProdutos({ produtos, onSelectProduto, onAddProduto, onUp
                   )}
                   {/* Status Badge overlay */}
                   <div className="absolute top-3 right-3">{getStatusBadge(produto.status)}</div>
-                  {/* Botão de Edição */}
+                  {/* Boto de Edio */}
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); setProdutoEditando(produto); }}
@@ -235,7 +235,7 @@ export function CatalogoProdutos({ produtos, onSelectProduto, onAddProduto, onUp
                     </div>
                     <div className="flex items-center gap-1.5 text-muted-foreground">
                       <Rocket className="h-3.5 w-3.5 text-blue-500" />
-                      <span className="font-semibold text-foreground">{(produto.funcionalidades || []).length}</span> Módulos
+                      <span className="font-semibold text-foreground">{(produto.funcionalidades || []).length}</span> Mdulos
                     </div>
                   </div>
                 </CardContent>
@@ -322,7 +322,7 @@ export function CatalogoProdutos({ produtos, onSelectProduto, onAddProduto, onUp
         onAddProduto={onAddProduto}
       />
 
-      {/* MODAL DE EDIÇÃO DE PRODUTO */}
+      {/* MODAL DE EDIO DE PRODUTO */}
       <EditarProdutoModal
         open={!!produtoEditando}
         onOpenChange={(open) => { if (!open) setProdutoEditando(null); }}

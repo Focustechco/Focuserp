@@ -26,7 +26,7 @@ interface AbaPessoaisProps {
   emailCorporativo: string;
   setEmailCorporativo: (val: string) => void;
   
-  // Método de Pagamento
+  // Mtodo de Pagamento
   formaPagamento: FormaPagamentoRH;
   setFormaPagamento: (val: FormaPagamentoRH) => void;
   tipoChavePix: string;
@@ -85,7 +85,7 @@ export function AbaPessoais({
   return (
     <div className="space-y-6 pt-4 animate-fade-in pb-8">
       
-      {/* Foto & Identificação com Upload Real */}
+      {/* Foto & Identificao com Upload Real */}
       <div className="flex items-center gap-6 pb-6 border-b">
         <div className="relative group cursor-pointer">
           <Avatar className="w-20 h-20 border-4 border-background shadow-md overflow-hidden">
@@ -95,7 +95,7 @@ export function AbaPessoais({
             </AvatarFallback>
           </Avatar>
           
-          {/* Botão de Camera com Input Transparente */}
+          {/* Boto de Camera com Input Transparente */}
           <div className="absolute -bottom-1 -right-1 rounded-full w-7 h-7 bg-orange-600 text-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform">
             <Camera className="w-3.5 h-3.5" />
           </div>
@@ -110,7 +110,7 @@ export function AbaPessoais({
         </div>
         <div>
           <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">Foto & Perfil do Colaborador</h3>
-          <p className="text-xs text-muted-foreground">Clique no ícone da câmera para enviar a foto de perfil do colaborador (JPG, PNG ou WEBP).</p>
+          <p className="text-xs text-muted-foreground">Clique no cone da cmera para enviar a foto de perfil do colaborador (JPG, PNG ou WEBP).</p>
         </div>
       </div>
 
@@ -175,14 +175,14 @@ export function AbaPessoais({
         </div>
       </div>
 
-      {/* SEÇÃO: MÉTODO DE PAGAMENTO DO COLABORADOR */}
+      {/* SEO: MTODO DE PAGAMENTO DO COLABORADOR */}
       <div className="pt-4 border-t space-y-4">
         <div className="flex items-center gap-2 text-primary font-bold text-sm">
           <CreditCard className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-          <span>Método de Pagamento do Colaborador</span>
+          <span>Mtodo de Pagamento do Colaborador</span>
         </div>
         <p className="text-xs text-muted-foreground -mt-2">
-          Defina como e onde o salário/remuneração do colaborador será depositado mensalmente.
+          Defina como e onde o salrio/remunerao do colaborador ser depositado mensalmente.
         </p>
 
         <div className="grid grid-cols-2 gap-4 text-xs bg-muted/20 p-4 rounded-xl border">
@@ -192,10 +192,10 @@ export function AbaPessoais({
             <Select value={formaPagamento} onValueChange={(v: any) => setFormaPagamento(v)}>
               <SelectTrigger><SelectValue placeholder="Selecione a forma" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="PIX">PIX (Transferência Instantânea)</SelectItem>
-                <SelectItem value="Transferência Bancária (TED/DOC)">Transferência Bancária (TED/DOC)</SelectItem>
-                <SelectItem value="Depósito em Conta">Depósito em Conta Corrente/Poupança</SelectItem>
-                <SelectItem value="Boleto">Boleto de Cobrança / PJ</SelectItem>
+                <SelectItem value="PIX">PIX (Transferncia Instantnea)</SelectItem>
+                <SelectItem value="Transferncia Bancria (TED/DOC)">Transferncia Bancria (TED/DOC)</SelectItem>
+                <SelectItem value="Depsito em Conta">Depsito em Conta Corrente/Poupana</SelectItem>
+                <SelectItem value="Boleto">Boleto de Cobrana / PJ</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -223,7 +223,7 @@ export function AbaPessoais({
                     <SelectItem value="CNPJ">CNPJ</SelectItem>
                     <SelectItem value="E-mail">E-mail</SelectItem>
                     <SelectItem value="Telefone">Telefone</SelectItem>
-                    <SelectItem value="Chave Aleatória">Chave Aleatória (EVP)</SelectItem>
+                    <SelectItem value="Chave Aleatria">Chave Aleatria (EVP)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -239,13 +239,13 @@ export function AbaPessoais({
             </>
           )}
 
-          {/* Dados Bancários */}
+          {/* Dados Bancrios */}
           <div className="col-span-2 sm:col-span-1 space-y-2">
             <Label className="font-semibold flex items-center gap-1">
-              <Building2 className="w-3.5 h-3.5 text-blue-500" /> Banco / Instituição Financeira
+              <Building2 className="w-3.5 h-3.5 text-blue-500" /> Banco / Instituio Financeira
             </Label>
             <Input 
-              placeholder="Ex: Itaú, Nubank, Banco do Brasil, Bradesco" 
+              placeholder="Ex: Ita, Nubank, Banco do Brasil, Bradesco" 
               value={banco} 
               onChange={e => setBanco(e.target.value)} 
             />
@@ -257,14 +257,14 @@ export function AbaPessoais({
               <SelectTrigger><SelectValue placeholder="Selecione o tipo" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="Conta Corrente">Conta Corrente</SelectItem>
-                <SelectItem value="Conta Poupança">Conta Poupança</SelectItem>
+                <SelectItem value="Conta Poupana">Conta Poupana</SelectItem>
                 <SelectItem value="Conta Pagamento">Conta Pagamento / Digital</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="col-span-2 sm:col-span-1 space-y-2">
-            <Label className="font-semibold">Agência (sem dígito)</Label>
+            <Label className="font-semibold">Agncia (sem dgito)</Label>
             <Input 
               placeholder="Ex: 0185" 
               value={agencia} 
@@ -273,7 +273,7 @@ export function AbaPessoais({
           </div>
 
           <div className="col-span-2 sm:col-span-1 space-y-2">
-            <Label className="font-semibold">Número da Conta com Dígito</Label>
+            <Label className="font-semibold">Nmero da Conta com Dgito</Label>
             <Input 
               placeholder="Ex: 49201-8" 
               value={conta} 

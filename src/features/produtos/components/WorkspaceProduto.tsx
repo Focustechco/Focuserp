@@ -63,7 +63,7 @@ export function WorkspaceProduto({
   const [novoRoadmapForm, setNovoRoadmapForm] = useState({
     titulo: '',
     descricao: '',
-    prioridade: 'Média' as RoadmapItem['prioridade'],
+    prioridade: 'Mdia' as RoadmapItem['prioridade'],
     status: 'Planejado' as RoadmapItem['status'],
     dataPrevista: '',
   });
@@ -79,7 +79,7 @@ export function WorkspaceProduto({
       dataPrevista: novoRoadmapForm.dataPrevista || new Date().toISOString().split('T')[0],
       responsavel: produto.responsavelPrincipal,
     });
-    setNovoRoadmapForm({ titulo: '', descricao: '', prioridade: 'Média', status: 'Planejado', dataPrevista: '' });
+    setNovoRoadmapForm({ titulo: '', descricao: '', prioridade: 'Mdia', status: 'Planejado', dataPrevista: '' });
   };
 
   return (
@@ -87,7 +87,7 @@ export function WorkspaceProduto({
       {/* HEADER DO WORKSPACE SEM CAPA */}
       <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
         <div className="p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          {/* Lado esquerdo: botão voltar + logo + nome */}
+          {/* Lado esquerdo: boto voltar + logo + nome */}
           <div className="flex items-center gap-4">
             <Button
               onClick={onBack}
@@ -129,7 +129,7 @@ export function WorkspaceProduto({
             {produto.repositorioGit && (
               <Button asChild variant="outline" size="sm" className="text-xs gap-1.5">
                 <a href={produto.repositorioGit} target="_blank" rel="noreferrer">
-                  <GitBranch className="h-3.5 w-3.5" /> Repositório Git
+                  <GitBranch className="h-3.5 w-3.5" /> Repositrio Git
                 </a>
               </Button>
             )}
@@ -141,52 +141,52 @@ export function WorkspaceProduto({
       <Tabs defaultValue="visao-geral" value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="flex flex-wrap w-full justify-start h-auto p-1 bg-muted/60 border border-border">
           <TabsTrigger value="visao-geral" className="text-xs gap-1.5">
-            <Boxes className="h-3.5 w-3.5" /> Visão Geral
+            <Boxes className="h-3.5 w-3.5" /> Viso Geral
           </TabsTrigger>
           <TabsTrigger value="roadmap" className="text-xs gap-1.5">
             <Sparkles className="h-3.5 w-3.5" /> Roadmap
           </TabsTrigger>
           <TabsTrigger value="funcionalidades" className="text-xs gap-1.5">
-            <Layers className="h-3.5 w-3.5" /> Funcionalidades & Módulos
+            <Layers className="h-3.5 w-3.5" /> Funcionalidades & Mdulos
           </TabsTrigger>
           <TabsTrigger value="releases" className="text-xs gap-1.5">
-            <GitBranch className="h-3.5 w-3.5" /> Versões (Releases)
+            <GitBranch className="h-3.5 w-3.5" /> Verses (Releases)
           </TabsTrigger>
           <TabsTrigger value="implementacoes" className="text-xs gap-1.5">
-            <Rocket className="h-3.5 w-3.5" /> Implementações
+            <Rocket className="h-3.5 w-3.5" /> Implementaes
           </TabsTrigger>
           <TabsTrigger value="clientes" className="text-xs gap-1.5">
             <Users className="h-3.5 w-3.5" /> Clientes
           </TabsTrigger>
           <TabsTrigger value="integracoes" className="text-xs gap-1.5">
-            <Plug className="h-3.5 w-3.5" /> Integrações
+            <Plug className="h-3.5 w-3.5" /> Integraes
           </TabsTrigger>
           <TabsTrigger value="equipe" className="text-xs gap-1.5">
             <UserCheck className="h-3.5 w-3.5" /> Equipe
           </TabsTrigger>
           <TabsTrigger value="metricas" className="text-xs gap-1.5">
-            <TrendingUp className="h-3.5 w-3.5" /> Métricas & KPIs
+            <TrendingUp className="h-3.5 w-3.5" /> Mtricas & KPIs
           </TabsTrigger>
         </TabsList>
 
-        {/* TAB 1: VISÃO GERAL & LINKS ÚTEIS */}
+        {/* TAB 1: VISO GERAL & LINKS TEIS */}
         <TabsContent value="visao-geral" className="space-y-6 outline-none">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <Card className="lg:col-span-2 border-border/80">
               <CardHeader>
                 <CardTitle className="text-base font-bold">Sobre o Produto</CardTitle>
-                <CardDescription className="text-xs">Detalhamento do escopo e proposição de valor</CardDescription>
+                <CardDescription className="text-xs">Detalhamento do escopo e proposio de valor</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4 text-xs">
                 <p className="leading-relaxed text-foreground">{produto.descricaoCompleta}</p>
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 p-4 rounded-xl bg-muted/20 border border-border">
                   <div>
-                    <span className="text-[10px] text-muted-foreground block uppercase font-semibold">Responsável</span>
+                    <span className="text-[10px] text-muted-foreground block uppercase font-semibold">Responsvel</span>
                     <span className="font-bold text-foreground">{produto.responsavelPrincipal || 'PO Lead'}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-muted-foreground block uppercase font-semibold">Data Lançamento</span>
+                    <span className="text-[10px] text-muted-foreground block uppercase font-semibold">Data Lanamento</span>
                     <span className="font-bold text-foreground">{produto.dataLancamento}</span>
                   </div>
                   <div>
@@ -197,16 +197,16 @@ export function WorkspaceProduto({
               </CardContent>
             </Card>
 
-            {/* PAINEL DE LINKS ÚTEIS COM BOTÕES DE ACESSO RÁPIDO */}
+            {/* PAINEL DE LINKS TEIS COM BOTES DE ACESSO RPIDO */}
             <Card className="border-border/80">
               <CardHeader className="py-4">
                 <CardTitle className="text-sm font-bold flex items-center gap-2">
-                  <LinkIcon className="h-4 w-4 text-primary" /> Links Úteis & Ambientes
+                  <LinkIcon className="h-4 w-4 text-primary" /> Links teis & Ambientes
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 text-xs">
                 {(produto.linksUteis || []).length === 0 ? (
-                  <p className="text-muted-foreground text-center py-4">Nenhum link útil cadastrado.</p>
+                  <p className="text-muted-foreground text-center py-4">Nenhum link til cadastrado.</p>
                 ) : (
                   produto.linksUteis.map((lk) => (
                     <a
@@ -236,20 +236,20 @@ export function WorkspaceProduto({
           <Card>
             <CardHeader className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <CardTitle className="text-sm font-bold">Roadmap Estratégico de Produto</CardTitle>
+                <CardTitle className="text-sm font-bold">Roadmap Estratgico de Produto</CardTitle>
                 <CardDescription className="text-xs">
                   Acompanhamento de ideias, backlog e entregas planejadas
                 </CardDescription>
               </div>
             </CardHeader>
             <CardContent>
-              {/* Formulário rápido de criação de item de roadmap */}
+              {/* Formulrio rpido de criao de item de roadmap */}
               <form onSubmit={handleCreateRoadmap} className="mb-6 p-4 rounded-xl bg-muted/20 border border-border space-y-3">
                 <span className="text-xs font-bold block text-foreground">Adicionar Novo Item ao Roadmap</span>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <Input
                     required
-                    placeholder="Título da funcionalidade..."
+                    placeholder="Ttulo da funcionalidade..."
                     value={novoRoadmapForm.titulo}
                     onChange={(e) => setNovoRoadmapForm({ ...novoRoadmapForm, titulo: e.target.value })}
                     className="text-xs"
@@ -290,7 +290,7 @@ export function WorkspaceProduto({
                             className="h-6 text-[10px]"
                             onClick={() => onUpdateRoadmapItemStatus(produto.id, item.id, 'Em Desenvolvimento')}
                           >
-                            Mover para Dev →
+                            Mover para Dev 
                           </Button>
                         </div>
                       </Card>
@@ -317,25 +317,25 @@ export function WorkspaceProduto({
                             size="sm"
                             variant="ghost"
                             className="h-6 text-[10px]"
-                            onClick={() => onUpdateRoadmapItemStatus(produto.id, item.id, 'Concluído')}
+                            onClick={() => onUpdateRoadmapItemStatus(produto.id, item.id, 'Concludo')}
                           >
-                            Concluir →
+                            Concluir 
                           </Button>
                         </div>
                       </Card>
                     ))}
                 </div>
 
-                {/* Coluna 3: Concluído / Publicado */}
+                {/* Coluna 3: Concludo / Publicado */}
                 <div className="space-y-3 p-3 rounded-xl bg-muted/30 border border-border">
                   <div className="flex items-center justify-between font-bold text-xs">
-                    <span>Publicado / Concluído</span>
+                    <span>Publicado / Concludo</span>
                     <Badge variant="outline" className="text-[10px]">
-                      {(produto.roadmap || []).filter((r) => r.status === 'Concluído' || r.status === 'Publicado').length}
+                      {(produto.roadmap || []).filter((r) => r.status === 'Concludo' || r.status === 'Publicado').length}
                     </Badge>
                   </div>
                   {(produto.roadmap || [])
-                    .filter((r) => r.status === 'Concluído' || r.status === 'Publicado')
+                    .filter((r) => r.status === 'Concludo' || r.status === 'Publicado')
                     .map((item) => (
                       <Card key={item.id} className="p-3 space-y-2 border-l-4 border-l-emerald-500 bg-emerald-500/5">
                         <h4 className="font-bold text-xs text-foreground">{item.titulo}</h4>
@@ -351,20 +351,20 @@ export function WorkspaceProduto({
           </Card>
         </TabsContent>
 
-        {/* TAB 3: FUNCIONALIDADES & MÓDULOS */}
+        {/* TAB 3: FUNCIONALIDADES & MDULOS */}
         <TabsContent value="funcionalidades" className="space-y-6 outline-none">
           <Card>
             <CardHeader className="py-4">
-              <CardTitle className="text-sm font-bold">Módulos & Funcionalidades do Produto</CardTitle>
-              <CardDescription className="text-xs">Catálogo de submódulos cadastrados</CardDescription>
+              <CardTitle className="text-sm font-bold">Mdulos & Funcionalidades do Produto</CardTitle>
+              <CardDescription className="text-xs">Catlogo de submdulos cadastrados</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-xs">Nome do Módulo</TableHead>
-                    <TableHead className="text-xs">Descrição</TableHead>
-                    <TableHead className="text-xs">Versão</TableHead>
+                    <TableHead className="text-xs">Nome do Mdulo</TableHead>
+                    <TableHead className="text-xs">Descrio</TableHead>
+                    <TableHead className="text-xs">Verso</TableHead>
                     <TableHead className="text-xs">Status</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -372,7 +372,7 @@ export function WorkspaceProduto({
                   {(produto.funcionalidades || []).length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={4} className="text-center py-6 text-xs text-muted-foreground">
-                        Nenhum módulo cadastrado neste produto.
+                        Nenhum mdulo cadastrado neste produto.
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -399,8 +399,8 @@ export function WorkspaceProduto({
         <TabsContent value="releases" className="space-y-6 outline-none">
           <Card>
             <CardHeader className="py-4">
-              <CardTitle className="text-sm font-bold">Histórico de Releases (Versões)</CardTitle>
-              <CardDescription className="text-xs">Registro de changelog, melhorias e correções</CardDescription>
+              <CardTitle className="text-sm font-bold">Histrico de Releases (Verses)</CardTitle>
+              <CardDescription className="text-xs">Registro de changelog, melhorias e correes</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {(produto.releases || []).length === 0 ? (
@@ -425,12 +425,12 @@ export function WorkspaceProduto({
           </Card>
         </TabsContent>
 
-        {/* TAB 5: IMPLEMENTAÇÕES */}
+        {/* TAB 5: IMPLEMENTAES */}
         <TabsContent value="implementacoes" className="space-y-6 outline-none">
           <Card>
             <CardHeader className="py-4">
-              <CardTitle className="text-sm font-bold">Implementações em Clientes</CardTitle>
-              <CardDescription className="text-xs">Sincronizado com o módulo de Projetos</CardDescription>
+              <CardTitle className="text-sm font-bold">Implementaes em Clientes</CardTitle>
+              <CardDescription className="text-xs">Sincronizado com o mdulo de Projetos</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               <Table>
@@ -446,7 +446,7 @@ export function WorkspaceProduto({
                   {(produto.implementacoes || []).length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={4} className="text-center py-6 text-xs text-muted-foreground">
-                        Nenhuma implementação em andamento.
+                        Nenhuma implementao em andamento.
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -480,14 +480,14 @@ export function WorkspaceProduto({
             <CardHeader className="py-4">
               <CardTitle className="text-sm font-bold">Base de Clientes Ativos</CardTitle>
               <CardDescription className="text-xs">
-                Integrado nativamente com os módulos Clientes, Contratos e CS
+                Integrado nativamente com os mdulos Clientes, Contratos e CS
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-xs">Razão Social / Cliente</TableHead>
+                    <TableHead className="text-xs">Razo Social / Cliente</TableHead>
                     <TableHead className="text-xs">Documento</TableHead>
                     <TableHead className="text-xs">Status</TableHead>
                   </TableRow>
@@ -522,22 +522,22 @@ export function WorkspaceProduto({
           </Card>
         </TabsContent>
 
-        {/* TAB 7: INTEGRAÇÕES */}
+        {/* TAB 7: INTEGRAES */}
         <TabsContent value="integracoes" className="space-y-6 outline-none">
           <Card>
             <CardHeader className="py-4">
-              <CardTitle className="text-sm font-bold">Mapa de Integrações do Ecossistema Focus</CardTitle>
-              <CardDescription className="text-xs">Conexões de APIs entre os softwares</CardDescription>
+              <CardTitle className="text-sm font-bold">Mapa de Integraes do Ecossistema Focus</CardTitle>
+              <CardDescription className="text-xs">Conexes de APIs entre os softwares</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               {(produto.integracoes || []).length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-6">Nenhuma integração mapeada.</p>
+                <p className="text-xs text-muted-foreground text-center py-6">Nenhuma integrao mapeada.</p>
               ) : (
                 (produto.integracoes || []).map((int) => (
                   <div key={int.id} className="p-4 rounded-xl border border-border bg-muted/20 flex items-center justify-between">
                     <div>
                       <span className="font-bold text-xs text-foreground block">
-                        {produto.nome} → {int.produtoDestinoNome}
+                        {produto.nome}  {int.produtoDestinoNome}
                       </span>
                       <span className="text-[10px] text-muted-foreground">{int.observacoes}</span>
                     </div>
@@ -555,7 +555,7 @@ export function WorkspaceProduto({
         <TabsContent value="equipe" className="space-y-6 outline-none">
           <Card>
             <CardHeader className="py-4">
-              <CardTitle className="text-sm font-bold">Equipe Responsável pelo Produto</CardTitle>
+              <CardTitle className="text-sm font-bold">Equipe Responsvel pelo Produto</CardTitle>
               <CardDescription className="text-xs">Product Owners, Tech Leads e Desenvolvedores</CardDescription>
             </CardHeader>
             <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -578,7 +578,7 @@ export function WorkspaceProduto({
           </Card>
         </TabsContent>
 
-        {/* TAB 9: MÉTRICAS & KPIS */}
+        {/* TAB 9: MTRICAS & KPIS */}
         <TabsContent value="metricas" className="space-y-6 outline-none">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card>
@@ -601,7 +601,7 @@ export function WorkspaceProduto({
 
             <Card>
               <CardHeader className="pb-1 pt-3 px-3">
-                <CardTitle className="text-[11px] font-bold uppercase text-muted-foreground">NPS Médio</CardTitle>
+                <CardTitle className="text-[11px] font-bold uppercase text-muted-foreground">NPS Mdio</CardTitle>
               </CardHeader>
               <CardContent className="px-3 pb-3">
                 <div className="text-2xl font-black text-blue-600">{metricas.npsMedio.toFixed(1)}</div>
@@ -610,7 +610,7 @@ export function WorkspaceProduto({
 
             <Card>
               <CardHeader className="pb-1 pt-3 px-3">
-                <CardTitle className="text-[11px] font-bold uppercase text-muted-foreground">Health Score Médio</CardTitle>
+                <CardTitle className="text-[11px] font-bold uppercase text-muted-foreground">Health Score Mdio</CardTitle>
               </CardHeader>
               <CardContent className="px-3 pb-3">
                 <div className="text-2xl font-black text-purple-600">{metricas.healthScoreMedio.toFixed(0)}</div>

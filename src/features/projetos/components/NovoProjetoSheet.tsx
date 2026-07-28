@@ -37,7 +37,7 @@ export function NovoProjetoSheet({ children }: { children: React.ReactNode }) {
   const [escopoIncluido, setEscopoIncluido] = useState('');
   const [escopoExcluido, setEscopoExcluido] = useState('');
 
-  // Documentos anexados durante a criação
+  // Documentos anexados durante a criao
   const [documentosAnexados, setDocumentosAnexados] = useState<Array<{ nome: string; tamanho: string }>>([]);
 
   const { addItem } = useLocalStorageState<Projeto>('focus_projetos', []);
@@ -46,7 +46,7 @@ export function NovoProjetoSheet({ children }: { children: React.ReactNode }) {
   const { uploadDocument, pastas, createFolder } = useDocumentosStore();
   const { notificar } = useNotificacoesStore();
 
-  // Handler de upload de arquivo real com integração ao DMS
+  // Handler de upload de arquivo real com integrao ao DMS
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, categoria: string) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -79,47 +79,47 @@ export function NovoProjetoSheet({ children }: { children: React.ReactNode }) {
 
     setDocumentosAnexados(prev => [...prev, { nome: file.name, tamanho: `${(file.size / 1024 / 1024).toFixed(2)} MB` }]);
     toast.success("Documento anexado com sucesso!", {
-      description: `O arquivo "${file.name}" foi salvo automaticamente no módulo de Documentos (DMS).`
+      description: `O arquivo "${file.name}" foi salvo automaticamente no mdulo de Documentos (DMS).`
     });
   };
 
   const handleSave = () => {
     if (!nome.trim()) {
-      toast.error("Erro de Validação", { description: "Por favor, preencha o Nome do Projeto." });
+      toast.error("Erro de Validao", { description: "Por favor, preencha o Nome do Projeto." });
       return;
     }
     if (!idCliente) {
-      toast.error("Erro de Validação", { description: "Selecione o Cliente do projeto." });
+      toast.error("Erro de Validao", { description: "Selecione o Cliente do projeto." });
       return;
     }
     if (!responsavel.trim()) {
-      toast.error("Erro de Validação", { description: "O Responsável (PM) é obrigatório." });
+      toast.error("Erro de Validao", { description: "O Responsvel (PM)  obrigatrio." });
       return;
     }
     if (!tipo) {
-      toast.error("Erro de Validação", { description: "Selecione o Tipo de Projeto." });
+      toast.error("Erro de Validao", { description: "Selecione o Tipo de Projeto." });
       return;
     }
     if (!prioridade) {
-      toast.error("Erro de Validação", { description: "Selecione a Prioridade do projeto." });
+      toast.error("Erro de Validao", { description: "Selecione a Prioridade do projeto." });
       return;
     }
     if (!dataInicio) {
-      toast.error("Erro de Validação", { description: "A Data de Início é obrigatória." });
+      toast.error("Erro de Validao", { description: "A Data de Incio  obrigatria." });
       return;
     }
     if (!dataFinal) {
-      toast.error("Erro de Validação", { description: "A Data Final (Prevista) é obrigatória." });
+      toast.error("Erro de Validao", { description: "A Data Final (Prevista)  obrigatria." });
       return;
     }
     if (!valorContratado || parseFloat(valorContratado) <= 0) {
-      toast.error("Erro de Validação", { description: "O Valor Contratado é obrigatório e deve ser maior que zero!" });
+      toast.error("Erro de Validao", { description: "O Valor Contratado  obrigatrio e deve ser maior que zero!" });
       return;
     }
 
     const val = parseFloat(valorContratado);
     if (isNaN(val)) {
-      toast.error("Erro de Validação", { description: "O Valor Contratado deve ser um número válido." });
+      toast.error("Erro de Validao", { description: "O Valor Contratado deve ser um nmero vlido." });
       return;
     }
 
@@ -135,7 +135,7 @@ export function NovoProjetoSheet({ children }: { children: React.ReactNode }) {
       status: (status as any),
       dataInicio,
       dataFinal,
-      descricaoGeral: descricao || 'Projeto criado pelo formulário.',
+      descricaoGeral: descricao || 'Projeto criado pelo formulrio.',
       valorContratado: val,
       valorRecebido: 0,
       saldoRestante: val,
@@ -147,15 +147,15 @@ export function NovoProjetoSheet({ children }: { children: React.ReactNode }) {
 
     addItem(novoProjeto);
     
-    // Disparar Notificação Automática no Sistema de Notificações ERP com usuarioDestino
+    // Disparar Notificao Automtica no Sistema de Notificaes ERP com usuarioDestino
     notificar({
-      titulo: `Você foi designado como responsável pelo projeto "${nome}"`,
-      descricao: `Projeto ${novoProjeto.codigo} atribuído a ${responsavel || 'Usuário'} com orçamento de R$ ${val.toLocaleString('pt-BR')} e prazo até ${dataFinal}.`,
+      titulo: `Voc foi designado como responsvel pelo projeto "${nome}"`,
+      descricao: `Projeto ${novoProjeto.codigo} atribudo a ${responsavel || 'Usurio'} com oramento de R$ ${val.toLocaleString('pt-BR')} e prazo at ${dataFinal}.`,
       origem: 'Projetos',
-      tipo: 'Informação',
+      tipo: 'Informao',
       prioridade: (prioridade === 'Urgente' || prioridade === 'Alta') ? 'Alta' : 'Normal',
       targetUrl: '/projetos',
-      usuarioDestino: responsavel || 'Você'
+      usuarioDestino: responsavel || 'Voc'
     });
 
     toast.success("Projeto cadastrado com sucesso!");
@@ -185,7 +185,7 @@ export function NovoProjetoSheet({ children }: { children: React.ReactNode }) {
       </SheetTrigger>
       <SheetContent className="sm:max-w-4xl overflow-y-auto">
         <SheetHeader className="mb-6">
-          <SheetTitle>Gestão do Projeto</SheetTitle>
+          <SheetTitle>Gesto do Projeto</SheetTitle>
           <SheetDescription>
             Configure escopo, horas, equipe e marcos do projeto de ponta a ponta.
           </SheetDescription>
@@ -232,9 +232,9 @@ export function NovoProjetoSheet({ children }: { children: React.ReactNode }) {
 
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label>Responsável (PM) *</Label>
+                <Label>Responsvel (PM) *</Label>
                 <Select value={responsavel} onValueChange={setResponsavel}>
-                  <SelectTrigger><SelectValue placeholder="Selecione o Usuário" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Selecione o Usurio" /></SelectTrigger>
                   <SelectContent>
                     {usuarios.filter(u => u.status === 'Ativo').map(u => (
                       <SelectItem key={u.id} value={u.nome}>{u.nome} ({u.cargo || u.departamento})</SelectItem>
@@ -254,7 +254,7 @@ export function NovoProjetoSheet({ children }: { children: React.ReactNode }) {
 
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label>Data de Início *</Label>
+                <Label>Data de Incio *</Label>
                 <Input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} />
               </div>
               <div className="space-y-2">
@@ -269,7 +269,7 @@ export function NovoProjetoSheet({ children }: { children: React.ReactNode }) {
                     <SelectItem value="Sistema Web">Sistema Web</SelectItem>
                     <SelectItem value="Aplicativo Mobile">Aplicativo Mobile</SelectItem>
                     <SelectItem value="Business Intelligence">Business Intelligence</SelectItem>
-                    <SelectItem value="API">API / Integração</SelectItem>
+                    <SelectItem value="API">API / Integrao</SelectItem>
                     <SelectItem value="Website">Website Institucional</SelectItem>
                   </SelectContent>
                 </Select>
@@ -283,9 +283,9 @@ export function NovoProjetoSheet({ children }: { children: React.ReactNode }) {
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Baixa">Baixa</SelectItem>
-                    <SelectItem value="Média">Média</SelectItem>
+                    <SelectItem value="Mdia">Mdia</SelectItem>
                     <SelectItem value="Alta">Alta</SelectItem>
-                    <SelectItem value="Crítica">Crítica</SelectItem>
+                    <SelectItem value="Crtica">Crtica</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -297,15 +297,15 @@ export function NovoProjetoSheet({ children }: { children: React.ReactNode }) {
                     <SelectItem value="Planejamento">Planejamento</SelectItem>
                     <SelectItem value="Kickoff">Kickoff</SelectItem>
                     <SelectItem value="Em Desenvolvimento">Em Desenvolvimento</SelectItem>
-                    <SelectItem value="Em Homologação">Em Homologação</SelectItem>
-                    <SelectItem value="Concluído">Concluído</SelectItem>
+                    <SelectItem value="Em Homologao">Em Homologao</SelectItem>
+                    <SelectItem value="Concludo">Concludo</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label>Descrição Geral / Resumo</Label>
+              <Label>Descrio Geral / Resumo</Label>
               <Textarea placeholder="Descreva brevemente do que se trata o projeto..." value={descricao} onChange={e => setDescricao(e.target.value)} />
             </div>
           </TabsContent>
@@ -337,12 +337,12 @@ export function NovoProjetoSheet({ children }: { children: React.ReactNode }) {
                 <Input placeholder="Qual a meta deste projeto?" value={objetivo} onChange={e => setObjetivo(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label>Escopo Incluído (In Scope)</Label>
-                <Textarea className="h-24" placeholder="Liste as funcionalidades, módulos e entregas que fazem parte do projeto..." value={escopoIncluido} onChange={e => setEscopoIncluido(e.target.value)} />
+                <Label>Escopo Includo (In Scope)</Label>
+                <Textarea className="h-24" placeholder="Liste as funcionalidades, mdulos e entregas que fazem parte do projeto..." value={escopoIncluido} onChange={e => setEscopoIncluido(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label>Escopo Excluído (Out of Scope)</Label>
-                <Textarea className="h-24" placeholder="Deixe claro o que NÃO faz parte da entrega deste projeto para evitar gargalos..." value={escopoExcluido} onChange={e => setEscopoExcluido(e.target.value)} />
+                <Label>Escopo Excludo (Out of Scope)</Label>
+                <Textarea className="h-24" placeholder="Deixe claro o que NO faz parte da entrega deste projeto para evitar gargalos..." value={escopoExcluido} onChange={e => setEscopoExcluido(e.target.value)} />
               </div>
             </div>
           </TabsContent>
@@ -352,7 +352,7 @@ export function NovoProjetoSheet({ children }: { children: React.ReactNode }) {
             <div className="flex justify-between items-center">
               <h4 className="font-medium text-sm">Etapas do Projeto</h4>
             </div>
-            <p className="text-xs text-muted-foreground">As etapas do cronograma serão configuradas após a criação inicial do projeto.</p>
+            <p className="text-xs text-muted-foreground">As etapas do cronograma sero configuradas aps a criao inicial do projeto.</p>
           </TabsContent>
 
           {/* 4. MARCOS */}
@@ -360,16 +360,16 @@ export function NovoProjetoSheet({ children }: { children: React.ReactNode }) {
             <div className="flex justify-between items-center">
               <h4 className="font-medium text-sm">Milestones (Marcos)</h4>
             </div>
-            <p className="text-xs text-muted-foreground">Os marcos de entrega poderão ser gerenciados no painel do projeto após a gravação.</p>
+            <p className="text-xs text-muted-foreground">Os marcos de entrega podero ser gerenciados no painel do projeto aps a gravao.</p>
           </TabsContent>
 
           {/* 5. DOCUMENTOS */}
           <TabsContent value="docs" className="space-y-4">
             <label className="border rounded p-6 flex flex-col items-center justify-center border-dashed cursor-pointer hover:bg-muted/20 transition-colors">
               <Upload className="w-8 h-8 text-muted-foreground mb-2" />
-              <h4 className="font-medium">Repositório do Projeto (DMS Integrado)</h4>
+              <h4 className="font-medium">Repositrio do Projeto (DMS Integrado)</h4>
               <p className="text-sm text-muted-foreground mb-4 text-center">
-                Clique para selecionar Briefings, Contratos, Diagramas ou PDFs. Todos serão arquivados automaticamente na pasta "Projetos" do módulo Documentos.
+                Clique para selecionar Briefings, Contratos, Diagramas ou PDFs. Todos sero arquivados automaticamente na pasta "Projetos" do mdulo Documentos.
               </p>
               <input type="file" className="hidden" onChange={e => handleFileUpload(e, 'Documentos do Projeto')} />
               <Button variant="secondary" size="sm" asChild>
@@ -379,14 +379,14 @@ export function NovoProjetoSheet({ children }: { children: React.ReactNode }) {
 
             {documentosAnexados.length > 0 && (
               <div className="space-y-2 mt-4">
-                <Label className="text-xs font-semibold">Arquivos Anexados nesta Sessão (Salvos no DMS):</Label>
+                <Label className="text-xs font-semibold">Arquivos Anexados nesta Sesso (Salvos no DMS):</Label>
                 {documentosAnexados.map((doc, idx) => (
                   <div key={idx} className="flex items-center justify-between border p-3 rounded bg-muted/10">
                     <div className="flex items-center gap-3">
                       <FileText className="w-5 h-5 text-blue-500" />
                       <div>
                         <div className="font-medium text-sm">{doc.nome}</div>
-                        <div className="text-xs text-muted-foreground">{doc.tamanho} • Salvo na pasta Projetos (DMS)</div>
+                        <div className="text-xs text-muted-foreground">{doc.tamanho} " Salvo na pasta Projetos (DMS)</div>
                       </div>
                     </div>
                     <CheckCircle2 className="w-4 h-4 text-emerald-500" />
@@ -401,7 +401,7 @@ export function NovoProjetoSheet({ children }: { children: React.ReactNode }) {
             <div className="flex justify-between items-center">
               <h4 className="font-medium text-sm">Membros do Projeto</h4>
             </div>
-            <p className="text-xs text-muted-foreground">A equipe e recursos serão alocados no painel completo do projeto.</p>
+            <p className="text-xs text-muted-foreground">A equipe e recursos sero alocados no painel completo do projeto.</p>
           </TabsContent>
 
           {/* 7. HORAS */}
@@ -425,9 +425,9 @@ export function NovoProjetoSheet({ children }: { children: React.ReactNode }) {
           {/* 8. FINANCEIRO */}
           <TabsContent value="financeiro" className="space-y-4">
             <div className="rounded-md border border-dashed p-6 text-center">
-              <h3 className="font-semibold mb-2">Saúde Financeira do Projeto</h3>
+              <h3 className="font-semibold mb-2">Sade Financeira do Projeto</h3>
               <p className="text-sm text-muted-foreground mb-4">
-                Projeção inicial baseada no Valor Contratado.
+                Projeo inicial baseada no Valor Contratado.
               </p>
               <div className="grid grid-cols-3 gap-4 text-left">
                 <div className="border rounded p-4">
@@ -450,13 +450,13 @@ export function NovoProjetoSheet({ children }: { children: React.ReactNode }) {
             </div>
           </TabsContent>
 
-          {/* 9. HISTÓRICO */}
+          {/* 9. HISTRICO */}
           <TabsContent value="historico" className="space-y-4">
              <div className="relative border-l border-muted ml-4 pl-6 space-y-6">
               <div className="relative">
                 <div className="absolute -left-[31px] bg-emerald-500 rounded-full w-4 h-4 border-4 border-background" />
                 <div className="text-sm font-medium">Projeto Criado</div>
-                <div className="text-xs text-muted-foreground">Sistema • Hoje</div>
+                <div className="text-xs text-muted-foreground">Sistema " Hoje</div>
               </div>
             </div>
           </TabsContent>

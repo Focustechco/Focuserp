@@ -77,7 +77,7 @@ export function ConfigCentralComunicacao() {
         [catKey]: !preferences.categorias[catKey],
       },
     });
-    toast.success('Preferências atualizadas.');
+    toast.success('Preferncias atualizadas.');
   };
 
   const handleToggleCanal = (canalKey: keyof typeof preferences.canais) => {
@@ -88,10 +88,10 @@ export function ConfigCentralComunicacao() {
         [canalKey]: !preferences.canais[canalKey],
       },
     });
-    toast.success('Preferências de canais atualizadas.');
+    toast.success('Preferncias de canais atualizadas.');
   };
 
-  // Filtragem de Notificações
+  // Filtragem de Notificaes
   const filteredNotificacoes = notificacoes.filter((n) => {
     const matchesSearch =
       n.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -118,21 +118,21 @@ export function ConfigCentralComunicacao() {
   const handleBulkMarkRead = () => {
     selectedIds.forEach((id) => marcarComoLida(id));
     setSelectedIds([]);
-    toast.success(`${selectedIds.length} notificações marcadas como lidas.`);
+    toast.success(`${selectedIds.length} notificaes marcadas como lidas.`);
   };
 
   const handleBulkArchive = () => {
     selectedIds.forEach((id) => arquivar(id));
     setSelectedIds([]);
-    toast.info(`${selectedIds.length} notificações arquivadas.`);
+    toast.info(`${selectedIds.length} notificaes arquivadas.`);
   };
 
   const handleSimularNotificacao = () => {
     notificar({
-      titulo: 'Alerta de Conciliação Pendente no Fluxo de Caixa',
-      descricao: 'Existem lançamentos bancários pendentes de validação no extrato OFX.',
+      titulo: 'Alerta de Conciliao Pendente no Fluxo de Caixa',
+      descricao: 'Existem lanamentos bancrios pendentes de validao no extrato OFX.',
       origem: 'Financeiro',
-      tipo: 'Informação',
+      tipo: 'Informao',
       prioridade: 'Alta',
       responsavel: 'Sistema Focus Finance',
       targetUrl: '/conciliacao',
@@ -141,12 +141,12 @@ export function ConfigCentralComunicacao() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* HEADER DA SEÇÃO CENTRAL DE COMUNICAÇÃO */}
+      {/* HEADER DA SEO CENTRAL DE COMUNICAO */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-4">
         <div>
           <div className="flex items-center gap-3">
             <h2 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
-              <Bell className="w-6 h-6 text-primary" /> Central de Comunicação & Notificações
+              <Bell className="w-6 h-6 text-primary" /> Central de Comunicao & Notificaes
             </h2>
             {naoLidasCount > 0 && (
               <Badge className="bg-red-600 text-white font-semibold">
@@ -155,13 +155,13 @@ export function ConfigCentralComunicacao() {
             )}
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            Caixa de entrada de mensagens, alertas do sistema, push notificações e preferências de envio.
+            Caixa de entrada de mensagens, alertas do sistema, push notificaes e preferncias de envio.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={handleSimularNotificacao} className="text-xs">
-            <Sparkles className="w-3.5 h-3.5 mr-1.5 text-amber-500" /> Simular Notificação
+            <Sparkles className="w-3.5 h-3.5 mr-1.5 text-amber-500" /> Simular Notificao
           </Button>
           {naoLidasCount > 0 && (
             <Button variant="outline" size="sm" onClick={marcarTodasComoLidas} className="text-xs">
@@ -171,18 +171,18 @@ export function ConfigCentralComunicacao() {
         </div>
       </div>
 
-      {/* TABS INTERNAS (INBOX VS PREFERÊNCIAS) */}
+      {/* TABS INTERNAS (INBOX VS PREFERNCIAS) */}
       <Tabs value={activeSubTab} onValueChange={(val: any) => setActiveSubTab(val)} className="space-y-6">
         <TabsList className="grid w-full grid-cols-2 max-w-xs">
           <TabsTrigger value="inbox" className="text-xs font-semibold gap-1.5">
             <Bell className="w-3.5 h-3.5" /> Mensagens & Alertas
           </TabsTrigger>
           <TabsTrigger value="preferencias" className="text-xs font-semibold gap-1.5">
-            <BellRing className="w-3.5 h-3.5" /> Canais & Preferências
+            <BellRing className="w-3.5 h-3.5" /> Canais & Preferncias
           </TabsTrigger>
         </TabsList>
 
-        {/* SUB-TAB 1: INBOX DE NOTIFICAÇÕES */}
+        {/* SUB-TAB 1: INBOX DE NOTIFICAES */}
         <TabsContent value="inbox" className="space-y-6 outline-none">
           {/* CARD DE SETUP PUSH */}
           {pushSuportado && (
@@ -222,7 +222,7 @@ export function ConfigCentralComunicacao() {
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       {pushAtivo
-                        ? 'Alertas em tempo real ativos no seu navegador e dispositivo móvel.'
+                        ? 'Alertas em tempo real ativos no seu navegador e dispositivo mvel.'
                         : 'Ative para receber alertas mesmo com a guia em segundo plano.'}
                     </p>
                   </div>
@@ -247,7 +247,7 @@ export function ConfigCentralComunicacao() {
                       className="text-xs gap-1.5 font-semibold"
                     >
                       {loadingPush ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <BellRing className="w-3.5 h-3.5" />}
-                      Autorizar Notificações Push
+                      Autorizar Notificaes Push
                     </Button>
                   )}
                 </div>
@@ -262,7 +262,7 @@ export function ConfigCentralComunicacao() {
                 <div className="relative w-full md:w-80">
                   <Search className="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" />
                   <Input
-                    placeholder="Buscar em notificações..."
+                    placeholder="Buscar em notificaes..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-9 text-xs h-9"
@@ -286,7 +286,7 @@ export function ConfigCentralComunicacao() {
               <div className="flex items-center gap-1.5 overflow-x-auto text-xs pt-1">
                 {[
                   { id: 'todas', label: 'Todas', count: notificacoes.length },
-                  { id: 'naoLidas', label: 'Não Lidas', count: naoLidasCount },
+                  { id: 'naoLidas', label: 'No Lidas', count: naoLidasCount },
                   { id: 'projetos', label: 'Projetos' },
                   { id: 'financeiro', label: 'Financeiro' },
                   { id: 'crm', label: 'CRM' },
@@ -312,7 +312,7 @@ export function ConfigCentralComunicacao() {
               {filteredNotificacoes.length === 0 ? (
                 <div className="p-12 text-center text-muted-foreground text-xs space-y-2">
                   <Bell className="w-8 h-8 opacity-30 mx-auto" />
-                  <p>Nenhuma notificação encontrada.</p>
+                  <p>Nenhuma notificao encontrada.</p>
                 </div>
               ) : (
                 filteredNotificacoes.map((notif) => {
@@ -361,7 +361,7 @@ export function ConfigCentralComunicacao() {
           </Card>
         </TabsContent>
 
-        {/* SUB-TAB 2: CONFIGURAÇÕES E PREFERÊNCIAS DE CANAIS */}
+        {/* SUB-TAB 2: CONFIGURAES E PREFERNCIAS DE CANAIS */}
         <TabsContent value="preferencias" className="space-y-6 outline-none">
           <div className="grid gap-6 md:grid-cols-2">
             {/* CANAIS */}
@@ -374,7 +374,7 @@ export function ConfigCentralComunicacao() {
               </CardHeader>
               <CardContent className="space-y-4 text-xs">
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs">Notificações na Plataforma</Label>
+                  <Label className="text-xs">Notificaes na Plataforma</Label>
                   <Switch
                     checked={preferences.canais.notificacoesInternas}
                     onCheckedChange={() => handleToggleCanal('notificacoesInternas')}
@@ -397,20 +397,20 @@ export function ConfigCentralComunicacao() {
               </CardContent>
             </Card>
 
-            {/* REGRAS DE MÓDULOS */}
+            {/* REGRAS DE MDULOS */}
             <Card className="border-border/80">
               <CardHeader>
                 <CardTitle className="text-sm font-bold flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-emerald-500" /> Regras por Módulo
+                  <ShieldCheck className="w-4 h-4 text-emerald-500" /> Regras por Mdulo
                 </CardTitle>
-                <CardDescription className="text-xs">Selecione quais áreas gerarão alertas</CardDescription>
+                <CardDescription className="text-xs">Selecione quais reas geraro alertas</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3 text-xs">
                 {[
                   { key: 'projetos', label: 'Projetos & Tarefas' },
                   { key: 'financeiro', label: 'Financeiro (Contas & Fluxo)' },
                   { key: 'crm', label: 'CRM & Pipeline' },
-                  { key: 'contratos', label: 'Contratos & Renovações' },
+                  { key: 'contratos', label: 'Contratos & Renovaes' },
                 ].map((item) => (
                   <div key={item.key} className="flex items-center justify-between">
                     <Label className="text-xs">{item.label}</Label>

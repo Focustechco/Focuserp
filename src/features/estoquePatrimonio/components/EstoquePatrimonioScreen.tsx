@@ -38,10 +38,10 @@ export function EstoquePatrimonioScreen() {
             </div>
             <div>
               <h1 className="text-2xl font-black tracking-tight text-foreground">
-                Estoque e Patrimônio (IT Asset Management)
+                Estoque e Patrimnio (IT Asset Management)
               </h1>
               <p className="text-xs text-muted-foreground">
-                Gestão completa de ciclo de vida de ativos físicos e digitais, licenças SaaS e depreciação patrimonial
+                Gesto completa de ciclo de vida de ativos fsicos e digitais, licenas SaaS e depreciao patrimonial
               </p>
             </div>
           </div>
@@ -54,37 +54,37 @@ export function EstoquePatrimonioScreen() {
             onClick={() => setIsRelatoriosOpen(true)}
             className="gap-2 text-xs font-semibold"
           >
-            <FileText className="h-4 w-4 text-primary" /> Relatórios Executivos & CSV
+            <FileText className="h-4 w-4 text-primary" /> Relatrios Executivos & CSV
           </Button>
         </div>
       </div>
 
-      {/* TABS DE NAVEGAÇÃO E SUBMÓDULOS */}
+      {/* TABS DE NAVEGAO E SUBMDULOS */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="bg-muted/60 p-1 flex flex-wrap h-auto gap-1 border border-border/60 rounded-xl">
           <TabsTrigger value="dashboard" className="text-xs gap-1.5 py-2 px-3 data-[state=active]:bg-background">
             <LayoutDashboard className="h-3.5 w-3.5" /> Dashboard
           </TabsTrigger>
           <TabsTrigger value="estoque" className="text-xs gap-1.5 py-2 px-3 data-[state=active]:bg-background">
-            <Package className="h-3.5 w-3.5" /> Estoque Físico
+            <Package className="h-3.5 w-3.5" /> Estoque Fsico
           </TabsTrigger>
           <TabsTrigger value="equipamentos" className="text-xs gap-1.5 py-2 px-3 data-[state=active]:bg-background">
             <Laptop className="h-3.5 w-3.5" /> Equipamentos
           </TabsTrigger>
           <TabsTrigger value="licencas" className="text-xs gap-1.5 py-2 px-3 data-[state=active]:bg-background">
-            <KeyRound className="h-3.5 w-3.5" /> Licenças SaaS
+            <KeyRound className="h-3.5 w-3.5" /> Licenas SaaS
           </TabsTrigger>
           <TabsTrigger value="patrimonio" className="text-xs gap-1.5 py-2 px-3 data-[state=active]:bg-background">
-            <DollarSign className="h-3.5 w-3.5" /> Patrimônio
+            <DollarSign className="h-3.5 w-3.5" /> Patrimnio
           </TabsTrigger>
           <TabsTrigger value="movimentacoes" className="text-xs gap-1.5 py-2 px-3 data-[state=active]:bg-background">
-            <History className="h-3.5 w-3.5" /> Movimentações
+            <History className="h-3.5 w-3.5" /> Movimentaes
           </TabsTrigger>
           <TabsTrigger value="inventario" className="text-xs gap-1.5 py-2 px-3 data-[state=active]:bg-background">
-            <ClipboardList className="h-3.5 w-3.5" /> Inventários
+            <ClipboardList className="h-3.5 w-3.5" /> Inventrios
           </TabsTrigger>
           <TabsTrigger value="manutencoes" className="text-xs gap-1.5 py-2 px-3 data-[state=active]:bg-background">
-            <Wrench className="h-3.5 w-3.5" /> Manutenções
+            <Wrench className="h-3.5 w-3.5" /> Manutenes
           </TabsTrigger>
         </TabsList>
 
@@ -121,7 +121,7 @@ export function EstoquePatrimonioScreen() {
         </TabsContent>
       </Tabs>
 
-      {/* MODAL DE RELATÓRIOS */}
+      {/* MODAL DE RELATRIOS */}
       <RelatoriosModal open={isRelatoriosOpen} onOpenChange={setIsRelatoriosOpen} />
     </div>
   );

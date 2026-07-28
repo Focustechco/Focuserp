@@ -47,21 +47,21 @@ export function ImportarExtrato() {
   const handleUpload = () => {
     if (!file) return;
     if (!contaSelecionada) {
-      toast.error('Selecione uma conta bancária de destino primeiro.');
+      toast.error('Selecione uma conta bancria de destino primeiro.');
       return;
     }
 
     setIsUploading(true);
 
     setTimeout(() => {
-      // 1. Garantir que a pasta "Extratos Bancários" exista no DMS
-      let pastaExtratos = pastas.find(p => p.nome === 'Extratos Bancários');
+      // 1. Garantir que a pasta "Extratos Bancrios" exista no DMS
+      let pastaExtratos = pastas.find(p => p.nome === 'Extratos Bancrios');
       if (!pastaExtratos) {
-        // Criar pasta virtualmente (não temos o ID retornado sincrono pela store de forma fácil, então pegamos o novo)
-        createFolder('Extratos Bancários', null, 'Financeiro');
+        // Criar pasta virtualmente (no temos o ID retornado sincrono pela store de forma fcil, ento pegamos o novo)
+        createFolder('Extratos Bancrios', null, 'Financeiro');
       }
 
-      // Re-buscar a pasta após possível criação (ou usar um ID gerado agora, mas o createFolder gera o ID internamente)
+      // Re-buscar a pasta aps possvel criao (ou usar um ID gerado agora, mas o createFolder gera o ID internamente)
       // Para simplificar, vou simular o upload para a raiz ou para a pasta se existir
       const pastaId = pastaExtratos ? pastaExtratos.id : 'raiz';
 
@@ -76,13 +76,13 @@ export function ImportarExtrato() {
         extensao,
         tamanho: `${(file.size / 1024).toFixed(2)} KB`,
         tamanhoBytes: file.size,
-        pastaId: pastaId !== 'raiz' ? pastaId : pastas[pastas.length - 1]?.id || '', // hack rápido para pegar a pasta recém criada
+        pastaId: pastaId !== 'raiz' ? pastaId : pastas[pastas.length - 1]?.id || '', // hack rpido para pegar a pasta recm criada
         moduloOrigem: 'Financeiro',
         categoria: 'Extrato',
         tags: ['extrato', 'banco', contaSelecionada]
       });
 
-      // 3. Simular transações extraídas deste extrato (Parsing Mockado)
+      // 3. Simular transaes extradas deste extrato (Parsing Mockado)
       const dataHoje = new Date().toISOString().split('T')[0];
       
       const transacoesSimuladas: MovimentacaoBancaria[] = [
@@ -90,11 +90,11 @@ export function ImportarExtrato() {
           id: `mov-${Date.now()}-1`,
           contaBancariaId: contaSelecionada,
           data: dataHoje,
-          historico: 'PIX RECEBIDO - JOÃO SILVA',
+          historico: 'PIX RECEBIDO - JOO SILVA',
           documento: `NSU${Math.floor(Math.random() * 1000000)}`,
           valor: 1500.00,
-          tipo: 'Crédito',
-          status: 'Não Conciliado'
+          tipo: 'Crdito',
+          status: 'No Conciliado'
         },
         {
           id: `mov-${Date.now()}-2`,
@@ -103,18 +103,18 @@ export function ImportarExtrato() {
           historico: 'PAGTO BOLETO FORNECEDOR XYZ',
           documento: `NSU${Math.floor(Math.random() * 1000000)}`,
           valor: 850.50,
-          tipo: 'Débito',
-          status: 'Não Conciliado'
+          tipo: 'Dbito',
+          status: 'No Conciliado'
         },
         {
           id: `mov-${Date.now()}-3`,
           contaBancariaId: contaSelecionada,
           data: dataHoje,
-          historico: 'TARIFA BANCÁRIA MENSAL',
+          historico: 'TARIFA BANCRIA MENSAL',
           documento: `NSU${Math.floor(Math.random() * 1000000)}`,
           valor: 45.90,
-          tipo: 'Débito',
-          status: 'Não Conciliado'
+          tipo: 'Dbito',
+          status: 'No Conciliado'
         }
       ];
 
@@ -122,7 +122,7 @@ export function ImportarExtrato() {
 
       setIsUploading(false);
       setIsSuccess(true);
-      toast.success('Extrato salvo no DMS e transações carregadas!');
+      toast.success('Extrato salvo no DMS e transaes carregadas!');
     }, 2000); // Simulando o tempo de processamento/upload
   };
 
@@ -130,14 +130,14 @@ export function ImportarExtrato() {
     <div className="max-w-3xl mx-auto space-y-6 animate-fade-in pt-4">
       <Card>
         <CardHeader>
-          <CardTitle>Importar Extrato Bancário</CardTitle>
+          <CardTitle>Importar Extrato Bancrio</CardTitle>
           <CardDescription>
-            Faça o upload do seu arquivo OFX, OFC, CSV ou XLSX. O arquivo original será guardado no módulo Documentos.
+            Faa o upload do seu arquivo OFX, OFC, CSV ou XLSX. O arquivo original ser guardado no mdulo Documentos.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-2 max-w-sm">
-            <label className="text-sm font-medium">Conta Bancária de Destino</label>
+            <label className="text-sm font-medium">Conta Bancria de Destino</label>
             <Select value={contaSelecionada} onValueChange={setContaSelecionada}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione a Conta Cadastrada" />
@@ -173,7 +173,7 @@ export function ImportarExtrato() {
                   <div className="flex gap-3">
                     <Button variant="outline" onClick={() => setFile(null)}>Remover</Button>
                     <Button onClick={handleUpload} disabled={isUploading}>
-                      {isUploading ? 'Processando & Salvando no DMS...' : 'Iniciar Importação'}
+                      {isUploading ? 'Processando & Salvando no DMS...' : 'Iniciar Importao'}
                     </Button>
                   </div>
                 </>
@@ -204,9 +204,9 @@ export function ImportarExtrato() {
               <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mb-4">
                 <CheckCircle2 className="w-8 h-8" />
               </div>
-              <h3 className="text-lg font-bold text-emerald-800 dark:text-emerald-400">Importação Concluída com Sucesso!</h3>
+              <h3 className="text-lg font-bold text-emerald-800 dark:text-emerald-400">Importao Concluda com Sucesso!</h3>
               <p className="text-sm text-emerald-600 dark:text-emerald-500 mt-2 max-w-sm">
-                O arquivo original foi salvo de forma segura no módulo <b>Documentos</b>, e as transações já foram processadas para a aba "Conciliar (Lado a Lado)".
+                O arquivo original foi salvo de forma segura no mdulo <b>Documentos</b>, e as transaes j foram processadas para a aba "Conciliar (Lado a Lado)".
               </p>
               
               <Button 
@@ -225,8 +225,8 @@ export function ImportarExtrato() {
           <div className="flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-950/20 text-blue-800 dark:text-blue-300 rounded-lg">
             <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
             <div className="text-sm">
-              <p className="font-semibold mb-1">Dica de Segurança e Prevenção</p>
-              <p>O sistema possui bloqueio anti-duplicidade (Hash Check) embutido. Se você importar um extrato que contenha linhas (NSU) que já foram importadas, o sistema descartará automaticamente as linhas repetidas.</p>
+              <p className="font-semibold mb-1">Dica de Segurana e Preveno</p>
+              <p>O sistema possui bloqueio anti-duplicidade (Hash Check) embutido. Se voc importar um extrato que contenha linhas (NSU) que j foram importadas, o sistema descartar automaticamente as linhas repetidas.</p>
             </div>
           </div>
         </CardContent>

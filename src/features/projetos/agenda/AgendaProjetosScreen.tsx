@@ -50,12 +50,12 @@ export function AgendaProjetosScreen() {
   const todayStr = new Date().toISOString().split('T')[0];
   const next7DaysStr = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
 
-  // Métricas da Agenda de Projetos
+  // Mtricas da Agenda de Projetos
   const totalEventos = eventos.length;
-  const entregasConcluidas = eventos.filter((e) => e.status === 'Concluído').length;
+  const entregasConcluidas = eventos.filter((e) => e.status === 'Concludo').length;
   const entregasAtrasadas = eventos.filter((e) => e.status === 'Atrasado').length;
   const proximasEntregas = eventos.filter(
-    (e) => e.data >= todayStr && e.data <= next7DaysStr && e.status !== 'Concluído'
+    (e) => e.data >= todayStr && e.data <= next7DaysStr && e.status !== 'Concludo'
   ).length;
 
   const filteredEvents = eventos.filter((e) => {
@@ -77,7 +77,7 @@ export function AgendaProjetosScreen() {
             <CalendarDays className="h-5 w-5 text-primary" /> Agenda de Entregas & Prazos PMO
           </h2>
           <p className="text-xs text-muted-foreground">
-            Acompanhamento de prazos contratuais, datas de entrega de projetos, marcos de homologação e reuniões
+            Acompanhamento de prazos contratuais, datas de entrega de projetos, marcos de homologao e reunies
           </p>
         </div>
         <Button onClick={() => setIsNovoSheetOpen(true)} className="gap-2 text-xs font-semibold">
@@ -104,7 +104,7 @@ export function AgendaProjetosScreen() {
         <Card className="border-border/80">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Entregas Concluídas
+              Entregas Concludas
             </CardTitle>
 
             <CheckCircle2 className="h-4 w-4 text-emerald-600" />
@@ -129,33 +129,33 @@ export function AgendaProjetosScreen() {
             <div className="text-2xl font-extrabold text-rose-600 dark:text-rose-400">
               {entregasAtrasadas}
             </div>
-            <p className="text-[11px] text-rose-500 font-semibold mt-1">Requerem atenção imediata do PMO</p>
+            <p className="text-[11px] text-rose-500 font-semibold mt-1">Requerem ateno imediata do PMO</p>
           </CardContent>
         </Card>
 
         <Card className="border-border/80">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Próximos 7 Dias
+              Prximos 7 Dias
             </CardTitle>
 
             <Clock className="h-4 w-4 text-amber-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-extrabold text-foreground">{proximasEntregas}</div>
-            <p className="text-[11px] text-muted-foreground mt-1">Entregas no horizonte próximo</p>
+            <p className="text-[11px] text-muted-foreground mt-1">Entregas no horizonte prximo</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* CONTROLES DE FILTRO E ALTERNÂNCIA DE VISÃO */}
+      {/* CONTROLES DE FILTRO E ALTERNNCIA DE VISO */}
       <Card>
         <CardContent className="p-4 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex flex-1 flex-col sm:flex-row gap-3 w-full">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por prazo, nome do projeto ou responsável..."
+                placeholder="Buscar por prazo, nome do projeto ou responsvel..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-9 text-xs"
@@ -170,8 +170,8 @@ export function AgendaProjetosScreen() {
                   <SelectItem value="todos">Todos os Tipos</SelectItem>
                   <SelectItem value="Entrega de Projeto">Entrega de Projeto</SelectItem>
                   <SelectItem value="Kickoff">Kickoff</SelectItem>
-                  <SelectItem value="Homologação">Homologação</SelectItem>
-                  <SelectItem value="Implantação">Implantação</SelectItem>
+                  <SelectItem value="Homologao">Homologao</SelectItem>
+                  <SelectItem value="Implantao">Implantao</SelectItem>
                   <SelectItem value="Marco / Milestone">Marco / Milestone</SelectItem>
                 </SelectContent>
               </Select>
@@ -185,7 +185,7 @@ export function AgendaProjetosScreen() {
                   <SelectItem value="todos">Todos os Status</SelectItem>
                   <SelectItem value="Previsto">Previsto</SelectItem>
                   <SelectItem value="Em Andamento">Em Andamento</SelectItem>
-                  <SelectItem value="Concluído">Concluído</SelectItem>
+                  <SelectItem value="Concludo">Concludo</SelectItem>
                   <SelectItem value="Atrasado">Atrasado</SelectItem>
                 </SelectContent>
               </Select>
@@ -214,7 +214,7 @@ export function AgendaProjetosScreen() {
         </CardContent>
       </Card>
 
-      {/* ÁREA DA AGENDA */}
+      {/* REA DA AGENDA */}
       {viewMode === 'grid' ? (
         <CalendarioGridProjetos eventos={filteredEvents} onEventClick={setSelectedEvent} />
       ) : (
@@ -237,7 +237,7 @@ export function AgendaProjetosScreen() {
               <Flag className="h-5 w-5 text-primary" /> Detalhes do Prazo / Marco
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Informações consolidadas do evento no cronograma do projeto.
+              Informaes consolidadas do evento no cronograma do projeto.
             </DialogDescription>
           </DialogHeader>
 
@@ -252,7 +252,7 @@ export function AgendaProjetosScreen() {
                     variant={
                       selectedEvent.status === 'Atrasado'
                         ? 'destructive'
-                        : selectedEvent.status === 'Concluído'
+                        : selectedEvent.status === 'Concludo'
                         ? 'outline'
                         : 'secondary'
                     }
@@ -273,9 +273,9 @@ export function AgendaProjetosScreen() {
                   <span className="font-bold text-foreground">{selectedEvent.data}</span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-muted-foreground block">Responsável</span>
+                  <span className="text-[10px] text-muted-foreground block">Responsvel</span>
                   <span className="font-semibold text-foreground">
-                    {selectedEvent.responsavel || 'Não especificado'}
+                    {selectedEvent.responsavel || 'No especificado'}
                   </span>
                 </div>
               </div>
@@ -283,7 +283,7 @@ export function AgendaProjetosScreen() {
               {selectedEvent.observacoes && (
                 <div className="space-y-1">
                   <span className="text-[10px] text-muted-foreground font-semibold uppercase">
-                    Observações / Escopo:
+                    Observaes / Escopo:
                   </span>
                   <p className="p-2.5 rounded-lg bg-muted/20 text-xs text-foreground">
                     {selectedEvent.observacoes}

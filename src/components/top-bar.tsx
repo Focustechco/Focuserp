@@ -21,7 +21,7 @@ import { Cliente } from "@/features/clientes/types";
 import { Contrato } from "@/features/contratos/types";
 import { NotificationBellDropdown } from "@/features/notificacoes/components/NotificationBellDropdown";
 
-// Importação dos Formulários Oficiais dos Módulos
+// Importao dos Formulrios Oficiais dos Mdulos
 import { NovoRecebimentoSheet } from "@/features/contas-receber/components/NovoRecebimentoSheet";
 import { NovaContaSheet } from "@/features/contas-pagar/components/NovaContaSheet";
 import { NovoClienteSheet } from "@/features/clientes/components/NovoClienteSheet";
@@ -57,19 +57,19 @@ export function TopBar() {
   }, []);
 
   const systemPages: QuickLink[] = [
-    { title: "Dashboard Executivo", category: "Módulo", url: "/", icon: LayoutDashboard },
-    { title: "Fluxo de Caixa", category: "Módulo", url: "/fluxo-de-caixa", icon: Wallet },
-    { title: "Contas a Receber", category: "Módulo", url: "/contas-a-receber", icon: Wallet },
-    { title: "Contas a Pagar", category: "Módulo", url: "/contas-a-pagar", icon: Wallet },
-    { title: "Clientes", category: "Módulo", url: "/clientes", icon: Users },
-    { title: "Contratos", category: "Módulo", url: "/contratos", icon: FileText },
-    { title: "Projetos", category: "Módulo", url: "/projetos", icon: Briefcase },
-    { title: "Central de Relatórios", category: "Módulo", url: "/relatorios", icon: BarChart3 },
-    { title: "Central de Documentos (DMS)", category: "Módulo", url: "/documentos", icon: FolderOpen },
-    { title: "Hub de Integrações", category: "Módulo", url: "/integracoes", icon: Plug },
+    { title: "Dashboard Executivo", category: "Mdulo", url: "/", icon: LayoutDashboard },
+    { title: "Fluxo de Caixa", category: "Mdulo", url: "/fluxo-de-caixa", icon: Wallet },
+    { title: "Contas a Receber", category: "Mdulo", url: "/contas-a-receber", icon: Wallet },
+    { title: "Contas a Pagar", category: "Mdulo", url: "/contas-a-pagar", icon: Wallet },
+    { title: "Clientes", category: "Mdulo", url: "/clientes", icon: Users },
+    { title: "Contratos", category: "Mdulo", url: "/contratos", icon: FileText },
+    { title: "Projetos", category: "Mdulo", url: "/projetos", icon: Briefcase },
+    { title: "Central de Relatrios", category: "Mdulo", url: "/relatorios", icon: BarChart3 },
+    { title: "Central de Documentos (DMS)", category: "Mdulo", url: "/documentos", icon: FolderOpen },
+    { title: "Hub de Integraes", category: "Mdulo", url: "/integracoes", icon: Plug },
   ];
 
-  // Resultados dinâmicos da pesquisa
+  // Resultados dinmicos da pesquisa
   const filteredPages = systemPages.filter(p => p.title.toLowerCase().includes(query.toLowerCase()));
   const filteredClientes = clientes.filter(c => c.razaoSocial.toLowerCase().includes(query.toLowerCase()) || (c.nomeFantasia && c.nomeFantasia.toLowerCase().includes(query.toLowerCase())));
   const filteredContratos = contratos.filter(c => c.numeroContrato.toLowerCase().includes(query.toLowerCase()) || c.clienteNome.toLowerCase().includes(query.toLowerCase()));
@@ -105,7 +105,7 @@ export function TopBar() {
         <div className="ml-auto flex items-center gap-2.5">
           <NotificationBellDropdown />
 
-          {/* BOTÃO NOVA TRANSAÇÃO */}
+          {/* BOTO NOVA TRANSAO */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button 
@@ -114,14 +114,14 @@ export function TopBar() {
                 className="inline-flex items-center gap-1.5 h-8 px-2 sm:px-3 text-xs font-semibold border-orange-500/30 text-orange-600 dark:text-orange-400 bg-orange-50/50 hover:bg-orange-100/80 dark:bg-orange-950/30 dark:hover:bg-orange-900/50 transition-all rounded-lg shadow-xs"
               >
                 <Plus className="h-3.5 w-3.5 text-orange-500" />
-                <span className="hidden sm:inline">Nova Transação</span>
+                <span className="hidden sm:inline">Nova Transao</span>
                 <ChevronDown className="hidden sm:inline h-3 w-3 opacity-60 ml-0.5" />
               </Button>
             </DropdownMenuTrigger>
 
             <DropdownMenuContent align="end" className="w-72 p-1.5 space-y-1">
               <DropdownMenuLabel className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-2 py-1">
-                Criar Nova Transação / Lançamento
+                Criar Nova Transao / Lanamento
               </DropdownMenuLabel>
               
               <NovoRecebimentoSheet>
@@ -131,7 +131,7 @@ export function TopBar() {
                   </div>
                   <div>
                     <div className="font-semibold text-xs text-foreground">Novo Recebimento (Entrada)</div>
-                    <div className="text-[10px] text-muted-foreground">Lança no Contas a Receber e Fluxo de Caixa</div>
+                    <div className="text-[10px] text-muted-foreground">Lana no Contas a Receber e Fluxo de Caixa</div>
                   </div>
                 </DropdownMenuItem>
               </NovoRecebimentoSheet>
@@ -142,8 +142,8 @@ export function TopBar() {
                     <TrendingDown className="w-4 h-4" />
                   </div>
                   <div>
-                    <div className="font-semibold text-xs text-foreground">Novo Pagamento (Saída)</div>
-                    <div className="text-[10px] text-muted-foreground">Lança no Contas a Pagar e Fluxo de Caixa</div>
+                    <div className="font-semibold text-xs text-foreground">Novo Pagamento (Sada)</div>
+                    <div className="text-[10px] text-muted-foreground">Lana no Contas a Pagar e Fluxo de Caixa</div>
                   </div>
                 </DropdownMenuItem>
               </NovaContaSheet>
@@ -157,7 +157,7 @@ export function TopBar() {
                   </div>
                   <div>
                     <div className="font-semibold text-xs text-foreground">Novo Cliente</div>
-                    <div className="text-[10px] text-muted-foreground">Cadastra cliente no diretório da empresa</div>
+                    <div className="text-[10px] text-muted-foreground">Cadastra cliente no diretrio da empresa</div>
                   </div>
                 </DropdownMenuItem>
               </NovoClienteSheet>
@@ -169,7 +169,7 @@ export function TopBar() {
                   </div>
                   <div>
                     <div className="font-semibold text-xs text-foreground">Novo Contrato</div>
-                    <div className="text-[10px] text-muted-foreground">Registra novo contrato de vendas/serviços</div>
+                    <div className="text-[10px] text-muted-foreground">Registra novo contrato de vendas/servios</div>
                   </div>
                 </DropdownMenuItem>
               </NovoContratoSheet>
@@ -181,8 +181,8 @@ export function TopBar() {
                   <Receipt className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="font-semibold text-xs text-foreground">Emissão de Nota Fiscal (NFe/NFSe)</div>
-                  <div className="text-[10px] text-muted-foreground">Emitir documento fiscal eletrônico</div>
+                  <div className="font-semibold text-xs text-foreground">Emisso de Nota Fiscal (NFe/NFSe)</div>
+                  <div className="text-[10px] text-muted-foreground">Emitir documento fiscal eletrnico</div>
                 </div>
               </DropdownMenuItem>
 
@@ -192,7 +192,7 @@ export function TopBar() {
                 </div>
                 <div>
                   <div className="font-semibold text-xs text-foreground">Nova Oportunidade (CRM)</div>
-                  <div className="text-[10px] text-muted-foreground">Adicionar negócio no pipeline do ClickUp</div>
+                  <div className="text-[10px] text-muted-foreground">Adicionar negcio no pipeline do ClickUp</div>
                 </div>
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -208,7 +208,7 @@ export function TopBar() {
               <Search className="w-4 h-4 text-muted-foreground ml-1" />
               <Input
                 autoFocus
-                placeholder="Digite o que deseja buscar (ex: Clientes, Contratos, Relatórios)..."
+                placeholder="Digite o que deseja buscar (ex: Clientes, Contratos, Relatrios)..."
                 value={query}
                 onChange={e => setQuery(e.target.value)}
                 className="border-none shadow-none focus-visible:ring-0 text-sm bg-transparent h-9"
@@ -217,10 +217,10 @@ export function TopBar() {
           </DialogHeader>
 
           <div className="p-3 max-h-[380px] overflow-y-auto space-y-4 text-xs">
-            {/* Seção Módulos da Plataforma */}
+            {/* Seo Mdulos da Plataforma */}
             {filteredPages.length > 0 && (
               <div>
-                <p className="font-semibold text-muted-foreground mb-2 text-[10px] uppercase tracking-wider">Módulos da Plataforma</p>
+                <p className="font-semibold text-muted-foreground mb-2 text-[10px] uppercase tracking-wider">Mdulos da Plataforma</p>
                 <div className="space-y-1">
                   {filteredPages.map(page => {
                     const IconComponent = page.icon;
@@ -242,7 +242,7 @@ export function TopBar() {
               </div>
             )}
 
-            {/* Seção Clientes Cadastrados */}
+            {/* Seo Clientes Cadastrados */}
             {filteredClientes.length > 0 && (
               <div>
                 <p className="font-semibold text-muted-foreground mb-2 text-[10px] uppercase tracking-wider">Clientes Cadastrados</p>
@@ -264,7 +264,7 @@ export function TopBar() {
               </div>
             )}
 
-            {/* Seção Contratos */}
+            {/* Seo Contratos */}
             {filteredContratos.length > 0 && (
               <div>
                 <p className="font-semibold text-muted-foreground mb-2 text-[10px] uppercase tracking-wider">Contratos</p>
@@ -277,7 +277,7 @@ export function TopBar() {
                     >
                       <div className="flex items-center gap-2">
                         <FileText className="w-4 h-4 text-emerald-500" />
-                        <span className="font-medium text-foreground">{contrato.numeroContrato} — {contrato.clienteNome}</span>
+                        <span className="font-medium text-foreground">{contrato.numeroContrato}  {contrato.clienteNome}</span>
                       </div>
                       <span className="font-semibold text-emerald-600">R$ {contrato.valorTotal?.toLocaleString('pt-BR')}</span>
                     </div>

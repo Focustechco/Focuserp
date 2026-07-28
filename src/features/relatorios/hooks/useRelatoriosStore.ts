@@ -17,7 +17,7 @@ export function useRelatoriosStore() {
   const { data: schedules, addItem: addSchedule, updateItem: updateSchedule, removeItem: removeSchedule } = useLocalStorageState<ReportSchedule>('focus_relatorios_schedules');
   const { data: templates, addItem: addTemplate } = useLocalStorageState<ReportModelTemplate>('focus_relatorios_templates');
 
-  // Consumo EXCLUSIVO de dados reais da aplicação
+  // Consumo EXCLUSIVO de dados reais da aplicao
   const { data: contasReceber } = useLocalStorageState<TituloReceber>('focus_contas_receber', []);
   const { data: contasPagar } = useLocalStorageState<ContaPagar>('focus_contas_pagar', []);
   const { data: clientes } = useLocalStorageState<Cliente>('focus_clientes', []);
@@ -76,7 +76,7 @@ export function useRelatoriosStore() {
         return {
           data: c.dataVencimento ? new Date(c.dataVencimento).toLocaleDateString('pt-BR') : '-',
           descricao: `${c.fornecedor || 'Fornecedor'} - ${c.descricao || 'Pagamento'}`,
-          categoria: 'Saída',
+          categoria: 'Sada',
           entradas: formatCurrency(0),
           saidas: formatCurrency(val),
           saldoAcumulado: formatCurrency(accSaldo),
@@ -92,13 +92,13 @@ export function useRelatoriosStore() {
 
       metricsSummary = [
         { label: 'Total Entradas Previstas', value: formatCurrency(totalEntradas), color: 'text-emerald-600' },
-        { label: 'Total Saídas Previstas', value: formatCurrency(totalSaidas), color: 'text-rose-600' },
-        { label: 'Saldo Operacional Líquido', value: formatCurrency(saldoLiquido), color: saldoLiquido >= 0 ? 'text-emerald-600' : 'text-rose-600' }
+        { label: 'Total Sadas Previstas', value: formatCurrency(totalSaidas), color: 'text-rose-600' },
+        { label: 'Saldo Operacional Lquido', value: formatCurrency(saldoLiquido), color: saldoLiquido >= 0 ? 'text-emerald-600' : 'text-rose-600' }
       ];
 
       chartData = [
         { name: 'Entradas', valor: totalEntradas },
-        { name: 'Saídas', valor: totalSaidas }
+        { name: 'Sadas', valor: totalSaidas }
       ];
     }
     // 2. DRE GERENCIAL (rep-fin-002) - 100% Dados Reais sem Mock
@@ -117,11 +117,11 @@ export function useRelatoriosStore() {
       contasPagar.forEach(c => {
         const val = c.valorOriginal || 0;
         const cat = (c.categoria || '').toLowerCase();
-        if (cat.includes('imposto') || cat.includes('tributo') || cat.includes('retenção')) {
+        if (cat.includes('imposto') || cat.includes('tributo') || cat.includes('reteno')) {
           deducoes += val;
-        } else if (cat.includes('custo') || cat.includes('fornecedor') || cat.includes('infra') || cat.includes('cloud') || cat.includes('serviço')) {
+        } else if (cat.includes('custo') || cat.includes('fornecedor') || cat.includes('infra') || cat.includes('cloud') || cat.includes('servio')) {
           custosOperacionais += val;
-        } else if (cat.includes('marketing') || cat.includes('venda') || cat.includes('comissão') || cat.includes('comissao') || cat.includes('anúncio')) {
+        } else if (cat.includes('marketing') || cat.includes('venda') || cat.includes('comisso') || cat.includes('comissao') || cat.includes('anncio')) {
           despesasComerciais += val;
         } else if (cat.includes('tarifa') || cat.includes('banc') || cat.includes('juro') || cat.includes('iof')) {
           despesasFinanceiras += val;
@@ -138,40 +138,40 @@ export function useRelatoriosStore() {
       const totalBase = receitaBruta || 1;
 
       rows = [
-        { conta: '1.0 Receita Bruta de Vendas e Serviços', realizado: formatCurrency(receitaBruta), av: '100.0%' },
-        { conta: '2.0 (-) Deduções da Receita Bruta (Impostos/Devoluções)', realizado: formatCurrency(-deducoes), av: calcAV(deducoes, totalBase) },
-        { conta: '3.0 (=) Receita Líquida', realizado: formatCurrency(receitaLiquida), av: calcAV(receitaLiquida, totalBase) },
-        { conta: '4.0 (-) Custos dos Serviços Prestados (CSP/CPV)', realizado: formatCurrency(-custosOperacionais), av: calcAV(custosOperacionais, totalBase) },
+        { conta: '1.0 Receita Bruta de Vendas e Servios', realizado: formatCurrency(receitaBruta), av: '100.0%' },
+        { conta: '2.0 (-) Dedues da Receita Bruta (Impostos/Devolues)', realizado: formatCurrency(-deducoes), av: calcAV(deducoes, totalBase) },
+        { conta: '3.0 (=) Receita Lquida', realizado: formatCurrency(receitaLiquida), av: calcAV(receitaLiquida, totalBase) },
+        { conta: '4.0 (-) Custos dos Servios Prestados (CSP/CPV)', realizado: formatCurrency(-custosOperacionais), av: calcAV(custosOperacionais, totalBase) },
         { conta: '5.0 (=) Lucro Bruto', realizado: formatCurrency(lucroBruto), av: calcAV(lucroBruto, totalBase) },
         { conta: '6.0 (-) Despesas Administrativas & Operacionais', realizado: formatCurrency(-despesasAdm), av: calcAV(despesasAdm, totalBase) },
         { conta: '7.0 (-) Despesas Comerciais e Marketing', realizado: formatCurrency(-despesasComerciais), av: calcAV(despesasComerciais, totalBase) },
         { conta: '8.0 (=) EBITDA (Lucro Antes de Juros e Impostos)', realizado: formatCurrency(ebitda), av: calcAV(ebitda, totalBase) },
-        { conta: '9.0 (-) Despesas Financeiras Líquidas', realizado: formatCurrency(-despesasFinanceiras), av: calcAV(despesasFinanceiras, totalBase) },
-        { conta: '10.0 (=) Lucro Líquido do Exercício', realizado: formatCurrency(lucroLiquido), av: calcAV(lucroLiquido, totalBase) }
+        { conta: '9.0 (-) Despesas Financeiras Lquidas', realizado: formatCurrency(-despesasFinanceiras), av: calcAV(despesasFinanceiras, totalBase) },
+        { conta: '10.0 (=) Lucro Lquido do Exerccio', realizado: formatCurrency(lucroLiquido), av: calcAV(lucroLiquido, totalBase) }
       ];
 
       metricsSummary = [
         { label: 'Receita Bruta Real', value: formatCurrency(receitaBruta), color: 'text-emerald-600' },
-        { label: 'Receita Líquida Real', value: formatCurrency(receitaLiquida), color: 'text-emerald-500' },
+        { label: 'Receita Lquida Real', value: formatCurrency(receitaLiquida), color: 'text-emerald-500' },
         { label: 'Lucro Bruto Real', value: formatCurrency(lucroBruto), color: 'text-primary' },
         { label: 'EBITDA Consolidado Real', value: formatCurrency(ebitda), color: 'text-blue-600' },
-        { label: 'Lucro Líquido Final Real', value: formatCurrency(lucroLiquido), color: lucroLiquido >= 0 ? 'text-emerald-600' : 'text-rose-600' }
+        { label: 'Lucro Lquido Final Real', value: formatCurrency(lucroLiquido), color: lucroLiquido >= 0 ? 'text-emerald-600' : 'text-rose-600' }
       ];
 
       chartData = [
         { name: 'Receita Bruta', valor: receitaBruta },
-        { name: 'Receita Líquida', valor: receitaLiquida },
+        { name: 'Receita Lquida', valor: receitaLiquida },
         { name: 'Lucro Bruto', valor: lucroBruto },
         { name: 'EBITDA', valor: ebitda },
-        { name: 'Lucro Líquido', valor: lucroLiquido }
+        { name: 'Lucro Lquido', valor: lucroLiquido }
       ];
     }
     // 3. CONTAS A RECEBER (rep-fin-003) - 100% Real
     else if (definition.id === 'rep-fin-003') {
       rows = contasReceber.map(c => ({
         numero: c.numero || `REC-${c.id}`,
-        cliente: c.cliente || 'Cliente não identificado',
-        descricao: c.descricao || 'Título a receber',
+        cliente: c.cliente || 'Cliente no identificado',
+        descricao: c.descricao || 'Ttulo a receber',
         dataVencimento: c.dataVencimento ? new Date(c.dataVencimento).toLocaleDateString('pt-BR') : '-',
         valorOriginal: formatCurrency(c.valorOriginal || 0),
         valorRecebido: formatCurrency(c.valorRecebido || 0),
@@ -185,7 +185,7 @@ export function useRelatoriosStore() {
 
       metricsSummary = [
         { label: 'Total a Receber', value: formatCurrency(total) },
-        { label: 'Total Já Recebido', value: formatCurrency(recebido), color: 'text-emerald-600' },
+        { label: 'Total J Recebido', value: formatCurrency(recebido), color: 'text-emerald-600' },
         { label: 'Saldo Pendente', value: formatCurrency(saldoPendente), color: 'text-amber-600' }
       ];
     }
@@ -211,7 +211,7 @@ export function useRelatoriosStore() {
         { label: 'Saldo a Liquidar', value: formatCurrency(saldoLiquidar), color: 'text-rose-600' }
       ];
     }
-    // 5. INADIMPLÊNCIA & RÉGUA DE COBRANÇA (rep-fin-005) - 100% Real
+    // 5. INADIMPLNCIA & RGUA DE COBRANA (rep-fin-005) - 100% Real
     else if (definition.id === 'rep-fin-005') {
       const hoje = new Date();
       const vencidos = contasReceber.filter(c => {
@@ -231,14 +231,14 @@ export function useRelatoriosStore() {
           titulosVencidos: 1,
           totalVencido: formatCurrency(c.valorOriginal || 0),
           diasAtraso: diasAtrasoCalculado,
-          statusCobranca: cobrancaVinculada ? cobrancaVinculada.etapaAtual : 'Aguardando Régua'
+          statusCobranca: cobrancaVinculada ? cobrancaVinculada.etapaAtual : 'Aguardando Rgua'
         };
       });
 
       const totalInadimplente = vencidos.reduce((acc, c) => acc + (c.valorOriginal || 0), 0);
       metricsSummary = [
-        { label: 'Inadimplência Total', value: formatCurrency(totalInadimplente), color: 'text-rose-600' },
-        { label: 'Títulos em Atraso', value: `${vencidos.length}` }
+        { label: 'Inadimplncia Total', value: formatCurrency(totalInadimplente), color: 'text-rose-600' },
+        { label: 'Ttulos em Atraso', value: `${vencidos.length}` }
       ];
     }
     // 6. CADASTRO DE CLIENTES (rep-cli-001) - 100% Real
@@ -257,7 +257,7 @@ export function useRelatoriosStore() {
         { label: 'Clientes Ativos', value: `${clientes.filter(c => c.status === 'Ativo').length}`, color: 'text-emerald-600' }
       ];
     }
-    // 7. SAÚDE FINANCEIRA E LTV (rep-cli-002) - 100% Real sem frações artificiais
+    // 7. SADE FINANCEIRA E LTV (rep-cli-002) - 100% Real sem fraes artificiais
     else if (definition.id === 'rep-cli-002') {
       rows = clientes.map(c => {
         const titulosDoCliente = contasReceber.filter(t => t.clienteId === c.id || t.cliente === c.nomeFantasia);
@@ -266,7 +266,7 @@ export function useRelatoriosStore() {
         const saldoAbertoReal = titulosDoCliente.reduce((acc, t) => acc + (t.saldo !== undefined ? t.saldo : ((t.valorOriginal || 0) - (t.valorRecebido || 0))), 0);
         
         let score = 'Excelente (A)';
-        if (saldoAbertoReal > recebidoReal) score = 'Atenção (C)';
+        if (saldoAbertoReal > recebidoReal) score = 'Ateno (C)';
         else if (saldoAbertoReal > 0) score = 'Bom (B)';
 
         return {
@@ -281,7 +281,7 @@ export function useRelatoriosStore() {
       const totalLtv = contasReceber.reduce((acc, t) => acc + (t.valorOriginal || 0), 0);
       metricsSummary = [
         { label: 'LTV Geral Consolidado', value: formatCurrency(totalLtv), color: 'text-primary' },
-        { label: 'Ticket Médio / Cliente', value: formatCurrency(clientes.length ? totalLtv / clientes.length : 0) }
+        { label: 'Ticket Mdio / Cliente', value: formatCurrency(clientes.length ? totalLtv / clientes.length : 0) }
       ];
     }
     // 8. PROJETOS E RENTABILIDADE (rep-prj-001) - 100% Real
@@ -302,7 +302,7 @@ export function useRelatoriosStore() {
         { label: 'Valor Total Contratado', value: formatCurrency(valTotal), color: 'text-primary' }
       ];
     }
-    // 9. GESTÃO DE PESSOAS (RH) (rep-rh-001) - 100% Real
+    // 9. GESTO DE PESSOAS (RH) (rep-rh-001) - 100% Real
     else if (definition.id === 'rep-rh-001') {
       rows = colaboradores.map(col => ({
         nome: col.nome || 'Colaborador',
@@ -319,11 +319,11 @@ export function useRelatoriosStore() {
         { label: 'Custo Mensal de Folha', value: formatCurrency(totalFolha), color: 'text-rose-600' }
       ];
     }
-    // 10. MARKETING & MÍDIA (rep-mkt-001) - 100% Real
+    // 10. MARKETING & MDIA (rep-mkt-001) - 100% Real
     else if (definition.id === 'rep-mkt-001') {
       rows = campanhas.map(camp => ({
         nome: camp.nome || 'Campanha de Marketing',
-        objetivo: camp.objetivo || 'Geração de Leads',
+        objetivo: camp.objetivo || 'Gerao de Leads',
         orcamentoTotal: camp.orcamentoTotal ? formatCurrency(typeof camp.orcamentoTotal === 'number' ? camp.orcamentoTotal : parseFloat(String(camp.orcamentoTotal).replace(/[^0-9,.-]/g, '').replace(',', '.')) || 0) : 'R$ 0,00',
         gasto: camp.gasto ? formatCurrency(typeof camp.gasto === 'number' ? camp.gasto : parseFloat(String(camp.gasto).replace(/[^0-9,.-]/g, '').replace(',', '.')) || 0) : 'R$ 0,00',
         progresso: `${camp.progresso || 0}%`,
@@ -351,7 +351,7 @@ export function useRelatoriosStore() {
         { label: 'Valor Global Contratado', value: formatCurrency(totalCt), color: 'text-emerald-600' }
       ];
     }
-    // 12. DEMAIS RELATÓRIOS DIVERSOS - 100% Real baseados no módulo correspondente
+    // 12. DEMAIS RELATRIOS DIVERSOS - 100% Real baseados no mdulo correspondente
     else {
       rows = clientes.map(c => ({
         item: c.nomeFantasia || c.razaoSocial,
@@ -361,7 +361,7 @@ export function useRelatoriosStore() {
 
       metricsSummary = [
         { label: 'Total Registros Reais', value: `${rows.length}` },
-        { label: 'Status da Emissão', value: 'Válido e Autenticado', color: 'text-emerald-600' }
+        { label: 'Status da Emisso', value: 'Vlido e Autenticado', color: 'text-emerald-600' }
       ];
     }
 
@@ -379,7 +379,7 @@ export function useRelatoriosStore() {
   const saveReportToDmsVault = (data: GeneratedReportData, format: ReportFormat, fileUrl?: string) => {
     const category = data.definition.category;
     
-    // Mapeamento automático de pasta integrada no Módulo Documentos (DMS)
+    // Mapeamento automtico de pasta integrada no Mdulo Documentos (DMS)
     let targetFolder = pastas.find(p => 
       p.nome.toLowerCase().includes(category.toLowerCase()) || 
       p.moduloVinculado?.toLowerCase() === category.toLowerCase()
@@ -396,9 +396,9 @@ export function useRelatoriosStore() {
         tamanho: tamanhoStr,
         tamanhoBytes: 1024 * 1024,
         pastaId: targetFolder.id,
-        moduloOrigem: 'Relatórios',
-        categoria: `Relatório ${category}`,
-        tags: ['Relatório', category, data.reportNumber],
+        moduloOrigem: 'Relatrios',
+        categoria: `Relatrio ${category}`,
+        tags: ['Relatrio', category, data.reportNumber],
         urlConteudo: fileUrl
       });
     }
@@ -411,18 +411,18 @@ export function useRelatoriosStore() {
       reportId: def.id,
       reportTitle: def.title,
       category: def.category,
-      generatedBy: 'Usuário Administrador',
+      generatedBy: 'Usurio Administrador',
       generatedAt: new Date().toISOString(),
       format,
       fileSize: format === 'PDF' ? '1.4 MB' : format === 'DOCX' ? '820 KB' : format === 'XLSX' ? '450 KB' : '120 KB',
       generationTimeMs: Math.floor(180 + Math.random() * 250),
       status: 'Sucesso',
-      filtersSummary: `Período: ${filters.dataInicio || 'Geral'} até ${filters.dataFim || 'Hoje'}`
+      filtersSummary: `Perodo: ${filters.dataInicio || 'Geral'} at ${filters.dataFim || 'Hoje'}`
     };
 
     addHistory(newEntry);
 
-    // Integrar salvamento do documento gerado diretamente no Módulo Documentos (DMS)
+    // Integrar salvamento do documento gerado diretamente no Mdulo Documentos (DMS)
     if (generatedData) {
       saveReportToDmsVault(generatedData, format, fileUrl);
     }

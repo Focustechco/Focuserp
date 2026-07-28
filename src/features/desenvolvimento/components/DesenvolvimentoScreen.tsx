@@ -13,7 +13,7 @@ export function DesenvolvimentoScreen() {
     backlogItems,
     sprints,
     versoes,
-    repositóriosGit,
+    repositriosGit,
     branches,
     releases,
     deploys,
@@ -58,7 +58,7 @@ export function DesenvolvimentoScreen() {
         </div>
       </div>
 
-      {/* TABS DE NAVEGAÇÃO */}
+      {/* TABS DE NAVEGAO */}
       <Tabs value={mainTab} onValueChange={(val: any) => setMainTab(val)} className="space-y-6">
         <TabsList className="grid w-full grid-cols-3 lg:w-[500px]">
           <TabsTrigger value="workspaces" className="text-xs font-semibold gap-1.5">
@@ -72,7 +72,7 @@ export function DesenvolvimentoScreen() {
           </TabsTrigger>
         </TabsList>
 
-        {/* ABA 1: WORKSPACES DE PROJETOS TÉCNICOS */}
+        {/* ABA 1: WORKSPACES DE PROJETOS TCNICOS */}
         <TabsContent value="workspaces" className="space-y-4 outline-none">
           <ProjetosDeliveryList
             projetosTecnicos={projetosTecnicos}
@@ -103,7 +103,7 @@ export function DesenvolvimentoScreen() {
               backlogItems={backlogItems}
               sprints={sprints}
               versoes={versoes}
-              repositóriosGit={repositóriosGit}
+              repositriosGit={repositriosGit}
               branches={branches}
               releases={releases}
               deploys={deploys}
@@ -123,7 +123,7 @@ export function DesenvolvimentoScreen() {
             />
           ) : (
             <div className="p-8 text-center text-muted-foreground text-xs">
-              Selecione um projeto de software na lista para abrir seu Workspace Técnico.
+              Selecione um projeto de software na lista para abrir seu Workspace Tcnico.
             </div>
           )}
         </TabsContent>

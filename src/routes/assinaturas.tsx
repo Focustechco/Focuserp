@@ -1,4 +1,4 @@
-﻿import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -55,23 +55,23 @@ function AssinaturasPage() {
 
   const handleUsarModelo = (modelo: ModeloDocumento) => {
     setNovoDocSheetOpen(true);
-    toast.info(`Minuta "${modelo.titulo}" carregada no formulÃ¡rio de envio.`);
+    toast.info(`Minuta "${modelo.titulo}" carregada no formulário de envio.`);
   };
 
   return (
     <div className="p-6 md:p-8 space-y-6 max-w-[1600px] mx-auto animate-fade-in">
       
-      {/* Header da PÃ¡gina */}
+      {/* Header da Página */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full uppercase tracking-wider">
               Focus Sign
             </span>
-            <span className="text-xs text-muted-foreground">â€¢ MÃ³dulo de Assinaturas EletrÃ´nicas</span>
+            <span className="text-xs text-muted-foreground">⬢ Módulo de Assinaturas Eletrônicas</span>
           </div>
           <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight mt-1 text-foreground">
-            GestÃ£o de Assinaturas & Contratos
+            Gestão de Assinaturas & Contratos
           </h1>
         </div>
 
@@ -85,11 +85,11 @@ function AssinaturasPage() {
         </div>
       </div>
 
-      {/* Tabs Principais do MÃ³dulo */}
+      {/* Tabs Principais do Módulo */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="w-full h-auto flex flex-wrap bg-card border p-1 rounded-xl shadow-xs">
           <TabsTrigger value="dashboard" className="gap-2 flex-1 text-xs py-2">
-            <LayoutDashboard className="w-3.5 h-3.5" /> VisÃ£o Geral
+            <LayoutDashboard className="w-3.5 h-3.5" /> Visão Geral
           </TabsTrigger>
           <TabsTrigger value="documentos" className="gap-2 flex-1 text-xs py-2">
             <FileText className="w-3.5 h-3.5" /> Documentos ({documentos.length})

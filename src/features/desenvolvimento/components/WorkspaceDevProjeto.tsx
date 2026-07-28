@@ -55,7 +55,7 @@ interface WorkspaceDevProjetoProps {
   backlogItems: ItemBacklog[];
   sprints: SprintDelivery[];
   versoes: VersaoSemVer[];
-  repositóriosGit: RepositorioGitConfig[];
+  repositriosGit: RepositorioGitConfig[];
   branches: GitBranchItem[];
   releases: ReleaseDelivery[];
   deploys: DeployItem[];
@@ -79,7 +79,7 @@ export function WorkspaceDevProjeto({
   backlogItems,
   sprints,
   versoes,
-  repositóriosGit,
+  repositriosGit,
   branches,
   releases,
   deploys,
@@ -107,7 +107,7 @@ export function WorkspaceDevProjeto({
   const projBacklog = backlogItems.filter((b) => b.projetoId === projeto.id);
   const projSprints = sprints.filter((s) => s.projetoId === projeto.id);
   const projVersoes = versoes.filter((v) => v.projetoId === projeto.id);
-  const projGit = repositóriosGit.find((g) => g.projetoId === projeto.id);
+  const projGit = repositriosGit.find((g) => g.projetoId === projeto.id);
   const projBranches = branches.filter((br) => br.projetoId === projeto.id);
   const projReleases = releases.filter((r) => r.projetoId === projeto.id);
   const projDeploys = deploys.filter((d) => d.projetoId === projeto.id);
@@ -127,14 +127,14 @@ export function WorkspaceDevProjeto({
     'Em Desenvolvimento',
     'Code Review',
     'QA',
-    'Homologação',
+    'Homologao',
     'Pronto para Deploy',
-    'Concluído',
+    'Concludo',
   ];
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* HEADER DO WORKSPACE TÉCNICO */}
+      {/* HEADER DO WORKSPACE TCNICO */}
       <div className="p-6 rounded-2xl border border-border bg-card shadow-sm space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
@@ -152,7 +152,7 @@ export function WorkspaceDevProjeto({
                 <h1 className="text-xl font-black tracking-tight text-foreground">{projeto.nome}</h1>
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                Cliente: <span className="font-semibold text-foreground">{projeto.idCliente || 'Cliente Corporativo'}</span> • Tech Lead: <span className="font-semibold text-foreground">{projeto.responsavelPrincipal || 'Lead'}</span>
+                Cliente: <span className="font-semibold text-foreground">{projeto.idCliente || 'Cliente Corporativo'}</span> " Tech Lead: <span className="font-semibold text-foreground">{projeto.responsavelPrincipal || 'Lead'}</span>
               </p>
             </div>
           </div>
@@ -168,7 +168,7 @@ export function WorkspaceDevProjeto({
         </div>
       </div>
 
-      {/* TABS TÉCNICAS DO WORKSPACE (15 SUB-TABNAV) */}
+      {/* TABS TCNICAS DO WORKSPACE (15 SUB-TABNAV) */}
       <Tabs defaultValue="kanban" value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="flex flex-wrap w-full justify-start h-auto p-1.5 bg-muted/60 border border-border">
           <TabsTrigger value="kanban" className="text-xs gap-1.5">
@@ -199,7 +199,7 @@ export function WorkspaceDevProjeto({
             <Server className="h-3.5 w-3.5" /> Ambientes
           </TabsTrigger>
           <TabsTrigger value="publicacoes" className="text-xs gap-1.5">
-            <Smartphone className="h-3.5 w-3.5" /> Publicações App
+            <Smartphone className="h-3.5 w-3.5" /> Publicaes App
           </TabsTrigger>
           <TabsTrigger value="logs" className="text-xs gap-1.5">
             <Activity className="h-3.5 w-3.5" /> CI/CD & Logs
@@ -210,7 +210,7 @@ export function WorkspaceDevProjeto({
         <TabsContent value="kanban" className="space-y-6 outline-none">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-foreground">Fluxo de Engenharia Software Delivery</h3>
-            <span className="text-xs text-muted-foreground">Clique na coluna desejada para avançar uma tarefa</span>
+            <span className="text-xs text-muted-foreground">Clique na coluna desejada para avanar uma tarefa</span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -243,7 +243,7 @@ export function WorkspaceDevProjeto({
                             <Badge
                               variant="secondary"
                               className={`text-[9px] ${
-                                item.prioridade === 'Crítica' || item.prioridade === 'Alta'
+                                item.prioridade === 'Crtica' || item.prioridade === 'Alta'
                                   ? 'bg-rose-500/10 text-rose-600'
                                   : ''
                               }`}
@@ -258,7 +258,7 @@ export function WorkspaceDevProjeto({
                           <div className="flex items-center justify-between text-[10px] pt-1 border-t border-border/40">
                             <span className="text-muted-foreground">{item.responsavel || 'Dev'}</span>
                             <div className="flex items-center gap-1">
-                              {col !== 'Concluído' && (
+                              {col !== 'Concludo' && (
                                 <Button
                                   size="sm"
                                   variant="ghost"
@@ -270,7 +270,7 @@ export function WorkspaceDevProjeto({
                                     }
                                   }}
                                 >
-                                  Mover →
+                                  Mover 
                                 </Button>
                               )}
                             </div>
@@ -291,7 +291,7 @@ export function WorkspaceDevProjeto({
             <CardHeader className="py-4 flex flex-row items-center justify-between">
               <div>
                 <CardTitle className="text-sm font-bold">Product & Technical Backlog</CardTitle>
-                <CardDescription className="text-xs">Lista completa de pendências técnicas e estórias</CardDescription>
+                <CardDescription className="text-xs">Lista completa de pendncias tcnicas e estrias</CardDescription>
               </div>
               <Button onClick={() => setIsNovoItemSheetOpen(true)} size="sm" className="gap-1.5 text-xs">
                 <Plus className="h-4 w-4" /> Novo Item
@@ -302,10 +302,10 @@ export function WorkspaceDevProjeto({
                 <TableHeader>
                   <TableRow>
                     <TableHead className="text-xs">Tipo</TableHead>
-                    <TableHead className="text-xs">Título</TableHead>
+                    <TableHead className="text-xs">Ttulo</TableHead>
                     <TableHead className="text-xs">Prioridade</TableHead>
                     <TableHead className="text-xs">Story Points</TableHead>
-                    <TableHead className="text-xs">Responsável</TableHead>
+                    <TableHead className="text-xs">Responsvel</TableHead>
                     <TableHead className="text-xs">Status</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -350,7 +350,7 @@ export function WorkspaceDevProjeto({
         <TabsContent value="sprints" className="space-y-6 outline-none">
           <Card>
             <CardHeader className="py-4">
-              <CardTitle className="text-sm font-bold">Gestão de Sprints Ágeis</CardTitle>
+              <CardTitle className="text-sm font-bold">Gesto de Sprints geis</CardTitle>
               <CardDescription className="text-xs">Velocidade da equipe e entregas por ciclo</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -367,11 +367,11 @@ export function WorkspaceDevProjeto({
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 rounded-lg bg-muted/20 text-xs">
                     <div>
-                      <span className="text-[10px] text-muted-foreground block">Início</span>
+                      <span className="text-[10px] text-muted-foreground block">Incio</span>
                       <span className="font-bold">{sprint.dataInicio}</span>
                     </div>
                     <div>
-                      <span className="text-[10px] text-muted-foreground block">Término</span>
+                      <span className="text-[10px] text-muted-foreground block">Trmino</span>
                       <span className="font-bold">{sprint.dataFim}</span>
                     </div>
                     <div>
@@ -397,7 +397,7 @@ export function WorkspaceDevProjeto({
                 <CardTitle className="text-sm font-bold text-rose-600 flex items-center gap-2">
                   <Bug className="h-4 w-4" /> Defeitos & Bugs Reportados
                 </CardTitle>
-                <CardDescription className="text-xs">Rastreamento de erros e correções</CardDescription>
+                <CardDescription className="text-xs">Rastreamento de erros e correes</CardDescription>
               </div>
               <Button onClick={() => setIsNovoBugSheetOpen(true)} variant="destructive" size="sm" className="gap-1.5 text-xs">
                 <Plus className="h-4 w-4" /> Reportar Bug
@@ -408,11 +408,11 @@ export function WorkspaceDevProjeto({
                 <TableHeader>
                   <TableRow>
                     <TableHead className="text-xs">Severidade</TableHead>
-                    <TableHead className="text-xs">Título do Bug</TableHead>
+                    <TableHead className="text-xs">Ttulo do Bug</TableHead>
                     <TableHead className="text-xs">Ambiente</TableHead>
-                    <TableHead className="text-xs">Responsável</TableHead>
+                    <TableHead className="text-xs">Responsvel</TableHead>
                     <TableHead className="text-xs">Status</TableHead>
-                    <TableHead className="text-xs text-right">Ação</TableHead>
+                    <TableHead className="text-xs text-right">Ao</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -429,7 +429,7 @@ export function WorkspaceDevProjeto({
                           <Badge
                             variant="destructive"
                             className={`text-[10px] ${
-                              bug.severidade === 'Crítico'
+                              bug.severidade === 'Crtico'
                                 ? 'bg-rose-600'
                                 : bug.severidade === 'Alto'
                                 ? 'bg-orange-600'
@@ -453,7 +453,7 @@ export function WorkspaceDevProjeto({
                               size="sm"
                               variant="outline"
                               className="h-7 text-[10px] font-bold text-emerald-600"
-                              onClick={() => onResolverBug(bug.id, 'Correção aplicada e testada', 'v1.0.1', 'Dev Team')}
+                              onClick={() => onResolverBug(bug.id, 'Correo aplicada e testada', 'v1.0.1', 'Dev Team')}
                             >
                               Resolver Bug
                             </Button>
@@ -493,7 +493,7 @@ export function WorkspaceDevProjeto({
                     {amb.url}
                   </a>
                   <div className="flex justify-between text-[11px] text-muted-foreground pt-2 border-t">
-                    <span>Versão Atual:</span>
+                    <span>Verso Atual:</span>
                     <span className="font-bold text-foreground">{amb.versaoAtual}</span>
                   </div>
                 </CardContent>
@@ -509,14 +509,14 @@ export function WorkspaceDevProjeto({
               <CardTitle className="text-sm font-bold flex items-center gap-2">
                 <Terminal className="h-4 w-4 text-primary" /> Pipelines de CI/CD & Event Logs
               </CardTitle>
-              <CardDescription className="text-xs">Histórico de execuções automatizadas e builds</CardDescription>
+              <CardDescription className="text-xs">Histrico de execues automatizadas e builds</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               {projPipelines.map((pipe) => (
                 <div key={pipe.id} className="p-3 rounded-xl border border-border bg-muted/20 flex items-center justify-between text-xs">
                   <div>
                     <span className="font-bold text-foreground block">{pipe.nomePipeline} ({pipe.buildNumber})</span>
-                    <span className="text-[10px] text-muted-foreground">Provedor: {pipe.provedor} • Tempo: {pipe.tempoExecucaoSegundos}s</span>
+                    <span className="text-[10px] text-muted-foreground">Provedor: {pipe.provedor} " Tempo: {pipe.tempoExecucaoSegundos}s</span>
                   </div>
                   <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30 font-bold text-[10px]">
                     {pipe.status}
@@ -528,7 +528,7 @@ export function WorkspaceDevProjeto({
         </TabsContent>
       </Tabs>
 
-      {/* SHEETS DE CRIAÇÃO */}
+      {/* SHEETS DE CRIAO */}
       <NovoItemBacklogSheet
         open={isNovoItemSheetOpen}
         onOpenChange={setIsNovoItemSheetOpen}

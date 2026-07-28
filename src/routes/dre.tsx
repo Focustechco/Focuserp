@@ -1,4 +1,4 @@
-﻿import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dashboard } from "@/features/dre/components/Dashboard";
 import { DreTable } from "@/features/dre/components/DreTable";
@@ -18,7 +18,7 @@ function DrePage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">DRE Gerencial</h1>
           <p className="text-muted-foreground mt-1">
-            DemonstraÃ§Ã£o do Resultado do ExercÃ­cio consolidada em tempo real.
+            Demonstração do Resultado do Exercício consolidada em tempo real.
           </p>
         </div>
       </div>

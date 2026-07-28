@@ -1,4 +1,4 @@
-﻿import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dashboard } from "@/features/fornecedores/components/Dashboard";
 import { FornecedoresList } from "@/features/fornecedores/components/FornecedoresList";
@@ -13,7 +13,7 @@ function FornecedoresPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Fornecedores</h1>
         <p className="text-muted-foreground mt-2">
-          Cadastro central de parceiros e fornecedores de serviÃ§os da sua operaÃ§Ã£o.
+          Cadastro central de parceiros e fornecedores de serviços da sua operação.
         </p>
       </div>
 
@@ -21,7 +21,7 @@ function FornecedoresPage() {
         <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
           
           <TabsTrigger value="lista">Todos os Fornecedores</TabsTrigger>
-          <TabsTrigger value="dashboard">VisÃ£o Geral</TabsTrigger>
+          <TabsTrigger value="dashboard">Visão Geral</TabsTrigger>
         </TabsList>
         
         <TabsContent value="lista" className="space-y-4 outline-none">

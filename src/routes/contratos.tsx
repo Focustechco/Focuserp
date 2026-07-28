@@ -1,4 +1,4 @@
-﻿import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dashboard } from "@/features/contratos/components/Dashboard";
 import { ContratosList } from "@/features/contratos/components/ContratosList";
@@ -13,7 +13,7 @@ function ContratosPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Contratos (CLM)</h1>
         <p className="text-muted-foreground mt-2">
-          GestÃ£o centralizada do ciclo de vida de contratos com clientes, fornecedores e parceiros.
+          Gestão centralizada do ciclo de vida de contratos com clientes, fornecedores e parceiros.
         </p>
       </div>
 

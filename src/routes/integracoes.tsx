@@ -1,4 +1,4 @@
-﻿import React, { useState } from "react";
+import React, { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { HubDashboard } from "@/features/integracoes/components/HubDashboard";
@@ -18,7 +18,7 @@ function IntegrationHubPage() {
 
   return (
     <div className="flex flex-col gap-6 p-6 max-w-[1400px] mx-auto w-full animate-fade-in">
-      {/* CabeÃ§alho do Hub de IntegraÃ§Ãµes */}
+      {/* Cabeçalho do Hub de Integrações */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-xl bg-orange-500/10 text-orange-600 flex items-center justify-center shadow-sm">
@@ -26,19 +26,19 @@ function IntegrationHubPage() {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-3xl font-bold tracking-tight">Hub de IntegraÃ§Ãµes</h1>
+              <h1 className="text-3xl font-bold tracking-tight">Hub de Integrações</h1>
               <Badge variant="outline" className="border-orange-500/40 text-orange-600 font-semibold gap-1 bg-orange-50 dark:bg-orange-950/40">
                 <ShieldCheck className="w-3.5 h-3.5" /> Zapier / Power Automate Grade
               </Badge>
             </div>
             <p className="text-muted-foreground mt-1 text-sm">
-              Barramento corporativo desacoplado para conexÃ£o com bancos, gateways, Google, Microsoft e serviÃ§os externos.
+              Barramento corporativo desacoplado para conexão com bancos, gateways, Google, Microsoft e serviços externos.
             </p>
           </div>
         </div>
       </div>
 
-      {/* NavegaÃ§Ã£o por Abas */}
+      {/* Navegação por Abas */}
       <Tabs defaultValue="marketplace" className="space-y-6 mt-2" onValueChange={setActiveTab}>
         <div className="border-b pb-2">
           <TabsList className="bg-muted/50 p-1">
