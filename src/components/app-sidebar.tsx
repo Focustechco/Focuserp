@@ -165,12 +165,12 @@ export function AppSidebar() {
   return (
     <>
       <Sidebar collapsible="icon">
-        <SidebarHeader className="border-b border-sidebar-border px-4 py-3.5 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-3">
-          <Link to="/" className="flex items-center w-full overflow-hidden">
+        <SidebarHeader className="border-b border-sidebar-border bg-white dark:bg-sidebar px-5 py-4 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-3">
+          <Link to="/" className="flex items-center w-full">
             <img
               src={focusLogo}
               alt="Focus ERP — powered by focus tech"
-              className="h-11 w-auto max-w-[210px] object-contain object-left transition-all duration-200 group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:object-cover group-data-[collapsible=icon]:object-left"
+              className="h-12 w-auto max-w-[210px] object-contain object-left transition-all duration-200 group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:object-cover group-data-[collapsible=icon]:object-left"
             />
           </Link>
         </SidebarHeader>
