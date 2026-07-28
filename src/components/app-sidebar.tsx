@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import focusLogo from "@/assets/focus-logo.png";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
@@ -19,23 +19,17 @@ import {
   Landmark,
   CalendarDays,
   FolderOpen,
-  Receipt,
-  PenLine,
-  UserCog,
-  Shield,
-  Settings,
-  Plug,
-  ShoppingBag,
-  Target,
-  Megaphone,
-  Edit3,
-  Heart,
   Package,
   Boxes,
   Code2,
   Headphones,
-  ScrollText,
-  Sparkles,
+  ShoppingBag,
+  Target,
+  Heart,
+  UserCog,
+  Shield,
+  Settings,
+  Plug,
 } from "lucide-react";
 
 import {
@@ -49,9 +43,11 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarFooter,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useLocalStorageState } from "@/hooks/useDataStore";
+import { cn } from "@/lib/utils";
 
 export interface ActiveUserProfile {
   id: string;
@@ -118,25 +114,22 @@ const groups = [
       { title: "Comercial Ops", url: "/comercial", icon: ShoppingBag },
       { title: "CRM Pipeline", url: "/crm", icon: Target },
       { title: "Customer Success (CS)", url: "/customer-success", icon: Heart },
-      { title: "Marketing Ops", url: "/marketing", icon: Megaphone },
     ],
   },
   {
-    label: "Análises",
+    label: "Análises e Relatórios",
     items: [
       { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
-      { title: "DRE", url: "/dre", icon: PieChart },
-      { title: "Indicadores", url: "/indicadores", icon: LineChart },
-      { title: "IA Financeira", url: "/ia-financeira", icon: Sparkles },
+      { title: "DRE Gerencial", url: "/dre", icon: PieChart },
+      { title: "Indicadores / KPIs", url: "/indicadores", icon: LineChart },
     ],
   },
   {
-    label: "Documentação",
+    label: "Documentos e Contratos",
     items: [
+      { title: "Gestão de Documentos", url: "/documentos", icon: FolderOpen },
+      { title: "Assinaturas Digitais", url: "/assinaturas", icon: FileText },
       { title: "Contratos", url: "/contratos", icon: FileText },
-      { title: "Fiscal", url: "/fiscal", icon: Receipt },
-      { title: "Documentos", url: "/documentos", icon: FolderOpen },
-      { title: "Assinaturas", url: "/assinaturas", icon: PenLine },
     ],
   },
   {
@@ -144,12 +137,50 @@ const groups = [
     items: [
       { title: "Usuários", url: "/usuarios", icon: UserCog },
       { title: "Permissões", url: "/permissoes", icon: Shield },
-      { title: "Integrações", url: "/integracoes", icon: Plug },
+      { title: "Integrações (API Hub)", url: "/integracoes", icon: Plug },
       { title: "Configurações", url: "/configuracoes", icon: Settings },
-      { title: "Logs", url: "/logs", icon: ScrollText },
     ],
   },
 ];
+
+function SidebarLogoHeader() {
+  const { state } = useSidebar();
+  const isCollapsed = state === "collapsed";
+
+  return (
+    <SidebarHeader className="border-b border-sidebar-border bg-white dark:bg-sidebar h-[80px] flex items-center justify-center px-4 transition-all duration-250 ease-in-out group-data-[collapsible=icon]:h-16 group-data-[collapsible=icon]:px-0">
+      <Link to="/" className="flex items-center justify-center w-full h-full">
+        {/* Logo Completa - Sidebar Expandida */}
+        <div
+          className={cn(
+            "flex items-center justify-center w-full h-full transition-all duration-250 ease-in-out group-data-[collapsible=icon]:hidden",
+            isCollapsed ? "opacity-0 scale-95 hidden" : "opacity-100 scale-100 flex"
+          )}
+        >
+          <img
+            src={focusLogo}
+            alt="Focus ERP — powered by focus tech"
+            className="h-12 w-auto max-w-[85%] object-contain"
+          />
+        </div>
+
+        {/* Símbolo Focus - Sidebar Recolhida */}
+        <div
+          className={cn(
+            "items-center justify-center transition-all duration-250 ease-in-out shrink-0 hidden group-data-[collapsible=icon]:flex",
+            isCollapsed ? "opacity-100 scale-100 flex" : "opacity-0 scale-95 hidden"
+          )}
+        >
+          <img
+            src="/icon-192.png"
+            alt="Focus ERP"
+            className="w-9 h-9 object-contain shrink-0"
+          />
+        </div>
+      </Link>
+    </SidebarHeader>
+  );
+}
 
 export function AppSidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -165,15 +196,7 @@ export function AppSidebar() {
   return (
     <>
       <Sidebar collapsible="icon">
-        <SidebarHeader className="border-b border-sidebar-border bg-white dark:bg-sidebar px-5 py-4 group-data-[collapsible=icon]:px-2 group-data-[collapsible=icon]:py-3">
-          <Link to="/" className="flex items-center w-full">
-            <img
-              src={focusLogo}
-              alt="Focus ERP — powered by focus tech"
-              className="h-12 w-auto max-w-[210px] object-contain object-left transition-all duration-200 group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:object-cover group-data-[collapsible=icon]:object-left"
-            />
-          </Link>
-        </SidebarHeader>
+        <SidebarLogoHeader />
         <SidebarContent>
           {groups.map((group) => (
             <SidebarGroup key={group.label}>
