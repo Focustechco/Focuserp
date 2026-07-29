@@ -2,25 +2,51 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 
 /**
- * Supabase-backed storage hook using a unified Single-Table JSONB architecture (`focus_app_state`).
- * Persists all dynamic entity data (99+ tables/keys) seamlessly without requiring 99 separate DB tables.
- *
- * Each row in `focus_app_state` has:
- * - table_name (text)
- * - id (text)
- * - data (jsonb)
- * - updated_at (timestamptz)
+ * Helper to safely read from localStorage
+ */
+function readLocalCache<T>(table: string, fallback: T[]): T[] {
+  if (typeof window === 'undefined') return fallback;
+  try {
+    const raw = window.localStorage.getItem(`focus_app_${table}`);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+  } catch (e) {
+    console.warn(`[LocalStorage] Error reading key focus_app_${table}:`, e);
+  }
+  return fallback;
+}
+
+/**
+ * Helper to safely write to localStorage
+ */
+function writeLocalCache<T>(table: string, items: T[]) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(`focus_app_${table}`, JSON.stringify(items));
+  } catch (e) {
+    console.warn(`[LocalStorage] Error writing key focus_app_${table}:`, e);
+  }
+}
+
+/**
+ * Bulletproof Hybrid Persistence Hook (LocalStorage + Supabase DB)
+ * Ensures zero data loss even if Supabase tables haven't been created yet.
  */
 export function useLocalStorageState<T extends { id: string }>(
   table: string,
   initialValue: T[] = []
 ) {
-  const [data, setData] = useState<T[]>(initialValue);
+  // Initialize state instantly from LocalStorage cache (or initial mock fallback)
+  const [data, setData] = useState<T[]>(() => readLocalCache(table, initialValue));
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   // ---------------------------------------------------------------------------
-  // Load data on mount (or when table name changes)
+  // Sync with Supabase on mount
   // ---------------------------------------------------------------------------
   useEffect(() => {
     let isMounted = true;
@@ -35,22 +61,32 @@ export function useLocalStorageState<T extends { id: string }>(
         if (!isMounted) return;
 
         if (error) {
-          console.warn(`[Supabase] Could not fetch table '${table}' from focus_app_state:`, error.message);
+          console.warn(`[Supabase] Note: Table 'focus_app_state' query warning for '${table}':`, error.message);
           setError(error.message);
-          setData(initialValue);
+          // Keep current LocalStorage/state data - DO NOT wipe out user data on DB warning!
         } else if (rows && rows.length > 0) {
           const items = rows.map((r: any) => r.data as T);
           setData(items);
+          writeLocalCache(table, items);
           setError(null);
         } else {
-          setData(initialValue);
+          // If DB is empty for this table name, sync local data to DB if local has items
+          const currentLocal = readLocalCache(table, initialValue);
+          if (currentLocal && currentLocal.length > 0) {
+            const payload = currentLocal.map((item) => ({
+              table_name: table,
+              id: String(item.id),
+              data: item,
+              updated_at: new Date().toISOString(),
+            }));
+            await supabase.from('focus_app_state').upsert(payload, { onConflict: 'table_name,id' });
+          }
           setError(null);
         }
       } catch (err: any) {
         if (!isMounted) return;
-        console.warn(`[Supabase] Exception fetching table '${table}':`, err);
+        console.warn(`[Supabase] Fetch exception for '${table}':`, err);
         setError(err?.message || 'Unknown fetch error');
-        setData(initialValue);
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -65,14 +101,17 @@ export function useLocalStorageState<T extends { id: string }>(
   }, [table]);
 
   // ---------------------------------------------------------------------------
-  // CRUD helpers
+  // CRUD helpers (Instant LocalStorage update + Async Supabase sync)
   // ---------------------------------------------------------------------------
   const save = useCallback(
     async (newData: T[]) => {
+      // 1. Instant local persistence
       setData(newData);
+      writeLocalCache(table, newData);
+
+      // 2. Async Supabase persistence
       try {
         if (newData.length === 0) {
-          // If clearing, delete all rows for this entity table_name
           const { error } = await supabase
             .from('focus_app_state')
             .delete()
@@ -93,13 +132,13 @@ export function useLocalStorageState<T extends { id: string }>(
           .upsert(payload, { onConflict: 'table_name,id' });
 
         if (error) {
-          console.error(`[Supabase] Save error for '${table}':`, error);
+          console.warn(`[Supabase] Save warning for '${table}':`, error.message);
           setError(error.message);
         } else {
           setError(null);
         }
       } catch (err: any) {
-        console.error(`[Supabase] Save exception for '${table}':`, err);
+        console.warn(`[Supabase] Save exception for '${table}':`, err);
         setError(err?.message || 'Save failed');
       }
     },
@@ -108,96 +147,31 @@ export function useLocalStorageState<T extends { id: string }>(
 
   const addItem = useCallback(
     async (item: T) => {
-      const newData = [item, ...data];
-      setData(newData);
-      try {
-        const { error } = await supabase.from('focus_app_state').upsert(
-          {
-            table_name: table,
-            id: String(item.id),
-            data: item,
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: 'table_name,id' }
-        );
-
-        if (error) {
-          console.error(`[Supabase] Add item error for '${table}':`, error);
-          setError(error.message);
-        } else {
-          setError(null);
-        }
-      } catch (err: any) {
-        console.error(`[Supabase] Add item exception for '${table}':`, err);
-        setError(err?.message || 'Add item failed');
-      }
+      const newData = [item, ...data.filter((i) => i.id !== item.id)];
+      await save(newData);
     },
-    [data, table]
+    [data, save]
   );
 
   const updateItem = useCallback(
     async (id: string, patch: Partial<T>) => {
-      let updatedItem: T | null = null;
       const updatedData = data.map((it) => {
         if (it.id === id) {
-          updatedItem = { ...it, ...patch };
-          return updatedItem;
+          return { ...it, ...patch };
         }
         return it;
       });
-
-      setData(updatedData);
-
-      if (updatedItem) {
-        try {
-          const { error } = await supabase.from('focus_app_state').upsert(
-            {
-              table_name: table,
-              id: String(id),
-              data: updatedItem,
-              updated_at: new Date().toISOString(),
-            },
-            { onConflict: 'table_name,id' }
-          );
-
-          if (error) {
-            console.error(`[Supabase] Update item error for '${table}':`, error);
-            setError(error.message);
-          } else {
-            setError(null);
-          }
-        } catch (err: any) {
-          console.error(`[Supabase] Update item exception for '${table}':`, err);
-          setError(err?.message || 'Update item failed');
-        }
-      }
+      await save(updatedData);
     },
-    [data, table]
+    [data, save]
   );
 
   const deleteItem = useCallback(
     async (id: string) => {
       const filtered = data.filter((it) => it.id !== id);
-      setData(filtered);
-      try {
-        const { error } = await supabase
-          .from('focus_app_state')
-          .delete()
-          .eq('table_name', table)
-          .eq('id', String(id));
-
-        if (error) {
-          console.error(`[Supabase] Delete item error for '${table}':`, error);
-          setError(error.message);
-        } else {
-          setError(null);
-        }
-      } catch (err: any) {
-        console.error(`[Supabase] Delete item exception for '${table}':`, err);
-        setError(err?.message || 'Delete item failed');
-      }
+      await save(filtered);
     },
-    [data, table]
+    [data, save]
   );
 
   const removeItem = deleteItem;
