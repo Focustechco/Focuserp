@@ -44,7 +44,7 @@ function writeLocalCache<T>(table: string, items: T[]) {
 
 /**
  * Bulletproof Multi-Device Storage Hook (Direct Supabase Tables + Focus App State Fallback)
- * Syncs seamlessly across Desktop, iOS, and Android mobile browsers via Supabase.
+ * Includes Real-Time 5s Cross-Device Sync (Desktop <-> Mobile iOS & Android).
  */
 export function useLocalStorageState<T extends { id: string }>(
   table: string,
@@ -62,8 +62,8 @@ export function useLocalStorageState<T extends { id: string }>(
   // ---------------------------------------------------------------------------
   useEffect(() => {
     let isMounted = true;
+
     const fetchData = async () => {
-      setLoading(true);
       try {
         if (isClientsTable) {
           // Direct sync with Supabase `clients` table
@@ -132,7 +132,6 @@ export function useLocalStorageState<T extends { id: string }>(
         if (!isMounted) return;
 
         if (stateErr) {
-          console.warn(`[Supabase] Query warning for '${table}':`, stateErr.message);
           setError(stateErr.message);
         } else if (rows && rows.length > 0) {
           const items = rows.map((r: any) => r.data as T);
@@ -155,17 +154,25 @@ export function useLocalStorageState<T extends { id: string }>(
         }
       } catch (err: any) {
         if (!isMounted) return;
-        console.warn(`[Supabase] Fetch exception for '${table}':`, err);
         setError(err?.message || 'Unknown fetch error');
       } finally {
         if (isMounted) setLoading(false);
       }
     };
 
+    // Initial fetch
     fetchData();
+
+    // 5-second automatic cross-device polling (Mobile iOS / Android <-> Desktop)
+    const intervalId = setInterval(() => {
+      if (isMounted) {
+        fetchData();
+      }
+    }, 5000);
 
     return () => {
       isMounted = false;
+      clearInterval(intervalId);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [table]);
@@ -209,7 +216,6 @@ export function useLocalStorageState<T extends { id: string }>(
             console.error(`[Supabase] Clients table sync ERROR:`, upsertErr.message);
             setError(upsertErr.message);
           } else {
-            console.log(`[Supabase] Clients successfully synced to cloud across all devices!`);
             setError(null);
           }
         }
