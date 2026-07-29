@@ -45,7 +45,7 @@ export function useLocalStorageState<T extends { id: string }>(
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  const isClientsTable = table === 'clients' || table === 'clientes';
+  const isClientsTable = table === 'clients' || table === 'clientes' || table === 'focus_clientes';
 
   // ---------------------------------------------------------------------------
   // Sync with Supabase across all devices (Mobile iOS/Android & Desktop)
@@ -67,20 +67,47 @@ export function useLocalStorageState<T extends { id: string }>(
           if (!dbErr && dbClients && dbClients.length > 0) {
             const mapped = dbClients.map((c: any) => ({
               id: c.id,
-              nome: c.name || c.nome || 'Cliente sem nome',
-              name: c.name || c.nome || 'Cliente sem nome',
-              email: c.contact_email || c.email || '',
-              contact_email: c.contact_email || c.email || '',
-              telefone: c.contact_phone || c.telefone || '',
-              contact_phone: c.contact_phone || c.telefone || '',
-              status: c.status || 'ativo',
-              created_at: c.created_at || new Date().toISOString(),
-              updated_at: c.updated_at || new Date().toISOString(),
-              ...c,
+              codigo: `CLI-${c.id.slice(0, 4).toUpperCase()}`,
+              tipo: 'Pessoa Jurídica',
+              razaoSocial: c.name || 'Cliente sem nome',
+              nomeFantasia: c.name || 'Cliente sem nome',
+              documento: '00.000.000/0001-00',
+              status: c.status === 'inativo' ? 'Inativo' : 'Ativo',
+              segmento: 'Geral',
+              endereco: {
+                cep: '',
+                logradouro: '',
+                numero: '',
+                bairro: '',
+                cidade: 'São Paulo',
+                estado: 'SP',
+                pais: 'Brasil'
+              },
+              contatos: [
+                {
+                  id: `ct-${c.id}`,
+                  nome: c.name || 'Contato Principal',
+                  cargo: 'Responsável',
+                  departamento: 'Geral',
+                  celular: c.contact_phone || '(11) 99999-9999',
+                  whatsapp: true,
+                  email: c.contact_email || 'contato@cliente.com',
+                  principal: true
+                }
+              ],
+              dataCadastro: c.created_at || new Date().toISOString(),
+              ultimaAtualizacao: c.updated_at || new Date().toISOString(),
+              ...c
             })) as T[];
 
-            setData(mapped);
-            writeLocalCache(table, mapped);
+            // Merge local custom items if any
+            const localOnly = readLocalCache(table, []).filter(
+              (l) => !mapped.some((m) => m.id === l.id)
+            );
+            const combined = [...mapped, ...localOnly];
+
+            setData(combined);
+            writeLocalCache(table, combined);
             setError(null);
             return;
           }
@@ -147,11 +174,11 @@ export function useLocalStorageState<T extends { id: string }>(
         if (isClientsTable) {
           // Sync to `clients` table directly
           const payload = newData.map((item: any) => ({
-            id: String(item.id).includes('-') ? item.id : undefined,
-            name: item.nome || item.name || 'Novo Cliente',
-            status: item.status || 'ativo',
-            contact_email: item.email || item.contact_email || null,
-            contact_phone: item.telefone || item.contact_phone || null,
+            id: String(item.id).includes('-') && String(item.id).length > 20 ? item.id : undefined,
+            name: item.nomeFantasia || item.razaoSocial || item.name || 'Novo Cliente',
+            status: String(item.status || 'ativo').toLowerCase(),
+            contact_email: item.contatos?.[0]?.email || item.email || item.contact_email || null,
+            contact_phone: item.contatos?.[0]?.celular || item.telefone || item.contact_phone || null,
             updated_at: new Date().toISOString(),
           }));
 
