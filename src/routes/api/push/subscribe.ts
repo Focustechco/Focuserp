@@ -1,15 +1,15 @@
 // API Route: POST /api/push/subscribe
-// Receives and stores a push subscription from the client
+// Receives and stores a push subscription in Supabase for cross-instance persistence
 import { createAPIFileRoute } from '@tanstack/start/api';
+import { createClient } from '@supabase/supabase-js';
 
-// In-memory store for subscriptions (persists per serverless instance)
-// For production, replace with a database (Vercel KV, Supabase, etc.)
-const subscriptions: Map<string, PushSubscription> = new Map();
+const supabase = createClient(
+  'https://lykwydydrctmjzcvugjd.supabase.co',
+  'sb_publishable_LtPtjXysCTL1qZB6E0VuvQ_CsZbTvUs'
+);
 
-// Make subscriptions accessible to the send route
-if (typeof globalThis !== 'undefined') {
-  (globalThis as any).__pushSubscriptions = (globalThis as any).__pushSubscriptions || new Map();
-}
+// Deterministic UUID for push subscriptions state row
+const PUSH_SUBS_UUID = '00000000-0000-4000-b000-000000000001';
 
 export const APIRoute = createAPIFileRoute('/api/push/subscribe')({
   POST: async ({ request }) => {
@@ -24,11 +24,35 @@ export const APIRoute = createAPIFileRoute('/api/push/subscribe')({
         });
       }
 
-      // Store subscription globally (survives across requests in same instance)
-      (globalThis as any).__pushSubscriptions.set(userId, subscription);
+      // Load current subscriptions from Supabase
+      const { data: existing } = await supabase
+        .from('clients')
+        .select('contact_email')
+        .eq('id', PUSH_SUBS_UUID)
+        .single();
 
-      console.log(`[Push] Subscription stored for user: ${userId}`);
-      console.log(`[Push] Endpoint: ${subscription.endpoint.substring(0, 60)}...`);
+      let subsMap: Record<string, any> = {};
+      if (existing?.contact_email) {
+        try {
+          subsMap = JSON.parse(existing.contact_email);
+        } catch (e) {
+          subsMap = {};
+        }
+      }
+
+      // Update or add this subscription
+      subsMap[userId] = subscription;
+
+      // Persist updated subscriptions in Supabase
+      await supabase.from('clients').upsert({
+        id: PUSH_SUBS_UUID,
+        name: '__FOCUS_PUSH_SUBSCRIPTIONS__',
+        status: 'inativo',
+        contact_email: JSON.stringify(subsMap),
+        updated_at: new Date().toISOString(),
+      });
+
+      console.log(`[Push] Subscription stored in Supabase for user: ${userId}`);
 
       return new Response(
         JSON.stringify({ success: true, message: 'Subscription registered' }),
@@ -50,13 +74,35 @@ export const APIRoute = createAPIFileRoute('/api/push/subscribe')({
   },
 
   GET: async () => {
-    const count = (globalThis as any).__pushSubscriptions?.size || 0;
-    return new Response(
-      JSON.stringify({ subscriptionCount: count }),
-      {
+    try {
+      const { data } = await supabase
+        .from('clients')
+        .select('contact_email')
+        .eq('id', PUSH_SUBS_UUID)
+        .single();
+
+      let count = 0;
+      if (data?.contact_email) {
+        try {
+          const subsMap = JSON.parse(data.contact_email);
+          count = Object.keys(subsMap).length;
+        } catch (e) {
+          count = 0;
+        }
+      }
+
+      return new Response(
+        JSON.stringify({ subscriptionCount: count }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    } catch (e) {
+      return new Response(JSON.stringify({ subscriptionCount: 0 }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
-      }
-    );
+      });
+    }
   },
 });

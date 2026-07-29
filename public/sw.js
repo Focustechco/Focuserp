@@ -1,34 +1,68 @@
-// Focus ERP - Service Worker
-// Handles push notifications for mobile iOS/Android when screen is locked
+// Focus ERP - Service Worker v2
+// Handles Web Push Notifications on iOS 16.4+ and Android (locked screen)
 
-const CACHE_NAME = 'focus-erp-v1';
+const CACHE_NAME = 'focus-erp-v2';
 const ICON_URL = '/icon-192.png';
+const BADGE_URL = '/icon-192.png';
 
-// ── Push Event: fired by server push ──────────────────────────────────────────
+// ── Install: force immediate activation ───────────────────────────────────────
+self.addEventListener('install', function (event) {
+  self.skipWaiting();
+});
+
+// ── Activate: claim all clients + clean old caches ────────────────────────────
+self.addEventListener('activate', function (event) {
+  event.waitUntil(
+    Promise.all([
+      self.clients.claim(),
+      caches.keys().then(function (cacheNames) {
+        return Promise.all(
+          cacheNames
+            .filter((name) => name !== CACHE_NAME)
+            .map((name) => caches.delete(name))
+        );
+      }),
+    ])
+  );
+});
+
+// ── Push Event: fired by server (works on locked screen iOS & Android) ─────────
 self.addEventListener('push', function (event) {
   let data = {};
   try {
     data = event.data ? event.data.json() : {};
   } catch (e) {
-    data = { title: 'Focus ERP', body: event.data ? event.data.text() : 'Nova notificação' };
+    data = {
+      title: 'Focus ERP',
+      body: event.data ? event.data.text() : 'Nova notificação',
+    };
   }
 
   const title = data.title || 'Focus ERP';
+  const body = data.body || data.descricao || 'Você tem uma nova notificação.';
+  const url = data.url || data.targetUrl || '/';
+  const tag = data.tag || 'focus-notif-' + Date.now();
+
   const options = {
-    body: data.body || data.descricao || 'Você tem uma nova notificação.',
+    body: body,
     icon: ICON_URL,
-    badge: ICON_URL,
-    tag: data.tag || 'focus-notif-' + Date.now(),
+    badge: BADGE_URL,
+    tag: tag,
     renotify: true,
-    vibrate: [100, 50, 100],
-    requireInteraction: data.requireInteraction || false,
+    // requireInteraction keeps notification visible until user interacts (Android)
+    requireInteraction: data.requireInteraction !== false,
+    // vibrate pattern supported on Android
+    vibrate: [200, 100, 200],
+    // silent: false to play default sound
+    silent: false,
     data: {
-      url: data.url || data.targetUrl || '/',
+      url: url,
       notifId: data.notifId || null,
+      timestamp: Date.now(),
     },
     actions: [
-      { action: 'open', title: 'Abrir' },
-      { action: 'dismiss', title: 'Fechar' },
+      { action: 'open', title: '📂 Abrir Focus ERP' },
+      { action: 'dismiss', title: '✕ Fechar' },
     ],
   };
 
@@ -48,13 +82,17 @@ self.addEventListener('notificationclick', function (event) {
     clients
       .matchAll({ type: 'window', includeUncontrolled: true })
       .then(function (clientList) {
-        // Se já existe janela aberta com a URL, focar nela
+        // Focus existing window if already open
         for (const client of clientList) {
-          if (client.url === absoluteUrl && 'focus' in client) {
-            return client.focus();
+          if ('focus' in client) {
+            client.focus();
+            if (client.url !== absoluteUrl) {
+              client.navigate(absoluteUrl);
+            }
+            return;
           }
         }
-        // Caso contrário, abrir nova aba/janela
+        // Open new window if app is closed
         if (clients.openWindow) {
           return clients.openWindow(absoluteUrl);
         }
@@ -62,21 +100,7 @@ self.addEventListener('notificationclick', function (event) {
   );
 });
 
-// ── Activate: limpar caches antigos ───────────────────────────────────────────
-self.addEventListener('activate', function (event) {
-  event.waitUntil(
-    caches.keys().then(function (cacheNames) {
-      return Promise.all(
-        cacheNames
-          .filter((name) => name !== CACHE_NAME)
-          .map((name) => caches.delete(name))
-      );
-    })
-  );
-  return self.clients.claim();
-});
-
-// ── Install ────────────────────────────────────────────────────────────────────
-self.addEventListener('install', function (event) {
-  self.skipWaiting();
+// ── Fetch: passthrough (no offline caching needed) ────────────────────────────
+self.addEventListener('fetch', function (event) {
+  // Do nothing — let all requests go to network normally
 });

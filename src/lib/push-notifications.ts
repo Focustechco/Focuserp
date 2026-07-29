@@ -1,12 +1,31 @@
 /**
- * Focus ERP - Push Notification Client Utilities
- * Handles Service Worker registration, VAPID subscription, and sending push via API
+ * Focus ERP - Push Notification Client Utilities v2
+ * Handles Service Worker registration, VAPID subscription (iOS 16.4+ & Android)
+ * and sending push notifications via API backed by Supabase persistence.
  */
 
 const VAPID_PUBLIC_KEY = 'BEweG7jjNfn6TCYk3V68sAjeXapH31Qlcy1DUhmzvB_TV5cUebOrWHlR7QI81BpNb6ivphx-z8pjb906bq1f8tA';
 
 /**
- * Converts a base64 string to a Uint8Array (required for VAPID applicationServerKey)
+ * Gets or creates a persistent user ID stored in localStorage.
+ * This ensures the same device always uses the same subscription slot.
+ */
+export function getPushUserId(): string {
+  if (typeof window === 'undefined') return 'server';
+  try {
+    let uid = window.localStorage.getItem('focus_push_user_id');
+    if (!uid) {
+      uid = `user-${crypto.randomUUID()}`;
+      window.localStorage.setItem('focus_push_user_id', uid);
+    }
+    return uid;
+  } catch {
+    return 'user-default';
+  }
+}
+
+/**
+ * Converts a VAPID base64 string to Uint8Array (required for applicationServerKey)
  */
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -31,8 +50,13 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
   try {
     const registration = await navigator.serviceWorker.register('/sw.js', {
       scope: '/',
+      updateViaCache: 'none', // Always check for SW updates
     });
-    console.log('[SW] Service Worker registered:', registration.scope);
+
+    // Wait for SW to be active
+    await navigator.serviceWorker.ready;
+
+    console.log('[SW] Service Worker registered and ready:', registration.scope);
     return registration;
   } catch (error) {
     console.error('[SW] Service Worker registration failed:', error);
@@ -41,7 +65,8 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
 }
 
 /**
- * Checks if push notifications are supported
+ * Checks if push notifications are supported on this device/browser.
+ * Note: iOS requires the app to be installed as PWA (Add to Home Screen).
  */
 export function isPushSupported(): boolean {
   return (
@@ -61,7 +86,8 @@ export function getNotificationPermission(): NotificationPermission {
 }
 
 /**
- * Requests notification permission from the user
+ * Requests notification permission from the user.
+ * Must be called in response to a user gesture (tap/click) on iOS.
  */
 export async function requestNotificationPermission(): Promise<NotificationPermission> {
   if (typeof window === 'undefined' || !('Notification' in window)) return 'denied';
@@ -69,52 +95,52 @@ export async function requestNotificationPermission(): Promise<NotificationPermi
 }
 
 /**
- * Subscribes to Web Push notifications using VAPID
- * Returns the PushSubscription or null
+ * Subscribes this device to Web Push (VAPID) and saves subscription to Supabase via API.
  */
-export async function subscribeToPush(userId = 'default'): Promise<PushSubscription | null> {
+export async function subscribeToPush(userId?: string): Promise<PushSubscription | null> {
   if (!isPushSupported()) {
-    console.warn('[Push] Push notifications not supported');
+    console.warn('[Push] Push notifications not supported on this device');
     return null;
   }
 
+  const uid = userId || getPushUserId();
+
   try {
-    // Get or wait for service worker registration
+    // Ensure SW is registered and ready
     let registration = await navigator.serviceWorker.getRegistration('/');
     if (!registration) {
       registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
-      // Wait for it to be ready
-      await navigator.serviceWorker.ready;
-      registration = await navigator.serviceWorker.getRegistration('/');
     }
+    await navigator.serviceWorker.ready;
+    registration = await navigator.serviceWorker.getRegistration('/');
 
     if (!registration) {
-      throw new Error('Service Worker registration not found');
+      throw new Error('Service Worker registration not found after ready');
     }
 
-    // Check for existing subscription
+    // Get existing subscription or create new one
     let subscription = await registration.pushManager.getSubscription();
 
     if (!subscription) {
-      // Create new subscription
       subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
       });
     }
 
-    // Send subscription to our API
+    // Save subscription to our API (which persists to Supabase)
     const response = await fetch('/api/push/subscribe', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ subscription, userId }),
+      body: JSON.stringify({ subscription, userId: uid }),
     });
 
     if (!response.ok) {
-      throw new Error(`API returned ${response.status}`);
+      const err = await response.json().catch(() => ({ error: 'Unknown' }));
+      throw new Error(`API returned ${response.status}: ${err.error}`);
     }
 
-    console.log('[Push] Successfully subscribed to push notifications');
+    console.log('[Push] ✅ Successfully subscribed and saved to Supabase for user:', uid);
     return subscription;
   } catch (error) {
     console.error('[Push] Error subscribing:', error);
@@ -123,7 +149,7 @@ export async function subscribeToPush(userId = 'default'): Promise<PushSubscript
 }
 
 /**
- * Unsubscribes from push notifications
+ * Unsubscribes this device from push notifications
  */
 export async function unsubscribeFromPush(): Promise<boolean> {
   if (!isPushSupported()) return false;
@@ -143,8 +169,8 @@ export async function unsubscribeFromPush(): Promise<boolean> {
 }
 
 /**
- * Sends a push notification via the Focus ERP API
- * This sends to all subscribed devices
+ * Sends a push notification via the Focus ERP API to ALL subscribed devices.
+ * When Desktop creates a client, this fires to notify ALL mobile devices.
  */
 export async function sendPushNotification(payload: {
   title: string;
@@ -157,7 +183,13 @@ export async function sendPushNotification(payload: {
     const response = await fetch('/api/push/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        title: payload.title,
+        body: payload.body,
+        url: payload.url || '/',
+        tag: payload.tag || `focus-${Date.now()}`,
+        // Don't filter by userId — send to ALL devices
+      }),
     });
 
     const data = await response.json();
@@ -167,7 +199,7 @@ export async function sendPushNotification(payload: {
       return false;
     }
 
-    console.log(`[Push] Sent to ${data.sent}/${data.total} devices`);
+    console.log(`[Push] Sent to ${data.sent}/${data.total} device(s)`);
     return data.sent > 0;
   } catch (error) {
     console.error('[Push] Error calling send API:', error);
@@ -176,8 +208,8 @@ export async function sendPushNotification(payload: {
 }
 
 /**
- * Shows a local notification immediately using the Service Worker
- * Works even when app is in background (without server push)
+ * Shows a local notification immediately via the Service Worker.
+ * Works when app is in background (foreground already shows toast).
  */
 export async function showLocalNotification(payload: {
   title: string;
@@ -196,7 +228,7 @@ export async function showLocalNotification(payload: {
       icon: '/icon-192.png',
       badge: '/icon-192.png',
       tag: payload.tag || `focus-local-${Date.now()}`,
-      vibrate: [100, 50, 100],
+      vibrate: [200, 100, 200],
       data: { url: payload.url || '/' },
     });
 
@@ -208,28 +240,40 @@ export async function showLocalNotification(payload: {
 }
 
 /**
- * Full setup: register SW + request permission + subscribe
- * Returns: { supported, permission, subscribed }
+ * Full setup: register SW + request permission + subscribe to VAPID push.
+ * Call this when user clicks "Ativar Notificações Push" button.
  */
-export async function setupPushNotifications(userId = 'default'): Promise<{
+export async function setupPushNotifications(userId?: string): Promise<{
   supported: boolean;
   permission: NotificationPermission;
   subscribed: boolean;
   error?: string;
 }> {
   if (!isPushSupported()) {
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    const isStandalone = ('standalone' in navigator) && (navigator as any).standalone;
+
+    if (isIOS && !isStandalone) {
+      return {
+        supported: false,
+        permission: 'denied',
+        subscribed: false,
+        error: 'No iPhone/iPad, adicione o app à Tela Inicial primeiro (Share → Adicionar à Tela Inicial) e então abra pelo ícone.',
+      };
+    }
+
     return {
       supported: false,
       permission: 'denied',
       subscribed: false,
-      error: 'Push notifications not supported in this browser/device',
+      error: 'Este navegador não suporta notificações Push.',
     };
   }
 
-  // Register SW
+  // Register SW first
   await registerServiceWorker();
 
-  // Request permission
+  // Request permission (must happen from user gesture)
   const permission = await requestNotificationPermission();
 
   if (permission !== 'granted') {
@@ -237,17 +281,39 @@ export async function setupPushNotifications(userId = 'default'): Promise<{
       supported: true,
       permission,
       subscribed: false,
-      error: permission === 'denied' ? 'Permission denied by user' : 'Permission dismissed',
+      error: permission === 'denied'
+        ? 'Permissão negada. Vá em Configurações > Notificações para habilitar.'
+        : 'Permissão não concedida.',
     };
   }
 
-  // Subscribe
-  const subscription = await subscribeToPush(userId);
+  // Subscribe and save to Supabase
+  const uid = userId || getPushUserId();
+  const subscription = await subscribeToPush(uid);
 
   return {
     supported: true,
     permission,
     subscribed: !!subscription,
-    error: !subscription ? 'Failed to create push subscription' : undefined,
+    error: !subscription ? 'Falha ao criar subscrição push. Tente novamente.' : undefined,
   };
+}
+
+/**
+ * Auto-setup: registers SW silently on app load without requesting permission.
+ * Call this in the root layout. Permission is only requested when user clicks the button.
+ */
+export async function autoRegisterServiceWorker(): Promise<void> {
+  if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
+
+  try {
+    await navigator.serviceWorker.register('/sw.js', {
+      scope: '/',
+      updateViaCache: 'none',
+    });
+    await navigator.serviceWorker.ready;
+    console.log('[SW] Auto-registered on app load');
+  } catch (error) {
+    console.warn('[SW] Auto-registration failed:', error);
+  }
 }

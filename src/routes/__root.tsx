@@ -8,7 +8,13 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
-import { registerServiceWorker } from "@/lib/push-notifications";
+import {
+  autoRegisterServiceWorker,
+  isPushSupported,
+  getNotificationPermission,
+  subscribeToPush,
+  getPushUserId,
+} from "@/lib/push-notifications";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -130,8 +136,14 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   useEffect(() => {
-    // Register Service Worker for Push Notifications (PWA)
-    registerServiceWorker().catch(console.error);
+    // Register Service Worker for Push Notifications (PWA) — silent, no permission request yet
+    autoRegisterServiceWorker().catch(console.error);
+
+    // If user has already granted permission in a previous session, re-subscribe silently
+    // This ensures the device subscription is refreshed and persisted to Supabase
+    if (isPushSupported() && getNotificationPermission() === 'granted') {
+      subscribeToPush(getPushUserId()).catch(console.error);
+    }
   }, []);
 
   return (
