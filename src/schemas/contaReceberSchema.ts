@@ -1,0 +1,45 @@
+import { z } from 'zod';
+
+export const contaReceberSchema = z.object({
+  id: z.union([z.string().uuid(), z.literal('')]).optional(),
+  tenantId: z.union([z.string().uuid(), z.literal('')]).optional(),
+  numero: z.string().optional(),
+  descricao: z.string().min(1, 'Descrição é obrigatória'),
+  clienteId: z.union([z.string().uuid(), z.literal('')]).optional(),
+  clienteNome: z.string().optional().default(''),
+  categoria: z.string().default('Geral'),
+  valorOriginal: z.number().min(0, 'Valor original deve ser maior ou igual a zero'),
+  desconto: z.number().min(0, 'Desconto deve ser maior ou igual a zero').default(0),
+  multa: z.number().min(0, 'Multa deve ser maior ou igual a zero').default(0),
+  juros: z.number().min(0, 'Juros deve ser maior ou igual a zero').default(0),
+  valorLiquido: z.number().optional(),
+  valorRecebido: z.number().min(0, 'Valor recebido deve ser maior ou igual a zero').default(0),
+  saldo: z.number().optional(),
+  saldoDevedor: z.number().optional(),
+  netBalance: z.number().optional(),
+  dataEmissao: z.string().optional(),
+  dataVencimento: z.string().min(1, 'Data de vencimento é obrigatória'),
+  dataRecebimento: z.string().optional(),
+  dataPagamento: z.string().optional(),
+  formaPagamento: z.string().default('PIX'),
+  status: z.enum([
+    'Previsto',
+    'Pendente',
+    'Recebido',
+    'Recebido Parcialmente',
+    'Atrasado',
+    'Cancelado',
+    'Renegociado'
+  ]).default('Pendente'),
+  responsavel: z.string().optional(),
+  competencia: z.string().optional(),
+  observacoes: z.string().optional(),
+  tags: z.array(z.string()).default([]),
+  recorrente: z.boolean().default(false),
+  recorrenciaFrequencia: z.string().optional(),
+  recorrenciaFim: z.string().optional(),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
+});
+
+export type ContaReceberDTO = z.infer<typeof contaReceberSchema>;

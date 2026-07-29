@@ -356,74 +356,7 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_tenant ON audit_logs(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_modulo ON audit_logs(tenant_id, modulo);
 
 -- ------------------------------------------------------------------------------
--- 10. TABELA DE CONTRATOS
--- ------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS contratos (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    cliente_id UUID REFERENCES clientes(id) ON DELETE SET NULL,
-    numero_contrato VARCHAR(50) NOT NULL,
-    objeto_contrato TEXT NOT NULL,
-    valor_total NUMERIC(15,2) NOT NULL DEFAULT 0.00,
-    valor_mensal NUMERIC(15,2) DEFAULT 0.00,
-    tipo_contrato VARCHAR(100) DEFAULT 'Prestação de Serviços',
-    data_inicio DATE NOT NULL,
-    data_fim DATE,
-    status VARCHAR(30) DEFAULT 'Ativo',
-    renovacao_automatica BOOLEAN DEFAULT false,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    CONSTRAINT uq_contratos_tenant_numero UNIQUE (tenant_id, numero_contrato)
-);
-CREATE INDEX IF NOT EXISTS idx_contratos_tenant ON contratos(tenant_id);
-CREATE INDEX IF NOT EXISTS idx_contratos_cliente ON contratos(cliente_id);
-DROP TRIGGER IF EXISTS trg_contratos_updated_at ON contratos;
-CREATE TRIGGER trg_contratos_updated_at BEFORE UPDATE ON contratos FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
--- ------------------------------------------------------------------------------
--- 11. TABELA DE COBRANÇAS
--- ------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS cobrancas (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    cliente_id UUID REFERENCES clientes(id) ON DELETE SET NULL,
-    titulo_id UUID,
-    valor_total NUMERIC(15,2) NOT NULL DEFAULT 0.00,
-    dias_atraso INT DEFAULT 0,
-    etapa_atual VARCHAR(100) DEFAULT 'Lembrete Preventivo',
-    status VARCHAR(30) DEFAULT 'Em Aberto',
-    historico_interacoes JSONB DEFAULT '[]'::jsonb,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-CREATE INDEX IF NOT EXISTS idx_cobrancas_tenant ON cobrancas(tenant_id);
-CREATE INDEX IF NOT EXISTS idx_cobrancas_cliente ON cobrancas(cliente_id);
-DROP TRIGGER IF EXISTS trg_cobrancas_updated_at ON cobrancas;
-CREATE TRIGGER trg_cobrancas_updated_at BEFORE UPDATE ON cobrancas FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
--- ------------------------------------------------------------------------------
--- 12. TABELA DE COLABORADORES
--- ------------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS colaboradores (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    nome_completo VARCHAR(255) NOT NULL,
-    cpf VARCHAR(20),
-    email VARCHAR(255),
-    cargo VARCHAR(100) DEFAULT 'Colaborador',
-    departamento VARCHAR(100) DEFAULT 'Geral',
-    salario_base NUMERIC(15,2) DEFAULT 0.00,
-    data_admissao DATE,
-    status VARCHAR(20) NOT NULL DEFAULT 'Ativo',
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-CREATE INDEX IF NOT EXISTS idx_colaboradores_tenant ON colaboradores(tenant_id);
-DROP TRIGGER IF EXISTS trg_colaboradores_updated_at ON colaboradores;
-CREATE TRIGGER trg_colaboradores_updated_at BEFORE UPDATE ON colaboradores FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
--- ------------------------------------------------------------------------------
--- 13. FUNÇÃO HELPER E POLÍTICAS RLS (ROW LEVEL SECURITY) - REMEDIADAS
+-- 9. FUNÇÃO HELPER E POLÍTICAS RLS (ROW LEVEL SECURITY) - REMEDIADAS
 -- ------------------------------------------------------------------------------
 
 -- Função para extrair o tenant_id do JWT do Keycloak/Supabase Auth
@@ -437,7 +370,7 @@ EXCEPTION
 END;
 $$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
 
--- Habilitar RLS em todas as tabelas
+-- Habilitar RLS em todas as 11 tabelas
 ALTER TABLE tenants ENABLE ROW LEVEL SECURITY;
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE clientes ENABLE ROW LEVEL SECURITY;
@@ -449,9 +382,6 @@ ALTER TABLE contas_pagar ENABLE ROW LEVEL SECURITY;
 ALTER TABLE contas_pagar_parcelas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE projetos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE contratos ENABLE ROW LEVEL SECURITY;
-ALTER TABLE cobrancas ENABLE ROW LEVEL SECURITY;
-ALTER TABLE colaboradores ENABLE ROW LEVEL SECURITY;
 
 -- Política de Isolamento Multi-Tenant para Tenants (Sem facade OR auth.jwt() IS NULL)
 DROP POLICY IF EXISTS tenant_isolation_tenants ON tenants;
@@ -462,7 +392,7 @@ CREATE POLICY tenant_isolation_tenants ON tenants
         OR (auth.jwt() ->> 'role') = 'service_role'
     );
 
--- Dynamic PL/pgSQL Loop para as entidades Scoped por tenant_id
+-- Dynamic PL/pgSQL Loop para as 10 entidades Scoped por tenant_id
 DO $$
 DECLARE
     tbl text;
@@ -476,10 +406,7 @@ DECLARE
         'contas_pagar',
         'contas_pagar_parcelas',
         'projetos',
-        'audit_logs',
-        'contratos',
-        'cobrancas',
-        'colaboradores'
+        'audit_logs'
     ];
 BEGIN
     FOREACH tbl IN ARRAY tables

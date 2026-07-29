@@ -1,19 +1,18 @@
 import React, { useState } from 'react';
-import { useLocalStorageState } from '@/hooks/useDataStore';
+import { useClientesQuery } from '../hooks/useClientesQuery';
 import { Cliente } from '../types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Filter, Download, Plus, MoreHorizontal, User, Building2, Trash2 } from 'lucide-react';
+import { Search, Filter, Download, Plus, MoreHorizontal, User, Building2 } from 'lucide-react';
 import { NovoClienteSheet } from './NovoClienteSheet';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Link } from '@tanstack/react-router';
-import { toast } from 'sonner';
 
 export function ClientesList() {
   const [searchTerm, setSearchTerm] = useState('');
-  const { data: clientes, deleteItem } = useLocalStorageState<Cliente>('focus_clientes');
+  const { clientes, isLoading, deleteCliente } = useClientesQuery();
 
   const filteredData = clientes.filter(c => 
     (c.razaoSocial || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -138,8 +137,7 @@ export function ClientesList() {
                           
                           <DropdownMenuItem className="text-red-600 cursor-pointer" onClick={() => {
                             if (window.confirm('Tem certeza que deseja excluir este cliente?')) {
-                              deleteItem(cliente.id);
-                              toast.success("Cliente removido com sucesso!");
+                              deleteCliente(cliente.id);
                             }
                           }}>
                             Excluir Cliente
