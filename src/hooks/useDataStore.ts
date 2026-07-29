@@ -33,8 +33,8 @@ function writeLocalCache<T>(table: string, items: T[]) {
 }
 
 /**
- * Bulletproof Hybrid Persistence Hook (LocalStorage + Supabase DB)
- * Ensures zero data loss even if Supabase tables haven't been created yet.
+ * Bulletproof Multi-Device Storage Hook (Direct Supabase Tables + Focus App State Fallback)
+ * Syncs seamlessly across Desktop, iOS, and Android mobile browsers via Supabase.
  */
 export function useLocalStorageState<T extends { id: string }>(
   table: string,
@@ -45,32 +45,65 @@ export function useLocalStorageState<T extends { id: string }>(
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
+  const isClientsTable = table === 'clients' || table === 'clientes';
+
   // ---------------------------------------------------------------------------
-  // Sync with Supabase on mount
+  // Sync with Supabase across all devices (Mobile iOS/Android & Desktop)
   // ---------------------------------------------------------------------------
   useEffect(() => {
     let isMounted = true;
     const fetchData = async () => {
       setLoading(true);
       try {
-        const { data: rows, error } = await supabase
+        if (isClientsTable) {
+          // Direct sync with Supabase `clients` table
+          const { data: dbClients, error: dbErr } = await supabase
+            .from('clients')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+          if (!isMounted) return;
+
+          if (!dbErr && dbClients && dbClients.length > 0) {
+            const mapped = dbClients.map((c: any) => ({
+              id: c.id,
+              nome: c.name || c.nome || 'Cliente sem nome',
+              name: c.name || c.nome || 'Cliente sem nome',
+              email: c.contact_email || c.email || '',
+              contact_email: c.contact_email || c.email || '',
+              telefone: c.contact_phone || c.telefone || '',
+              contact_phone: c.contact_phone || c.telefone || '',
+              status: c.status || 'ativo',
+              created_at: c.created_at || new Date().toISOString(),
+              updated_at: c.updated_at || new Date().toISOString(),
+              ...c,
+            })) as T[];
+
+            setData(mapped);
+            writeLocalCache(table, mapped);
+            setError(null);
+            return;
+          }
+        }
+
+        // Standard single-table JSONB storage (`focus_app_state`)
+        const { data: rows, error: stateErr } = await supabase
           .from('focus_app_state')
           .select('data')
           .eq('table_name', table);
 
         if (!isMounted) return;
 
-        if (error) {
-          console.warn(`[Supabase] Note: Table 'focus_app_state' query warning for '${table}':`, error.message);
-          setError(error.message);
-          // Keep current LocalStorage/state data - DO NOT wipe out user data on DB warning!
+        if (stateErr) {
+          console.warn(`[Supabase] Query warning for '${table}':`, stateErr.message);
+          setError(stateErr.message);
         } else if (rows && rows.length > 0) {
           const items = rows.map((r: any) => r.data as T);
           setData(items);
           writeLocalCache(table, items);
           setError(null);
         } else {
-          // If DB is empty for this table name, sync local data to DB if local has items
+          // Sync local items to Supabase if DB row is empty
           const currentLocal = readLocalCache(table, initialValue);
           if (currentLocal && currentLocal.length > 0) {
             const payload = currentLocal.map((item) => ({
@@ -101,7 +134,7 @@ export function useLocalStorageState<T extends { id: string }>(
   }, [table]);
 
   // ---------------------------------------------------------------------------
-  // CRUD helpers (Instant LocalStorage update + Async Supabase sync)
+  // CRUD helpers (Instant LocalStorage update + Supabase Cloud sync)
   // ---------------------------------------------------------------------------
   const save = useCallback(
     async (newData: T[]) => {
@@ -109,40 +142,53 @@ export function useLocalStorageState<T extends { id: string }>(
       setData(newData);
       writeLocalCache(table, newData);
 
-      // 2. Async Supabase persistence
+      // 2. Cross-Device Supabase persistence
       try {
-        if (newData.length === 0) {
-          const { error } = await supabase
-            .from('focus_app_state')
-            .delete()
-            .eq('table_name', table);
-          if (error) setError(error.message);
-          return;
+        if (isClientsTable) {
+          // Sync to `clients` table directly
+          const payload = newData.map((item: any) => ({
+            id: String(item.id).includes('-') ? item.id : undefined,
+            name: item.nome || item.name || 'Novo Cliente',
+            status: item.status || 'ativo',
+            contact_email: item.email || item.contact_email || null,
+            contact_phone: item.telefone || item.contact_phone || null,
+            updated_at: new Date().toISOString(),
+          }));
+
+          const { error: upsertErr } = await supabase.from('clients').upsert(payload);
+          if (upsertErr) {
+            console.warn(`[Supabase] Clients table sync warning:`, upsertErr.message);
+          } else {
+            setError(null);
+          }
         }
 
-        const payload = newData.map((item) => ({
-          table_name: table,
-          id: String(item.id),
-          data: item,
-          updated_at: new Date().toISOString(),
-        }));
+        // Sync to `focus_app_state` table
+        if (newData.length > 0) {
+          const payload = newData.map((item) => ({
+            table_name: table,
+            id: String(item.id),
+            data: item,
+            updated_at: new Date().toISOString(),
+          }));
 
-        const { error } = await supabase
-          .from('focus_app_state')
-          .upsert(payload, { onConflict: 'table_name,id' });
+          const { error: stateErr } = await supabase
+            .from('focus_app_state')
+            .upsert(payload, { onConflict: 'table_name,id' });
 
-        if (error) {
-          console.warn(`[Supabase] Save warning for '${table}':`, error.message);
-          setError(error.message);
-        } else {
-          setError(null);
+          if (stateErr) {
+            console.warn(`[Supabase] Save warning for '${table}':`, stateErr.message);
+            setError(stateErr.message);
+          } else {
+            setError(null);
+          }
         }
       } catch (err: any) {
         console.warn(`[Supabase] Save exception for '${table}':`, err);
         setError(err?.message || 'Save failed');
       }
     },
-    [table]
+    [isClientsTable, table]
   );
 
   const addItem = useCallback(
