@@ -2,6 +2,16 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 
 /**
+ * Helper to ensure a string is a valid UUID for PostgreSQL uuid columns.
+ */
+function toValidUuid(idStr?: string): string {
+  if (!idStr) return crypto.randomUUID();
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (uuidRegex.test(idStr)) return idStr;
+  return crypto.randomUUID();
+}
+
+/**
  * Helper to safely read from localStorage
  */
 function readLocalCache<T>(table: string, fallback: T[]): T[] {
@@ -165,34 +175,48 @@ export function useLocalStorageState<T extends { id: string }>(
   // ---------------------------------------------------------------------------
   const save = useCallback(
     async (newData: T[]) => {
+      // Ensure all items have valid IDs
+      const cleanedData = newData.map((item) => {
+        if (!item.id || typeof item.id !== 'string') {
+          return { ...item, id: crypto.randomUUID() };
+        }
+        return item;
+      });
+
       // 1. Instant local persistence
-      setData(newData);
-      writeLocalCache(table, newData);
+      setData(cleanedData);
+      writeLocalCache(table, cleanedData);
 
       // 2. Cross-Device Supabase persistence
       try {
         if (isClientsTable) {
-          // Sync to `clients` table directly
-          const payload = newData.map((item: any) => ({
-            id: String(item.id).includes('-') && String(item.id).length > 20 ? item.id : undefined,
-            name: item.nomeFantasia || item.razaoSocial || item.name || 'Novo Cliente',
-            status: String(item.status || 'ativo').toLowerCase(),
-            contact_email: item.contatos?.[0]?.email || item.email || item.contact_email || null,
-            contact_phone: item.contatos?.[0]?.celular || item.telefone || item.contact_phone || null,
-            updated_at: new Date().toISOString(),
-          }));
+          // Sync to `clients` table directly with valid UUIDs
+          const payload = cleanedData.map((item: any) => {
+            const validUuid = toValidUuid(item.id);
+            item.id = validUuid; // Update item id with valid UUID
+            return {
+              id: validUuid,
+              name: item.nomeFantasia || item.razaoSocial || item.name || 'Novo Cliente',
+              status: String(item.status || 'ativo').toLowerCase(),
+              contact_email: item.contatos?.[0]?.email || item.email || item.contact_email || null,
+              contact_phone: item.contatos?.[0]?.celular || item.telefone || item.contact_phone || null,
+              updated_at: new Date().toISOString(),
+            };
+          });
 
           const { error: upsertErr } = await supabase.from('clients').upsert(payload);
           if (upsertErr) {
-            console.warn(`[Supabase] Clients table sync warning:`, upsertErr.message);
+            console.error(`[Supabase] Clients table sync ERROR:`, upsertErr.message);
+            setError(upsertErr.message);
           } else {
+            console.log(`[Supabase] Clients successfully synced to cloud across all devices!`);
             setError(null);
           }
         }
 
         // Sync to `focus_app_state` table
-        if (newData.length > 0) {
-          const payload = newData.map((item) => ({
+        if (cleanedData.length > 0) {
+          const payload = cleanedData.map((item) => ({
             table_name: table,
             id: String(item.id),
             data: item,
@@ -220,7 +244,12 @@ export function useLocalStorageState<T extends { id: string }>(
 
   const addItem = useCallback(
     async (item: T) => {
-      const newData = [item, ...data.filter((i) => i.id !== item.id)];
+      // Ensure item has a valid UUID
+      const itemWithUuid = {
+        ...item,
+        id: toValidUuid(item.id),
+      };
+      const newData = [itemWithUuid, ...data.filter((i) => i.id !== itemWithUuid.id)];
       await save(newData);
     },
     [data, save]
