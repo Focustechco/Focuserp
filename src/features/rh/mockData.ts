@@ -12,6 +12,7 @@ export const mockIndicadoresRH: IndicadoresRH = {
   desligamentosAno: 0,
   turnover: 0,
   tempoMedioEmpresaAnos: 0,
+  folhaSalarialTotal: 0,
 };
 
 export const mockDashboardGraficos = {

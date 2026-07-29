@@ -116,7 +116,7 @@ function AssinaturasPage() {
             onNovoDocumento={() => setNovoDocSheetOpen(true)}
             onAssinar={handleAbrirAssinatura}
             onVerAuditoria={handleAbrirAuditoria}
-            onCancelar={cancelarDocumento}
+            onCancelar={(docId) => cancelarDocumento(docId, 'Cancelado pelo usuário')}
           />
         </TabsContent>
 

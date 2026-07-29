@@ -124,8 +124,8 @@ export function useLocalStorageState<T extends { id: string }>(
               ...c
             })) as T[];
 
-            const localOnly = readLocalCache(table, []).filter(
-              (l) => !mapped.some((m) => m.id === l.id)
+            const localOnly = readLocalCache<T>(table, []).filter(
+              (l: any) => !mapped.some((m) => m.id === l.id)
             );
             const combined = [...mapped, ...localOnly];
 
@@ -262,7 +262,7 @@ export function useLocalStorageState<T extends { id: string }>(
               data: item,
               updated_at: new Date().toISOString(),
             }));
-            await supabase.from('focus_app_state').upsert(payload, { onConflict: 'table_name,id' }).catch(() => {});
+            void supabase.from('focus_app_state').upsert(payload, { onConflict: 'table_name,id' });
           }
         }
       } catch (err: any) {

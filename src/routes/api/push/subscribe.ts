@@ -1,6 +1,6 @@
 // API Route: POST /api/push/subscribe
 // Receives and stores a push subscription in Supabase for cross-instance persistence
-import { createAPIFileRoute } from '@tanstack/start/api';
+import { createAPIFileRoute } from '@tanstack/react-start/api';
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
@@ -12,7 +12,7 @@ const supabase = createClient(
 const PUSH_SUBS_UUID = '00000000-0000-4000-b000-000000000001';
 
 export const APIRoute = createAPIFileRoute('/api/push/subscribe')({
-  POST: async ({ request }) => {
+  POST: async ({ request }: { request: Request }) => {
     try {
       const body = await request.json();
       const { subscription, userId = 'default' } = body;

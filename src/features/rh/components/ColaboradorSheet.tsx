@@ -57,15 +57,15 @@ export function ColaboradorSheet({ open, onOpenChange, colaboradorParaEditar }: 
 
   // Aba Profissionais
   const [dataAdmissao, setDataAdmissao] = useState('');
-  const [tipoContrato, setTipoContrato] = useState<'CLT' | 'PJ' | 'Estgio' | 'Jovem Aprendiz' | 'Freelancer'>('CLT');
+  const [tipoContrato, setTipoContrato] = useState<'CLT' | 'PJ' | 'Estágio' | 'Jovem Aprendiz' | 'Freelancer'>('CLT');
   const [cargo, setCargo] = useState('');
   const [departamento, setDepartamento] = useState('Tecnologia');
   const [centroCusto, setCentroCusto] = useState('');
   const [gestorImediatoNome, setGestorImediatoNome] = useState('Adriano Leal');
-  const [regime, setRegime] = useState<'Presencial' | 'Hbrido' | 'Remoto'>('Presencial');
+  const [regime, setRegime] = useState<'Presencial' | 'Híbrido' | 'Remoto'>('Presencial');
   const [salarioBase, setSalarioBase] = useState('7500');
   const [jornadaTrabalho, setJornadaTrabalho] = useState('Seg a Sex 09:00 s 18:00');
-  const [status, setStatus] = useState<'Ativo' | 'Inativo' | 'Frias' | 'Afastado' | 'Em Experincia'>('Ativo');
+  const [status, setStatus] = useState<'Ativo' | 'Inativo' | 'Férias' | 'Afastado' | 'Em Experiência'>('Ativo');
 
   // Aba Documentos
   const [documentos, setDocumentos] = useState<DocumentoAnexoRh[]>([]);
@@ -95,13 +95,13 @@ export function ColaboradorSheet({ open, onOpenChange, colaboradorParaEditar }: 
       setTitularConta(colaboradorParaEditar.metodoPagamento?.titularConta || colaboradorParaEditar.nomeCompleto || '');
 
       setDataAdmissao(colaboradorParaEditar.dataAdmissao || '');
-      setTipoContrato(colaboradorParaEditar.tipoContrato || 'CLT');
+      setTipoContrato((colaboradorParaEditar.tipoContrato || 'CLT') as any);
       setCargo(colaboradorParaEditar.cargo || '');
       setDepartamento(colaboradorParaEditar.departamento || 'Tecnologia');
       setGestorImediatoNome(colaboradorParaEditar.gestorImediatoNome || 'Adriano Leal');
-      setRegime(colaboradorParaEditar.regime || 'Presencial');
+      setRegime((colaboradorParaEditar.regime || 'Presencial') as any);
       setSalarioBase(colaboradorParaEditar.salarioBase ? String(colaboradorParaEditar.salarioBase) : '7500');
-      setStatus(colaboradorParaEditar.status || 'Ativo');
+      setStatus((colaboradorParaEditar.status || 'Ativo') as any);
 
       setDocumentos(colaboradorParaEditar.documentos || []);
     } else {
@@ -218,7 +218,7 @@ export function ColaboradorSheet({ open, onOpenChange, colaboradorParaEditar }: 
       tipo: 'Sucesso',
       prioridade: 'Alta',
       targetUrl: '/rh',
-      usuarioDestino: gestorImediatoNome || 'Voc'
+      responsavel: gestorImediatoNome || 'Você'
     });
 
     onOpenChange(false);

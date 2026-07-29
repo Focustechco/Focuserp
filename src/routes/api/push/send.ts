@@ -1,6 +1,6 @@
 // API Route: POST /api/push/send
 // Sends a push notification to all subscribed clients (loads subscriptions from Supabase)
-import { createAPIFileRoute } from '@tanstack/start/api';
+import { createAPIFileRoute } from '@tanstack/react-start/api';
 import webpush from 'web-push';
 import { createClient } from '@supabase/supabase-js';
 
@@ -23,7 +23,7 @@ webpush.setVapidDetails(
 );
 
 export const APIRoute = createAPIFileRoute('/api/push/send')({
-  POST: async ({ request }) => {
+  POST: async ({ request }: { request: Request }) => {
     try {
       const body = await request.json();
       const { title, body: msgBody, url = '/', tag, userId } = body;

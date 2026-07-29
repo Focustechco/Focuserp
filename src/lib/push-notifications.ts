@@ -124,7 +124,7 @@ export async function subscribeToPush(userId?: string): Promise<PushSubscription
     if (!subscription) {
       subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as unknown as BufferSource,
       });
     }
 
@@ -228,8 +228,7 @@ export async function showLocalNotification(payload: {
       icon: '/icon-192.png',
       badge: '/icon-192.png',
       tag: payload.tag || `focus-local-${Date.now()}`,
-      vibrate: [200, 100, 200],
-      data: { url: payload.url || '/' },
+      data: { url: payload.url || '/', vibrate: [200, 100, 200] },
     });
 
     return true;

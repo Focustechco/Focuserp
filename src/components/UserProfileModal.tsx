@@ -10,6 +10,7 @@ import { Usuario } from '@/features/usuarios/types';
 import { toast } from 'sonner';
 
 export interface ActiveUserProfile {
+  id: string;
   nome: string;
   cargo: string;
   email: string;
@@ -17,6 +18,7 @@ export interface ActiveUserProfile {
 }
 
 export const DEFAULT_ACTIVE_USER: ActiveUserProfile = {
+  id: '00000000-0000-0000-0000-000000000001',
   nome: "Adriano Leal",
   cargo: "CEO / Diretor de Tecnologia",
   email: "adriano.leal@focustecnologia.com.br",

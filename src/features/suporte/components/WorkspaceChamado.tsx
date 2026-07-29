@@ -280,12 +280,12 @@ export function WorkspaceChamado({
                       <Heart className="h-4 w-4 text-rose-500" /> Contexto CS do Cliente
                     </h4>
                     <Badge className="bg-emerald-500/10 text-emerald-600 font-bold text-[10px]">
-                      Health: {csContext.health_score}
+                      Health: {(csContext as any).health_score ?? (csContext as any).healthScore ?? 'N/A'}
                     </Badge>
                   </div>
                   <div className="text-xs space-y-1 text-muted-foreground">
-                    <p>Status CS: <strong className="text-foreground">{csContext.status}</strong></p>
-                    <p>NPS: <strong className="text-foreground">{csContext.nps_score || '9/10 (Promotor)'}</strong></p>
+                    <p>Status CS: <strong className="text-foreground">{(csContext as any).status ?? (csContext as any).statusCs ?? 'Ativo'}</strong></p>
+                    <p>NPS: <strong className="text-foreground">{(csContext as any).nps_score ?? (csContext as any).npsScore ?? '9/10 (Promotor)'}</strong></p>
                   </div>
                 </Card>
               )}

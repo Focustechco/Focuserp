@@ -73,7 +73,7 @@ export function useSuporte() {
       id: 'tl-2',
       chamadoId: 'tk-1001',
       dataHora: '2026-07-24T10:15:00.000Z',
-      tipoEvento: 'Atribuio',
+      tipoEvento: 'Atribuição',
       usuario: 'Ana Clara (Suporte)',
       descricao: 'Chamado atribudo a Ana Clara. Primeira resposta registrada.',
     },
@@ -165,7 +165,7 @@ export function useSuporte() {
       id: `tl-${Date.now()}`,
       chamadoId,
       dataHora: new Date().toISOString(),
-      tipoEvento: 'Comentrio',
+      tipoEvento: 'Comentário',
       usuario: autorNome,
       descricao: `Interao adicionada (${tipoMensagem}). Status: ${novoStatus || chamado.status}`,
     });
@@ -182,16 +182,16 @@ export function useSuporte() {
     const taskId = `dev-from-tk-${Date.now()}`;
     const taskTitulo = `[Suporte ${chamado.numero}] ${chamado.titulo}`;
 
-    if (chamado.tipo === 'Bug' || chamado.tipo === 'Incidente' || chamado.tipo === 'Correo') {
+    if (chamado.tipo === 'Bug' || chamado.tipo === 'Incidente' || chamado.tipo === 'Correção') {
       // Cria Bug no Mdulo Desenvolvimento
       const newBug: BugItem = {
         id: taskId,
         projetoId: projetoIdTarget,
         titulo: taskTitulo,
         descricao: `Oriundo do Chamado ${chamado.numero} (${chamado.clienteNome}). Descrio: ${chamado.descricao}`,
-        severidade: chamado.prioridade === 'Crtica' ? 'Crtico' : chamado.prioridade === 'Alta' ? 'Alto' : 'Mdio',
+        severidade: chamado.prioridade === 'Crítica' ? 'Crítico' : chamado.prioridade === 'Alta' ? 'Alto' : 'Médio',
         prioridade: chamado.prioridade,
-        ambiente: 'Produo',
+        ambiente: 'Produção',
         responsavel: 'Dev Team',
         status: 'Aberto',
         createdAt: new Date().toISOString(),
