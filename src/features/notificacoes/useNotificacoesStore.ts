@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLocalStorageState } from '@/hooks/useDataStore';
 import { Notificacao, UserNotificationPreferences, NotificationCategory, NotificationPriority, NotificationType } from './types';
 import { INITIAL_NOTIFICACOES, DEFAULT_PREFERENCES } from './data/initialData';
@@ -10,10 +10,8 @@ import {
   sendPushNotification,
   showLocalNotification,
   unsubscribeFromPush,
-  registerServiceWorker,
 } from '@/lib/push-notifications';
 
-// Função para reprodução de som agradável usando Web Audio API nativo do navegador
 function playNotificationChime() {
   if (typeof window === 'undefined') return;
   try {
@@ -28,8 +26,8 @@ function playNotificationChime() {
     osc1.type = 'sine';
     osc2.type = 'sine';
 
-    osc1.frequency.setValueAtTime(880, ctx.currentTime); // Note A5
-    osc2.frequency.setValueAtTime(1320, ctx.currentTime); // Note E6
+    osc1.frequency.setValueAtTime(880, ctx.currentTime);
+    osc2.frequency.setValueAtTime(1320, ctx.currentTime);
 
     gain.gain.setValueAtTime(0.08, ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
@@ -43,12 +41,34 @@ function playNotificationChime() {
     osc1.stop(ctx.currentTime + 0.35);
     osc2.stop(ctx.currentTime + 0.35);
   } catch {
-    // Ignorar se o áudio do navegador estiver bloqueado
+    // Audio context may be blocked by browser policy until user gesture
   }
 }
 
 export function useNotificacoesStore() {
-  const { data: notificacoes, save: saveNotificacoes } = useLocalStorageState<Notificacao>('focus_notificacoes', INITIAL_NOTIFICACOES);
+  const { data: rawNotificacoes, save: saveNotificacoes } = useLocalStorageState<Notificacao>('focus_notificacoes', INITIAL_NOTIFICACOES);
+  const { data: clientes } = useLocalStorageState<any>('focus_clientes');
+
+  // Track read notification IDs in localStorage
+  const [readNotifIds, setReadNotifIds] = useState<string[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const stored = window.localStorage.getItem('focus_read_notif_ids');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const saveReadNotifIds = useCallback((ids: string[]) => {
+    setReadNotifIds(ids);
+    try {
+      window.localStorage.setItem('focus_read_notif_ids', JSON.stringify(ids));
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
   const [preferences, setPreferences] = useState<UserNotificationPreferences>(() => {
     if (typeof window === 'undefined') return DEFAULT_PREFERENCES;
     try {
@@ -68,7 +88,6 @@ export function useNotificacoesStore() {
     }
   }, []);
 
-  // Escutar eventos de novas notificações em tempo real
   const [hasNewArrival, setHasNewArrival] = useState(false);
 
   useEffect(() => {
@@ -82,106 +101,160 @@ export function useNotificacoesStore() {
     return () => window.removeEventListener('focus_new_notification_event', handleNewNotif);
   }, []);
 
+  // Dynamically derive client creation notifications from synced Supabase clients
+  const clientNotifications = useMemo<Notificacao[]>(() => {
+    if (!clientes || !Array.isArray(clientes)) return [];
+    return clientes.map((c: any) => {
+      const notifId = `notif-client-${c.id}`;
+      const isRead = readNotifIds.includes(notifId);
+      const name = c.nomeFantasia || c.razaoSocial || c.name || 'Novo Cliente';
+      const doc = c.documento ? ` com documento ${c.documento}` : '';
+
+      return {
+        id: notifId,
+        titulo: `Novo Cliente Cadastrado: ${name}`,
+        descricao: `Cliente ${c.tipo || 'Pessoa Jurídica'}${doc} registrado com sucesso no sistema.`,
+        origem: 'CRM' as NotificationCategory,
+        tipo: 'Sucesso' as NotificationType,
+        prioridade: 'Normal' as NotificationPriority,
+        lida: isRead,
+        arquivada: false,
+        dataCriacao: c.dataCadastro || c.created_at || c.ultimaAtualizacao || new Date().toISOString(),
+        responsavel: 'Sistema CRM',
+        usuarioDestino: 'Você',
+        targetUrl: '/clientes',
+        entidadeId: c.id
+      };
+    });
+  }, [clientes, readNotifIds]);
+
+  // Combine derived client notifications with manual/custom notifications
+  const notificacoes = useMemo<Notificacao[]>(() => {
+    const map = new Map<string, Notificacao>();
+
+    // Add client notifications
+    clientNotifications.forEach((n) => map.set(n.id, n));
+
+    // Add manual notifications (rawNotificacoes take precedence if ID matches)
+    (rawNotificacoes || []).forEach((n) => {
+      const isRead = n.lida || readNotifIds.includes(n.id);
+      map.set(n.id, { ...n, lida: isRead });
+    });
+
+    return Array.from(map.values()).sort(
+      (a, b) => new Date(b.dataCriacao).getTime() - new Date(a.dataCriacao).getTime()
+    );
+  }, [clientNotifications, rawNotificacoes, readNotifIds]);
+
   // Dispatcher Global de Notificações
-  const notificar = useCallback((payload: {
-    titulo: string;
-    descricao: string;
-    origem: NotificationCategory;
-    tipo?: NotificationType;
-    prioridade?: NotificationPriority;
-    responsavel?: string;
-    targetUrl?: string;
-    entidadeId?: string;
-  }) => {
-    const novaNotificacao: Notificacao = {
-      id: `notif-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-      titulo: payload.titulo,
-      descricao: payload.descricao,
-      origem: payload.origem,
-      tipo: payload.tipo || 'Informação',
-      prioridade: payload.prioridade || 'Normal',
-      lida: false,
-      arquivada: false,
-      dataCriacao: new Date().toISOString(),
-      responsavel: payload.responsavel || 'Sistema',
-      usuarioDestino: 'Você',
-      targetUrl: payload.targetUrl || '/',
-      entidadeId: payload.entidadeId
-    };
+  const notificar = useCallback(
+    (payload: {
+      titulo: string;
+      descricao: string;
+      origem: NotificationCategory;
+      tipo?: NotificationType;
+      prioridade?: NotificationPriority;
+      responsavel?: string;
+      targetUrl?: string;
+      entidadeId?: string;
+    }) => {
+      const novaNotificacao: Notificacao = {
+        id: `notif-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        titulo: payload.titulo,
+        descricao: payload.descricao,
+        origem: payload.origem,
+        tipo: payload.tipo || 'Informação',
+        prioridade: payload.prioridade || 'Normal',
+        lida: false,
+        arquivada: false,
+        dataCriacao: new Date().toISOString(),
+        responsavel: payload.responsavel || 'Sistema',
+        usuarioDestino: 'Você',
+        targetUrl: payload.targetUrl || '/',
+        entidadeId: payload.entidadeId
+      };
 
-    // Salvar na store
-    const updated = [novaNotificacao, ...notificacoes];
-    saveNotificacoes(updated);
+      const updated = [novaNotificacao, ...(rawNotificacoes || [])];
+      saveNotificacoes(updated);
 
-    // Disparar efeito sonoro
-    if (preferences.somHabilitado) {
-      playNotificationChime();
-    }
-
-    // Disparar evento visual no Sino
-    window.dispatchEvent(new Event('focus_new_notification_event'));
-
-    // Disparar Toast Sonner
-    if (payload.tipo === 'Sucesso') {
-      toast.success(payload.titulo, { description: payload.descricao });
-    } else if (payload.tipo === 'Erro' || payload.tipo === 'Crítico') {
-      toast.error(payload.titulo, { description: payload.descricao });
-    } else if (payload.tipo === 'Aviso') {
-      toast.warning(payload.titulo, { description: payload.descricao });
-    } else {
-      toast.info(payload.titulo, { description: payload.descricao });
-    }
-
-    // Disparar Push Notification real via Service Worker (funciona com tela bloqueada)
-    if (preferences.canais.pushNavegador && typeof window !== 'undefined') {
-      const permission = getNotificationPermission();
-      if (permission === 'granted') {
-        const pushPayload = {
-          title: payload.titulo,
-          body: payload.descricao,
-          url: payload.targetUrl || '/',
-          tag: `focus-${payload.origem}-${Date.now()}`,
-        };
-
-        // Tenta enviar push real via servidor (funciona com tela bloqueada)
-        sendPushNotification(pushPayload).then((sent) => {
-          if (!sent) {
-            // Fallback: notificação local via Service Worker (funciona em background)
-            showLocalNotification(pushPayload);
-          }
-        }).catch(() => {
-          // Fallback para notificação local se API falhar
-          showLocalNotification(pushPayload);
-        });
+      if (preferences.somHabilitado) {
+        playNotificationChime();
       }
-    }
 
-    return novaNotificacao;
-  }, [notificacoes, saveNotificacoes, preferences]);
+      window.dispatchEvent(new Event('focus_new_notification_event'));
 
-  // Ações de gerenciamento
-  const marcarComoLida = useCallback((id: string) => {
-    const updated = notificacoes.map(n => n.id === id ? { ...n, lida: true } : n);
-    saveNotificacoes(updated);
-  }, [notificacoes, saveNotificacoes]);
+      if (payload.tipo === 'Sucesso') {
+        toast.success(payload.titulo, { description: payload.descricao });
+      } else if (payload.tipo === 'Erro' || payload.tipo === 'Crítico') {
+        toast.error(payload.titulo, { description: payload.descricao });
+      } else if (payload.tipo === 'Aviso') {
+        toast.warning(payload.titulo, { description: payload.descricao });
+      } else {
+        toast.info(payload.titulo, { description: payload.descricao });
+      }
+
+      if (preferences.canais.pushNavegador && typeof window !== 'undefined') {
+        const permission = getNotificationPermission();
+        if (permission === 'granted') {
+          const pushPayload = {
+            title: payload.titulo,
+            body: payload.descricao,
+            url: payload.targetUrl || '/',
+            tag: `focus-${payload.origem}-${Date.now()}`,
+          };
+
+          sendPushNotification(pushPayload)
+            .then((sent) => {
+              if (!sent) showLocalNotification(pushPayload);
+            })
+            .catch(() => {
+              showLocalNotification(pushPayload);
+            });
+        }
+      }
+
+      return novaNotificacao;
+    },
+    [rawNotificacoes, saveNotificacoes, preferences]
+  );
+
+  const marcarComoLida = useCallback(
+    (id: string) => {
+      if (!readNotifIds.includes(id)) {
+        saveReadNotifIds([...readNotifIds, id]);
+      }
+      const updated = (rawNotificacoes || []).map((n) => (n.id === id ? { ...n, lida: true } : n));
+      saveNotificacoes(updated);
+    },
+    [readNotifIds, saveReadNotifIds, rawNotificacoes, saveNotificacoes]
+  );
 
   const marcarTodasComoLidas = useCallback(() => {
-    const updated = notificacoes.map(n => ({ ...n, lida: true }));
+    const allIds = notificacoes.map((n) => n.id);
+    saveReadNotifIds(Array.from(new Set([...readNotifIds, ...allIds])));
+
+    const updated = (rawNotificacoes || []).map((n) => ({ ...n, lida: true }));
     saveNotificacoes(updated);
     toast.success('Todas as notificações foram marcadas como lidas.');
-  }, [notificacoes, saveNotificacoes]);
+  }, [notificacoes, readNotifIds, saveReadNotifIds, rawNotificacoes, saveNotificacoes]);
 
-  const arquivar = useCallback((id: string) => {
-    const updated = notificacoes.map(n => n.id === id ? { ...n, arquivada: true } : n);
-    saveNotificacoes(updated);
-    toast.info('Notificação arquivada.');
-  }, [notificacoes, saveNotificacoes]);
+  const arquivar = useCallback(
+    (id: string) => {
+      const updated = (rawNotificacoes || []).map((n) => (n.id === id ? { ...n, arquivada: true } : n));
+      saveNotificacoes(updated);
+      toast.info('Notificação arquivada.');
+    },
+    [rawNotificacoes, saveNotificacoes]
+  );
 
-  const excluir = useCallback((id: string) => {
-    const updated = notificacoes.filter(n => n.id !== id);
-    saveNotificacoes(updated);
-    toast.info('Notificação removida.');
-  }, [notificacoes, saveNotificacoes]);
+  const excluir = useCallback(
+    (id: string) => {
+      const updated = (rawNotificacoes || []).filter((n) => n.id !== id);
+      saveNotificacoes(updated);
+      toast.info('Notificação removida.');
+    },
+    [rawNotificacoes, saveNotificacoes]
+  );
 
   const solicitarPermissaoPush = useCallback(async () => {
     if (!isPushSupported()) {
@@ -230,8 +303,8 @@ export function useNotificacoesStore() {
   const pushAtivo = preferences.canais.pushNavegador && getNotificationPermission() === 'granted';
   const pushSuportado = isPushSupported();
 
-  const naoLidasCount = notificacoes.filter(n => !n.lida && !n.arquivada).length;
-  const notificacoesAtivas = notificacoes.filter(n => !n.arquivada);
+  const naoLidasCount = notificacoes.filter((n) => !n.lida && !n.arquivada).length;
+  const notificacoesAtivas = notificacoes.filter((n) => !n.arquivada);
 
   return {
     notificacoes: notificacoesAtivas,
