@@ -9,8 +9,14 @@ import { Search, Filter, MoreHorizontal, Download, Plus } from 'lucide-react';
 import { NovaContaSheet } from './NovaContaSheet';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+const formatCurrency = (value?: number | null) => {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
+};
+
+const formatDate = (dateStr?: string) => {
+  if (!dateStr) return '-';
+  const d = new Date(dateStr);
+  return isNaN(d.getTime()) ? dateStr : d.toLocaleDateString('pt-BR');
 };
 
 const getStatusColor = (status: string) => {
@@ -60,7 +66,7 @@ export function ContasList() {
           <NovaContaSheet>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
-              Nova Despesa
+              Nova Conta
             </Button>
           </NovaContaSheet>
         </div>
@@ -85,7 +91,7 @@ export function ContasList() {
             {filteredData.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} className="text-center py-10 text-muted-foreground">
-                  Nenhuma despesa encontrada.
+                  Nenhuma conta encontrada.
                 </TableCell>
               </TableRow>
             ) : (
@@ -99,7 +105,7 @@ export function ContasList() {
                     </div>
                   </TableCell>
                   <TableCell>{conta.categoria}</TableCell>
-                  <TableCell>{new Date(conta.dataVencimento).toLocaleDateString('pt-BR')}</TableCell>
+                  <TableCell>{formatDate(conta.dataVencimento)}</TableCell>
                   <TableCell className="text-right font-medium">{formatCurrency(conta.valorOriginal)}</TableCell>
                   <TableCell className="text-right">{formatCurrency(conta.saldo)}</TableCell>
                   <TableCell>

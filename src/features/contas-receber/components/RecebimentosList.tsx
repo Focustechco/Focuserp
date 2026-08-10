@@ -9,8 +9,14 @@ import { Search, Filter, MoreHorizontal, Download, Plus } from 'lucide-react';
 import { NovoRecebimentoSheet } from './NovoRecebimentoSheet';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+const formatCurrency = (value?: number | null) => {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
+};
+
+const formatDate = (dateStr?: string) => {
+  if (!dateStr) return '-';
+  const d = new Date(dateStr);
+  return isNaN(d.getTime()) ? dateStr : d.toLocaleDateString('pt-BR');
 };
 
 const getStatusColor = (status: string) => {
@@ -99,7 +105,7 @@ export function RecebimentosList() {
                     </div>
                   </TableCell>
                   <TableCell>{titulo.categoria}</TableCell>
-                  <TableCell>{new Date(titulo.dataVencimento).toLocaleDateString('pt-BR')}</TableCell>
+                  <TableCell>{formatDate(titulo.dataVencimento)}</TableCell>
                   <TableCell className="text-right font-medium">{formatCurrency(titulo.valorOriginal)}</TableCell>
                   <TableCell className="text-right">{formatCurrency(titulo.saldo)}</TableCell>
                   <TableCell>

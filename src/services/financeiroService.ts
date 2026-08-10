@@ -23,29 +23,32 @@ export const financeiroService = {
 
       if (!error && data && data.length > 0) {
         return data.map((item: any) => {
-          const parsed = tituloReceberSchema.safeParse({
-            id: item.id,
-            numero: item.numero || `REC-${item.id.slice(0, 4).toUpperCase()}`,
-            cliente: item.cliente_nome || item.cliente || 'Cliente',
-            clienteId: item.cliente_id,
+          const valorOrig = Number(item.valor_original ?? item.valorOriginal ?? item.valor ?? 0) || 0;
+          const valorRec = Number(item.valor_recebido ?? item.valorRecebido ?? 0) || 0;
+          const saldoCalculado = Number(item.saldo ?? (valorOrig - valorRec)) || 0;
+          const vencimento = item.data_vencimento || item.dataVencimento || item.vencimento || new Date().toISOString().split('T')[0];
+
+          return {
+            id: String(item.id || crypto.randomUUID()),
+            numero: item.numero || item.codigo || `REC-${String(item.id || '').slice(0, 4).toUpperCase()}`,
+            cliente: item.cliente_nome || item.cliente || item.clienteNome || 'Cliente',
+            clienteId: item.cliente_id || item.clienteId,
             descricao: item.descricao || 'Recebimento de título',
             categoria: item.categoria || 'Receita Operacional',
-            valorOriginal: Number(item.valor_original || item.valorOriginal || 0),
-            valorRecebido: Number(item.valor_recebido || item.valorRecebido || 0),
-            saldo: Number(item.saldo || (Number(item.valor_original || 0) - Number(item.valor_recebido || 0))),
+            valorOriginal: valorOrig,
+            valorRecebido: valorRec,
+            saldo: saldoCalculado,
             dataEmissao: item.data_emissao || item.dataEmissao || new Date().toISOString().split('T')[0],
-            dataVencimento: item.data_vencimento || item.dataVencimento || new Date().toISOString().split('T')[0],
+            dataVencimento: vencimento,
             dataRecebimento: item.data_recebimento || item.dataRecebimento,
             formaPagamento: item.forma_pagamento || item.formaPagamento || 'PIX',
             status: item.status || 'Pendente',
             responsavel: item.responsavel || 'Administrador',
             ultimaAtualizacao: item.updated_at || item.ultimaAtualizacao || new Date().toISOString(),
-            historico: item.historico || [],
-            parcelas: item.parcelas || [],
+            historico: Array.isArray(item.historico) ? item.historico : [],
+            parcelas: Array.isArray(item.parcelas) ? item.parcelas : [],
             recorrente: Boolean(item.recorrente),
-          });
-
-          return parsed.success ? parsed.data : (item as TituloReceberDTO);
+          };
         });
       }
 
@@ -112,29 +115,32 @@ export const financeiroService = {
 
       if (!error && data && data.length > 0) {
         return data.map((item: any) => {
-          const parsed = contaPagarSchema.safeParse({
-            id: item.id,
-            numero: item.numero || `PAG-${item.id.slice(0, 4).toUpperCase()}`,
-            fornecedor: item.fornecedor_nome || item.fornecedor || 'Fornecedor',
-            fornecedorId: item.fornecedor_id,
+          const valorOrig = Number(item.valor_original ?? item.valorOriginal ?? item.valor ?? 0) || 0;
+          const valorPg = Number(item.valor_pago ?? item.valorPago ?? 0) || 0;
+          const saldoCalculado = Number(item.saldo ?? (valorOrig - valorPg)) || 0;
+          const vencimento = item.data_vencimento || item.dataVencimento || item.vencimento || new Date().toISOString().split('T')[0];
+
+          return {
+            id: String(item.id || crypto.randomUUID()),
+            numero: item.numero || item.codigo || `PAG-${String(item.id || '').slice(0, 4).toUpperCase()}`,
+            fornecedor: item.fornecedor_nome || item.fornecedor || item.fornecedorNome || 'Fornecedor',
+            fornecedorId: item.fornecedor_id || item.fornecedorId,
             descricao: item.descricao || 'Despesa operacional',
             categoria: item.categoria || 'Despesa Operacional',
-            valorOriginal: Number(item.valor_original || item.valorOriginal || 0),
-            valorPago: Number(item.valor_pago || item.valorPago || 0),
-            saldo: Number(item.saldo || (Number(item.valor_original || 0) - Number(item.valor_pago || 0))),
+            valorOriginal: valorOrig,
+            valorPago: valorPg,
+            saldo: saldoCalculado,
             dataEmissao: item.data_emissao || item.dataEmissao || new Date().toISOString().split('T')[0],
-            dataVencimento: item.data_vencimento || item.dataVencimento || new Date().toISOString().split('T')[0],
+            dataVencimento: vencimento,
             dataPagamento: item.data_pagamento || item.dataPagamento,
-            formaPagamento: item.forma_pagamento || item.formaPagamento || 'PIX',
+            formaPagamento: item.forma_pagamento || item.formaPagamento || 'Boleto',
             status: item.status || 'Pendente',
             responsavel: item.responsavel || 'Administrador',
             ultimaAtualizacao: item.updated_at || item.ultimaAtualizacao || new Date().toISOString(),
-            historico: item.historico || [],
-            parcelas: item.parcelas || [],
+            historico: Array.isArray(item.historico) ? item.historico : [],
+            parcelas: Array.isArray(item.parcelas) ? item.parcelas : [],
             recorrente: Boolean(item.recorrente),
-          });
-
-          return parsed.success ? parsed.data : (item as ContaPagarDTO);
+          };
         });
       }
 
