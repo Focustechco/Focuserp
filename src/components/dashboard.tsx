@@ -35,15 +35,17 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { useContasReceberQuery } from "@/features/contas-receber/hooks/useContasReceberQuery";
+import { useContasPagarQuery } from "@/features/contas-pagar/hooks/useContasPagarQuery";
+import { useClientesQuery } from "@/features/clientes/hooks/useClientesQuery";
 import { useLocalStorageState } from "@/hooks/useDataStore";
-import { TituloReceber } from "@/features/contas-receber/types";
-import { ContaPagar } from "@/features/contas-pagar/types";
-import { Cliente } from "@/features/clientes/types";
 import { Contrato } from "@/features/contratos/types";
 import { NovoRecebimentoSheet } from "@/features/contas-receber/components/NovoRecebimentoSheet";
 
-const currency = (v: number) =>
-  v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 2 });
+const currency = (v?: number | null) => {
+  const num = typeof v === "number" && !isNaN(v) ? v : 0;
+  return num.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 2 });
+};
 
 const chartColors = [
   "var(--color-chart-1)",
@@ -104,10 +106,10 @@ function StatCard({ label, value, delta, hint, icon: Icon, accent = "primary" }:
 }
 
 export function Dashboard() {
-  const { data: contasReceber } = useLocalStorageState<TituloReceber>("focus_contas_receber");
-  const { data: contasPagar } = useLocalStorageState<ContaPagar>("focus_contas_pagar");
-  const { data: clientes } = useLocalStorageState<Cliente>("focus_clientes");
-  const { data: contratos } = useLocalStorageState<Contrato>("focus_contratos");
+  const { recebimentos: contasReceber = [] } = useContasReceberQuery();
+  const { contas: contasPagar = [] } = useContasPagarQuery();
+  const { clientes = [] } = useClientesQuery();
+  const { data: contratos = [] } = useLocalStorageState<Contrato>("focus_contratos");
 
   // Cálculos dinâmicos
   const totalRecebido = contasReceber.reduce((acc, c) => acc + (c.valorRecebido || 0), 0);
@@ -118,11 +120,11 @@ export function Dashboard() {
   const despesasDoMes = contasPagar.reduce((acc, c) => acc + (c.valorOriginal || 0), 0);
   const lucroLiquido = receitasDoMes - despesasDoMes;
 
-  const mrr = contratos.reduce((acc, c) => acc + (c.valorMensalidade || 0), 0);
+  const mrr = contratos.reduce((acc, c) => acc + (c.valorMensalidade || (c as any).valor_mensal || 0), 0);
   const arr = mrr * 12;
   const clientesAtivosCount = clientes.length;
 
-  const titulosEmAberto = contasReceber.filter((c) => c.status !== "Recebido");
+  const titulosEmAberto = contasReceber.filter((c) => c.status !== "Recebido" && c.status !== "Pago");
   const valorEmAberto = titulosEmAberto.reduce((acc, c) => acc + (c.saldo || 0), 0);
   const percentualInadimplencia = receitasDoMes > 0 ? ((valorEmAberto / receitasDoMes) * 100).toFixed(1) : "0.0";
 
@@ -133,7 +135,7 @@ export function Dashboard() {
   const catMapReceita: Record<string, number> = {};
   contasReceber.forEach((c) => {
     const cat = c.categoria || "Geral";
-    catMapReceita[cat] = (catMapReceita[cat] || 0) + c.valorOriginal;
+    catMapReceita[cat] = (catMapReceita[cat] || 0) + (c.valorOriginal || 0);
   });
   const revenueByCategory = Object.keys(catMapReceita).length > 0
     ? Object.entries(catMapReceita).map(([name, value]) => ({ name, value }))
@@ -143,7 +145,7 @@ export function Dashboard() {
   const catMapDespesa: Record<string, number> = {};
   contasPagar.forEach((c) => {
     const cat = c.categoria || "Operacional";
-    catMapDespesa[cat] = (catMapDespesa[cat] || 0) + c.valorOriginal;
+    catMapDespesa[cat] = (catMapDespesa[cat] || 0) + (c.valorOriginal || 0);
   });
   const expensesByCenter = Object.keys(catMapDespesa).length > 0
     ? Object.entries(catMapDespesa).map(([name, value]) => ({ name, value }))
@@ -346,30 +348,34 @@ export function Dashboard() {
               <div className="divide-y">
                 {proximosRecebimentos.map((r) => {
                   const variant =
-                    r.status === "Atrasado"
+                    r.status === "Atrasado" || r.status === "Vencido"
                       ? "bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-400"
                       : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400";
+                  const clienteNome = r.cliente || (r as any).clienteNome || "Cliente";
+                  const initials = (clienteNome || "C")
+                    .split(" ")
+                    .filter(Boolean)
+                    .map((w: string) => w[0])
+                    .slice(0, 2)
+                    .join("") || "CL";
+                  const valorExibir = r.saldo ?? r.valorOriginal ?? 0;
                   return (
                     <div key={r.id} className="flex items-center justify-between gap-3 px-6 py-3.5">
                       <div className="flex items-center gap-3">
                         <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-xs font-semibold">
-                          {(r.cliente || "C")
-                            .split(" ")
-                            .map((w) => w[0])
-                            .slice(0, 2)
-                            .join("")}
+                          {initials}
                         </div>
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-medium">{r.cliente}</p>
-                          <p className="text-xs text-muted-foreground">{r.descricao} · Vence em {r.dataVencimento}</p>
+                          <p className="truncate text-sm font-medium">{clienteNome}</p>
+                          <p className="text-xs text-muted-foreground">{r.descricao || "Título"} · Vence em {r.dataVencimento || "A vencer"}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
                         <Badge variant="secondary" className={`${variant} border-0 text-[10px] font-medium`}>
-                          {r.status}
+                          {r.status || "Pendente"}
                         </Badge>
                         <span className="w-24 text-right text-sm font-semibold tabular-nums">
-                          {currency(r.saldo || r.valorOriginal)}
+                          {currency(valorExibir)}
                         </span>
                       </div>
                     </div>

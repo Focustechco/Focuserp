@@ -35,8 +35,8 @@ import { differenceInDays } from 'date-fns';
 import { NovoContratoSheet, downloadDocumentFile } from './NovoContratoSheet';
 import { toast } from 'sonner';
 
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+const formatCurrency = (value?: number | null) => {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
 };
 
 export function ContratosList({ filterEntidade }: { filterEntidade?: string[] }) {

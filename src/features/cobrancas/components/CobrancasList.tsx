@@ -8,8 +8,8 @@ import { Search, Filter, MoreHorizontal, Download, Plus, Mail, MessageSquare, Sm
 import { NovaCobrancaSheet } from './NovaCobrancaSheet';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+const formatCurrency = (value?: number | null) => {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
 };
 
 const getStatusCobrancaColor = (status: string) => {

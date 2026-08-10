@@ -8,8 +8,8 @@ import { ContaPagar } from '@/features/contas-pagar/types';
 import { format, parseISO, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+const formatCurrency = (value?: number | null) => {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
 };
 
 export function Dashboard() {

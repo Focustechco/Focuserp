@@ -9,8 +9,8 @@ import { useLocalStorageState } from '@/hooks/useDataStore';
 import { TituloReceber } from '@/features/contas-receber/types';
 import { ContaPagar } from '@/features/contas-pagar/types';
 
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+const formatCurrency = (value?: number | null) => {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
 };
 
 const formatPercent = (value: number) => {
