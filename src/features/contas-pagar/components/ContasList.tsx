@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useLocalStorageState } from '@/hooks/useDataStore';
+import { useContasPagarQuery } from '../hooks/useContasPagarQuery';
 import { ContaPagar } from '../types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/input';
 import { Search, Filter, MoreHorizontal, Download, Plus } from 'lucide-react';
 import { NovaContaSheet } from './NovaContaSheet';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { toast } from 'sonner';
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -26,7 +25,7 @@ const getStatusColor = (status: string) => {
 
 export function ContasList() {
   const [searchTerm, setSearchTerm] = useState('');
-  const { data: contas, updateItem, deleteItem } = useLocalStorageState<ContaPagar>('focus_contas_pagar');
+  const { contas, saveConta, deleteConta } = useContasPagarQuery();
 
   const filteredData = contas.filter(t => 
     (t.fornecedor || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -117,14 +116,17 @@ export function ContasList() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => {
-                          updateItem(conta.id, { status: 'Pago', valorPago: conta.valorOriginal, saldo: 0 });
-                          toast.success("Pagamento registrado com sucesso!");
+                          saveConta({
+                            ...conta,
+                            status: 'Pago',
+                            valorPago: conta.valorOriginal,
+                            saldo: 0,
+                          });
                         }}>
                           Registrar pagamento
                         </DropdownMenuItem>
                         <DropdownMenuItem className="text-red-600" onClick={() => {
-                          deleteItem(conta.id);
-                          toast.success("Conta removida com sucesso!");
+                          deleteConta(conta.id);
                         }}>
                           Excluir conta
                         </DropdownMenuItem>

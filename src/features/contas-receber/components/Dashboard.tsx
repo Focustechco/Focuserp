@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useLocalStorageState } from '@/hooks/useDataStore';
+import { useContasReceberQuery } from '../hooks/useContasReceberQuery';
 import { TituloReceber } from '../types';
 import { DollarSign, AlertCircle, CheckCircle, Clock } from 'lucide-react';
 import { 
@@ -13,7 +13,7 @@ const formatCurrency = (value: number) => {
 };
 
 export function Dashboard() {
-  const { data: titulos } = useLocalStorageState<TituloReceber>('focus_contas_receber');
+  const { titulos } = useContasReceberQuery();
 
   const totalReceber = titulos
     .filter(t => t.status === "Pendente" || t.status === "Atrasado")

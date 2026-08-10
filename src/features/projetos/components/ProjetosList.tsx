@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { useLocalStorageState } from '@/hooks/useDataStore';
+import { useProjetosQuery } from '../hooks/useProjetosQuery';
+import { useClientesQuery } from '@/features/clientes/hooks/useClientesQuery';
 import { Projeto } from '../types';
-import { Cliente } from '@/features/clientes/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Progress } from '@/components/ui/progress';
 import { NovoProjetoSheet } from './NovoProjetoSheet';
 import { Link } from '@tanstack/react-router';
-import { toast } from 'sonner';
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -37,8 +36,8 @@ const getPrioridadeColor = (prio: string) => {
 
 export function ProjetosList() {
   const [searchTerm, setSearchTerm] = useState('');
-  const { data: projetos, deleteItem } = useLocalStorageState<Projeto>('focus_projetos', []);
-  const { data: clientes } = useLocalStorageState<Cliente>('focus_clientes', []);
+  const { projetos, deleteProjeto } = useProjetosQuery();
+  const { clientes } = useClientesQuery();
 
   const filteredData = projetos.filter(p => 
     (p.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -147,8 +146,7 @@ export function ProjetosList() {
                           </Link>
                           <DropdownMenuItem>Apontar Horas</DropdownMenuItem>
                           <DropdownMenuItem className="text-red-600" onClick={() => {
-                            deleteItem(projeto.id);
-                            toast.success("Projeto removido com sucesso!");
+                            deleteProjeto(projeto.id);
                           }}>
                             Excluir Projeto
                           </DropdownMenuItem>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useLocalStorageState } from '@/hooks/useDataStore';
+import { useContasReceberQuery } from '../hooks/useContasReceberQuery';
 import { TituloReceber } from '../types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/input';
 import { Search, Filter, MoreHorizontal, Download, Plus } from 'lucide-react';
 import { NovoRecebimentoSheet } from './NovoRecebimentoSheet';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { toast } from 'sonner';
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -26,7 +25,7 @@ const getStatusColor = (status: string) => {
 
 export function RecebimentosList() {
   const [searchTerm, setSearchTerm] = useState('');
-  const { data: titulos, updateItem, deleteItem } = useLocalStorageState<TituloReceber>('focus_contas_receber');
+  const { titulos, saveTitulo, deleteTitulo } = useContasReceberQuery();
 
   const filteredData = titulos.filter(t => 
     (t.cliente || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -117,14 +116,17 @@ export function RecebimentosList() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => {
-                          updateItem(titulo.id, { status: 'Recebido', valorRecebido: titulo.valorOriginal, saldo: 0 });
-                          toast.success("Recebimento registrado com sucesso!");
+                          saveTitulo({
+                            ...titulo,
+                            status: 'Recebido',
+                            valorRecebido: titulo.valorOriginal,
+                            saldo: 0,
+                          });
                         }}>
                           Registrar recebimento
                         </DropdownMenuItem>
                         <DropdownMenuItem className="text-red-600" onClick={() => {
-                          deleteItem(titulo.id);
-                          toast.success("Título removido com sucesso!");
+                          deleteTitulo(titulo.id);
                         }}>
                           Excluir título
                         </DropdownMenuItem>

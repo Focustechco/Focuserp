@@ -9,9 +9,10 @@ import { Switch } from '@/components/ui/switch';
 import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { useLocalStorageState } from '@/hooks/useDataStore';
+import { useContasReceberQuery } from '../hooks/useContasReceberQuery';
+import { useClientesQuery } from '@/features/clientes/hooks/useClientesQuery';
 import { TituloReceber } from '../types';
-import { Cliente } from '@/features/clientes/types';
+import { useLocalStorageState } from '@/hooks/useDataStore';
 import { Usuario } from '@/features/usuarios/types';
 import { INITIAL_USUARIOS } from '@/features/usuarios/data/initialData';
 
@@ -29,8 +30,8 @@ export function NovoRecebimentoSheet({ children }: { children: React.ReactNode }
   const [formaPagamento, setFormaPagamento] = useState('PIX');
   const [responsavel, setResponsavel] = useState('');
 
-  const { addItem } = useLocalStorageState<TituloReceber>('focus_contas_receber');
-  const { data: clientes } = useLocalStorageState<Cliente>('focus_clientes');
+  const { saveTitulo } = useContasReceberQuery();
+  const { clientes } = useClientesQuery();
   const { data: usuarios } = useLocalStorageState<Usuario>('focus_usuarios', INITIAL_USUARIOS);
   const { notificar } = useNotificacoesStore();
 
@@ -78,7 +79,7 @@ export function NovoRecebimentoSheet({ children }: { children: React.ReactNode }
       ]
     };
 
-    addItem(novoTitulo);
+    saveTitulo(novoTitulo as any);
 
     // Disparar Notificação Automática
     notificar({

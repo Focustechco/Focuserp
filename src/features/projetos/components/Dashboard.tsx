@@ -1,5 +1,5 @@
 import React from 'react';
-import { useLocalStorageState } from '@/hooks/useDataStore';
+import { useProjetosQuery } from '../hooks/useProjetosQuery';
 import { Projeto } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Briefcase, Clock, DollarSign, Activity } from 'lucide-react';
@@ -10,7 +10,7 @@ const formatCurrency = (value: number) => {
 };
 
 export function Dashboard() {
-  const { data: projetos } = useLocalStorageState<Projeto>('focus_projetos', []);
+  const { projetos } = useProjetosQuery();
 
   const total = projetos.length;
   const ativos = projetos.filter(p => !['Concluído', 'Cancelado'].includes(p.status)).length;

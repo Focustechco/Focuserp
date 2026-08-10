@@ -21,9 +21,8 @@ import { AbaTreinamentos } from './abas/AbaTreinamentos';
 import { AbaAvaliacoes } from './abas/AbaAvaliacoes';
 import { AbaEquipamentos } from './abas/AbaEquipamentos';
 
-import { useLocalStorageState } from '@/hooks/useDataStore';
+import { useColaboradoresQuery } from '../hooks/useColaboradoresQuery';
 import { Colaborador, FormaPagamentoRH, DocumentoAnexoRh, FormatoArquivo } from '../types';
-import { INITIAL_COLABORADORES } from '../data/initialData';
 import { useDocumentosStore } from '@/features/documentos/hooks/useDocumentosStore';
 import { useNotificacoesStore } from '@/features/notificacoes/useNotificacoesStore';
 import { toast } from 'sonner';
@@ -70,7 +69,7 @@ export function ColaboradorSheet({ open, onOpenChange, colaboradorParaEditar }: 
   // Aba Documentos
   const [documentos, setDocumentos] = useState<DocumentoAnexoRh[]>([]);
 
-  const { addItem, updateItem } = useLocalStorageState<Colaborador>('focus_rh_colaboradores', INITIAL_COLABORADORES);
+  const { saveColaborador } = useColaboradoresQuery();
   const { pastas, createFolder, uploadDocument } = useDocumentosStore();
   const { notificar } = useNotificacoesStore();
 
@@ -202,13 +201,8 @@ export function ColaboradorSheet({ open, onOpenChange, colaboradorParaEditar }: 
       documentos
     };
 
-    if (colaboradorParaEditar) {
-      updateItem(colaboradorParaEditar.id, novoColab);
-      toast.success(`Cadastro de "${colabNome}" salvo com sucesso!`);
-    } else {
-      addItem(novoColab);
-      toast.success(`Colaborador "${colabNome}" criado com sucesso! Pasta no DMS gerada em /RH/${colabNome}.`);
-    }
+    saveColaborador(novoColab as any);
+    toast.success(`Colaborador "${colabNome}" salvo com sucesso!`);
 
     // Disparar Notificao Real
     notificar({

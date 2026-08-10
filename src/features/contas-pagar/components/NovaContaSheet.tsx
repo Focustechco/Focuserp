@@ -9,8 +9,9 @@ import { Switch } from '@/components/ui/switch';
 import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { useLocalStorageState } from '@/hooks/useDataStore';
+import { useContasPagarQuery } from '../hooks/useContasPagarQuery';
 import { ContaPagar } from '../types';
+import { useLocalStorageState } from '@/hooks/useDataStore';
 import { Fornecedor } from '@/features/fornecedores/types';
 import { Usuario } from '@/features/usuarios/types';
 import { INITIAL_USUARIOS } from '@/features/usuarios/data/initialData';
@@ -29,7 +30,7 @@ export function NovaContaSheet({ children }: { children: React.ReactNode }) {
   const [formaPagamento, setFormaPagamento] = useState('Boleto');
   const [responsavel, setResponsavel] = useState('');
 
-  const { addItem } = useLocalStorageState<ContaPagar>('focus_contas_pagar');
+  const { saveConta } = useContasPagarQuery();
   const { data: fornecedores } = useLocalStorageState<Fornecedor>('focus_fornecedores');
   const { data: usuarios } = useLocalStorageState<Usuario>('focus_usuarios', INITIAL_USUARIOS);
   const { notificar } = useNotificacoesStore();
@@ -78,7 +79,7 @@ export function NovaContaSheet({ children }: { children: React.ReactNode }) {
       ]
     };
 
-    addItem(novaConta);
+    saveConta(novaConta as any);
 
     // Disparar Notificação Automática
     notificar({

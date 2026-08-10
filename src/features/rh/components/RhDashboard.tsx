@@ -1,13 +1,12 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { useLocalStorageState } from '@/hooks/useDataStore';
+import { useColaboradoresQuery } from '../hooks/useColaboradoresQuery';
 import { Colaborador } from '../types';
-import { INITIAL_COLABORADORES } from '../data/initialData';
 import { Users, UserMinus, UserCheck, Palmtree, GraduationCap, Target, ArrowDownRight, ArrowUpRight, BarChart3, PieChart as PieChartIcon, DollarSign } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, PieChart, Pie, Cell } from 'recharts';
 
 export function RhDashboard() {
-  const { data: colaboradores } = useLocalStorageState<Colaborador>('focus_rh_colaboradores', INITIAL_COLABORADORES);
+  const { colaboradores } = useColaboradoresQuery();
 
   const COLORS = ['#3b82f6', '#f97316', '#8b5cf6', '#10b981', '#f43f5e', '#64748b'];
 

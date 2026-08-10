@@ -10,7 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Trash2, FileText, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { useLocalStorageState } from '@/hooks/useDataStore';
+import { useClientesQuery } from '../hooks/useClientesQuery';
 import { Cliente } from '../types';
 
 import { useNotificacoesStore } from '@/features/notificacoes/useNotificacoesStore';
@@ -33,7 +33,7 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
   const [contatoEmail, setContatoEmail] = useState(contatoPrincipal?.email || '');
   const [contatoCelular, setContatoCelular] = useState(contatoPrincipal?.celular || '');
 
-  const { addItem, updateItem } = useLocalStorageState<Cliente>('focus_clientes');
+  const { saveCliente } = useClientesQuery();
   const { notificar } = useNotificacoesStore();
 
   // Reset fields if modal is opened/closed or clienteToEdit changes
@@ -111,8 +111,11 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
     };
 
     if (clienteToEdit) {
-      updateItem(clienteToEdit.id, clienteData);
-      toast.success("Cliente atualizado com sucesso!");
+      saveCliente({
+        ...clienteToEdit,
+        ...clienteData,
+        id: clienteToEdit.id,
+      } as any);
     } else {
       const novoCliente: Cliente = {
         id: `cli-${Date.now()}`,
@@ -120,7 +123,7 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
         dataCadastro: new Date().toISOString(),
         ...(clienteData as any)
       };
-      addItem(novoCliente);
+      saveCliente(novoCliente as any);
       
       // Disparar Notificação Real
       notificar({
@@ -131,8 +134,6 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
         prioridade: 'Normal',
         targetUrl: '/clientes'
       });
-
-      toast.success("Cliente cadastrado com sucesso!");
     }
     
     setOpen(false);

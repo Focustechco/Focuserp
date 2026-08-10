@@ -7,12 +7,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Plus, Trash2, Upload, FileText, Calendar as CalendarIcon, CheckCircle2, UserPlus, Clock } from 'lucide-react';
+import { useProjetosQuery } from '../hooks/useProjetosQuery';
+import { useClientesQuery } from '@/features/clientes/hooks/useClientesQuery';
 import { useLocalStorageState } from '@/hooks/useDataStore';
 import { useDocumentosStore } from '@/features/documentos/hooks/useDocumentosStore';
 import { FormatoArquivo } from '@/features/documentos/types';
 import { toast } from 'sonner';
 import { Projeto } from '../types';
-import { Cliente } from '@/features/clientes/types';
 import { Usuario } from '@/features/usuarios/types';
 import { INITIAL_USUARIOS } from '@/features/usuarios/data/initialData';
 
@@ -40,8 +41,8 @@ export function NovoProjetoSheet({ children }: { children: React.ReactNode }) {
   // Documentos anexados durante a criao
   const [documentosAnexados, setDocumentosAnexados] = useState<Array<{ nome: string; tamanho: string }>>([]);
 
-  const { addItem } = useLocalStorageState<Projeto>('focus_projetos', []);
-  const { data: clientes } = useLocalStorageState<Cliente>('focus_clientes', []);
+  const { saveProjeto } = useProjetosQuery();
+  const { clientes } = useClientesQuery();
   const { data: usuarios } = useLocalStorageState<Usuario>('focus_usuarios', INITIAL_USUARIOS);
   const { uploadDocument, pastas, createFolder } = useDocumentosStore();
   const { notificar } = useNotificacoesStore();
@@ -145,7 +146,7 @@ export function NovoProjetoSheet({ children }: { children: React.ReactNode }) {
       ultimaAtualizacao: new Date().toISOString()
     };
 
-    addItem(novoProjeto);
+    saveProjeto(novoProjeto as any);
     
     // Disparar Notificao Automtica no Sistema de Notificaes ERP com usuarioDestino
     notificar({

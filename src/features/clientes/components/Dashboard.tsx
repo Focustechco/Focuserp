@@ -2,11 +2,11 @@ import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, Building2, UserCircle, Activity } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
-import { useLocalStorageState } from '@/hooks/useDataStore';
+import { useClientesQuery } from '../hooks/useClientesQuery';
 import { Cliente } from '../types';
 
 export function Dashboard() {
-  const { data: clientes } = useLocalStorageState<Cliente>('focus_clientes', []);
+  const { clientes } = useClientesQuery();
 
   const total = clientes.length;
   const ativos = clientes.filter(c => c.status === 'Ativo').length;

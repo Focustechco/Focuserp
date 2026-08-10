@@ -12,11 +12,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Search, Filter, MoreHorizontal, UserPlus, FileDown, Trash2, Edit3, CreditCard } from 'lucide-react';
-import { useLocalStorageState } from '@/hooks/useDataStore';
+import { useColaboradoresQuery } from '../hooks/useColaboradoresQuery';
 import { Colaborador } from '../types';
-import { INITIAL_COLABORADORES } from '../data/initialData';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { toast } from 'sonner';
 
 interface ColaboradoresTableProps {
   onNewClick: () => void;
@@ -25,7 +23,7 @@ interface ColaboradoresTableProps {
 
 export function ColaboradoresTable({ onNewClick, onEditClick }: ColaboradoresTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
-  const { data: colaboradores, deleteItem } = useLocalStorageState<Colaborador>('focus_rh_colaboradores', INITIAL_COLABORADORES);
+  const { colaboradores, deleteColaborador } = useColaboradoresQuery();
 
   const filteredColabs = colaboradores.filter(c => {
     const nome = c.nomeCompleto || '';
@@ -148,8 +146,7 @@ export function ColaboradoresTable({ onNewClick, onEditClick }: ColaboradoresTab
                           <Edit3 className="w-4 h-4 mr-2" /> Ver / Editar Perfil
                         </DropdownMenuItem>
                         <DropdownMenuItem className="text-red-600" onClick={() => {
-                          deleteItem(colab.id);
-                          toast.success(`Colaborador "${colab.nomeCompleto}" removido com sucesso!`);
+                          deleteColaborador(colab.id);
                         }}>
                           <Trash2 className="w-4 h-4 mr-2" /> Excluir Colaborador
                         </DropdownMenuItem>

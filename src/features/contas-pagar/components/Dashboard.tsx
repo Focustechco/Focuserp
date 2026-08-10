@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useLocalStorageState } from '@/hooks/useDataStore';
+import { useContasPagarQuery } from '../hooks/useContasPagarQuery';
 import { ContaPagar } from '../types';
 import { DollarSign, AlertCircle, CheckCircle, TrendingDown } from 'lucide-react';
 import { 
@@ -13,7 +13,7 @@ const formatCurrency = (value: number) => {
 };
 
 export function Dashboard() {
-  const { data: contas } = useLocalStorageState<ContaPagar>('focus_contas_pagar');
+  const { contas } = useContasPagarQuery();
 
   const totalPagar = contas
     .filter(t => t.status === "Pendente" || t.status === "Vencido" || t.status === "Pago Parcialmente")
