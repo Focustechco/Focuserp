@@ -34,10 +34,10 @@ export function ChamadosList({ chamados, onSelectChamado, onOpenNovoModal }: Cha
 
   const filteredChamados = chamados.filter((c) => {
     const matchesSearch =
-      c.numero.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.clienteNome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      c.produtoNome.toLowerCase().includes(searchTerm.toLowerCase());
+      (c.numero || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (c.titulo || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (c.clienteNome || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (c.produtoNome || '').toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus = statusFilter === 'all' || c.status === statusFilter;
     const matchesPrioridade = prioridadeFilter === 'all' || c.prioridade === prioridadeFilter;

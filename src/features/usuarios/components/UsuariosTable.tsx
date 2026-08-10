@@ -30,11 +30,11 @@ export function UsuariosTable() {
 
   const filteredUsers = usuarios.filter(user => {
     const matchesSearch = 
-      user.nome.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.departamento.toLowerCase().includes(searchTerm.toLowerCase());
+      (user.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+      (user.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (user.departamento || '').toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesStatus = statusFilter === 'todos' || user.status.toLowerCase() === statusFilter.toLowerCase();
+    const matchesStatus = statusFilter === 'todos' || (user.status || '').toLowerCase() === statusFilter.toLowerCase();
     
     return matchesSearch && matchesStatus;
   });

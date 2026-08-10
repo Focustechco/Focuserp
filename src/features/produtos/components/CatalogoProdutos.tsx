@@ -37,9 +37,9 @@ export function CatalogoProdutos({ produtos, onSelectProduto, onAddProduto, onUp
 
   const filteredProdutos = produtos.filter((p) => {
     const matchSearch =
-      p.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.descricaoBreve.toLowerCase().includes(searchTerm.toLowerCase());
+      (p.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (p.codigo || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (p.descricaoBreve || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchCat = categoriaFilter === 'todos' || p.categoria === categoriaFilter;
     const matchStatus = statusFilter === 'todos' || p.status === statusFilter;
     return matchSearch && matchCat && matchStatus;

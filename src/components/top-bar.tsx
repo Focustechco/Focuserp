@@ -69,10 +69,19 @@ export function TopBar() {
     { title: "Hub de Integraes", category: "Mdulo", url: "/integracoes", icon: Plug },
   ];
 
-  // Resultados dinmicos da pesquisa
-  const filteredPages = systemPages.filter(p => p.title.toLowerCase().includes(query.toLowerCase()));
-  const filteredClientes = clientes.filter(c => c.razaoSocial.toLowerCase().includes(query.toLowerCase()) || (c.nomeFantasia && c.nomeFantasia.toLowerCase().includes(query.toLowerCase())));
-  const filteredContratos = contratos.filter(c => c.numeroContrato.toLowerCase().includes(query.toLowerCase()) || c.clienteNome.toLowerCase().includes(query.toLowerCase()));
+  // Resultados dinâmicos da pesquisa seguros
+  const safeQuery = (query || "").toLowerCase();
+  const filteredPages = systemPages.filter(p => (p.title || "").toLowerCase().includes(safeQuery));
+  const filteredClientes = (clientes || []).filter(c => 
+    (c?.razaoSocial || "").toLowerCase().includes(safeQuery) || 
+    (c?.nomeFantasia || "").toLowerCase().includes(safeQuery) ||
+    (c?.codigo || "").toLowerCase().includes(safeQuery) ||
+    (c?.documento || "").includes(safeQuery)
+  );
+  const filteredContratos = (contratos || []).filter(c => 
+    (c?.numeroContrato || c?.codigo || c?.nome || "").toLowerCase().includes(safeQuery) || 
+    (c?.nome || "").toLowerCase().includes(safeQuery)
+  );
 
   const handleNavigate = (url: string) => {
     navigate({ to: url });
@@ -277,9 +286,9 @@ export function TopBar() {
                     >
                       <div className="flex items-center gap-2">
                         <FileText className="w-4 h-4 text-emerald-500" />
-                        <span className="font-medium text-foreground">{contrato.numeroContrato}  {contrato.clienteNome}</span>
+                        <span className="font-medium text-foreground">{contrato.numeroContrato || contrato.codigo || 'Contrato'} - {contrato.clienteNome || contrato.nome || 'Cliente'}</span>
                       </div>
-                      <span className="font-semibold text-emerald-600">R$ {contrato.valorTotal?.toLocaleString('pt-BR')}</span>
+                      <span className="font-semibold text-emerald-600">R$ {(contrato.valorTotal || 0).toLocaleString('pt-BR')}</span>
                     </div>
                   ))}
                 </div>

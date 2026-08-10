@@ -20,9 +20,9 @@ export function BaseConhecimentoView({ artigos }: BaseConhecimentoViewProps) {
 
   const filteredArtigos = artigos.filter((art) => {
     const matchesSearch =
-      art.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      art.resumo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      art.conteudo.toLowerCase().includes(searchTerm.toLowerCase());
+      (art.titulo || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (art.resumo || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (art.conteudo || '').toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesCategory = selectedCategory === 'all' || art.categoria === selectedCategory;
 
