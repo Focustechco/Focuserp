@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { mockCobrancas } from '../mockData';
+import { useLocalStorageState } from '@/hooks/useDataStore';
+import { Cobranca } from '../types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -44,12 +45,16 @@ const getCanalIcon = (canal: string) => {
 
 export function CobrancasList() {
   const [searchTerm, setSearchTerm] = useState('');
+  const { data: cobrancasData, deleteItem } = useLocalStorageState<Cobranca>('focus_cobrancas');
+  const cobrancas = Array.isArray(cobrancasData) ? cobrancasData : [];
 
-  const filteredData = mockCobrancas.filter(c => 
-    c.cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.tituloReferencia.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredData = cobrancas.filter(c => {
+    if (!c) return false;
+    const search = searchTerm.toLowerCase();
+    return (c.cliente || '').toLowerCase().includes(search) ||
+           (c.id || '').toLowerCase().includes(search) ||
+           (c.tituloReferencia || '').toLowerCase().includes(search);
+  });
 
   return (
     <div className="space-y-4 animate-fade-in">

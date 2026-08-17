@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { mockClientes } from "@/features/clientes/mockData";
+import { useLocalStorageState } from "@/hooks/useDataStore";
+import { Cliente } from "@/features/clientes/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,7 +14,8 @@ export const Route = createFileRoute("/clientes/$clienteId")({
 
 function PerfilClientePage() {
   const { clienteId } = Route.useParams();
-  const cliente = mockClientes.find(c => c.id === clienteId);
+  const { data: clientes } = useLocalStorageState<Cliente>('focus_clientes');
+  const cliente = (clientes || []).find(c => c.id === clienteId);
 
   if (!cliente) {
     return (
@@ -26,7 +28,8 @@ function PerfilClientePage() {
     );
   }
 
-  const contatoPrincipal = cliente.contatos.find(c => c.principal) || cliente.contatos[0];
+  const contatos = Array.isArray(cliente.contatos) ? cliente.contatos : [];
+  const contatoPrincipal = contatos.find(c => c?.principal) || contatos[0];
 
   return (
     <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full animate-fade-in">

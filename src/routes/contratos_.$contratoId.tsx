@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { mockContratos } from "@/features/contratos/mockData";
+import { useLocalStorageState } from "@/hooks/useDataStore";
+import { Contrato } from "@/features/contratos/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,7 +18,8 @@ const formatCurrency = (value: number) => {
 
 function PerfilContratoPage() {
   const { contratoId } = Route.useParams();
-  const contrato = mockContratos.find(c => c.id === contratoId);
+  const { data: contratos } = useLocalStorageState<Contrato>('focus_contratos');
+  const contrato = (contratos || []).find(c => c.id === contratoId);
 
   if (!contrato) {
     return (

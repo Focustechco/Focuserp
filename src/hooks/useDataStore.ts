@@ -28,7 +28,7 @@ function toValidUuid(idStr?: string): string {
  * Helper to safely read from localStorage
  */
 function readLocalCache<T>(table: string, fallback: T[]): T[] {
-  if (typeof window === 'undefined') return fallback;
+  if (typeof window === 'undefined') return [];
   try {
     const raw = window.localStorage.getItem(`focus_app_${table}`);
     if (raw) {
@@ -40,7 +40,7 @@ function readLocalCache<T>(table: string, fallback: T[]): T[] {
   } catch (e) {
     console.warn(`[LocalStorage] Error reading key focus_app_${table}:`, e);
   }
-  return fallback;
+  return [];
 }
 
 /**
