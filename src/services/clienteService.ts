@@ -1,6 +1,8 @@
 import { supabase } from '@/lib/supabaseClient';
 import { clienteSchema, ClienteDTO } from '@/schemas/clienteSchema';
 
+const LOCAL_STORAGE_KEYS = ['focus_app_focus_clientes', 'focus_app_clientes', 'focus_app_clients'];
+
 /**
  * Service de dados para o módulo de Clientes.
  * Responsável pela integração com a API do Supabase e validação via Zod.
@@ -11,19 +13,36 @@ export const clienteService = {
    */
   async getClientes(): Promise<ClienteDTO[]> {
     try {
+      let dbItems: any[] = [];
+
       // 1. Tentar buscar na tabela relacional 'clientes'
-      const { data, error } = await supabase
+      const { data: clientesData, error: clientesErr } = await supabase
         .from('clientes')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (!error && data && data.length > 0) {
+      if (!clientesErr && Array.isArray(clientesData) && clientesData.length > 0) {
+        dbItems = clientesData;
+      } else {
+        // Fallback: Tentar buscar na tabela 'clients'
+        const { data: clientsData, error: clientsErr } = await supabase
+          .from('clients')
+          .select('*')
+          .not('name', 'like', '__FOCUS_STATE__%')
+          .order('created_at', { ascending: false });
+
+        if (!clientsErr && Array.isArray(clientsData) && clientsData.length > 0) {
+          dbItems = clientsData;
+        }
+      }
+
+      if (dbItems.length > 0) {
         const result: ClienteDTO[] = [];
-        for (const item of data) {
+        for (const item of dbItems) {
           const mapped = {
-            id: item.id,
+            id: String(item.id),
             tenantId: item.tenant_id,
-            codigo: item.codigo || `CLI-${(item.id?.slice(0, 4) || crypto.randomUUID().slice(0, 4)).toUpperCase()}`,
+            codigo: item.codigo || `CLI-${(String(item.id).slice(0, 4)).toUpperCase()}`,
             tipo: item.tipo === 'Pessoa Física' ? 'Pessoa Física' : ('Pessoa Jurídica' as const),
             razaoSocial: item.razao_social || item.name || 'Cliente sem nome',
             nomeFantasia: item.nome_fantasia || item.name || 'Cliente sem nome',
@@ -53,18 +72,22 @@ export const clienteService = {
           const parsed = clienteSchema.safeParse(mapped);
           if (parsed.success) {
             result.push(parsed.data);
-          } else {
-            console.error(`[clienteService.getClientes] Falha na validação do cliente ${item.id}:`, parsed.error.format());
           }
         }
         return result;
       }
 
-      // 2. Fallback de migração para focus_app_state ou LocalStorage
-      const rawLocal = typeof window !== 'undefined' ? window.localStorage.getItem('focus_app_focus_clientes') : null;
-      if (rawLocal) {
-        const parsedLocal = JSON.parse(rawLocal);
-        if (Array.isArray(parsedLocal)) return parsedLocal;
+      // 2. Fallback de LocalStorage
+      if (typeof window !== 'undefined') {
+        for (const key of LOCAL_STORAGE_KEYS) {
+          const raw = window.localStorage.getItem(key);
+          if (raw) {
+            try {
+              const parsed = JSON.parse(raw);
+              if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+            } catch {}
+          }
+        }
       }
 
       return [];
@@ -80,6 +103,7 @@ export const clienteService = {
   async saveCliente(cliente: ClienteDTO): Promise<ClienteDTO> {
     const validated = clienteSchema.parse(cliente);
     const id = validated.id || crypto.randomUUID();
+    const validatedWithId = { ...validated, id };
 
     const payload = {
       id,
@@ -108,23 +132,74 @@ export const clienteService = {
       updated_at: new Date().toISOString()
     };
 
-    const { error } = await supabase.from('clientes').upsert(payload);
-    if (error) {
-      console.error('[clienteService.saveCliente] Erro ao salvar cliente:', error);
-      throw new Error(`Falha ao salvar cliente: ${error.message}`);
+    // 1. Salvar no LocalStorage para resposta instantânea
+    if (typeof window !== 'undefined') {
+      for (const key of LOCAL_STORAGE_KEYS) {
+        try {
+          const raw = window.localStorage.getItem(key);
+          const current: ClienteDTO[] = raw ? JSON.parse(raw) : [];
+          const updated = [validatedWithId, ...current.filter((c) => c.id !== id)];
+          window.localStorage.setItem(key, JSON.stringify(updated));
+        } catch {}
+      }
     }
 
-    return { ...validated, id };
+    // 2. Persistir no Supabase
+    try {
+      await supabase.from('clientes').upsert(payload);
+    } catch (e) {
+      console.warn('[clienteService.saveCliente] Warning upserting to clientes:', e);
+    }
+
+    try {
+      await supabase.from('clients').upsert({
+        id,
+        name: validated.nomeFantasia || validated.razaoSocial,
+        status: validated.status.toLowerCase(),
+        contact_email: validated.contatos?.[0]?.email || null,
+        contact_phone: validated.contatos?.[0]?.celular || null,
+        updated_at: new Date().toISOString()
+      });
+    } catch (e) {
+      console.warn('[clienteService.saveCliente] Warning upserting to clients:', e);
+    }
+
+    return validatedWithId;
   },
 
   /**
    * Excluir um cliente pelo ID
    */
   async deleteCliente(id: string): Promise<void> {
-    const { error } = await supabase.from('clientes').delete().eq('id', id);
-    if (error) {
-      console.error('[clienteService.deleteCliente] Erro ao deletar cliente:', error);
-      throw new Error(`Falha ao deletar cliente: ${error.message}`);
+    // 1. Remover do LocalStorage de forma síncrona imediata
+    if (typeof window !== 'undefined') {
+      for (const key of LOCAL_STORAGE_KEYS) {
+        try {
+          const raw = window.localStorage.getItem(key);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+              const filtered = parsed.filter((c: any) => c.id !== id);
+              window.localStorage.setItem(key, JSON.stringify(filtered));
+            }
+          }
+        } catch (e) {
+          console.warn(`[clienteService.deleteCliente] LocalStorage error for key ${key}:`, e);
+        }
+      }
+    }
+
+    // 2. Deletar no Supabase na tabela 'clientes' e 'clients'
+    try {
+      await supabase.from('clientes').delete().eq('id', id);
+    } catch (err) {
+      console.warn('[clienteService.deleteCliente] Warning deleting from clientes:', err);
+    }
+
+    try {
+      await supabase.from('clients').delete().eq('id', id);
+    } catch (err) {
+      console.warn('[clienteService.deleteCliente] Warning deleting from clients:', err);
     }
   }
 };

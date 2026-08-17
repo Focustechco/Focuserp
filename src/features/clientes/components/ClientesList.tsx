@@ -135,11 +135,19 @@ export function ClientesList() {
                             <DropdownMenuItem className="cursor-pointer">Ver Financeiro</DropdownMenuItem>
                           </Link>
                           
-                          <DropdownMenuItem className="text-red-600 cursor-pointer" onClick={() => {
-                            if (window.confirm('Tem certeza que deseja excluir este cliente?')) {
-                              deleteCliente(cliente.id);
-                            }
-                          }}>
+                          <DropdownMenuItem
+                            className="text-red-600 cursor-pointer focus:bg-red-500/10 focus:text-red-600"
+                            onSelect={async (e) => {
+                              e.preventDefault();
+                              if (window.confirm(`Tem certeza que deseja excluir o cliente "${cliente.nomeFantasia || cliente.razaoSocial}"?`)) {
+                                try {
+                                  await deleteCliente(cliente.id);
+                                } catch (err) {
+                                  console.error('Erro ao excluir cliente:', err);
+                                }
+                              }
+                            }}
+                          >
                             Excluir Cliente
                           </DropdownMenuItem>
                         </DropdownMenuContent>
