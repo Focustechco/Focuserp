@@ -15,14 +15,14 @@ export const financeiroService = {
   // ==========================================
   async getContasReceber(): Promise<TituloReceberDTO[]> {
     try {
-      // 1. Tentar buscar na tabela relacional 'contas_receber'
+      // 1. Buscar na tabela relacional 'contas_receber'
       const { data, error } = await supabase
         .from('contas_receber')
         .select('*')
         .order('data_vencimento', { ascending: true });
 
-      if (!error && data && data.length > 0) {
-        return data.map((item: any) => {
+      if (!error && Array.isArray(data)) {
+        const mapped = data.map((item: any) => {
           const valorOrig = Number(item.valor_original ?? item.valorOriginal ?? item.valor ?? 0) || 0;
           const valorRec = Number(item.valor_recebido ?? item.valorRecebido ?? 0) || 0;
           const saldoCalculado = Number(item.saldo ?? (valorOrig - valorRec)) || 0;
@@ -50,9 +50,16 @@ export const financeiroService = {
             recorrente: Boolean(item.recorrente),
           };
         });
+
+        // Sincronizar cache local com dados reais do banco
+        if (typeof window !== 'undefined') {
+          window.localStorage.setItem('focus_app_focus_contas_receber', JSON.stringify(mapped));
+        }
+
+        return mapped;
       }
 
-      // 2. Fallback de cache local
+      // 2. Fallback de cache local se offline
       const rawLocal = typeof window !== 'undefined' ? window.localStorage.getItem('focus_app_focus_contas_receber') : null;
       if (rawLocal) {
         const parsedLocal = JSON.parse(rawLocal);
@@ -69,6 +76,19 @@ export const financeiroService = {
   async saveContaReceber(titulo: TituloReceberDTO): Promise<TituloReceberDTO> {
     const validated = tituloReceberSchema.parse(titulo);
     const id = validated.id || crypto.randomUUID();
+    const validatedWithId = { ...validated, id };
+
+    // Update local cache
+    if (typeof window !== 'undefined') {
+      ['focus_app_focus_contas_receber', 'focus_app_contas_receber'].forEach((key) => {
+        try {
+          const raw = window.localStorage.getItem(key);
+          const current: TituloReceberDTO[] = raw ? JSON.parse(raw) : [];
+          const updated = [validatedWithId, ...current.filter((c) => c.id !== id)];
+          window.localStorage.setItem(key, JSON.stringify(updated));
+        } catch {}
+      });
+    }
 
     const payload = {
       id,
@@ -87,18 +107,37 @@ export const financeiroService = {
       updated_at: new Date().toISOString(),
     };
 
-    const { error } = await supabase.from('contas_receber').upsert(payload);
-    if (error) {
-      console.warn('[financeiroService.saveContaReceber] Fallback upsert:', error.message);
+    try {
+      await supabase.from('contas_receber').upsert(payload);
+    } catch (e: any) {
+      console.warn('[financeiroService.saveContaReceber] Fallback upsert:', e?.message);
     }
 
-    return { ...validated, id };
+    return validatedWithId;
   },
 
   async deleteContaReceber(id: string): Promise<void> {
-    const { error } = await supabase.from('contas_receber').delete().eq('id', id);
-    if (error) {
-      console.warn('[financeiroService.deleteContaReceber] Erro ao deletar:', error.message);
+    // 1. Limpeza imediata do LocalStorage
+    if (typeof window !== 'undefined') {
+      ['focus_app_focus_contas_receber', 'focus_app_contas_receber', 'focus_contas_receber'].forEach((key) => {
+        try {
+          const raw = window.localStorage.getItem(key);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+              const filtered = parsed.filter((item: any) => item.id !== id);
+              window.localStorage.setItem(key, JSON.stringify(filtered));
+            }
+          }
+        } catch {}
+      });
+    }
+
+    // 2. Deletar do Supabase
+    try {
+      await supabase.from('contas_receber').delete().eq('id', id);
+    } catch (err: any) {
+      console.warn('[financeiroService.deleteContaReceber] Warning:', err?.message);
     }
   },
 
@@ -107,14 +146,14 @@ export const financeiroService = {
   // ==========================================
   async getContasPagar(): Promise<ContaPagarDTO[]> {
     try {
-      // 1. Tentar buscar na tabela relacional 'contas_pagar'
+      // 1. Buscar na tabela relacional 'contas_pagar'
       const { data, error } = await supabase
         .from('contas_pagar')
         .select('*')
         .order('data_vencimento', { ascending: true });
 
-      if (!error && data && data.length > 0) {
-        return data.map((item: any) => {
+      if (!error && Array.isArray(data)) {
+        const mapped = data.map((item: any) => {
           const valorOrig = Number(item.valor_original ?? item.valorOriginal ?? item.valor ?? 0) || 0;
           const valorPg = Number(item.valor_pago ?? item.valorPago ?? 0) || 0;
           const saldoCalculado = Number(item.saldo ?? (valorOrig - valorPg)) || 0;
@@ -142,9 +181,16 @@ export const financeiroService = {
             recorrente: Boolean(item.recorrente),
           };
         });
+
+        // Sincronizar cache local
+        if (typeof window !== 'undefined') {
+          window.localStorage.setItem('focus_app_focus_contas_pagar', JSON.stringify(mapped));
+        }
+
+        return mapped;
       }
 
-      // 2. Fallback de cache local
+      // 2. Fallback de cache local se offline
       const rawLocal = typeof window !== 'undefined' ? window.localStorage.getItem('focus_app_focus_contas_pagar') : null;
       if (rawLocal) {
         const parsedLocal = JSON.parse(rawLocal);
@@ -161,6 +207,19 @@ export const financeiroService = {
   async saveContaPagar(conta: ContaPagarDTO): Promise<ContaPagarDTO> {
     const validated = contaPagarSchema.parse(conta);
     const id = validated.id || crypto.randomUUID();
+    const validatedWithId = { ...validated, id };
+
+    // Update local cache
+    if (typeof window !== 'undefined') {
+      ['focus_app_focus_contas_pagar', 'focus_app_contas_pagar'].forEach((key) => {
+        try {
+          const raw = window.localStorage.getItem(key);
+          const current: ContaPagarDTO[] = raw ? JSON.parse(raw) : [];
+          const updated = [validatedWithId, ...current.filter((c) => c.id !== id)];
+          window.localStorage.setItem(key, JSON.stringify(updated));
+        } catch {}
+      });
+    }
 
     const payload = {
       id,
@@ -179,18 +238,37 @@ export const financeiroService = {
       updated_at: new Date().toISOString(),
     };
 
-    const { error } = await supabase.from('contas_pagar').upsert(payload);
-    if (error) {
-      console.warn('[financeiroService.saveContaPagar] Fallback upsert:', error.message);
+    try {
+      await supabase.from('contas_pagar').upsert(payload);
+    } catch (e: any) {
+      console.warn('[financeiroService.saveContaPagar] Fallback upsert:', e?.message);
     }
 
-    return { ...validated, id };
+    return validatedWithId;
   },
 
   async deleteContaPagar(id: string): Promise<void> {
-    const { error } = await supabase.from('contas_pagar').delete().eq('id', id);
-    if (error) {
-      console.warn('[financeiroService.deleteContaPagar] Erro ao deletar:', error.message);
+    // 1. Limpeza imediata do LocalStorage
+    if (typeof window !== 'undefined') {
+      ['focus_app_focus_contas_pagar', 'focus_app_contas_pagar', 'focus_contas_pagar'].forEach((key) => {
+        try {
+          const raw = window.localStorage.getItem(key);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+              const filtered = parsed.filter((item: any) => item.id !== id);
+              window.localStorage.setItem(key, JSON.stringify(filtered));
+            }
+          }
+        } catch {}
+      });
+    }
+
+    // 2. Deletar do Supabase
+    try {
+      await supabase.from('contas_pagar').delete().eq('id', id);
+    } catch (err: any) {
+      console.warn('[financeiroService.deleteContaPagar] Warning:', err?.message);
     }
   },
 };

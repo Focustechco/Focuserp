@@ -131,9 +131,19 @@ export function ContasList() {
                         }}>
                           Registrar pagamento
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="text-red-600" onClick={() => {
-                          deleteConta(conta.id);
-                        }}>
+                        <DropdownMenuItem
+                          className="text-red-600 cursor-pointer focus:bg-red-500/10 focus:text-red-600"
+                          onSelect={async (e) => {
+                            e.preventDefault();
+                            if (window.confirm(`Tem certeza que deseja excluir a conta "${conta.descricao || conta.numero}"?`)) {
+                              try {
+                                await deleteConta(conta.id);
+                              } catch (err) {
+                                console.error('Erro ao excluir conta a pagar:', err);
+                              }
+                            }
+                          }}
+                        >
                           Excluir conta
                         </DropdownMenuItem>
                       </DropdownMenuContent>

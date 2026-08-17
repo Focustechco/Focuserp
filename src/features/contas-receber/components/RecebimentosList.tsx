@@ -131,9 +131,19 @@ export function RecebimentosList() {
                         }}>
                           Registrar recebimento
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="text-red-600" onClick={() => {
-                          deleteTitulo(titulo.id);
-                        }}>
+                        <DropdownMenuItem
+                          className="text-red-600 cursor-pointer focus:bg-red-500/10 focus:text-red-600"
+                          onSelect={async (e) => {
+                            e.preventDefault();
+                            if (window.confirm(`Tem certeza que deseja excluir o título "${titulo.descricao || titulo.numero}"?`)) {
+                              try {
+                                await deleteTitulo(titulo.id);
+                              } catch (err) {
+                                console.error('Erro ao excluir título a receber:', err);
+                              }
+                            }
+                          }}
+                        >
                           Excluir título
                         </DropdownMenuItem>
                       </DropdownMenuContent>

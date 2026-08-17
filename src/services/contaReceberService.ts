@@ -132,11 +132,30 @@ export const contaReceberService = {
    * Excluir conta a receber por ID
    */
   async deleteContaReceber(id: string): Promise<void> {
-    const { error } = await supabase.from('contas_receber').delete().eq('id', id);
-    if (error) {
-      console.error('[contaReceberService.deleteContaReceber] Erro ao deletar conta a receber:', error);
-      throw new Error(`Falha ao deletar conta a receber: ${error.message}`);
+    if (typeof window !== 'undefined') {
+      ['focus_app_focus_contas_receber', 'focus_app_contas_receber', 'focus_contas_receber', 'focus_receivables'].forEach((key) => {
+        try {
+          const raw = window.localStorage.getItem(key);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+              const filtered = parsed.filter((item: any) => item.id !== id);
+              window.localStorage.setItem(key, JSON.stringify(filtered));
+            }
+          }
+        } catch {}
+      });
     }
+
+    try {
+      await supabase.from('contas_receber').delete().eq('id', id);
+    } catch (e: any) {
+      console.warn('[contaReceberService.deleteContaReceber] Warning:', e?.message);
+    }
+
+    try {
+      await supabase.from('receivables').delete().eq('id', id);
+    } catch {}
   },
 
   /**

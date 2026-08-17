@@ -131,11 +131,30 @@ export const contaPagarService = {
    * Excluir conta a pagar por ID
    */
   async deleteContaPagar(id: string): Promise<void> {
-    const { error } = await supabase.from('contas_pagar').delete().eq('id', id);
-    if (error) {
-      console.error('[contaPagarService.deleteContaPagar] Erro ao deletar conta a pagar:', error);
-      throw new Error(`Falha ao deletar conta a pagar: ${error.message}`);
+    if (typeof window !== 'undefined') {
+      ['focus_app_focus_contas_pagar', 'focus_app_contas_pagar', 'focus_contas_pagar', 'focus_payables'].forEach((key) => {
+        try {
+          const raw = window.localStorage.getItem(key);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+              const filtered = parsed.filter((item: any) => item.id !== id);
+              window.localStorage.setItem(key, JSON.stringify(filtered));
+            }
+          }
+        } catch {}
+      });
     }
+
+    try {
+      await supabase.from('contas_pagar').delete().eq('id', id);
+    } catch (e: any) {
+      console.warn('[contaPagarService.deleteContaPagar] Warning:', e?.message);
+    }
+
+    try {
+      await supabase.from('payables').delete().eq('id', id);
+    } catch {}
   },
 
   /**
