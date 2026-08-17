@@ -149,7 +149,7 @@ function SidebarLogoHeader() {
   const isCollapsed = state === "collapsed";
 
   return (
-    <SidebarHeader className="border-b border-sidebar-border bg-transparent h-[84px] flex items-center justify-center px-4 py-3 transition-all duration-250 ease-in-out group-data-[collapsible=icon]:h-16 group-data-[collapsible=icon]:px-0">
+    <SidebarHeader className="border-b border-sidebar-border bg-transparent h-[84px] flex items-center justify-center px-4 py-3 transition-all duration-250 ease-in-out group-data-[collapsible=icon]:h-14 group-data-[collapsible=icon]:px-0">
       <Link to="/" className="flex items-center justify-center w-full h-full">
         {/* Logo Horizontal Completa - Sidebar Expandida */}
         <div
@@ -182,7 +182,7 @@ function SidebarLogoHeader() {
           <img
             src={focusSymbolTransparent}
             alt="Focus ERP"
-            className="w-9 h-9 object-contain shrink-0"
+            className="w-6.5 h-6.5 max-w-[26px] max-h-[26px] object-contain shrink-0"
           />
         </div>
       </Link>
