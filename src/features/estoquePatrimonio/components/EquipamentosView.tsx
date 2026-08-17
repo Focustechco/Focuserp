@@ -397,7 +397,7 @@ export function EquipamentosView() {
                     <TableCell className="text-xs">
                       <div className="flex flex-col">
                         <span className="font-semibold">
-                          R$ {eq.valorCompra.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          R$ {(eq.valorCompra || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </span>
                         <span className="text-[10px] text-muted-foreground">
                           Garantia: {eq.garantiaMeses || 12} meses

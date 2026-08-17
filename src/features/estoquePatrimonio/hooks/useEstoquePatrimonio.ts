@@ -99,7 +99,7 @@ export function useEstoquePatrimonio() {
           id: 'tm-' + Date.now(),
           dataHora: new Date().toLocaleString('pt-BR'),
           tipo: 'Aquisição',
-          descricao: `Equipamento cadastrado com valor de R$ ${eq.valorCompra.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+          descricao: `Equipamento cadastrado com valor de R$ ${(eq.valorCompra || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
           responsavel: eq.colaboradorNome || 'Estoque TI Central',
           usuarioRegistro: 'Administrador',
         },

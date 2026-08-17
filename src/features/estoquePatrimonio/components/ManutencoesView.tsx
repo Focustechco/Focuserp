@@ -57,7 +57,7 @@ export function ManutencoesView() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-extrabold text-foreground">
-              R$ {totalGastoManutencao.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              R$ {(totalGastoManutencao || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
             <p className="text-[11px] text-muted-foreground mt-1">Soma de upgrades e reparos tcnicos</p>
           </CardContent>
@@ -153,7 +153,7 @@ export function ManutencoesView() {
                     </TableCell>
 
                     <TableCell className="text-xs font-bold text-foreground">
-                      R$ {manut.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      R$ {(manut.valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </TableCell>
 
                     <TableCell className="text-xs text-muted-foreground">{manut.responsavelNome}</TableCell>

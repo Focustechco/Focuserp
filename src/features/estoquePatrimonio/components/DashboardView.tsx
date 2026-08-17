@@ -223,11 +223,11 @@ export function DashboardView({ onNavigateTab }: DashboardViewProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-extrabold text-foreground">
-              R$ {valorPatrimonialTotal.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+              R$ {(valorPatrimonialTotal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
             </div>
             <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
               <TrendingDown className="h-3.5 w-3.5 text-muted-foreground" />
-              Valor Original: R$ {valorCompraTotal.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+              Valor Original: R$ {(valorCompraTotal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
             </p>
           </CardContent>
         </Card>

@@ -81,7 +81,7 @@ export function useLocalStorageState<T extends { id: string }>(
   const stateUuid = getTableUuid(table);
 
   // ---------------------------------------------------------------------------
-  // Real-Time Cross-Device Cloud Sync (Mobile iOS/Android <-> Desktop)
+  // Real-Time Cross-Device Sync
   // ---------------------------------------------------------------------------
   useEffect(() => {
     let isMounted = true;
@@ -89,7 +89,7 @@ export function useLocalStorageState<T extends { id: string }>(
     const fetchData = async () => {
       try {
         if (isClientsTable) {
-          // Fetch real client rows (filtering out internal state rows)
+          // Fetch real client rows from Supabase
           const { data: dbClients, error: dbErr } = await supabase
             .from('clients')
             .select('*')
@@ -98,7 +98,7 @@ export function useLocalStorageState<T extends { id: string }>(
 
           if (!isMounted) return;
 
-          if (!dbErr && dbClients && dbClients.length > 0) {
+          if (!dbErr && Array.isArray(dbClients)) {
             const mapped = dbClients.map((c: any) => ({
               id: c.id,
               codigo: `CLI-${c.id.slice(0, 4).toUpperCase()}`,
@@ -134,53 +134,30 @@ export function useLocalStorageState<T extends { id: string }>(
               ...c
             })) as T[];
 
-            const localOnly = readLocalCache<T>(table, []).filter(
-              (l: any) => !mapped.some((m) => m.id === l.id)
-            );
-            const combined = [...mapped, ...localOnly];
-
-            setData(combined);
-            writeLocalCache(table, combined);
+            setData(mapped);
+            writeLocalCache(table, mapped);
             setError(null);
             return;
           }
         } else {
-          // Fetch general module state row (Notifications, Projects, Tasks, Contracts, Financials)
-          const { data: stateRows, error: stateErr } = await supabase
-            .from('clients')
-            .select('contact_email')
-            .eq('id', stateUuid)
-            .single();
+          // Fetch module state from focus_app_state if available
+          try {
+            const { data: rows, error: fallbackErr } = await supabase
+              .from('focus_app_state')
+              .select('data')
+              .eq('table_name', table);
 
-          if (!isMounted) return;
+            if (!isMounted) return;
 
-          if (!stateErr && stateRows?.contact_email) {
-            try {
-              const parsed = JSON.parse(stateRows.contact_email);
-              if (Array.isArray(parsed)) {
-                setData(parsed);
-                writeLocalCache(table, parsed);
-                setError(null);
-                return;
-              }
-            } catch (pErr) {
-              console.warn(`[Supabase] JSON parse warning for '${table}':`, pErr);
+            if (!fallbackErr && rows && rows.length > 0) {
+              const items = rows.map((r: any) => r.data as T);
+              setData(items);
+              writeLocalCache(table, items);
+              setError(null);
+              return;
             }
-          }
-
-          // Fallback query to focus_app_state
-          const { data: rows, error: fallbackErr } = await supabase
-            .from('focus_app_state')
-            .select('data')
-            .eq('table_name', table);
-
-          if (!isMounted) return;
-
-          if (!fallbackErr && rows && rows.length > 0) {
-            const items = rows.map((r: any) => r.data as T);
-            setData(items);
-            writeLocalCache(table, items);
-            setError(null);
+          } catch {
+            // Table focus_app_state might not exist in REST schema, fallback to local cache
           }
         }
       } catch (err: any) {
@@ -193,7 +170,7 @@ export function useLocalStorageState<T extends { id: string }>(
 
     fetchData();
 
-    // 5-second automatic cross-device polling (Mobile iOS / Android <-> Desktop)
+    // 5-second automatic cross-device polling
     const intervalId = setInterval(() => {
       if (isMounted) {
         fetchData();
@@ -239,32 +216,16 @@ export function useLocalStorageState<T extends { id: string }>(
             };
           });
 
-          const { error: upsertErr } = await supabase.from('clients').upsert(payload);
-          if (upsertErr) {
-            setError(upsertErr.message);
-          } else {
-            setError(null);
+          if (payload.length > 0) {
+            const { error: upsertErr } = await supabase.from('clients').upsert(payload);
+            if (upsertErr) {
+              setError(upsertErr.message);
+            } else {
+              setError(null);
+            }
           }
         } else {
-          // Persist module state row (Notifications, Tasks, Projects, Contracts) into Supabase Cloud
-          const statePayload = {
-            id: stateUuid,
-            name: `__FOCUS_STATE__${table}`,
-            status: 'inativo',
-            contact_email: JSON.stringify(cleanedData),
-            updated_at: new Date().toISOString(),
-          };
-
-          const { error: cloudErr } = await supabase.from('clients').upsert(statePayload);
-
-          if (cloudErr) {
-            console.warn(`[Supabase] Cloud save warning for '${table}':`, cloudErr.message);
-            setError(cloudErr.message);
-          } else {
-            setError(null);
-          }
-
-          // Redundant backup to focus_app_state if table exists
+          // Backup to focus_app_state table if exists
           if (cleanedData.length > 0) {
             const payload = cleanedData.map((item) => ({
               table_name: table,
@@ -272,7 +233,11 @@ export function useLocalStorageState<T extends { id: string }>(
               data: item,
               updated_at: new Date().toISOString(),
             }));
-            void supabase.from('focus_app_state').upsert(payload, { onConflict: 'table_name,id' });
+            try {
+              await supabase.from('focus_app_state').upsert(payload, { onConflict: 'table_name,id' });
+            } catch {
+              // Ignore if focus_app_state is not created in DB schema
+            }
           }
         }
       } catch (err: any) {
@@ -280,7 +245,7 @@ export function useLocalStorageState<T extends { id: string }>(
         setError(err?.message || 'Save failed');
       }
     },
-    [isClientsTable, stateUuid, table]
+    [isClientsTable, table]
   );
 
   const addItem = useCallback(
@@ -311,9 +276,24 @@ export function useLocalStorageState<T extends { id: string }>(
   const deleteItem = useCallback(
     async (id: string) => {
       const filtered = data.filter((it) => it.id !== id);
+      setData(filtered);
+      writeLocalCache(table, filtered);
+
+      if (isClientsTable) {
+        try {
+          await supabase.from('clients').delete().eq('id', id);
+        } catch (e) {
+          console.warn('[Supabase] Error deleting client from cloud:', e);
+        }
+      } else {
+        try {
+          await supabase.from('focus_app_state').delete().eq('table_name', table).eq('id', id);
+        } catch {}
+      }
+
       await save(filtered);
     },
-    [data, save]
+    [data, isClientsTable, save, table]
   );
 
   const removeItem = deleteItem;

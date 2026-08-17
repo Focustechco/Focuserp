@@ -66,7 +66,7 @@ export function PatrimonioView() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-extrabold text-foreground">
-              R$ {valorTotalAtual.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              R$ {(valorTotalAtual || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
             <p className="text-[11px] text-muted-foreground mt-1">Patrimônio ativo em balanço</p>
           </CardContent>
@@ -80,7 +80,7 @@ export function PatrimonioView() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-extrabold text-foreground">
-              R$ {valorTotalOriginal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              R$ {(valorTotalOriginal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
             <p className="text-[11px] text-muted-foreground mt-1">Investimento histórico em bens</p>
           </CardContent>
@@ -94,7 +94,7 @@ export function PatrimonioView() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-extrabold text-rose-600 dark:text-rose-400">
-              R$ {depreciacaoTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              R$ {(depreciacaoTotal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
             <p className="text-[11px] text-muted-foreground mt-1">Perda de valor contábil pelo uso/tempo</p>
           </CardContent>
@@ -164,11 +164,11 @@ export function PatrimonioView() {
                       </TableCell>
 
                       <TableCell className="text-xs font-semibold">
-                        R$ {pat.valorCompra.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        R$ {(pat.valorCompra || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </TableCell>
 
                       <TableCell className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                        R$ {pat.valorAtual.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        R$ {(pat.valorAtual || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </TableCell>
 
                       <TableCell className="text-xs">

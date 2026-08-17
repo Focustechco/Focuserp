@@ -181,7 +181,7 @@ export function LicencasView() {
                   <div>
                     <span className="text-[10px] text-muted-foreground block">Valor Unitário/Mensal</span>
                     <span className="font-bold text-foreground">
-                      R$ {lic.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      R$ {(lic.valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                   <div>
