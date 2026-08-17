@@ -14,10 +14,14 @@ export function FornecedoresList() {
   const [searchTerm, setSearchTerm] = useState('');
   const { data: fornecedores, deleteItem } = useLocalStorageState<Fornecedor>('focus_fornecedores');
 
-  const filteredData = fornecedores.filter(f => {
-    return (f.nomeFantasia || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-           (f.codigo || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-           (f.documento || '').includes(searchTerm);
+  const safeFornecedores = Array.isArray(fornecedores) ? fornecedores : [];
+
+  const filteredData = safeFornecedores.filter(f => {
+    if (!f) return false;
+    const search = searchTerm.toLowerCase();
+    return (f.nomeFantasia || f.razaoSocial || '').toLowerCase().includes(search) ||
+           (f.codigo || '').toLowerCase().includes(search) ||
+           (f.documento || '').includes(search);
   });
 
   return (
@@ -74,39 +78,40 @@ export function FornecedoresList() {
               </TableRow>
             ) : (
               filteredData.map((fornecedor) => {
-                const contatoPrincipal = fornecedor.contatos.find(c => c.principal) || fornecedor.contatos[0];
+                const contatos = Array.isArray(fornecedor?.contatos) ? fornecedor.contatos : [];
+                const contatoPrincipal = contatos.find(c => c?.principal) || contatos[0];
                 return (
-                  <TableRow key={fornecedor.id} className="group cursor-pointer hover:bg-muted/50">
-                    <TableCell className="font-medium text-xs text-muted-foreground">{fornecedor.codigo}</TableCell>
+                  <TableRow key={fornecedor.id || Math.random().toString()} className="group cursor-pointer hover:bg-muted/50">
+                    <TableCell className="font-medium text-xs text-muted-foreground">{fornecedor.codigo || 'N/D'}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${fornecedor.tipo === 'Pessoa Jurídica' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400'}`}>
                           {fornecedor.tipo === 'Pessoa Jurídica' ? <Building2 className="w-4 h-4" /> : <User className="w-4 h-4" />}
                         </div>
                         <div className="flex flex-col">
-                          <span className="font-medium">{fornecedor.nomeFantasia}</span>
-                          <span className="text-xs text-muted-foreground">{fornecedor.documento}</span>
+                          <span className="font-medium">{fornecedor.nomeFantasia || fornecedor.razaoSocial || 'Fornecedor Sem Nome'}</span>
+                          <span className="text-xs text-muted-foreground">{fornecedor.documento || 'N/D'}</span>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="font-normal">{fornecedor.categoria}</Badge>
+                      <Badge variant="outline" className="font-normal">{fornecedor.categoria || 'Geral'}</Badge>
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col">
                         <span className="text-sm">{contatoPrincipal?.nome || 'N/D'}</span>
-                        <span className="text-xs text-muted-foreground">{contatoPrincipal?.celular || contatoPrincipal?.email}</span>
+                        <span className="text-xs text-muted-foreground">{contatoPrincipal?.celular || contatoPrincipal?.email || 'Sem contato'}</span>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col">
-                        <span className="text-sm">{fornecedor.endereco.cidade}</span>
-                        <span className="text-xs text-muted-foreground">{fornecedor.endereco.estado}</span>
+                        <span className="text-sm">{fornecedor.endereco?.cidade || 'N/D'}</span>
+                        <span className="text-xs text-muted-foreground">{fornecedor.endereco?.estado || ''}</span>
                       </div>
                     </TableCell>
                     <TableCell>
                       <Badge variant={fornecedor.status === 'Ativo' ? 'default' : 'secondary'} className={fornecedor.status === 'Ativo' ? 'bg-emerald-500 hover:bg-emerald-600' : ''}>
-                        {fornecedor.status}
+                        {fornecedor.status || 'Ativo'}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">

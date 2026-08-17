@@ -50,8 +50,18 @@ function writeLocalCache<T>(table: string, items: T[]) {
   if (typeof window === 'undefined') return;
   try {
     window.localStorage.setItem(`focus_app_${table}`, JSON.stringify(items));
-  } catch (e) {
-    console.warn(`[LocalStorage] Error writing key focus_app_${table}:`, e);
+  } catch (e: any) {
+    if (e?.name === 'QuotaExceededError' || e?.code === 22) {
+      try {
+        // Attempt to clean non-essential notifications cache to free up storage space
+        window.localStorage.removeItem('focus_app_notificacoes');
+        window.localStorage.setItem(`focus_app_${table}`, JSON.stringify(items));
+      } catch {
+        console.warn(`[LocalStorage] Storage quota exceeded for 'focus_app_${table}'. Cloud sync active.`);
+      }
+    } else {
+      console.warn(`[LocalStorage] Error writing key focus_app_${table}:`, e);
+    }
   }
 }
 

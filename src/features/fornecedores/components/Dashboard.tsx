@@ -1,5 +1,6 @@
 import React from 'react';
-import { mockFornecedores } from '../mockData';
+import { useLocalStorageState } from '@/hooks/useDataStore';
+import { Fornecedor } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, UserCheck, DollarSign, Building2 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
@@ -9,25 +10,29 @@ const formatCurrency = (value?: number | null) => {
 };
 
 export function Dashboard() {
-  const total = mockFornecedores.length;
-  const ativos = mockFornecedores.filter(f => f.status === 'Ativo').length;
+  const { data: fornecedoresData } = useLocalStorageState<Fornecedor>('focus_fornecedores');
+  const fornecedores = Array.isArray(fornecedoresData) ? fornecedoresData : [];
+
+  const total = fornecedores.length;
+  const ativos = fornecedores.filter(f => f?.status === 'Ativo').length;
   
-  const totalPago = mockFornecedores.reduce((acc, f) => acc + f.totalPago, 0);
-  const totalAberto = mockFornecedores.reduce((acc, f) => acc + f.saldoAberto, 0);
+  const totalPago = fornecedores.reduce((acc, f) => acc + (f?.totalPago || 0), 0);
+  const totalAberto = fornecedores.reduce((acc, f) => acc + (f?.saldoAberto || 0), 0);
 
   // Category chart
   const categoryCount: Record<string, number> = {};
-  mockFornecedores.forEach(f => {
-    categoryCount[f.categoria] = (categoryCount[f.categoria] || 0) + 1;
+  fornecedores.forEach(f => {
+    const cat = f?.categoria || 'Outros';
+    categoryCount[cat] = (categoryCount[cat] || 0) + 1;
   });
   
   const dataCategoria = Object.entries(categoryCount).map(([name, value]) => ({ name, value }));
 
   // Spend per supplier
-  const dataGastos = mockFornecedores.map(f => ({
-    name: f.nomeFantasia,
-    Pago: f.totalPago,
-    Aberto: f.saldoAberto
+  const dataGastos = fornecedores.map(f => ({
+    name: f?.nomeFantasia || f?.razaoSocial || 'Fornecedor',
+    Pago: f?.totalPago || 0,
+    Aberto: f?.saldoAberto || 0
   })).sort((a, b) => b.Pago - a.Pago).slice(0, 5); // Top 5
 
   const COLORS = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ec4899'];
