@@ -1,5 +1,6 @@
 import focusLogoHorizontal from "@/assets/focus-logo-horizontal.png";
 import focusLogoHorizontalDark from "@/assets/focus-logo-horizontal-dark.png";
+import focusSymbolTransparent from "@/assets/focus-symbol-transparent.png";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard,
@@ -179,7 +180,7 @@ function SidebarLogoHeader() {
           )}
         >
           <img
-            src="/icon-192.png"
+            src={focusSymbolTransparent}
             alt="Focus ERP"
             className="w-9 h-9 object-contain shrink-0"
           />
