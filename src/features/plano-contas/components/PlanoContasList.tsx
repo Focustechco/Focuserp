@@ -50,7 +50,7 @@ export function PlanoContasList() {
   const renderTree = (parentId?: string, level = 0) => {
     const nodes = filteredData
       .filter(c => c.parentId === parentId)
-      .sort((a, b) => a.codigo.localeCompare(b.codigo));
+      .sort((a, b) => (a?.codigo || '').localeCompare(b?.codigo || ''));
 
     if (nodes.length === 0) return null;
 

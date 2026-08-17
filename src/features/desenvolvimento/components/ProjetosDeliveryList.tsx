@@ -35,12 +35,13 @@ export function ProjetosDeliveryList({
 }: ProjetosDeliveryListProps) {
   const [searchTerm, setSearchTerm] = useState('');
 
-  const filteredProjetos = projetosTecnicos.filter(
-    (p) =>
-      p.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.tipo.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredProjetos = projetosTecnicos.filter((p) => {
+    if (!p) return false;
+    const search = searchTerm.toLowerCase();
+    return (p.nome || '').toLowerCase().includes(search) ||
+           (p.codigo || '').toLowerCase().includes(search) ||
+           (p.tipo || '').toLowerCase().includes(search);
+  });
 
   return (
     <div className="space-y-6 animate-fade-in">

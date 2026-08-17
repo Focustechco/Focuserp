@@ -225,13 +225,14 @@ export function useDesenvolvimento() {
       const projGit = updatedGit.find((g) => g.projetoId === proj.id);
       if (!projGit) {
         hasChanges = true;
+        const nameSlug = (proj.nome || 'projeto').toLowerCase().replace(/\s+/g, '-');
         updatedGit.push({
           id: `git-${proj.id}`,
           projetoId: proj.id,
           provedor: 'GitHub',
-          nomeRepositorio: proj.nome.toLowerCase().replace(/\s+/g, '-'),
+          nomeRepositorio: nameSlug,
           organizacao: 'focustecnologia',
-          urlRepositorio: `https://github.com/focustecnologia/${proj.nome.toLowerCase().replace(/\s+/g, '-')}`,
+          urlRepositorio: `https://github.com/focustecnologia/${nameSlug}`,
           branchPrincipal: 'main',
           statusConexao: 'Conectado',
         });
@@ -241,7 +242,7 @@ export function useDesenvolvimento() {
       const projAmbientes = updatedAmbientes.filter((a) => a.projetoId === proj.id);
       if (projAmbientes.length === 0) {
         hasChanges = true;
-        const slug = proj.nome.toLowerCase().replace(/\s+/g, '-');
+        const slug = (proj.nome || 'projeto').toLowerCase().replace(/\s+/g, '-');
         updatedAmbientes.push(
           {
             id: `amb-dev-${proj.id}`,
