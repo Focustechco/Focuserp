@@ -160,7 +160,7 @@ function SidebarLogoHeader() {
           <img
             src={focusLogoHorizontal}
             alt="Focus ERP — powered by focus tech®"
-            className="w-[160px] max-w-[165px] h-auto object-contain dark:brightness-125 dark:drop-shadow-[0_0_1px_rgba(255,255,255,0.7)]"
+            className="w-[160px] max-w-[165px] h-auto object-contain transition-all duration-200 dark:brightness-0 dark:invert"
           />
         </div>
 
