@@ -1,5 +1,5 @@
 import React from "react";
-import focusLogo from "@/assets/focus-logo.png";
+import focusLogoHorizontal from "@/assets/focus-logo-horizontal.png";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard,
@@ -148,9 +148,9 @@ function SidebarLogoHeader() {
   const isCollapsed = state === "collapsed";
 
   return (
-    <SidebarHeader className="border-b border-sidebar-border bg-white dark:bg-sidebar h-[80px] flex items-center justify-center px-4 transition-all duration-250 ease-in-out group-data-[collapsible=icon]:h-16 group-data-[collapsible=icon]:px-0">
+    <SidebarHeader className="border-b border-sidebar-border bg-transparent h-[84px] flex items-center justify-center px-4 py-3 transition-all duration-250 ease-in-out group-data-[collapsible=icon]:h-16 group-data-[collapsible=icon]:px-0">
       <Link to="/" className="flex items-center justify-center w-full h-full">
-        {/* Logo Completa - Sidebar Expandida */}
+        {/* Logo Horizontal Completa - Sidebar Expandida */}
         <div
           className={cn(
             "flex items-center justify-center w-full h-full transition-all duration-250 ease-in-out group-data-[collapsible=icon]:hidden",
@@ -158,9 +158,9 @@ function SidebarLogoHeader() {
           )}
         >
           <img
-            src={focusLogo}
-            alt="Focus ERP — powered by focus tech"
-            className="h-12 w-auto max-w-[85%] object-contain"
+            src={focusLogoHorizontal}
+            alt="Focus ERP — powered by focus tech®"
+            className="w-[160px] max-w-[165px] h-auto object-contain dark:brightness-125 dark:drop-shadow-[0_0_1px_rgba(255,255,255,0.7)]"
           />
         </div>
 
