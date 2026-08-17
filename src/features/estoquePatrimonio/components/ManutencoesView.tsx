@@ -11,12 +11,15 @@ export function ManutencoesView() {
   const { manutencoes, updateManutencao, updateEquipamento, equipamentos } = useEstoquePatrimonio();
   const [searchTerm, setSearchTerm] = useState('');
 
-  const filtered = manutencoes.filter(
-    (m) =>
-      m.equipamentoNome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      m.descricao.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      m.responsavelNome.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filtered = manutencoes.filter((m) => {
+    if (!m) return false;
+    const search = searchTerm.toLowerCase();
+    return (
+      (m.equipamentoNome || '').toLowerCase().includes(search) ||
+      (m.descricao || '').toLowerCase().includes(search) ||
+      (m.responsavelNome || '').toLowerCase().includes(search)
+    );
+  });
 
   const totalGastoManutencao = manutencoes.reduce((acc, m) => acc + m.valor, 0);
 

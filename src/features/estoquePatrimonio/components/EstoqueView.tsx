@@ -63,10 +63,12 @@ export function EstoqueView() {
   });
 
   const filteredItens = estoqueItens.filter((item) => {
+    if (!item) return false;
+    const search = searchTerm.toLowerCase();
     const matchesSearch =
-      item.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.localizacao.toLowerCase().includes(searchTerm.toLowerCase());
+      (item.nome || '').toLowerCase().includes(search) ||
+      (item.codigo || '').toLowerCase().includes(search) ||
+      (item.localizacao || '').toLowerCase().includes(search);
     const matchesCat = categoriaFilter === 'todos' || item.categoria === categoriaFilter;
     return matchesSearch && matchesCat;
   });

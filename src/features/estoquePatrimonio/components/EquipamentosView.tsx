@@ -135,12 +135,14 @@ export function EquipamentosView() {
   });
 
   const filteredEquipamentos = equipamentos.filter((eq) => {
+    if (!eq) return false;
+    const search = searchTerm.toLowerCase();
     const matchesSearch =
-      eq.codigoPatrimonial.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      eq.marca.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      eq.modelo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      eq.numeroSerie.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (eq.colaboradorNome && eq.colaboradorNome.toLowerCase().includes(searchTerm.toLowerCase()));
+      (eq.codigoPatrimonial || '').toLowerCase().includes(search) ||
+      (eq.marca || '').toLowerCase().includes(search) ||
+      (eq.modelo || '').toLowerCase().includes(search) ||
+      (eq.numeroSerie || '').toLowerCase().includes(search) ||
+      (eq.colaboradorNome || '').toLowerCase().includes(search);
     const matchesCat = categoriaFilter === 'todos' || eq.categoria === categoriaFilter;
     const matchesSit = situacaoFilter === 'todos' || eq.situacao === situacaoFilter;
     return matchesSearch && matchesCat && matchesSit;

@@ -22,12 +22,15 @@ export function PatrimonioView() {
   const { patrimonios, deletePatrimonio, updatePatrimonio } = useEstoquePatrimonio();
   const [searchTerm, setSearchTerm] = useState('');
 
-  const filteredPatrimonios = patrimonios.filter(
-    (p) =>
-      p.numeroPatrimonial.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.categoria.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.codigoInterno.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredPatrimonios = patrimonios.filter((p) => {
+    if (!p) return false;
+    const search = searchTerm.toLowerCase();
+    return (
+      (p.numeroPatrimonial || '').toLowerCase().includes(search) ||
+      (p.categoria || '').toLowerCase().includes(search) ||
+      (p.codigoInterno || '').toLowerCase().includes(search)
+    );
+  });
 
   const valorTotalOriginal = patrimonios.reduce((acc, p) => acc + p.valorCompra, 0);
   const valorTotalAtual = patrimonios.reduce((acc, p) => acc + p.valorAtual, 0);

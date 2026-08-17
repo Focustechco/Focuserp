@@ -66,12 +66,15 @@ export function LicencasView() {
     observacoes: '',
   });
 
-  const filteredLicencas = licencas.filter(
-    (l) =>
-      l.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      l.fabricante.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      l.plano.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredLicencas = licencas.filter((l) => {
+    if (!l) return false;
+    const search = searchTerm.toLowerCase();
+    return (
+      (l.nome || '').toLowerCase().includes(search) ||
+      (l.fabricante || '').toLowerCase().includes(search) ||
+      (l.plano || '').toLowerCase().includes(search)
+    );
+  });
 
   const handleCreateLicenca = (e: React.FormEvent) => {
     e.preventDefault();

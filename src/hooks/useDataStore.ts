@@ -57,7 +57,7 @@ function writeLocalCache<T>(table: string, items: T[]) {
         window.localStorage.removeItem('focus_app_notificacoes');
         window.localStorage.setItem(`focus_app_${table}`, JSON.stringify(items));
       } catch {
-        console.warn(`[LocalStorage] Storage quota exceeded for 'focus_app_${table}'. Cloud sync active.`);
+        // Silent catch: LocalStorage quota exceeded, Supabase cloud sync continues asynchronously
       }
     } else {
       console.warn(`[LocalStorage] Error writing key focus_app_${table}:`, e);
