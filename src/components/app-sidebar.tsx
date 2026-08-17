@@ -1,5 +1,5 @@
-import React from "react";
 import focusLogoHorizontal from "@/assets/focus-logo-horizontal.png";
+import focusLogoHorizontalDark from "@/assets/focus-logo-horizontal-dark.png";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard,
@@ -157,10 +157,17 @@ function SidebarLogoHeader() {
             isCollapsed ? "opacity-0 scale-95 hidden" : "opacity-100 scale-100 flex"
           )}
         >
+          {/* Light Mode Logo (Black "Focus", Orange Icon & ERP) */}
           <img
             src={focusLogoHorizontal}
             alt="Focus ERP — powered by focus tech®"
-            className="w-[160px] max-w-[165px] h-auto object-contain transition-all duration-200 dark:brightness-0 dark:invert"
+            className="w-[160px] max-w-[165px] h-auto object-contain transition-all duration-200 dark:hidden"
+          />
+          {/* Dark Mode Logo (White "Focus", Orange Icon & ERP) */}
+          <img
+            src={focusLogoHorizontalDark}
+            alt="Focus ERP — powered by focus tech®"
+            className="w-[160px] max-w-[165px] h-auto object-contain transition-all duration-200 hidden dark:block"
           />
         </div>
 
