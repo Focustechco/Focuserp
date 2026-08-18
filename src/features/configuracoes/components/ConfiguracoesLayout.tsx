@@ -28,16 +28,16 @@ export function ConfiguracoesLayout({ children, activeTab, onTabChange }: Config
     <div className="flex flex-col md:flex-row gap-6 w-full max-w-[1400px] mx-auto min-h-[calc(100vh-120px)] animate-fade-in pt-4">
       {/* Sidebar de Navegação */}
       <aside className="w-full md:w-64 lg:w-72 shrink-0">
-        <nav className="flex flex-col gap-1 sticky top-6">
+        <nav className="flex flex-row md:flex-col gap-1.5 overflow-x-auto scrollbar-hide pb-2 md:pb-0 md:sticky md:top-6 shrink-0 w-full border-b md:border-b-0">
           {menuItems.map((item) => {
             const isActive = activeTab === item.id;
             return (
               <button
                 key={item.id}
                 onClick={() => onTabChange(item.id)}
-                className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors text-left ${
+                className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors text-left shrink-0 whitespace-nowrap ${
                   isActive 
-                    ? 'bg-primary/10 text-primary' 
+                    ? 'bg-primary/10 text-primary font-bold' 
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 }`}
               >

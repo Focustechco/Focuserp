@@ -40,21 +40,21 @@ function CentralRelatoriosPage() {
 
       {/* Navegação por Abas Principais */}
       <Tabs defaultValue="catalogo" className="space-y-6 mt-2" onValueChange={setActiveTab}>
-        <div className="border-b pb-2">
-          <TabsList className="bg-muted/50 p-1">
-            <TabsTrigger value="catalogo" className="gap-2">
+        <div className="border-b pb-2 w-full overflow-x-auto scrollbar-hide">
+          <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
+            <TabsTrigger value="catalogo" className="gap-2 shrink-0">
               <FileSpreadsheet className="w-4 h-4" /> Catálogo de Relatórios
             </TabsTrigger>
-            <TabsTrigger value="dashboard" className="gap-2">
+            <TabsTrigger value="dashboard" className="gap-2 shrink-0">
               <LayoutGrid className="w-4 h-4" /> Dashboard Executivo
             </TabsTrigger>
-            <TabsTrigger value="wizard" className="gap-2 text-orange-600 font-semibold">
+            <TabsTrigger value="wizard" className="gap-2 text-orange-600 font-semibold shrink-0">
               <Wand2 className="w-4 h-4" /> Gerador Wizard
             </TabsTrigger>
-            <TabsTrigger value="historico" className="gap-2">
+            <TabsTrigger value="historico" className="gap-2 shrink-0">
               <Clock className="w-4 h-4" /> Histórico & Auditoria
             </TabsTrigger>
-            <TabsTrigger value="agendamentos" className="gap-2">
+            <TabsTrigger value="agendamentos" className="gap-2 shrink-0">
               <Calendar className="w-4 h-4" /> Agendamentos
             </TabsTrigger>
           </TabsList>

@@ -87,20 +87,22 @@ function AssinaturasPage() {
 
       {/* Tabs Principais do Módulo */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="w-full h-auto flex flex-wrap bg-card border p-1 rounded-xl shadow-xs">
-          <TabsTrigger value="dashboard" className="gap-2 flex-1 text-xs py-2">
-            <LayoutDashboard className="w-3.5 h-3.5" /> Visão Geral
-          </TabsTrigger>
-          <TabsTrigger value="documentos" className="gap-2 flex-1 text-xs py-2">
-            <FileText className="w-3.5 h-3.5" /> Documentos ({documentos.length})
-          </TabsTrigger>
-          <TabsTrigger value="modelos" className="gap-2 flex-1 text-xs py-2">
-            <Copy className="w-3.5 h-3.5" /> Minutas e Modelos
-          </TabsTrigger>
-          <TabsTrigger value="certificados" className="gap-2 flex-1 text-xs py-2">
-            <Award className="w-3.5 h-3.5" /> Gov.br & ICP-Brasil
-          </TabsTrigger>
-        </TabsList>
+        <div className="w-full overflow-x-auto scrollbar-hide border-b pb-1">
+          <TabsList className="bg-card border p-1 flex w-max min-w-full justify-start gap-1 rounded-xl shadow-xs">
+            <TabsTrigger value="dashboard" className="gap-2 shrink-0 text-xs py-2">
+              <LayoutDashboard className="w-3.5 h-3.5" /> Visão Geral
+            </TabsTrigger>
+            <TabsTrigger value="documentos" className="gap-2 shrink-0 text-xs py-2">
+              <FileText className="w-3.5 h-3.5" /> Documentos ({documentos.length})
+            </TabsTrigger>
+            <TabsTrigger value="modelos" className="gap-2 shrink-0 text-xs py-2">
+              <Copy className="w-3.5 h-3.5" /> Minutas e Modelos
+            </TabsTrigger>
+            <TabsTrigger value="certificados" className="gap-2 shrink-0 text-xs py-2">
+              <Award className="w-3.5 h-3.5" /> Certificados A1/A3 ({certificados.length})
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="dashboard" className="outline-none m-0">
           <AssinaturasDashboard 

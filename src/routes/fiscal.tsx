@@ -50,10 +50,12 @@ function RouteComponent() {
       </div>
       
       <Tabs defaultValue="listagem" className="space-y-4">
-        <TabsList className="bg-muted/50 p-1">
-          <TabsTrigger value="listagem" className="gap-2"><List className="w-4 h-4" /> Diretório de Documentos Fiscais</TabsTrigger>
-          <TabsTrigger value="dashboard" className="gap-2"><PieChart className="w-4 h-4" /> Monitor Tributário (Dashboard)</TabsTrigger>
-        </TabsList>
+        <div className="border-b pb-2 w-full overflow-x-auto scrollbar-hide">
+          <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
+            <TabsTrigger value="listagem" className="gap-2 shrink-0"><List className="w-4 h-4" /> Diretório de Documentos Fiscais</TabsTrigger>
+            <TabsTrigger value="dashboard" className="gap-2 shrink-0"><PieChart className="w-4 h-4" /> Monitor Tributário (Dashboard)</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="listagem" className="space-y-4 outline-none">
           <DocumentosFiscaisTable 

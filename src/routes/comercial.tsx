@@ -37,21 +37,21 @@ function ModuloComercialPage() {
 
       {/* Navegação por Abas */}
       <Tabs defaultValue="dashboard" className="space-y-6 mt-2" onValueChange={setActiveTab}>
-        <div className="border-b pb-2">
-          <TabsList className="bg-muted/50 p-1">
-            <TabsTrigger value="dashboard" className="gap-2">
+        <div className="border-b pb-2 w-full overflow-x-auto scrollbar-hide">
+          <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
+            <TabsTrigger value="dashboard" className="gap-2 shrink-0">
               <LayoutGrid className="w-4 h-4" /> Dashboard Executivo
             </TabsTrigger>
-            <TabsTrigger value="propostas" className="gap-2 text-orange-600 font-semibold">
+            <TabsTrigger value="propostas" className="gap-2 text-orange-600 font-semibold shrink-0">
               <FileText className="w-4 h-4" /> Propostas Comerciais
             </TabsTrigger>
-            <TabsTrigger value="equipe" className="gap-2">
+            <TabsTrigger value="equipe" className="gap-2 shrink-0">
               <Users className="w-4 h-4" /> Time Comercial
             </TabsTrigger>
-            <TabsTrigger value="metas" className="gap-2">
+            <TabsTrigger value="metas" className="gap-2 shrink-0">
               <Target className="w-4 h-4" /> Metas & OKRs
             </TabsTrigger>
-            <TabsTrigger value="catalogos" className="gap-2">
+            <TabsTrigger value="catalogos" className="gap-2 shrink-0">
               <Package className="w-4 h-4" /> Catálogo & Preços
             </TabsTrigger>
           </TabsList>

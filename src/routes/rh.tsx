@@ -27,16 +27,18 @@ function RouteComponent() {
   };
 
   return (
-    <div className="flex-1 space-y-4 p-8 pt-6">
+    <div className="flex-1 space-y-4 p-4 sm:p-6 lg:p-8 pt-6 max-w-full overflow-x-hidden">
       <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">Recursos Humanos & Gestão de Pessoas</h2>
+        <h2 className="text-xl sm:text-3xl font-bold tracking-tight">Recursos Humanos & Gestão de Pessoas</h2>
       </div>
       
       <Tabs defaultValue="dashboard" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="dashboard" className="gap-2"><PieChart className="w-4 h-4" /> Painel Executivo</TabsTrigger>
-          <TabsTrigger value="diretorio" className="gap-2"><Users className="w-4 h-4" /> Diretório & Organograma</TabsTrigger>
-        </TabsList>
+        <div className="border-b pb-2 w-full overflow-x-auto scrollbar-hide">
+          <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
+            <TabsTrigger value="dashboard" className="gap-2 shrink-0"><PieChart className="w-4 h-4" /> Painel Executivo</TabsTrigger>
+            <TabsTrigger value="diretorio" className="gap-2 shrink-0"><Users className="w-4 h-4" /> Diretório & Organograma</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="dashboard" className="space-y-4">
           <RhDashboard />

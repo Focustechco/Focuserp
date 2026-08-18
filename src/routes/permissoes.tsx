@@ -35,15 +35,15 @@ function PermissoesPage() {
 
       {/* Navegação por Abas */}
       <Tabs defaultValue="colaboradores" className="space-y-6 mt-2" onValueChange={setActiveTab}>
-        <div className="border-b pb-2">
-          <TabsList className="bg-muted/50 p-1">
-            <TabsTrigger value="colaboradores" className="gap-2 text-orange-600 font-semibold">
+        <div className="border-b pb-2 w-full overflow-x-auto scrollbar-hide">
+          <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
+            <TabsTrigger value="colaboradores" className="gap-2 text-orange-600 font-semibold shrink-0">
               <Users className="w-4 h-4" /> Colaboradores & Sincronização de Setor
             </TabsTrigger>
-            <TabsTrigger value="matriz" className="gap-2">
+            <TabsTrigger value="matriz" className="gap-2 shrink-0">
               <Lock className="w-4 h-4" /> Matriz de Permissões (RBAC)
             </TabsTrigger>
-            <TabsTrigger value="dashboard" className="gap-2">
+            <TabsTrigger value="dashboard" className="gap-2 shrink-0">
               <LayoutGrid className="w-4 h-4" /> Dashboard de Governança
             </TabsTrigger>
           </TabsList>

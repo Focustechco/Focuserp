@@ -37,21 +37,21 @@ function ModuloCrmPage() {
 
       {/* Navegação por Abas */}
       <Tabs defaultValue="kanban" className="space-y-6 mt-2" onValueChange={setActiveTab}>
-        <div className="border-b pb-2">
-          <TabsList className="bg-muted/50 p-1">
-            <TabsTrigger value="kanban" className="gap-2 text-orange-600 font-semibold">
+        <div className="border-b pb-2 w-full overflow-x-auto scrollbar-hide">
+          <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
+            <TabsTrigger value="kanban" className="gap-2 text-orange-600 font-semibold shrink-0">
               <Target className="w-4 h-4" /> Pipeline (Kanban ClickUp)
             </TabsTrigger>
-            <TabsTrigger value="dashboard" className="gap-2">
+            <TabsTrigger value="dashboard" className="gap-2 shrink-0">
               <LayoutGrid className="w-4 h-4" /> Dashboard CRM
             </TabsTrigger>
-            <TabsTrigger value="leads" className="gap-2">
+            <TabsTrigger value="leads" className="gap-2 shrink-0">
               <Users className="w-4 h-4" /> Leads & Scoring
             </TabsTrigger>
-            <TabsTrigger value="empresas" className="gap-2">
+            <TabsTrigger value="empresas" className="gap-2 shrink-0">
               <Building2 className="w-4 h-4" /> Empresas & Decisores
             </TabsTrigger>
-            <TabsTrigger value="clickup" className="gap-2">
+            <TabsTrigger value="clickup" className="gap-2 shrink-0">
               <RefreshCw className="w-4 h-4" /> ClickUp Engine & Logs
             </TabsTrigger>
           </TabsList>

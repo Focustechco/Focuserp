@@ -41,18 +41,18 @@ function CentralDocumentacaoPage() {
 
       {/* Navegação por Abas */}
       <Tabs defaultValue="explorador" className="space-y-6 mt-2" onValueChange={setActiveTab}>
-        <div className="border-b pb-2">
-          <TabsList className="bg-muted/50 p-1">
-            <TabsTrigger value="explorador" className="gap-2 text-orange-600 font-semibold">
+        <div className="border-b pb-2 w-full overflow-x-auto scrollbar-hide">
+          <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
+            <TabsTrigger value="explorador" className="gap-2 text-orange-600 font-semibold shrink-0">
               <HardDrive className="w-4 h-4" /> Explorador de Arquivos
             </TabsTrigger>
-            <TabsTrigger value="dashboard" className="gap-2">
+            <TabsTrigger value="dashboard" className="gap-2 shrink-0">
               <LayoutGrid className="w-4 h-4" /> Dashboard DMS
             </TabsTrigger>
-            <TabsTrigger value="auditoria" className="gap-2">
+            <TabsTrigger value="auditoria" className="gap-2 shrink-0">
               <ShieldCheck className="w-4 h-4" /> Auditoria & Logs
             </TabsTrigger>
-            <TabsTrigger value="lixeira" className="gap-2">
+            <TabsTrigger value="lixeira" className="gap-2 shrink-0">
               <Trash2 className="w-4 h-4" /> Lixeira
             </TabsTrigger>
           </TabsList>

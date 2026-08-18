@@ -40,21 +40,21 @@ function IntegrationHubPage() {
 
       {/* Navegação por Abas */}
       <Tabs defaultValue="marketplace" className="space-y-6 mt-2" onValueChange={setActiveTab}>
-        <div className="border-b pb-2">
-          <TabsList className="bg-muted/50 p-1">
-            <TabsTrigger value="marketplace" className="gap-2 text-orange-600 font-semibold">
+        <div className="border-b pb-2 w-full overflow-x-auto scrollbar-hide">
+          <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
+            <TabsTrigger value="marketplace" className="gap-2 text-orange-600 font-semibold shrink-0">
               <Zap className="w-4 h-4" /> Marketplace de Conectores
             </TabsTrigger>
-            <TabsTrigger value="dashboard" className="gap-2">
+            <TabsTrigger value="dashboard" className="gap-2 shrink-0">
               <LayoutGrid className="w-4 h-4" /> Dashboard
             </TabsTrigger>
-            <TabsTrigger value="webhooks" className="gap-2">
+            <TabsTrigger value="webhooks" className="gap-2 shrink-0">
               <Webhook className="w-4 h-4" /> Webhooks Engine
             </TabsTrigger>
-            <TabsTrigger value="keys" className="gap-2">
+            <TabsTrigger value="keys" className="gap-2 shrink-0">
               <Key className="w-4 h-4" /> API Keys & Tokens
             </TabsTrigger>
-            <TabsTrigger value="logs" className="gap-2">
+            <TabsTrigger value="logs" className="gap-2 shrink-0">
               <Activity className="w-4 h-4" /> Monitor & Logs
             </TabsTrigger>
           </TabsList>
