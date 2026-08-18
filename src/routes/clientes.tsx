@@ -11,7 +11,7 @@ function ClientesPage() {
   return (
     <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Clientes (Master Data)</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Clientes</h1>
         <p className="text-muted-foreground mt-2">
           Cadastro oficial de clientes integrado com toda a plataforma.
         </p>

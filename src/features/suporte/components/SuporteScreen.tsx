@@ -45,7 +45,7 @@ export function SuporteScreen() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
-            <Headphones className="h-8 w-8 text-primary" /> Suporte (Service Desk ITSM)
+            <Headphones className="h-8 w-8 text-primary" /> Suporte (Central)
           </h1>
           <p className="text-muted-foreground mt-1 text-sm">
             Central de suporte tcnico, solicitaes, incidentes, SLAs, base de conhecimento e integrao com Desenvolvimento

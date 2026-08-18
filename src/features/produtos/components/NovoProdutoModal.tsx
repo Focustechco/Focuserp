@@ -125,7 +125,7 @@ export function NovoProdutoModal({ open, onOpenChange, onAddProduto }: NovoProdu
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-base font-bold flex items-center gap-2">
-            <Boxes className="h-5 w-5 text-primary" /> Cadastrar Novo Produto no Product Hub
+            <Boxes className="h-5 w-5 text-primary" /> Cadastrar Novo Produto
           </DialogTitle>
           <DialogDescription className="text-xs">
             Crie um novo software no portfólio Focus Tecnologia com workspace exclusivo, roadmap e documentação.

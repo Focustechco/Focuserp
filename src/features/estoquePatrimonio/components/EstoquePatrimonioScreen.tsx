@@ -38,7 +38,7 @@ export function EstoquePatrimonioScreen() {
             </div>
             <div>
               <h1 className="text-2xl font-black tracking-tight text-foreground">
-                Estoque e Patrimônio (IT Asset Management)
+                Estoque e Patrimônio
               </h1>
               <p className="text-xs text-muted-foreground">
                 Gestão completa de ciclo de vida de ativos físicos e digitais, licenças SaaS e depreciação patrimonial

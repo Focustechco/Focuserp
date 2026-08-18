@@ -99,7 +99,7 @@ const groups = [
     items: [
       { title: "Projetos", url: "/projetos", icon: Briefcase },
       { title: "Desenvolvimento", url: "/desenvolvimento", icon: Code2 },
-      { title: "Suporte", url: "/suporte", icon: Headphones },
+      { title: "Suporte (Central)", url: "/suporte", icon: Headphones },
       { title: "Produtos Focus", url: "/produtos", icon: Boxes },
     ],
   },
