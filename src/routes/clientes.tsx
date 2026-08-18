@@ -18,11 +18,12 @@ function ClientesPage() {
       </div>
 
       <Tabs defaultValue="clientes" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
-          
-          <TabsTrigger value="clientes">Lista de Clientes</TabsTrigger>
-          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-        </TabsList>
+        <div className="w-full overflow-x-auto scrollbar-hide border-b pb-1">
+          <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
+            <TabsTrigger value="clientes" className="shrink-0">Lista de Clientes</TabsTrigger>
+            <TabsTrigger value="dashboard" className="shrink-0">Dashboard</TabsTrigger>
+          </TabsList>
+        </div>
         
         <TabsContent value="clientes" className="space-y-4 outline-none">
           <ClientesList />

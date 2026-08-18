@@ -24,12 +24,12 @@ function UsuariosPage() {
       </div>
 
       <Tabs defaultValue="tabela" className="space-y-6 mt-4">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <TabsList className="grid w-full grid-cols-2 lg:w-[450px] bg-muted/50 p-1">
-            <TabsTrigger value="tabela" className="gap-2">
+        <div className="w-full overflow-x-auto scrollbar-hide border-b pb-1">
+          <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
+            <TabsTrigger value="tabela" className="gap-2 shrink-0">
               <Users className="w-4 h-4" /> Diretório de Usuários
             </TabsTrigger>
-            <TabsTrigger value="dashboard" className="gap-2">
+            <TabsTrigger value="dashboard" className="gap-2 shrink-0">
               <Activity className="w-4 h-4" /> Monitor de Governança
             </TabsTrigger>
           </TabsList>

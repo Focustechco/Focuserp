@@ -27,21 +27,21 @@ function IndicadoresPage() {
       </div>
 
       <Tabs defaultValue="saas" className="space-y-6 mt-4">
-        <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
-          <TabsList className="flex flex-wrap w-full bg-muted/50 p-1 h-auto">
-            <TabsTrigger value="saas" className="gap-2 flex-1 min-w-[120px]">
+        <div className="w-full overflow-x-auto scrollbar-hide border-b pb-1">
+          <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
+            <TabsTrigger value="saas" className="gap-2 shrink-0">
               <Rocket className="w-4 h-4" /> SaaS
             </TabsTrigger>
-            <TabsTrigger value="financeiro" className="gap-2 flex-1 min-w-[120px]">
+            <TabsTrigger value="financeiro" className="gap-2 shrink-0">
               <Wallet className="w-4 h-4" /> Financeiro
             </TabsTrigger>
-            <TabsTrigger value="projetos" className="gap-2 flex-1 min-w-[120px]">
+            <TabsTrigger value="projetos" className="gap-2 shrink-0">
               <Briefcase className="w-4 h-4" /> Projetos
             </TabsTrigger>
-            <TabsTrigger value="comercial" className="gap-2 flex-1 min-w-[120px]">
+            <TabsTrigger value="comercial" className="gap-2 shrink-0">
               <Users className="w-4 h-4" /> Clientes
             </TabsTrigger>
-            <TabsTrigger value="dashboard" className="gap-2 flex-1 min-w-[200px]">
+            <TabsTrigger value="dashboard" className="gap-2 shrink-0">
               <Activity className="w-4 h-4" /> Visão Global (C-Level)
             </TabsTrigger>
           </TabsList>

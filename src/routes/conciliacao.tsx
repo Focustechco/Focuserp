@@ -27,14 +27,15 @@ function ConciliacaoPage() {
       </div>
 
       <Tabs defaultValue="conciliacao" className="space-y-6 mt-4">
-        <TabsList className="grid w-full grid-cols-5 lg:w-[800px] bg-muted/50 p-1">
-          
-          <TabsTrigger value="conciliacao" className="text-primary font-medium">Conciliar (Lado a Lado)</TabsTrigger>
-          <TabsTrigger value="divergencias">Divergências</TabsTrigger>
-          <TabsTrigger value="importar">Importar Extrato</TabsTrigger>
-          <TabsTrigger value="contas">Contas Bancárias</TabsTrigger>
-          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-        </TabsList>
+        <div className="w-full overflow-x-auto scrollbar-hide border-b pb-1">
+          <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
+            <TabsTrigger value="conciliacao" className="text-primary font-medium shrink-0">Conciliar (Lado a Lado)</TabsTrigger>
+            <TabsTrigger value="divergencias" className="shrink-0">Divergências</TabsTrigger>
+            <TabsTrigger value="importar" className="shrink-0">Importar Extrato</TabsTrigger>
+            <TabsTrigger value="contas" className="shrink-0">Contas Bancárias</TabsTrigger>
+            <TabsTrigger value="dashboard" className="shrink-0">Dashboard</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="conciliacao" className="space-y-4 outline-none">
           <ConciliacaoList />

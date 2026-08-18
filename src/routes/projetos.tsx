@@ -19,11 +19,13 @@ function ProjetosPage() {
       </div>
 
       <Tabs defaultValue="lista" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 lg:w-[500px]">
-          <TabsTrigger value="lista">Lista de Projetos</TabsTrigger>
-          <TabsTrigger value="agenda">Agenda de Entregas</TabsTrigger>
-          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-        </TabsList>
+        <div className="w-full overflow-x-auto scrollbar-hide border-b pb-1">
+          <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
+            <TabsTrigger value="lista" className="shrink-0">Lista de Projetos</TabsTrigger>
+            <TabsTrigger value="agenda" className="shrink-0">Agenda de Entregas</TabsTrigger>
+            <TabsTrigger value="dashboard" className="shrink-0">Dashboard</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="lista" className="space-y-4 outline-none">
           <ProjetosList />

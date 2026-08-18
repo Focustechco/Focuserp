@@ -18,11 +18,12 @@ function FornecedoresPage() {
       </div>
 
       <Tabs defaultValue="lista" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
-          
-          <TabsTrigger value="lista">Todos os Fornecedores</TabsTrigger>
-          <TabsTrigger value="dashboard">Visão Geral</TabsTrigger>
-        </TabsList>
+        <div className="w-full overflow-x-auto scrollbar-hide border-b pb-1">
+          <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
+            <TabsTrigger value="lista" className="shrink-0">Todos os Fornecedores</TabsTrigger>
+            <TabsTrigger value="dashboard" className="shrink-0">Visão Geral</TabsTrigger>
+          </TabsList>
+        </div>
         
         <TabsContent value="lista" className="space-y-4 outline-none">
           <FornecedoresList />

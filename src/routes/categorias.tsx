@@ -24,19 +24,18 @@ function PlanoContasPage() {
       </div>
 
       <Tabs defaultValue="arvore" className="space-y-6 mt-4">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <TabsList className="grid w-full grid-cols-3 lg:w-[600px] bg-muted/50 p-1">
-            
-            <TabsTrigger value="arvore" className="gap-2 text-primary font-medium">
+        <div className="w-full overflow-x-auto scrollbar-hide border-b pb-1">
+          <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
+            <TabsTrigger value="arvore" className="gap-2 text-primary font-medium shrink-0">
               <ListTree className="w-4 h-4" /> Estrutura em Árvore
             </TabsTrigger>
-            <TabsTrigger value="organograma" className="gap-2">
+            <TabsTrigger value="organograma" className="gap-2 shrink-0">
               <Network className="w-4 h-4" /> Organograma
             </TabsTrigger>
-            <TabsTrigger value="dashboard" className="gap-2">
+            <TabsTrigger value="dashboard" className="gap-2 shrink-0">
               <MapPin className="w-4 h-4" /> Dashboard
             </TabsTrigger>
-        </TabsList>
+          </TabsList>
         </div>
 
         <TabsContent value="arvore" className="space-y-4 outline-none">

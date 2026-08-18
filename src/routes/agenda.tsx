@@ -40,15 +40,15 @@ function AgendaPage() {
       </div>
 
       <Tabs defaultValue="mensal" className="space-y-6 mt-4">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <TabsList className="grid w-full grid-cols-3 lg:w-[600px] bg-muted/50 p-1">
-            <TabsTrigger value="timeline" className="gap-2">
+        <div className="w-full overflow-x-auto scrollbar-hide border-b pb-1">
+          <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
+            <TabsTrigger value="timeline" className="gap-2 shrink-0">
               <LayoutList className="w-4 h-4" /> Lista / Timeline
             </TabsTrigger>
-            <TabsTrigger value="mensal" className="gap-2 text-primary font-medium">
+            <TabsTrigger value="mensal" className="gap-2 text-primary font-medium shrink-0">
               <Calendar className="w-4 h-4" /> Calendário Mensal
             </TabsTrigger>
-            <TabsTrigger value="dashboard" className="gap-2">
+            <TabsTrigger value="dashboard" className="gap-2 shrink-0">
               <MapPin className="w-4 h-4" /> Dashboard
             </TabsTrigger>
           </TabsList>

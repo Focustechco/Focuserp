@@ -24,10 +24,10 @@ function DrePage() {
       </div>
 
       <Tabs defaultValue="tabela" className="space-y-6 mt-4">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <TabsList className="grid w-full grid-cols-2 lg:w-[400px] bg-muted/50 p-1">
-            <TabsTrigger value="tabela">DRE Principal</TabsTrigger>
-            <TabsTrigger value="dashboard">Dashboard Executivo</TabsTrigger>
+        <div className="w-full overflow-x-auto scrollbar-hide border-b pb-1">
+          <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
+            <TabsTrigger value="tabela" className="shrink-0">DRE Principal</TabsTrigger>
+            <TabsTrigger value="dashboard" className="shrink-0">Dashboard Executivo</TabsTrigger>
           </TabsList>
         </div>
 

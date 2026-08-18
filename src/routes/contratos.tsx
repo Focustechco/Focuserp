@@ -18,14 +18,13 @@ function ContratosPage() {
       </div>
 
       <Tabs defaultValue="lista" className="space-y-6">
-        <div className="overflow-x-auto scrollbar-hide border-b">
-          <TabsList className="w-full justify-start h-auto p-0 bg-transparent flex-nowrap min-w-max pb-1">
-            
-            <TabsTrigger value="lista" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-6 py-3">Todos os Contratos</TabsTrigger>
-            <TabsTrigger value="clientes" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-6 py-3">Clientes</TabsTrigger>
-            <TabsTrigger value="focus" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-6 py-3">Focus Tecnologia Ltda</TabsTrigger>
-            <TabsTrigger value="dashboard" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-6 py-3">Dashboard Executivo</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto scrollbar-hide border-b w-full">
+          <TabsList className="w-max min-w-full justify-start h-auto p-0 bg-transparent flex-nowrap pb-1">
+            <TabsTrigger value="lista" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-3 shrink-0">Todos os Contratos</TabsTrigger>
+            <TabsTrigger value="clientes" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-3 shrink-0">Clientes</TabsTrigger>
+            <TabsTrigger value="focus" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-3 shrink-0">Focus Tecnologia Ltda</TabsTrigger>
+            <TabsTrigger value="dashboard" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-3 shrink-0">Dashboard Executivo</TabsTrigger>
+          </TabsList>
         </div>
         
         <TabsContent value="lista" className="space-y-4 outline-none">

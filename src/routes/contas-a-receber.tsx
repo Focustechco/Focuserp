@@ -18,12 +18,13 @@ function ContasReceberPage() {
       </div>
 
       <Tabs defaultValue="titulos" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">
-          
-          <TabsTrigger value="titulos">Títulos</TabsTrigger>
-          <TabsTrigger value="relatorios">Relatórios</TabsTrigger>
-          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-        </TabsList>
+        <div className="w-full overflow-x-auto scrollbar-hide border-b pb-1">
+          <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
+            <TabsTrigger value="titulos" className="shrink-0">Títulos</TabsTrigger>
+            <TabsTrigger value="relatorios" className="shrink-0">Relatórios</TabsTrigger>
+            <TabsTrigger value="dashboard" className="shrink-0">Dashboard</TabsTrigger>
+          </TabsList>
+        </div>
         
         <TabsContent value="titulos" className="space-y-4 outline-none">
           <RecebimentosList />

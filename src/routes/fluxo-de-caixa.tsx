@@ -30,12 +30,14 @@ function FluxoCaixaPage() {
       </Alert>
 
       <Tabs defaultValue="extrato" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 lg:w-[550px]">
-          <TabsTrigger value="extrato">Extrato / Timeline</TabsTrigger>
-          <TabsTrigger value="projecoes">Projeções</TabsTrigger>
-          <TabsTrigger value="comparativo">Comparativo</TabsTrigger>
-          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-        </TabsList>
+        <div className="w-full overflow-x-auto scrollbar-hide border-b pb-1">
+          <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
+            <TabsTrigger value="extrato" className="shrink-0">Extrato / Timeline</TabsTrigger>
+            <TabsTrigger value="projecoes" className="shrink-0">Projeções</TabsTrigger>
+            <TabsTrigger value="comparativo" className="shrink-0">Comparativo</TabsTrigger>
+            <TabsTrigger value="dashboard" className="shrink-0">Dashboard</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="extrato" className="space-y-4 outline-none">
           <FluxoTimeline />
