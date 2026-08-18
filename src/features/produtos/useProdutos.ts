@@ -25,12 +25,16 @@ export interface ContratoItem {
 
 export function useProdutos() {
   const {
-    data: produtos,
+    data: rawProdutos,
     addItem: addProduto,
     updateItem: updateProduto,
     deleteItem: deleteProduto,
     save: saveProdutos,
-  } = useLocalStorageState<ProdutoFocus>('focus_produtos', DEFAULT_PRODUCTS);
+  } = useLocalStorageState<ProdutoFocus>('focus_produtos', []);
+
+  // Garantir remoção definitiva de IDs mockados antigos
+  const mockIds = ['prod-erp', 'prod-crm', 'prod-pay', 'prod-bi'];
+  const produtos = rawProdutos.filter((p) => !mockIds.includes(p.id));
 
   // Consumir coleções de outros módulos para integrações nativas em tempo real
   const { data: clientes } = useLocalStorageState<Cliente>('focus_clientes', []);
