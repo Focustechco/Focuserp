@@ -12,7 +12,13 @@ export function MatrizPermissoesView() {
   const { perfis } = usePermissoesStore();
   const [selectedPerfilId, setSelectedPerfilId] = useState<string>(perfis[0]?.id || 'p-admin');
 
-  const selectedPerfil = perfis.find(p => p.id === selectedPerfilId) || perfis[0];
+  const selectedPerfil = perfis.find(p => p.id === selectedPerfilId) || perfis[0] || {
+    id: 'p-default',
+    nome: 'Perfil Geral',
+    descricao: 'Perfil de acesso corporativo padrão',
+    corBadge: 'bg-primary text-white',
+    departamentoPadrao: 'Geral'
+  };
 
   const modulos = [
     { key: 'dashboard', label: 'Dashboard Executivo' },
@@ -35,7 +41,7 @@ export function MatrizPermissoesView() {
   ];
 
   const handleSaveMatrix = () => {
-    toast.success(`Matriz de Permissões do perfil "${selectedPerfil.nome}" salva com sucesso!`);
+    toast.success(`Matriz de Permissões do perfil "${selectedPerfil?.nome || 'Selecionado'}" salva com sucesso!`);
   };
 
   return (
@@ -52,7 +58,7 @@ export function MatrizPermissoesView() {
           <Select value={selectedPerfilId} onValueChange={setSelectedPerfilId}>
             <SelectTrigger className="w-60 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
-              {perfis.map(p => (
+              {(perfis || []).map(p => (
                 <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>
               ))}
             </SelectContent>
@@ -68,10 +74,10 @@ export function MatrizPermissoesView() {
         <CardHeader className="border-b pb-3">
           <div className="flex justify-between items-center">
             <div>
-              <CardTitle className="text-base text-primary">{selectedPerfil.nome}</CardTitle>
-              <p className="text-xs text-muted-foreground mt-0.5">{selectedPerfil.descricao}</p>
+              <CardTitle className="text-base text-primary">{selectedPerfil?.nome}</CardTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">{selectedPerfil?.descricao}</p>
             </div>
-            <Badge className={selectedPerfil.corBadge}>{selectedPerfil.departamentoPadrao}</Badge>
+            <Badge className={selectedPerfil?.corBadge}>{selectedPerfil?.departamentoPadrao}</Badge>
           </div>
         </CardHeader>
 
@@ -94,11 +100,11 @@ export function MatrizPermissoesView() {
                   <tr key={m.key} className="border-b hover:bg-muted/30 transition-colors">
                     <td className="p-3 font-semibold text-foreground">{m.label}</td>
                     <td className="p-3 text-center"><Checkbox defaultChecked={true} /></td>
-                    <td className="p-3 text-center"><Checkbox defaultChecked={selectedPerfil.nome !== 'Auditor'} /></td>
-                    <td className="p-3 text-center"><Checkbox defaultChecked={selectedPerfil.nome !== 'Auditor'} /></td>
-                    <td className="p-3 text-center"><Checkbox defaultChecked={selectedPerfil.nome === 'Super Administrador'} /></td>
+                    <td className="p-3 text-center"><Checkbox defaultChecked={selectedPerfil?.nome !== 'Auditor'} /></td>
+                    <td className="p-3 text-center"><Checkbox defaultChecked={selectedPerfil?.nome !== 'Auditor'} /></td>
+                    <td className="p-3 text-center"><Checkbox defaultChecked={selectedPerfil?.nome === 'Super Administrador'} /></td>
                     <td className="p-3 text-center"><Checkbox defaultChecked={true} /></td>
-                    <td className="p-3 text-center"><Checkbox defaultChecked={selectedPerfil.nome.includes('Administrador') || selectedPerfil.nome === 'Diretoria'} /></td>
+                    <td className="p-3 text-center"><Checkbox defaultChecked={(selectedPerfil?.nome || '').includes('Administrador') || selectedPerfil?.nome === 'Diretoria'} /></td>
                   </tr>
                 ))}
               </tbody>

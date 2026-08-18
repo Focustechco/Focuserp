@@ -162,8 +162,8 @@ export function DocumentosLista({
               </TableRow>
             ) : (
               filteredDocs.map((doc) => {
-                const assinanatesConcluidos = doc.assinantes.filter(a => a.status === 'Assinado').length;
-                const totalAssinantes = doc.assinantes.length;
+                const assinanatesConcluidos = (doc.assinantes || []).filter(a => a.status === 'Assinado').length;
+                const totalAssinantes = (doc.assinantes || []).length;
 
                 return (
                   <TableRow key={doc.id} className="hover:bg-muted/30">
@@ -189,7 +189,7 @@ export function DocumentosLista({
                           <span>{assinanatesConcluidos}/{totalAssinantes} Assinados</span>
                         </div>
                         <div className="flex items-center gap-1">
-                          {doc.assinantes.map(a => (
+                          {(doc.assinantes || []).map(a => (
                             <span key={a.id} className={`inline-block w-2 h-2 rounded-full ${a.status === 'Assinado' ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'}`} title={`${a.nome} (${a.status})`} />
                           ))}
                         </div>
