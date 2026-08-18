@@ -7,12 +7,12 @@ import { useComercialStore } from '../hooks/useComercialStore';
 export function ComercialDashboard() {
   const { propostas, equipe, metas, comissoes } = useComercialStore();
 
-  const receitaComercialTotal = propostas.filter(p => p.status === 'Aceita').reduce((acc, p) => acc + p.valorTotalR$, 0);
-  const metaTotalAno = metas.reduce((acc, m) => acc + m.valorMetaR$, 0);
-  const metaRealizadaAno = metas.reduce((acc, m) => acc + m.valorRealizadoR$, 0);
-  const comissaoPrevista = comissoes.reduce((acc, c) => acc + c.comissaoPrevistaR$, 0);
-  const comissaoPaga = comissoes.reduce((acc, c) => acc + c.comissaoPagaR$, 0);
-  const ticketMedio = propostas.length > 0 ? (receitaComercialTotal / (propostas.filter(p => p.status === 'Aceita').length || 1)) : 0;
+  const receitaComercialTotal = (propostas || []).filter(p => p?.status === 'Aceita').reduce((acc, p) => acc + (p?.valorTotalR$ || 0), 0);
+  const metaTotalAno = (metas || []).reduce((acc, m) => acc + (m?.valorMetaR$ || 0), 0);
+  const metaRealizadaAno = (metas || []).reduce((acc, m) => acc + (m?.valorRealizadoR$ || 0), 0);
+  const comissaoPrevista = (comissoes || []).reduce((acc, c) => acc + (c?.comissaoPrevistaR$ || 0), 0);
+  const comissaoPaga = (comissoes || []).reduce((acc, c) => acc + (c?.comissaoPagaR$ || 0), 0);
+  const ticketMedio = (propostas || []).length > 0 ? (receitaComercialTotal / ((propostas || []).filter(p => p?.status === 'Aceita').length || 1)) : 0;
 
   // Gráfico 1: Meta x Realizado por Trimestre
   const metaVsRealizadoData = [
@@ -23,10 +23,10 @@ export function ComercialDashboard() {
   ];
 
   // Gráfico 2: Desempenho por Consultor
-  const consultoresData = equipe.map(e => ({
-    nome: e.nome.split(' ')[0],
-    realizado: e.resultadoRealizadoR$,
-    meta: e.metaMensalR$
+  const consultoresData = (equipe || []).map(e => ({
+    nome: (e?.nome || 'Consultor').split(' ')[0],
+    realizado: e?.resultadoRealizadoR$ || 0,
+    meta: e?.metaMensalR$ || 0
   }));
 
   return (

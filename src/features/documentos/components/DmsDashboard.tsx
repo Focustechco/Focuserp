@@ -18,7 +18,8 @@ export function DmsDashboard() {
   // Gráfico 1: Documentos por Módulo
   const modCounts: Record<string, number> = {};
   documentos.forEach(d => {
-    modCounts[d.moduloOrigem] = (modCounts[d.moduloOrigem] || 0) + 1;
+    const mod = d?.moduloOrigem || 'Geral';
+    modCounts[mod] = (modCounts[mod] || 0) + 1;
   });
 
   const moduloData = Object.entries(modCounts).map(([name, count]) => ({
@@ -29,7 +30,7 @@ export function DmsDashboard() {
   // Gráfico 2: Tipos de Arquivo
   const typeCounts: Record<string, number> = {};
   documentos.forEach(d => {
-    const ext = d.extensao.toUpperCase();
+    const ext = (d?.extensao || 'OUTROS').toUpperCase();
     typeCounts[ext] = (typeCounts[ext] || 0) + 1;
   });
 

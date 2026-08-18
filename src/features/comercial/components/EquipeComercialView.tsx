@@ -91,7 +91,7 @@ export function EquipeComercialView() {
   // Filter: comercial profile or comercial roles or vendas department
   const usuariosComerciais = todosUsuarios.filter(u =>
     u.perfil === 'Comercial' ||
-    u.rolesComplementares.some(r => ['Comercial', 'CRM', 'Vendas'].includes(r)) ||
+    (u.rolesComplementares || []).some(r => ['Comercial', 'CRM', 'Vendas'].includes(r)) ||
     u.departamento === 'Vendas' ||
     u.departamento === 'Comercial'
   );
