@@ -25,12 +25,7 @@ function CentralRelatoriosPage() {
             <FileSpreadsheet className="w-6 h-6" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-3xl font-bold tracking-tight">Central de Relatórios</h1>
-              <Badge variant="outline" className="border-orange-500/40 text-orange-600 font-semibold gap-1 bg-orange-50 dark:bg-orange-950/40">
-                <ShieldCheck className="w-3.5 h-3.5" /> Enterprise Reporting Engine
-              </Badge>
-            </div>
+            <h1 className="text-3xl font-bold tracking-tight">Central de Relatórios</h1>
             <p className="text-muted-foreground mt-1 text-sm">
               Mecanismo corporativo único para geração, padronização, agendamento e exportação de documentos do Focus Finance.
             </p>

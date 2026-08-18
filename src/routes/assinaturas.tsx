@@ -64,13 +64,7 @@ function AssinaturasPage() {
       {/* Header da Página */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full uppercase tracking-wider">
-              Focus Sign
-            </span>
-            <span className="text-xs text-muted-foreground">⬢ Módulo de Assinaturas Eletrônicas</span>
-          </div>
-          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight mt-1 text-foreground">
+          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-foreground">
             Gestão de Assinaturas & Contratos
           </h1>
         </div>
