@@ -3,9 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ChevronDown, ChevronRight, Briefcase, Users } from 'lucide-react';
-import { useLocalStorageState } from '@/hooks/useDataStore';
-import { Colaborador } from '../types';
-import { INITIAL_COLABORADORES } from '../data/initialData';
+import { useColaboradoresQuery } from '../hooks/useColaboradoresQuery';
 import { cn } from "@/lib/utils";
 
 interface OrgNode {
@@ -72,7 +70,7 @@ const OrgChartNode = ({ node, level = 0 }: { node: OrgNode, level?: number }) =>
 };
 
 export function OrganogramaView() {
-  const { data: colaboradores } = useLocalStorageState<Colaborador>('focus_rh_colaboradores', INITIAL_COLABORADORES);
+  const { colaboradores } = useColaboradoresQuery();
 
   if (colaboradores.length === 0) {
     return (

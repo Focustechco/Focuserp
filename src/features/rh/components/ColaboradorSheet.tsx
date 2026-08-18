@@ -167,7 +167,7 @@ export function ColaboradorSheet({ open, onOpenChange, colaboradorParaEditar }: 
 
     // Montar objeto final do colaborador
     const novoColab: Colaborador = {
-      id: colaboradorParaEditar ? colaboradorParaEditar.id : `colab-${Date.now()}`,
+      id: colaboradorParaEditar?.id ? colaboradorParaEditar.id : crypto.randomUUID(),
       matricula: colaboradorParaEditar ? colaboradorParaEditar.matricula : `COL-${Math.floor(100 + Math.random() * 900)}`,
       foto: foto.trim(),
       nomeCompleto: colabNome,
