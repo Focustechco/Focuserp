@@ -198,14 +198,13 @@ export const clienteService = {
     // 3. Tentar remover referências filhas se existirem
     try { await supabase.from('contas_receber').delete().eq('cliente_id', id); } catch {}
     try { await supabase.from('contratos').delete().eq('cliente_id', id); } catch {}
-    try { await supabase.from('cobrancas').delete().eq('cliente_id', id); } catch {}
     try { await supabase.from('projetos').delete().eq('cliente_id', id); } catch {}
 
     // 4. Executar DELETE no Supabase na tabela 'clientes' (com fallback para soft-delete em caso de 409 FK)
     try {
       const { error: err1 } = await supabase.from('clientes').delete().eq('id', id);
       if (err1 && (err1.code === '23503' || err1.message?.includes('foreign key') || err1.message?.includes('Conflict'))) {
-        await supabase.from('clientes').update({ status: 'Inativo', deleted: true, updated_at: new Date().toISOString() }).eq('id', id);
+        await supabase.from('clientes').update({ status: 'Inativo', updated_at: new Date().toISOString() }).eq('id', id);
       }
     } catch (err) {
       console.warn('[clienteService.deleteCliente] Warning deleting from clientes:', err);
@@ -215,7 +214,7 @@ export const clienteService = {
     try {
       const { error: err2 } = await supabase.from('clients').delete().eq('id', id);
       if (err2 && (err2.code === '23503' || err2.message?.includes('foreign key') || err2.message?.includes('Conflict'))) {
-        await supabase.from('clients').update({ status: 'deleted', name: `__DELETED__${id}`, updated_at: new Date().toISOString() }).eq('id', id);
+        await supabase.from('clients').update({ status: 'inativo', name: `__DELETED__${id}`, updated_at: new Date().toISOString() }).eq('id', id);
       }
     } catch (err) {
       console.warn('[clienteService.deleteCliente] Warning deleting from clients:', err);

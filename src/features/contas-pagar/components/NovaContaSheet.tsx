@@ -60,7 +60,7 @@ export function NovaContaSheet({ children }: { children: React.ReactNode }) {
     const val = parseFloat(valorOriginal) || 1000;
 
     const novaConta: ContaPagar = {
-      id: `pag-${Date.now()}`,
+      id: crypto.randomUUID(),
       numero: `PAG-${Math.floor(100 + Math.random() * 900)}`,
       fornecedor,
       descricao,

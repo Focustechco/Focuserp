@@ -60,7 +60,7 @@ export function NovoRecebimentoSheet({ children }: { children: React.ReactNode }
     const val = parseFloat(valorOriginal) || 1500;
 
     const novoTitulo: TituloReceber = {
-      id: `rec-${Date.now()}`,
+      id: crypto.randomUUID(),
       numero: `REC-${Math.floor(100 + Math.random() * 900)}`,
       cliente,
       descricao,

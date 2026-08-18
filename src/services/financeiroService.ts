@@ -6,6 +6,20 @@ import {
   ContaPagarDTO,
 } from '@/schemas/financeiroSchema';
 
+function toValidUuid(id?: string | null): string {
+  if (!id || typeof id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+    return crypto.randomUUID();
+  }
+  return id;
+}
+
+function toNullableValidUuid(id?: string | null): string | null {
+  if (!id || typeof id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+    return null;
+  }
+  return id;
+}
+
 /**
  * Service de dados para o módulo Financeiro (Contas a Receber e Contas a Pagar).
  */
@@ -75,7 +89,7 @@ export const financeiroService = {
 
   async saveContaReceber(titulo: TituloReceberDTO): Promise<TituloReceberDTO> {
     const validated = tituloReceberSchema.parse(titulo);
-    const id = validated.id || crypto.randomUUID();
+    const id = toValidUuid(validated.id);
     const validatedWithId = { ...validated, id };
 
     // Update local cache
@@ -92,18 +106,18 @@ export const financeiroService = {
 
     const payload = {
       id,
-      numero: validated.numero,
-      cliente_nome: validated.cliente,
-      cliente_id: validated.clienteId || null,
-      descricao: validated.descricao,
-      categoria: validated.categoria,
-      valor_original: validated.valorOriginal,
-      valor_recebido: validated.valorRecebido,
-      data_emissao: validated.dataEmissao,
-      data_vencimento: validated.dataVencimento,
+      numero: validated.numero || `REC-${id.slice(0, 4).toUpperCase()}`,
+      cliente_nome: validated.cliente || 'Cliente',
+      cliente_id: toNullableValidUuid(validated.clienteId),
+      descricao: validated.descricao || 'Recebimento de título',
+      categoria: validated.categoria || 'Receita Operacional',
+      valor_original: Number(validated.valorOriginal || 0),
+      valor_recebido: Number(validated.valorRecebido || 0),
+      data_emissao: validated.dataEmissao || new Date().toISOString().split('T')[0],
+      data_vencimento: validated.dataVencimento || new Date().toISOString().split('T')[0],
       data_recebimento: validated.dataRecebimento || null,
-      forma_pagamento: validated.formaPagamento,
-      status: validated.status,
+      forma_pagamento: validated.formaPagamento || 'PIX',
+      status: validated.status || 'Pendente',
       updated_at: new Date().toISOString(),
     };
 
@@ -206,7 +220,7 @@ export const financeiroService = {
 
   async saveContaPagar(conta: ContaPagarDTO): Promise<ContaPagarDTO> {
     const validated = contaPagarSchema.parse(conta);
-    const id = validated.id || crypto.randomUUID();
+    const id = toValidUuid(validated.id);
     const validatedWithId = { ...validated, id };
 
     // Update local cache
@@ -223,18 +237,18 @@ export const financeiroService = {
 
     const payload = {
       id,
-      numero: validated.numero,
-      fornecedor_nome: validated.fornecedor,
-      fornecedor_id: validated.fornecedorId || null,
-      descricao: validated.descricao,
-      categoria: validated.categoria,
-      valor_original: validated.valorOriginal,
-      valor_pago: validated.valorPago,
-      data_emissao: validated.dataEmissao,
-      data_vencimento: validated.dataVencimento,
+      numero: validated.numero || `PAG-${id.slice(0, 4).toUpperCase()}`,
+      fornecedor_nome: validated.fornecedor || 'Fornecedor',
+      fornecedor_id: toNullableValidUuid(validated.fornecedorId),
+      descricao: validated.descricao || 'Despesa operacional',
+      categoria: validated.categoria || 'Despesa Operacional',
+      valor_original: Number(validated.valorOriginal || 0),
+      valor_pago: Number(validated.valorPago || 0),
+      data_emissao: validated.dataEmissao || new Date().toISOString().split('T')[0],
+      data_vencimento: validated.dataVencimento || new Date().toISOString().split('T')[0],
       data_pagamento: validated.dataPagamento || null,
-      forma_pagamento: validated.formaPagamento,
-      status: validated.status,
+      forma_pagamento: validated.formaPagamento || 'Boleto',
+      status: validated.status || 'Pendente',
       updated_at: new Date().toISOString(),
     };
 
