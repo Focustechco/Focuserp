@@ -62,11 +62,11 @@ export function TopBar() {
     { title: "Contas a Receber", category: "Módulo", url: "/contas-a-receber", icon: Wallet },
     { title: "Contas a Pagar", category: "Módulo", url: "/contas-a-pagar", icon: Wallet },
     { title: "Clientes", category: "Módulo", url: "/clientes", icon: Users },
-    { title: "Módulo de Vendas & CRM", category: "Módulo", url: "/crm", icon: ShoppingCart },
-    { title: "Gestão de Projetos & Tarefas", category: "Módulo", url: "/projetos", icon: FolderKanban },
+    { title: "Contratos", category: "Módulo", url: "/contratos", icon: FileText },
+    { title: "Projetos", category: "Módulo", url: "/projetos", icon: Briefcase },
     { title: "Central de Relatórios", category: "Módulo", url: "/relatorios", icon: BarChart3 },
-    { title: "Configurações Globais", category: "Sistema", url: "/configuracoes", icon: Settings },
-    { title: "Hub de Integraes", category: "Módulo", url: "/integracoes", icon: Plug },
+    { title: "Central de Documentos (DMS)", category: "Módulo", url: "/documentos", icon: FolderOpen },
+    { title: "Hub de Integrações", category: "Módulo", url: "/integracoes", icon: Plug },
   ];
 
   // Resultados dinâmicos da pesquisa seguros
