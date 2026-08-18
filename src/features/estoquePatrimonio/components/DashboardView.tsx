@@ -36,8 +36,8 @@ export function DashboardView({ onNavigateTab }: DashboardViewProps) {
   // Metrics Calculations
   const totalAtivos = equipamentos.length;
   const equipamentosEmUso = equipamentos.filter((e) => e.situacao === 'Em Uso').length;
-  const equipamentosDisponiveis = equipamentos.filter((e) => e.situacao === 'Disponvel').length;
-  const equipamentosManutencao = equipamentos.filter((e) => e.situacao === 'Manuteno').length;
+  const equipamentosDisponiveis = equipamentos.filter((e) => e.situacao === 'Disponível').length;
+  const equipamentosManutencao = equipamentos.filter((e) => e.situacao === 'Manutenção').length;
 
   const licencasAtivas = licencas.length;
   const licencasProximasVencimento = licencas.filter((l) => {
@@ -49,7 +49,7 @@ export function DashboardView({ onNavigateTab }: DashboardViewProps) {
   const valorPatrimonialTotal = patrimonios.reduce((acc, p) => acc + p.valorAtual, 0);
   const valorCompraTotal = patrimonios.reduce((acc, p) => acc + p.valorCompra, 0);
 
-  const inventariosPendentes = inventarios.filter((i) => i.status !== 'Concludo').length;
+  const inventariosPendentes = inventarios.filter((i) => i.status !== 'Concluído').length;
 
   const estoqueBaixoCount = estoqueItens.filter((i) => i.quantidade <= i.quantidadeMinima).length;
 
@@ -70,12 +70,12 @@ export function DashboardView({ onNavigateTab }: DashboardViewProps) {
             </div>
             <div>
               <h4 className="text-sm font-semibold text-amber-900 dark:text-amber-200">
-                Ateno Operacional no Inventrio de TI
+                Atenção Operacional no Inventário de TI
               </h4>
               <p className="text-xs text-amber-700 dark:text-amber-400">
-                {estoqueBaixoCount > 0 && `${estoqueBaixoCount} item(ns) de estoque abaixo da quantidade mnima. `}
-                {licencasProximasVencimento > 0 && `${licencasProximasVencimento} licenas vencendo nos prximos 90 dias. `}
-                {equipamentosManutencao > 0 && `${equipamentosManutencao} equipamento(s) em manuteno.`}
+                {estoqueBaixoCount > 0 && `${estoqueBaixoCount} item(ns) de estoque abaixo da quantidade mínima. `}
+                {licencasProximasVencimento > 0 && `${licencasProximasVencimento} licenças vencendo nos próximos 90 dias. `}
+                {equipamentosManutencao > 0 && `${equipamentosManutencao} equipamento(s) em manutenção.`}
               </p>
             </div>
           </div>
@@ -86,7 +86,7 @@ export function DashboardView({ onNavigateTab }: DashboardViewProps) {
               className="text-xs border-amber-500/40 text-amber-700 hover:bg-amber-500/10 dark:text-amber-300"
               onClick={() => onNavigateTab('estoque')}
             >
-              Ver Estoque Fsico
+              Ver Estoque Físico
             </Button>
             <Button
               variant="outline"
@@ -94,7 +94,7 @@ export function DashboardView({ onNavigateTab }: DashboardViewProps) {
               className="text-xs border-amber-500/40 text-amber-700 hover:bg-amber-500/10 dark:text-amber-300"
               onClick={() => onNavigateTab('licencas')}
             >
-              Ver Licenas
+              Ver Licenças
             </Button>
           </div>
         </div>
@@ -147,11 +147,11 @@ export function DashboardView({ onNavigateTab }: DashboardViewProps) {
           </CardContent>
         </Card>
 
-        {/* Equipamentos Disponveis */}
+        {/* Equipamentos Disponíveis */}
         <Card className="hover:shadow-md transition-shadow border-border/80">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Disponveis (Pool)
+              Disponíveis (Pool)
             </CardTitle>
             <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600">
               <Package className="h-4 w-4" />
@@ -163,11 +163,11 @@ export function DashboardView({ onNavigateTab }: DashboardViewProps) {
           </CardContent>
         </Card>
 
-        {/* Equipamentos em Manuteno */}
+        {/* Equipamentos em Manutenção */}
         <Card className="hover:shadow-md transition-shadow border-border/80">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Em Manuteno
+              Em Manutenção
             </CardTitle>
             <div className="p-2 rounded-lg bg-amber-500/10 text-amber-600">
               <Wrench className="h-4 w-4" />
@@ -179,11 +179,11 @@ export function DashboardView({ onNavigateTab }: DashboardViewProps) {
           </CardContent>
         </Card>
 
-        {/* Licenas Ativas */}
+        {/* Licenças Ativas */}
         <Card className="hover:shadow-md transition-shadow border-border/80">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Licenas Ativas
+              Licenças Ativas
             </CardTitle>
             <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-600">
               <KeyRound className="h-4 w-4" />
@@ -195,11 +195,11 @@ export function DashboardView({ onNavigateTab }: DashboardViewProps) {
           </CardContent>
         </Card>
 
-        {/* Licenas Prximas do Vencimento */}
+        {/* Licenças Próximas do Vencimento */}
         <Card className="hover:shadow-md transition-shadow border-border/80">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Vencimentos Prximos
+              Vencimentos Próximos
             </CardTitle>
             <div className="p-2 rounded-lg bg-rose-500/10 text-rose-600">
               <AlertTriangle className="h-4 w-4" />
@@ -207,7 +207,7 @@ export function DashboardView({ onNavigateTab }: DashboardViewProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-extrabold text-foreground">{licencasProximasVencimento}</div>
-            <p className="text-xs text-rose-500 mt-1 font-medium">Requerem renovao nos prximos 90d</p>
+            <p className="text-xs text-rose-500 mt-1 font-medium">Requerem renovação nos próximos 90d</p>
           </CardContent>
         </Card>
 
@@ -232,11 +232,11 @@ export function DashboardView({ onNavigateTab }: DashboardViewProps) {
           </CardContent>
         </Card>
 
-        {/* Inventrios Pendentes */}
+        {/* Inventários Pendentes */}
         <Card className="hover:shadow-md transition-shadow border-border/80">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Inventrios Pendentes
+              Inventários Pendentes
             </CardTitle>
             <div className="p-2 rounded-lg bg-purple-500/10 text-purple-600">
               <ClipboardList className="h-4 w-4" />
@@ -249,16 +249,16 @@ export function DashboardView({ onNavigateTab }: DashboardViewProps) {
         </Card>
       </div>
 
-      {/* DASHBOARD SEGUNDA SEO - DISTRIBUIO E RESUMO DE LICENAS */}
+      {/* DASHBOARD SEGUNDA SEÇÃO - DISTRIBUIÇÃO E RESUMO DE LICENÇAS */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Distribuio por Categoria */}
+        {/* Distribuição por Categoria */}
         <Card className="lg:col-span-2">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-base font-bold">Distribuio de Ativos por Categoria</CardTitle>
+                <CardTitle className="text-base font-bold">Distribuição de Ativos por Categoria</CardTitle>
                 <CardDescription className="text-xs">
-                  Viso quantitativa de equipamentos corporativos em estoque e uso
+                  Visão quantitativa de equipamentos corporativos em estoque e uso
                 </CardDescription>
               </div>
               <Button variant="ghost" size="sm" className="text-xs text-primary" onClick={() => onNavigateTab('equipamentos')}>
@@ -292,14 +292,14 @@ export function DashboardView({ onNavigateTab }: DashboardViewProps) {
           </CardContent>
         </Card>
 
-        {/* Resumo de Licenas e Assinaturas */}
+        {/* Resumo de Licenças e Assinaturas */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base font-bold">Softwares e Licenas Critical</CardTitle>
+              <CardTitle className="text-base font-bold">Softwares e Licenças Críticas</CardTitle>
               <ShieldCheck className="h-5 w-5 text-indigo-500" />
             </div>
-            <CardDescription className="text-xs">Uso de assentos e expirao de SaaS</CardDescription>
+            <CardDescription className="text-xs">Uso de assentos e expiração de SaaS</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {licencas.slice(0, 4).map((lic) => {
@@ -333,7 +333,7 @@ export function DashboardView({ onNavigateTab }: DashboardViewProps) {
               className="w-full text-xs mt-2"
               onClick={() => onNavigateTab('licencas')}
             >
-              Ver Todas as {licencas.length} Licenas
+              Ver Todas as {licencas.length} Licenças
             </Button>
           </CardContent>
         </Card>

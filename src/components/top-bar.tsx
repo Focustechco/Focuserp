@@ -57,16 +57,16 @@ export function TopBar() {
   }, []);
 
   const systemPages: QuickLink[] = [
-    { title: "Dashboard Executivo", category: "Mdulo", url: "/", icon: LayoutDashboard },
-    { title: "Fluxo de Caixa", category: "Mdulo", url: "/fluxo-de-caixa", icon: Wallet },
-    { title: "Contas a Receber", category: "Mdulo", url: "/contas-a-receber", icon: Wallet },
-    { title: "Contas a Pagar", category: "Mdulo", url: "/contas-a-pagar", icon: Wallet },
-    { title: "Clientes", category: "Mdulo", url: "/clientes", icon: Users },
-    { title: "Contratos", category: "Mdulo", url: "/contratos", icon: FileText },
-    { title: "Projetos", category: "Mdulo", url: "/projetos", icon: Briefcase },
-    { title: "Central de Relatrios", category: "Mdulo", url: "/relatorios", icon: BarChart3 },
-    { title: "Central de Documentos (DMS)", category: "Mdulo", url: "/documentos", icon: FolderOpen },
-    { title: "Hub de Integraes", category: "Mdulo", url: "/integracoes", icon: Plug },
+    { title: "Dashboard Executivo", category: "Módulo", url: "/", icon: LayoutDashboard },
+    { title: "Fluxo de Caixa", category: "Módulo", url: "/fluxo-de-caixa", icon: Wallet },
+    { title: "Contas a Receber", category: "Módulo", url: "/contas-a-receber", icon: Wallet },
+    { title: "Contas a Pagar", category: "Módulo", url: "/contas-a-pagar", icon: Wallet },
+    { title: "Clientes", category: "Módulo", url: "/clientes", icon: Users },
+    { title: "Módulo de Vendas & CRM", category: "Módulo", url: "/crm", icon: ShoppingCart },
+    { title: "Gestão de Projetos & Tarefas", category: "Módulo", url: "/projetos", icon: FolderKanban },
+    { title: "Central de Relatórios", category: "Módulo", url: "/relatorios", icon: BarChart3 },
+    { title: "Configurações Globais", category: "Sistema", url: "/configuracoes", icon: Settings },
+    { title: "Hub de Integraes", category: "Módulo", url: "/integracoes", icon: Plug },
   ];
 
   // Resultados dinâmicos da pesquisa seguros
@@ -114,7 +114,7 @@ export function TopBar() {
         <div className="ml-auto flex items-center gap-2.5">
           <NotificationBellDropdown />
 
-          {/* BOTO NOVA TRANSAO */}
+          {/* BOTÃO NOVA TRANSAÇÃO */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button 
@@ -123,14 +123,14 @@ export function TopBar() {
                 className="inline-flex items-center gap-1.5 h-8 px-2 sm:px-3 text-xs font-semibold border-orange-500/30 text-orange-600 dark:text-orange-400 bg-orange-50/50 hover:bg-orange-100/80 dark:bg-orange-950/30 dark:hover:bg-orange-900/50 transition-all rounded-lg shadow-xs"
               >
                 <Plus className="h-3.5 w-3.5 text-orange-500" />
-                <span className="hidden sm:inline">Nova Transao</span>
+                <span className="hidden sm:inline">Nova Transação</span>
                 <ChevronDown className="hidden sm:inline h-3 w-3 opacity-60 ml-0.5" />
               </Button>
             </DropdownMenuTrigger>
 
             <DropdownMenuContent align="end" className="w-72 p-1.5 space-y-1">
               <DropdownMenuLabel className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-2 py-1">
-                Criar Nova Transao / Lanamento
+                Criar Nova Transação / Lançamento
               </DropdownMenuLabel>
               
               <NovoRecebimentoSheet>
@@ -217,7 +217,7 @@ export function TopBar() {
               <Search className="w-4 h-4 text-muted-foreground ml-1" />
               <Input
                 autoFocus
-                placeholder="Digite o que deseja buscar (ex: Clientes, Contratos, Relatrios)..."
+                placeholder="Digite o que deseja buscar (ex: Clientes, Contratos, Relatórios)..."
                 value={query}
                 onChange={e => setQuery(e.target.value)}
                 className="border-none shadow-none focus-visible:ring-0 text-sm bg-transparent h-9"

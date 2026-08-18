@@ -259,7 +259,7 @@ export function EquipamentosView() {
         <div>
           <h2 className="text-xl font-bold tracking-tight text-foreground">Equipamentos & Hardware ITAM</h2>
           <p className="text-xs text-muted-foreground">
-            Cadastro centralizado de ativos fsicos, atribuies a colaboradores e histrico de ciclo de vida
+            Cadastro centralizado de ativos físicos, atribuições a colaboradores e histórico de ciclo de vida
           </p>
         </div>
         <Button onClick={() => setIsNovoModalOpen(true)} className="gap-2 text-xs">
@@ -273,7 +273,7 @@ export function EquipamentosView() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar por cdigo patrimonial, marca, modelo, serial ou responsvel..."
+              placeholder="Buscar por código patrimonial, marca, modelo, serial ou responsável..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9 text-xs"
@@ -297,13 +297,13 @@ export function EquipamentosView() {
           <div className="w-full md:w-40">
             <Select value={situacaoFilter} onValueChange={setSituacaoFilter}>
               <SelectTrigger className="text-xs">
-                <SelectValue placeholder="Situao" />
+                <SelectValue placeholder="Situação" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="todos">Todas Situaes</SelectItem>
+                <SelectItem value="todos">Todas Situações</SelectItem>
                 <SelectItem value="Em Uso">Em Uso</SelectItem>
-                <SelectItem value="Disponvel">Disponvel</SelectItem>
-                <SelectItem value="Manuteno">Manuteno</SelectItem>
+                <SelectItem value="Disponível">Disponível</SelectItem>
+                <SelectItem value="Manutenção">Manutenção</SelectItem>
                 <SelectItem value="Baixa">Baixa</SelectItem>
               </SelectContent>
             </Select>
@@ -322,12 +322,12 @@ export function EquipamentosView() {
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
-                <TableHead className="text-xs">Patrimnio / Dispositivo</TableHead>
+                <TableHead className="text-xs">Patrimônio / Dispositivo</TableHead>
                 <TableHead className="text-xs">Categoria</TableHead>
-                <TableHead className="text-xs">Responsvel / Setor</TableHead>
-                <TableHead className="text-xs">Especificaes / Serial</TableHead>
+                <TableHead className="text-xs">Responsável / Setor</TableHead>
+                <TableHead className="text-xs">Especificações / Serial</TableHead>
                 <TableHead className="text-xs">Valor / Garantia</TableHead>
-                <TableHead className="text-xs">Situao</TableHead>
+                <TableHead className="text-xs">Situação</TableHead>
                 <TableHead className="text-xs text-right">Aes</TableHead>
               </TableRow>
             </TableHeader>
@@ -413,12 +413,12 @@ export function EquipamentosView() {
                       )}
                       {eq.situacao === 'Disponvel' && (
                         <Badge variant="outline" className="text-[10px] bg-blue-500/10 text-blue-600 border-blue-500/30">
-                          Disponvel
+                          Disponível
                         </Badge>
                       )}
-                      {eq.situacao === 'Manuteno' && (
+                      {eq.situacao === 'Manutenção' && (
                         <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-600 border-amber-500/30">
-                          Manuteno
+                          Manutenção
                         </Badge>
                       )}
                       {eq.situacao === 'Baixa' && (
@@ -430,19 +430,19 @@ export function EquipamentosView() {
 
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
-                        {/* Boto Transferir */}
+                        {/* Botão Transferir */}
                         <Button
                           variant="ghost"
                           size="sm"
                           className="h-7 text-xs gap-1"
-                          title="Transferir Responsvel"
+                          title="Transferir Responsável"
                           onClick={() => {
                             setSelectedEquipamento(eq);
                             setTransfForm({
                               novoResponsavel: eq.colaboradorNome || '',
                               novoDepartamento: eq.departamento || 'Engenharia de Software',
-                              novaLocalizacao: eq.localFisica || 'Estao de Trabalho',
-                              observacao: 'Mudana de titularidade.',
+                              novaLocalizacao: eq.localFisica || 'Estação de Trabalho',
+                              observacao: 'Mudança de titularidade.',
                             });
                             setIsTransferModalOpen(true);
                           }}
@@ -450,12 +450,12 @@ export function EquipamentosView() {
                           <ArrowRightLeft className="h-3.5 w-3.5 text-blue-600" />
                         </Button>
 
-                        {/* Boto Timeline */}
+                        {/* Botão Timeline */}
                         <Button
                           variant="ghost"
                           size="sm"
                           className="h-7 text-xs gap-1"
-                          title="Histrico / Timeline"
+                          title="Histórico / Timeline"
                           onClick={() => {
                             setSelectedEquipamento(eq);
                             setIsTimelineModalOpen(true);
@@ -464,12 +464,12 @@ export function EquipamentosView() {
                           <History className="h-3.5 w-3.5 text-indigo-600" />
                         </Button>
 
-                        {/* Boto Manuteno */}
+                        {/* Botão Manutenção */}
                         <Button
                           variant="ghost"
                           size="sm"
                           className="h-7 text-xs gap-1"
-                          title="Abrir Manuteno"
+                          title="Abrir Manutenção"
                           onClick={() => {
                             setSelectedEquipamento(eq);
                             setIsManutencaoModalOpen(true);

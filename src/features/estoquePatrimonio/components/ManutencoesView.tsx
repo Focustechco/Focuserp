@@ -40,54 +40,54 @@ export function ManutencoesView() {
       {/* HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-foreground">Ordens de Manuteno & Upgrades</h2>
+          <h2 className="text-xl font-bold tracking-tight text-foreground">Ordens de Manutenção & Upgrades</h2>
           <p className="text-xs text-muted-foreground">
-            Controle de manutenes preventivas, corretivas, substituio de componentes e custos operacionais
+            Controle de manutenções preventivas, corretivas, substituição de componentes e custos operacionais
           </p>
         </div>
       </div>
 
-      {/* KPI GASTO EM MANUTENO */}
+      {/* KPI GASTO EM MANUTENÇÃO */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="bg-amber-500/5 border-amber-500/20">
           <CardHeader className="pb-2">
             <CardTitle className="text-xs uppercase text-amber-600 dark:text-amber-400 font-bold">
-              Total Investido em Manutenes
+              Total Investido em Manutenções
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-extrabold text-foreground">
               R$ {(totalGastoManutencao || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
-            <p className="text-[11px] text-muted-foreground mt-1">Soma de upgrades e reparos tcnicos</p>
+            <p className="text-[11px] text-muted-foreground mt-1">Soma de upgrades e reparos técnicos</p>
           </CardContent>
         </Card>
 
         <Card className="bg-blue-500/5 border-blue-500/20">
           <CardHeader className="pb-2">
             <CardTitle className="text-xs uppercase text-blue-600 dark:text-blue-400 font-bold">
-              Ordens Concludas
+              Ordens Concluídas
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-extrabold text-foreground">
-              {manutencoes.filter((m) => m.status === 'Concluda').length}
+              {manutencoes.filter((m) => m.status === 'Concluída' || m.status === 'Concluído').length}
             </div>
-            <p className="text-[11px] text-muted-foreground mt-1">Servios executados e validados</p>
+            <p className="text-[11px] text-muted-foreground mt-1">Serviços executados e validados</p>
           </CardContent>
         </Card>
 
         <Card className="bg-purple-500/5 border-purple-500/20">
           <CardHeader className="pb-2">
             <CardTitle className="text-xs uppercase text-purple-600 dark:text-purple-400 font-bold">
-              Em Execuo
+              Em Execução
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-extrabold text-foreground">
-              {manutencoes.filter((m) => m.status === 'Em Execuo').length}
+              {manutencoes.filter((m) => m.status === 'Em Execução' || m.status === 'Em Progresso').length}
             </div>
-            <p className="text-[11px] text-muted-foreground mt-1">Equipamentos em assistncia tcnica</p>
+            <p className="text-[11px] text-muted-foreground mt-1">Equipamentos em assistência técnica</p>
           </CardContent>
         </Card>
       </div>
@@ -98,7 +98,7 @@ export function ManutencoesView() {
           <div className="relative">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar por equipamento, descrio do servio ou tcnico responsvel..."
+              placeholder="Buscar por equipamento, descrição do serviço ou técnico responsável..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9 text-xs"
@@ -107,10 +107,10 @@ export function ManutencoesView() {
         </CardContent>
       </Card>
 
-      {/* TABELA DE MANUTENES */}
+      {/* TABELA DE MANUTENÇÕES */}
       <Card>
         <CardHeader className="py-4">
-          <CardTitle className="text-sm font-semibold">Chamados de Manuteno ({filtered.length})</CardTitle>
+          <CardTitle className="text-sm font-semibold">Chamados de Manutenção ({filtered.length})</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
@@ -119,18 +119,18 @@ export function ManutencoesView() {
                 <TableHead className="text-xs">Data</TableHead>
                 <TableHead className="text-xs">Equipamento</TableHead>
                 <TableHead className="text-xs">Tipo</TableHead>
-                <TableHead className="text-xs">Descrio dos Servios</TableHead>
+                <TableHead className="text-xs">Descrição dos Serviços</TableHead>
                 <TableHead className="text-xs">Valor (R$)</TableHead>
-                <TableHead className="text-xs">Tcnico / Responsvel</TableHead>
+                <TableHead className="text-xs">Técnico / Responsável</TableHead>
                 <TableHead className="text-xs">Status</TableHead>
-                <TableHead className="text-xs text-right">Aes</TableHead>
+                <TableHead className="text-xs text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-8 text-xs text-muted-foreground">
-                    Nenhuma ordem de manuteno encontrada.
+                    Nenhuma ordem de manutenção encontrada.
                   </TableCell>
                 </TableRow>
               ) : (
