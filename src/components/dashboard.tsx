@@ -106,18 +106,22 @@ function StatCard({ label, value, delta, hint, icon: Icon, accent = "primary" }:
 }
 
 export function Dashboard() {
-  const { recebimentos: contasReceber = [] } = useContasReceberQuery();
-  const { contas: contasPagar = [] } = useContasPagarQuery();
+  const { titulos = [], recebimentos = [] } = useContasReceberQuery();
+  const contasReceber = titulos.length > 0 ? titulos : recebimentos;
+
+  const { contas = [], contasPagar = [] } = useContasPagarQuery();
+  const listContasPagar = contas.length > 0 ? contas : contasPagar;
+
   const { clientes = [] } = useClientesQuery();
   const { data: contratos = [] } = useLocalStorageState<Contrato>("focus_contratos");
 
   // Cálculos dinâmicos
-  const totalRecebido = contasReceber.reduce((acc, c) => acc + (c.valorRecebido || 0), 0);
-  const totalPago = contasPagar.reduce((acc, c) => acc + (c.valorPago || 0), 0);
+  const totalRecebido = contasReceber.reduce((acc, c) => acc + (c.valorRecebido || (c.status === "Recebido" ? c.valorOriginal : 0) || 0), 0);
+  const totalPago = listContasPagar.reduce((acc, c) => acc + (c.valorPago || (c.status === "Pago" ? c.valorOriginal : 0) || 0), 0);
   const saldoEmCaixa = totalRecebido - totalPago;
 
   const receitasDoMes = contasReceber.reduce((acc, c) => acc + (c.valorOriginal || 0), 0);
-  const despesasDoMes = contasPagar.reduce((acc, c) => acc + (c.valorOriginal || 0), 0);
+  const despesasDoMes = listContasPagar.reduce((acc, c) => acc + (c.valorOriginal || 0), 0);
   const lucroLiquido = receitasDoMes - despesasDoMes;
 
   const mrr = contratos.reduce((acc, c) => acc + (c.valorMensalidade || (c as any).valor_mensal || 0), 0);
@@ -143,7 +147,7 @@ export function Dashboard() {
 
   // Agrupamento por Categoria para Despesas
   const catMapDespesa: Record<string, number> = {};
-  contasPagar.forEach((c) => {
+  listContasPagar.forEach((c) => {
     const cat = c.categoria || "Operacional";
     catMapDespesa[cat] = (catMapDespesa[cat] || 0) + (c.valorOriginal || 0);
   });

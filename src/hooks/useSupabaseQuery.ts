@@ -300,6 +300,8 @@ export function useContasReceberQuery() {
 
   return {
     contasReceber: query.data ?? [],
+    titulos: query.data ?? [],
+    recebimentos: query.data ?? [],
     isLoading: query.isLoading,
     isError: query.isError,
     error: query.error,

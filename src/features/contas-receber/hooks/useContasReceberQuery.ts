@@ -42,6 +42,8 @@ export function useContasReceberQuery() {
 
   return {
     titulos,
+    recebimentos: titulos,
+    contasReceber: titulos,
     isLoading,
     isError,
     error,
