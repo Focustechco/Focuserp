@@ -57,17 +57,19 @@ export function ProdutosScreen() {
 
       {/* SEPARADOR DE ABAS PRINCIPAIS */}
       <Tabs value={mainTab} onValueChange={(val: any) => setMainTab(val)} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 lg:w-[450px]">
-          <TabsTrigger value="catalogo" className="text-xs font-semibold gap-1.5">
-            <Boxes className="h-4 w-4" /> Catálogo
-          </TabsTrigger>
-          <TabsTrigger value="dashboard" className="text-xs font-semibold gap-1.5">
-            <LayoutDashboard className="h-4 w-4" /> Dashboard Executivo
-          </TabsTrigger>
-          <TabsTrigger value="workspace" disabled={!selectedProduto} className="text-xs font-semibold gap-1.5">
-            <Sparkles className="h-4 w-4" /> Workspace {selectedProduto ? `(${selectedProduto.nome})` : ''}
-          </TabsTrigger>
-        </TabsList>
+        <div className="w-full overflow-x-auto scrollbar-hide border-b pb-1">
+          <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
+            <TabsTrigger value="catalogo" className="text-xs font-semibold gap-1.5 shrink-0">
+              <Boxes className="h-4 w-4" /> Catálogo
+            </TabsTrigger>
+            <TabsTrigger value="dashboard" className="text-xs font-semibold gap-1.5 shrink-0">
+              <LayoutDashboard className="h-4 w-4" /> Dashboard Executivo
+            </TabsTrigger>
+            <TabsTrigger value="workspace" disabled={!selectedProduto} className="text-xs font-semibold gap-1.5 shrink-0">
+              <Sparkles className="h-4 w-4" /> Workspace {selectedProduto ? `(${selectedProduto.nome})` : ''}
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* CONTEÚDO DA ABA 1: CATÁLOGO */}
         <TabsContent value="catalogo" className="space-y-4 outline-none">

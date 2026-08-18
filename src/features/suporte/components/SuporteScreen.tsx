@@ -55,20 +55,22 @@ export function SuporteScreen() {
 
       {/* TABS PRINCIPAIS */}
       <Tabs value={mainTab} onValueChange={(val: any) => setMainTab(val)} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4 lg:w-[600px]">
-          <TabsTrigger value="chamados" className="text-xs font-semibold gap-1.5">
-            <Headphones className="h-4 w-4" /> Fila de Chamados
-          </TabsTrigger>
-          <TabsTrigger value="dashboard" className="text-xs font-semibold gap-1.5">
-            <LayoutDashboard className="h-4 w-4" /> Dashboard ITSM
-          </TabsTrigger>
-          <TabsTrigger value="kb" className="text-xs font-semibold gap-1.5">
-            <BookOpen className="h-4 w-4" /> Base de Conhecimento
-          </TabsTrigger>
-          <TabsTrigger value="workspace_individual" disabled={!selectedChamado} className="text-xs font-semibold gap-1.5">
-            <MessageSquare className="h-4 w-4" /> Workspace {selectedChamado ? `(${selectedChamado.numero})` : ''}
-          </TabsTrigger>
-        </TabsList>
+        <div className="w-full overflow-x-auto scrollbar-hide border-b pb-1">
+          <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
+            <TabsTrigger value="chamados" className="text-xs font-semibold gap-1.5 shrink-0">
+              <Headphones className="h-4 w-4" /> Fila de Chamados
+            </TabsTrigger>
+            <TabsTrigger value="dashboard" className="text-xs font-semibold gap-1.5 shrink-0">
+              <LayoutDashboard className="h-4 w-4" /> Dashboard ITSM
+            </TabsTrigger>
+            <TabsTrigger value="kb" className="text-xs font-semibold gap-1.5 shrink-0">
+              <BookOpen className="h-4 w-4" /> Base de Conhecimento
+            </TabsTrigger>
+            <TabsTrigger value="workspace_individual" disabled={!selectedChamado} className="text-xs font-semibold gap-1.5 shrink-0">
+              <MessageSquare className="h-4 w-4" /> Workspace {selectedChamado ? `(${selectedChamado.numero})` : ''}
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* ABA 1: FILA DE CHAMADOS */}
         <TabsContent value="chamados" className="space-y-4 outline-none">

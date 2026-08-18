@@ -123,26 +123,28 @@ export function WorkspaceChamado({
 
       {/* SUB-TABS DO CHAMADO */}
       <Tabs defaultValue="conversas" value={activeSubTab} onValueChange={setActiveSubTab} className="space-y-6">
-        <TabsList className="flex flex-wrap w-full justify-start h-auto p-1.5 bg-muted/60 border border-border">
-          <TabsTrigger value="conversas" className="text-xs gap-1.5">
-            <MessageSquare className="h-3.5 w-3.5" /> Conversas ({ticketMensagens.length})
-          </TabsTrigger>
-          <TabsTrigger value="visao_geral" className="text-xs gap-1.5">
-            <Building2 className="h-3.5 w-3.5" /> Visão Geral & CS Context
-          </TabsTrigger>
-          <TabsTrigger value="desenvolvimento" className="text-xs gap-1.5">
-            <Code2 className="h-3.5 w-3.5" /> Módulo Desenvolvimento
-          </TabsTrigger>
-          <TabsTrigger value="sla" className="text-xs gap-1.5">
-            <Clock className="h-3.5 w-3.5" /> SLA & Prazos
-          </TabsTrigger>
-          <TabsTrigger value="timeline" className="text-xs gap-1.5">
-            <Activity className="h-3.5 w-3.5" /> Timeline & Auditoria
-          </TabsTrigger>
-          <TabsTrigger value="kb" className="text-xs gap-1.5">
-            <BookOpen className="h-3.5 w-3.5" /> Base de Conhecimento
-          </TabsTrigger>
-        </TabsList>
+        <div className="w-full overflow-x-auto scrollbar-hide border-b pb-1">
+          <TabsList className="bg-muted/60 p-1 flex w-max min-w-full justify-start gap-1 border border-border">
+            <TabsTrigger value="conversas" className="text-xs gap-1.5 shrink-0">
+              <MessageSquare className="h-3.5 w-3.5" /> Conversas ({ticketMensagens.length})
+            </TabsTrigger>
+            <TabsTrigger value="visao_geral" className="text-xs gap-1.5 shrink-0">
+              <Building2 className="h-3.5 w-3.5" /> Visão Geral & CS Context
+            </TabsTrigger>
+            <TabsTrigger value="desenvolvimento" className="text-xs gap-1.5 shrink-0">
+              <Code2 className="h-3.5 w-3.5" /> Módulo Desenvolvimento
+            </TabsTrigger>
+            <TabsTrigger value="sla" className="text-xs gap-1.5 shrink-0">
+              <Clock className="h-3.5 w-3.5" /> SLA & Prazos
+            </TabsTrigger>
+            <TabsTrigger value="timeline" className="text-xs gap-1.5 shrink-0">
+              <Activity className="h-3.5 w-3.5" /> Timeline & Auditoria
+            </TabsTrigger>
+            <TabsTrigger value="kb" className="text-xs gap-1.5 shrink-0">
+              <BookOpen className="h-3.5 w-3.5" /> Base de Conhecimento
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* SUB-TAB 1: CONVERSAS & INTERAÇÕES */}
         <TabsContent value="conversas" className="space-y-6 outline-none">

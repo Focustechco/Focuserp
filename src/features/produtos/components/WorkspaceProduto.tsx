@@ -139,35 +139,37 @@ export function WorkspaceProduto({
 
       {/* TABS NATIVAS DO WORKSPACE */}
       <Tabs defaultValue="visao-geral" value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="flex flex-wrap w-full justify-start h-auto p-1 bg-muted/60 border border-border">
-          <TabsTrigger value="visao-geral" className="text-xs gap-1.5">
-            <Boxes className="h-3.5 w-3.5" /> Viso Geral
-          </TabsTrigger>
-          <TabsTrigger value="roadmap" className="text-xs gap-1.5">
-            <Sparkles className="h-3.5 w-3.5" /> Roadmap
-          </TabsTrigger>
-          <TabsTrigger value="funcionalidades" className="text-xs gap-1.5">
-            <Layers className="h-3.5 w-3.5" /> Funcionalidades & Mdulos
-          </TabsTrigger>
-          <TabsTrigger value="releases" className="text-xs gap-1.5">
-            <GitBranch className="h-3.5 w-3.5" /> Verses (Releases)
-          </TabsTrigger>
-          <TabsTrigger value="implementacoes" className="text-xs gap-1.5">
-            <Rocket className="h-3.5 w-3.5" /> Implementaes
-          </TabsTrigger>
-          <TabsTrigger value="clientes" className="text-xs gap-1.5">
-            <Users className="h-3.5 w-3.5" /> Clientes
-          </TabsTrigger>
-          <TabsTrigger value="integracoes" className="text-xs gap-1.5">
-            <Plug className="h-3.5 w-3.5" /> Integraes
-          </TabsTrigger>
-          <TabsTrigger value="equipe" className="text-xs gap-1.5">
-            <UserCheck className="h-3.5 w-3.5" /> Equipe
-          </TabsTrigger>
-          <TabsTrigger value="metricas" className="text-xs gap-1.5">
-            <TrendingUp className="h-3.5 w-3.5" /> Mtricas & KPIs
-          </TabsTrigger>
-        </TabsList>
+        <div className="w-full overflow-x-auto scrollbar-hide border-b pb-1">
+          <TabsList className="bg-muted/60 p-1 flex w-max min-w-full justify-start gap-1 border border-border">
+            <TabsTrigger value="visao-geral" className="text-xs gap-1.5 shrink-0">
+              <Boxes className="h-3.5 w-3.5" /> Visão Geral
+            </TabsTrigger>
+            <TabsTrigger value="roadmap" className="text-xs gap-1.5 shrink-0">
+              <Sparkles className="h-3.5 w-3.5" /> Roadmap
+            </TabsTrigger>
+            <TabsTrigger value="funcionalidades" className="text-xs gap-1.5 shrink-0">
+              <Layers className="h-3.5 w-3.5" /> Funcionalidades & Módulos
+            </TabsTrigger>
+            <TabsTrigger value="releases" className="text-xs gap-1.5 shrink-0">
+              <GitBranch className="h-3.5 w-3.5" /> Versões (Releases)
+            </TabsTrigger>
+            <TabsTrigger value="implementacoes" className="text-xs gap-1.5 shrink-0">
+              <Rocket className="h-3.5 w-3.5" /> Implementações
+            </TabsTrigger>
+            <TabsTrigger value="clientes" className="text-xs gap-1.5 shrink-0">
+              <Users className="h-3.5 w-3.5" /> Clientes
+            </TabsTrigger>
+            <TabsTrigger value="integracoes" className="text-xs gap-1.5 shrink-0">
+              <Plug className="h-3.5 w-3.5" /> Integrações
+            </TabsTrigger>
+            <TabsTrigger value="equipe" className="text-xs gap-1.5 shrink-0">
+              <UserCheck className="h-3.5 w-3.5" /> Equipe
+            </TabsTrigger>
+            <TabsTrigger value="metricas" className="text-xs gap-1.5 shrink-0">
+              <TrendingUp className="h-3.5 w-3.5" /> Métricas & KPIs
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* TAB 1: VISO GERAL & LINKS TEIS */}
         <TabsContent value="visao-geral" className="space-y-6 outline-none">

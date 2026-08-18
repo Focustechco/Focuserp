@@ -168,43 +168,45 @@ export function WorkspaceDevProjeto({
         </div>
       </div>
 
-      {/* TABS TCNICAS DO WORKSPACE (15 SUB-TABNAV) */}
+      {/* TABS TÉCNICAS DO WORKSPACE (15 SUB-TABNAV) */}
       <Tabs defaultValue="kanban" value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="flex flex-wrap w-full justify-start h-auto p-1.5 bg-muted/60 border border-border">
-          <TabsTrigger value="kanban" className="text-xs gap-1.5">
-            <Layers className="h-3.5 w-3.5" /> Quadro Kanban
-          </TabsTrigger>
-          <TabsTrigger value="backlog" className="text-xs gap-1.5">
-            <Code2 className="h-3.5 w-3.5" /> Backlog
-          </TabsTrigger>
-          <TabsTrigger value="sprints" className="text-xs gap-1.5">
-            <PlayCircle className="h-3.5 w-3.5" /> Sprints & Burndown
-          </TabsTrigger>
-          <TabsTrigger value="git" className="text-xs gap-1.5">
-            <GitBranch className="h-3.5 w-3.5" /> Git & Branches
-          </TabsTrigger>
-          <TabsTrigger value="releases" className="text-xs gap-1.5">
-            <Rocket className="h-3.5 w-3.5" /> Releases
-          </TabsTrigger>
-          <TabsTrigger value="deploys" className="text-xs gap-1.5">
-            <Terminal className="h-3.5 w-3.5" /> Deploys
-          </TabsTrigger>
-          <TabsTrigger value="qa" className="text-xs gap-1.5">
-            <ShieldCheck className="h-3.5 w-3.5" /> QA Testes
-          </TabsTrigger>
-          <TabsTrigger value="bugs" className="text-xs gap-1.5">
-            <Bug className="h-3.5 w-3.5" /> Bugs ({projBugs.filter((b) => b.status !== 'Resolvido').length})
-          </TabsTrigger>
-          <TabsTrigger value="ambientes" className="text-xs gap-1.5">
-            <Server className="h-3.5 w-3.5" /> Ambientes
-          </TabsTrigger>
-          <TabsTrigger value="publicacoes" className="text-xs gap-1.5">
-            <Smartphone className="h-3.5 w-3.5" /> Publicaes App
-          </TabsTrigger>
-          <TabsTrigger value="logs" className="text-xs gap-1.5">
-            <Activity className="h-3.5 w-3.5" /> CI/CD & Logs
-          </TabsTrigger>
-        </TabsList>
+        <div className="w-full overflow-x-auto scrollbar-hide border-b pb-1">
+          <TabsList className="bg-muted/60 p-1 flex w-max min-w-full justify-start gap-1 border border-border">
+            <TabsTrigger value="kanban" className="text-xs gap-1.5 shrink-0">
+              <Layers className="h-3.5 w-3.5" /> Quadro Kanban
+            </TabsTrigger>
+            <TabsTrigger value="backlog" className="text-xs gap-1.5 shrink-0">
+              <Code2 className="h-3.5 w-3.5" /> Backlog
+            </TabsTrigger>
+            <TabsTrigger value="sprints" className="text-xs gap-1.5 shrink-0">
+              <PlayCircle className="h-3.5 w-3.5" /> Sprints & Burndown
+            </TabsTrigger>
+            <TabsTrigger value="git" className="text-xs gap-1.5 shrink-0">
+              <GitBranch className="h-3.5 w-3.5" /> Git & Branches
+            </TabsTrigger>
+            <TabsTrigger value="releases" className="text-xs gap-1.5 shrink-0">
+              <Rocket className="h-3.5 w-3.5" /> Releases
+            </TabsTrigger>
+            <TabsTrigger value="deploys" className="text-xs gap-1.5 shrink-0">
+              <Terminal className="h-3.5 w-3.5" /> Deploys
+            </TabsTrigger>
+            <TabsTrigger value="qa" className="text-xs gap-1.5 shrink-0">
+              <ShieldCheck className="h-3.5 w-3.5" /> QA Testes
+            </TabsTrigger>
+            <TabsTrigger value="bugs" className="text-xs gap-1.5 shrink-0">
+              <Bug className="h-3.5 w-3.5" /> Bugs ({projBugs.filter((b) => b.status !== 'Resolvido').length})
+            </TabsTrigger>
+            <TabsTrigger value="ambientes" className="text-xs gap-1.5 shrink-0">
+              <Server className="h-3.5 w-3.5" /> Ambientes
+            </TabsTrigger>
+            <TabsTrigger value="publicacoes" className="text-xs gap-1.5 shrink-0">
+              <Smartphone className="h-3.5 w-3.5" /> Publicações App
+            </TabsTrigger>
+            <TabsTrigger value="logs" className="text-xs gap-1.5 shrink-0">
+              <Activity className="h-3.5 w-3.5" /> CI/CD & Logs
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* SUB-TAB 1: KANBAN BOARD */}
         <TabsContent value="kanban" className="space-y-6 outline-none">
