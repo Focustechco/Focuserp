@@ -1,6 +1,7 @@
 import { useLocalStorageState } from "@/hooks/useDataStore";
 import { PastaDMS, DocumentoDMS, AuditLogDocumento, FormatoArquivo, ModuloOrigemDMS } from "../types";
 import { INITIAL_PASTAS, INITIAL_DOCUMENTOS } from "../data/initialData";
+import { dmsService } from "@/services/dmsService";
 
 export function useDocumentosStore() {
   const { data: pastas, addItem: addPastaItem, updateItem: updatePastaItem, removeItem: removePastaItem } = useLocalStorageState<PastaDMS>('focus_dms_pastas', INITIAL_PASTAS);
@@ -41,6 +42,7 @@ export function useDocumentosStore() {
     };
 
     addPastaItem(newFolder);
+    dmsService.savePasta(newFolder);
   };
 
   const uploadDocument = (params: {
@@ -102,6 +104,7 @@ export function useDocumentosStore() {
     };
 
     addDocItem(newDoc);
+    dmsService.saveDocumento(newDoc);
     logAction(newDoc.id, newDoc.nome, 'Upload', `Arquivo enviado para ${caminhoPasta}`);
   };
 

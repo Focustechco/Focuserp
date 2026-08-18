@@ -150,7 +150,7 @@ export function DmsExplorerView() {
                   <span className="truncate">{p.nome}</span>
                 </div>
                 <Badge variant="outline" className="text-[9px] px-1">
-                  {documentos.filter(d => d.caminhoPasta.startsWith(p.caminhoCompleto)).length}
+                  {documentos.filter(d => (d?.caminhoPasta || '').startsWith(p?.caminhoCompleto || '')).length}
                 </Badge>
               </div>
             ))}
