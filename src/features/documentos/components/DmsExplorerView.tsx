@@ -32,13 +32,13 @@ export function DmsExplorerView() {
   const currentPath = currentFolder ? currentFolder.caminhoCompleto : '/ (Raiz DMS)';
 
   // Pastas filhas da pasta atual
-  const visibleFolders = pastas.filter(p => p.parentId === currentFolderId && p.nome.toLowerCase().includes(search.toLowerCase()));
+  const visibleFolders = pastas.filter(p => p.parentId === currentFolderId && (p?.nome || '').toLowerCase().includes((search || '').toLowerCase()));
 
   // Documentos da pasta atual (ou pesquisa global se search estiver preenchido)
   const visibleDocs = documentos.filter(doc => {
-    const matchesSearch = doc.nome.toLowerCase().includes(search.toLowerCase()) || 
-      doc.codigo.toLowerCase().includes(search.toLowerCase()) ||
-      doc.tags.some(t => t.toLowerCase().includes(search.toLowerCase()));
+    const matchesSearch = (doc?.nome || '').toLowerCase().includes((search || '').toLowerCase()) || 
+      (doc?.codigo || '').toLowerCase().includes((search || '').toLowerCase()) ||
+      (doc?.tags || []).some(t => (t || '').toLowerCase().includes((search || '').toLowerCase()));
 
     if (search.trim()) return matchesSearch;
     return doc.pastaId === currentFolderId;

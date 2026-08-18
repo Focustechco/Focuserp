@@ -54,7 +54,7 @@ export function usePermissoesStore() {
     novoCargo: string, 
     novoPerfil: UserProfile
   ) => {
-    const targetUser = usuarios.find(u => u.id === usuarioId || u.email.toLowerCase() === usuarioId.toLowerCase());
+    const targetUser = usuarios.find(u => u.id === usuarioId || ((u?.email || '').toLowerCase() === (usuarioId || '').toLowerCase() && u?.email));
     
     if (targetUser) {
       updateUsuario(targetUser.id, {
@@ -67,8 +67,8 @@ export function usePermissoesStore() {
     // Procura o colaborador correspondente no módulo RH
     const targetColab = colaboradores.find(c => 
       c.usuarioVinculadoId === usuarioId || 
-      c.email.toLowerCase() === targetUser?.email.toLowerCase() ||
-      c.nomeCompleto.toLowerCase() === targetUser?.nome.toLowerCase()
+      ((c?.email || '').toLowerCase() === (targetUser?.email || '').toLowerCase() && targetUser?.email) ||
+      ((c?.nomeCompleto || '').toLowerCase() === (targetUser?.nome || '').toLowerCase() && targetUser?.nome)
     );
 
     if (targetColab) {

@@ -58,12 +58,12 @@ export function DocumentosLista({
 
   const filteredDocs = documentos.filter(doc => {
     const matchesSearch = 
-      doc.titulo.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      doc.codigoValidacao.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doc.categoria.toLowerCase().includes(searchTerm.toLowerCase());
+      (doc?.titulo || '').toLowerCase().includes((searchTerm || '').toLowerCase()) || 
+      (doc?.codigoValidacao || '').toLowerCase().includes((searchTerm || '').toLowerCase()) ||
+      (doc?.categoria || '').toLowerCase().includes((searchTerm || '').toLowerCase());
 
-    const matchesStatus = statusFilter === 'todos' || doc.status.toLowerCase() === statusFilter.toLowerCase();
-    const matchesTipo = tipoFilter === 'todos' || doc.tipoAssinaturaExigida.toLowerCase().includes(tipoFilter.toLowerCase());
+    const matchesStatus = statusFilter === 'todos' || (doc?.status || '').toLowerCase() === (statusFilter || '').toLowerCase();
+    const matchesTipo = tipoFilter === 'todos' || (doc?.tipoAssinaturaExigida || '').toLowerCase().includes((tipoFilter || '').toLowerCase());
 
     return matchesSearch && matchesStatus && matchesTipo;
   });
@@ -82,11 +82,12 @@ export function DocumentosLista({
     }
   };
 
-  const getTipoBadge = (tipo: string) => {
-    if (tipo.includes('Gov.br')) {
+  const getTipoBadge = (tipo?: string) => {
+    const safeTipo = tipo || '';
+    if (safeTipo.includes('Gov.br')) {
       return <Badge className="bg-emerald-600 text-white font-normal text-[11px]">Gov.br</Badge>;
     }
-    if (tipo.includes('ICP-Brasil')) {
+    if (safeTipo.includes('ICP-Brasil')) {
       return <Badge className="bg-cyan-600 text-white font-normal text-[11px]">ICP-Brasil A1/A3</Badge>;
     }
     return <Badge variant="secondary" className="font-normal text-[11px]">Eletrônica Simples</Badge>;

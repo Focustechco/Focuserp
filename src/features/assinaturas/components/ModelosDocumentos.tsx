@@ -16,8 +16,8 @@ export function ModelosDocumentos({ modelos, onUsarModelo }: ModelosDocumentosPr
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredModelos = modelos.filter(m => 
-    m.titulo.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    m.categoria.toLowerCase().includes(searchTerm.toLowerCase())
+    (m?.titulo || '').toLowerCase().includes((searchTerm || '').toLowerCase()) || 
+    (m?.categoria || '').toLowerCase().includes((searchTerm || '').toLowerCase())
   );
 
   return (

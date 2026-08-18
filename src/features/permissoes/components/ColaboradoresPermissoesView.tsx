@@ -23,10 +23,10 @@ export function ColaboradoresPermissoesView() {
   const [novoPerfil, setNovoPerfil] = useState<UserProfile>('Financeiro');
 
   const filteredUsers = usuarios.filter(u => 
-    u.nome.toLowerCase().includes(search.toLowerCase()) ||
-    u.email.toLowerCase().includes(search.toLowerCase()) ||
-    u.departamento.toLowerCase().includes(search.toLowerCase()) ||
-    u.cargo.toLowerCase().includes(search.toLowerCase())
+    (u?.nome || '').toLowerCase().includes((search || '').toLowerCase()) ||
+    (u?.email || '').toLowerCase().includes((search || '').toLowerCase()) ||
+    (u?.departamento || '').toLowerCase().includes((search || '').toLowerCase()) ||
+    (u?.cargo || '').toLowerCase().includes((search || '').toLowerCase())
   );
 
   const handleOpenEdit = (user: Usuario) => {
@@ -87,7 +87,10 @@ export function ColaboradoresPermissoesView() {
               </thead>
               <tbody>
                 {filteredUsers.map(user => {
-                  const rhSync = colaboradores.some(c => c.email.toLowerCase() === user.email.toLowerCase() || c.nomeCompleto.toLowerCase() === user.nome.toLowerCase());
+                  const rhSync = colaboradores.some(c => 
+                    ((c?.email || '').toLowerCase() === (user?.email || '').toLowerCase() && user?.email) || 
+                    ((c?.nomeCompleto || '').toLowerCase() === (user?.nome || '').toLowerCase() && user?.nome)
+                  );
 
                   return (
                     <tr key={user.id} className="border-b hover:bg-muted/30 transition-colors">

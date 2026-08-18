@@ -26,8 +26,8 @@ export function AssinaturasDashboard({ documentos, onNovoDocumento, onVerDocumen
   const total = documentos.length;
   const assinados = documentos.filter(d => d.status === 'Assinado').length;
   const aguardando = documentos.filter(d => d.status === 'Aguardando Assinatura' || d.status === 'Pendente').length;
-  const govBrCount = documentos.filter(d => d.tipoAssinaturaExigida.includes('Gov.br')).length;
-  const icpBrasilCount = documentos.filter(d => d.tipoAssinaturaExigida.includes('ICP-Brasil')).length;
+  const govBrCount = documentos.filter(d => (d?.tipoAssinaturaExigida || '').includes('Gov.br')).length;
+  const icpBrasilCount = documentos.filter(d => (d?.tipoAssinaturaExigida || '').includes('ICP-Brasil')).length;
 
   return (
     <div className="space-y-6 animate-fade-in">

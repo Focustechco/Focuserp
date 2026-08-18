@@ -104,7 +104,7 @@ export function DmsPreviewModal({ documento, isOpen, onClose }: PreviewProps) {
 
   // Gerador de contedo de texto/XML/CSV para visualizao simulada de arquivos reais
   const getSampleTextContent = () => {
-    const ext = documento.extensao.toLowerCase();
+    const ext = (documento?.extensao || '').toLowerCase();
     if (ext === 'xml') {
       return `<?xml version="1.0" encoding="UTF-8"?>
 <nfeProc xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00">
@@ -163,7 +163,7 @@ Qualquer alterao gera uma nova verso auditvel no histrico.`;
 
   // Renderizador Inline Inteligente do Contedo do Documento
   const renderInlineViewer = () => {
-    const ext = documento.extensao.toLowerCase();
+    const ext = (documento?.extensao || '').toLowerCase();
 
     // 1. IMAGENS (PNG, JPG, JPEG, SVG, WEBP)
     if (['png', 'jpg', 'jpeg', 'svg', 'webp', 'gif'].includes(ext)) {
