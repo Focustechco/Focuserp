@@ -19,7 +19,6 @@ export function ConfiguracoesLayout({ children, activeTab, onTabChange }: Config
     { id: 'apis', label: 'APIs e Chaves', icon: <Key className="w-4 h-4" /> },
     { id: 'webhooks', label: 'Webhooks', icon: <Webhook className="w-4 h-4" /> },
     { id: 'backup', label: 'Backup e Recuperação', icon: <HardDrive className="w-4 h-4" /> },
-    { id: 'logs', label: 'Logs do Sistema', icon: <ScrollText className="w-4 h-4" /> },
     { id: 'auditoria', label: 'Auditoria Geral', icon: <History className="w-4 h-4" /> },
     { id: 'dashboard', label: 'Status do Sistema', icon: <LayoutDashboard className="w-4 h-4" /> },
   ];

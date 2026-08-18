@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -6,13 +6,41 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { HardDrive, Download, RotateCcw, Save } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { toast } from 'sonner';
 
 export function ConfigBackup() {
-  const historico = [
+  const [historico, setHistorico] = useState([
     { id: 1, data: '2026-07-20T00:00:00', tipo: 'Automático', tamanho: '4.2 GB', status: 'Concluído' },
     { id: 2, data: '2026-07-19T00:00:00', tipo: 'Automático', tamanho: '4.1 GB', status: 'Concluído' },
     { id: 3, data: '2026-07-18T15:30:00', tipo: 'Manual', tamanho: '4.0 GB', status: 'Concluído' },
-  ];
+  ]);
+  const [generating, setGenerating] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const handleGerarBackup = () => {
+    setGenerating(true);
+    toast.info('Iniciando cópia de segurança e snapshot dos dados...');
+    setTimeout(() => {
+      setGenerating(false);
+      const newSnapshot = {
+        id: Date.now(),
+        data: new Date().toISOString(),
+        tipo: 'Manual',
+        tamanho: '4.3 GB',
+        status: 'Concluído'
+      };
+      setHistorico((prev) => [newSnapshot, ...prev]);
+      toast.success('Backup manual gerado e armazenado na nuvem com sucesso!');
+    }, 1000);
+  };
+
+  const handleSave = () => {
+    setSaving(true);
+    setTimeout(() => {
+      setSaving(false);
+      toast.success('Políticas de backup salvas com sucesso!');
+    }, 400);
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -21,8 +49,8 @@ export function ConfigBackup() {
           <h2 className="text-2xl font-bold tracking-tight">Backup e Recuperação</h2>
           <p className="text-muted-foreground mt-1">Gerencie a retenção de dados e snapshots de segurança da plataforma.</p>
         </div>
-        <Button className="gap-2">
-          <Save className="w-4 h-4" /> Salvar Configurações
+        <Button className="gap-2" onClick={handleSave} disabled={saving}>
+          <Save className="w-4 h-4" /> {saving ? "Salvando..." : "Salvar Configurações"}
         </Button>
       </div>
 
@@ -69,8 +97,8 @@ export function ConfigBackup() {
               </Select>
             </div>
             <div className="pt-4">
-              <Button variant="outline" className="w-full gap-2 text-primary border-primary hover:bg-primary/5">
-                <Download className="w-4 h-4" /> Gerar Backup Manual Agora
+              <Button variant="outline" className="w-full gap-2 text-primary border-primary hover:bg-primary/5" onClick={handleGerarBackup} disabled={generating}>
+                <Download className="w-4 h-4" /> {generating ? "Gerando Snapshot..." : "Gerar Backup Manual Agora"}
               </Button>
             </div>
           </CardContent>

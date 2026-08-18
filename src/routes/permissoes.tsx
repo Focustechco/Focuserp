@@ -24,7 +24,7 @@ function PermissoesPage() {
           </div>
           <div>
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">Permissões & Governança (RBAC)</h1>
+              <h1 className="text-3xl font-bold tracking-tight">Permissões & Governança</h1>
             </div>
             <p className="text-muted-foreground mt-1 text-sm">
               Gestão de perfis de acesso, matriz de permissões por módulo e alteração de setores com sincronização automática com os módulos RH e Usuários.
@@ -41,7 +41,7 @@ function PermissoesPage() {
               <Users className="w-4 h-4" /> Colaboradores & Sincronização de Setor
             </TabsTrigger>
             <TabsTrigger value="matriz" className="gap-2 shrink-0">
-              <Lock className="w-4 h-4" /> Matriz de Permissões (RBAC)
+              <Lock className="w-4 h-4" /> Matriz de Permissões
             </TabsTrigger>
             <TabsTrigger value="dashboard" className="gap-2 shrink-0">
               <LayoutGrid className="w-4 h-4" /> Dashboard de Governança

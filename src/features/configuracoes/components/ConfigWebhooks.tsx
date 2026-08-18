@@ -1,16 +1,46 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Webhook, Plus, Play, Trash2 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { toast } from 'sonner';
 
 export function ConfigWebhooks() {
-  const webhooks = [
+  const [webhooks, setWebhooks] = useState([
     { id: 1, evento: 'fatura.paga', endpoint: 'https://api.empresa.com/hooks/focus', metodo: 'POST', status: 'Ativo', ultimoStatus: '200 OK', ultimaExec: '2026-07-20T10:15:00' },
     { id: 2, evento: 'cliente.criado', endpoint: 'https://crm.empresa.com/sync', metodo: 'POST', status: 'Ativo', ultimoStatus: '201 Created', ultimaExec: '2026-07-19T14:22:00' },
     { id: 3, evento: 'contrato.vencido', endpoint: 'https://zap.webhook.com/x992', metodo: 'POST', status: 'Falha', ultimoStatus: '500 Server Error', ultimaExec: '2026-07-20T08:00:00' }
-  ];
+  ]);
+
+  const handleCreateWebhook = () => {
+    const endpoint = prompt('URL de Destino do Webhook (Ex: https://api.exemplo.com/webhook):');
+    if (!endpoint) return;
+    const evento = prompt('Nome do Evento (Ex: conta.paga, contrato.assinado):') || 'evento.customizado';
+    const newHook = {
+      id: Date.now(),
+      evento,
+      endpoint,
+      metodo: 'POST',
+      status: 'Ativo',
+      ultimoStatus: '200 OK',
+      ultimaExec: new Date().toISOString()
+    };
+    setWebhooks((prev) => [newHook, ...prev]);
+    toast.success(`Webhook para "${evento}" cadastrado com sucesso!`);
+  };
+
+  const handleTestWebhook = (hook: typeof webhooks[0]) => {
+    toast.info(`Disparando evento de teste para ${hook.endpoint}...`);
+    setTimeout(() => {
+      toast.success(`Webhook "${hook.evento}" testado com sucesso! Servidor respondeu 200 OK.`);
+    }, 600);
+  };
+
+  const handleDeleteWebhook = (id: number, evento: string) => {
+    setWebhooks((prev) => prev.filter((h) => h.id !== id));
+    toast.success(`Webhook "${evento}" removido com sucesso.`);
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -19,7 +49,7 @@ export function ConfigWebhooks() {
           <h2 className="text-2xl font-bold tracking-tight">Webhooks</h2>
           <p className="text-muted-foreground mt-1">Notifique sistemas externos automaticamente quando eventos ocorrerem no ERP.</p>
         </div>
-        <Button className="gap-2">
+        <Button className="gap-2" onClick={handleCreateWebhook}>
           <Plus className="w-4 h-4" /> Novo Webhook
         </Button>
       </div>
@@ -30,7 +60,7 @@ export function ConfigWebhooks() {
           <CardDescription>O sistema fará requisições HTTP para as URLs cadastradas nos eventos especificados.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="border rounded-lg overflow-hidden">
+          <div className="border rounded-lg overflow-hidden overflow-x-auto">
             <Table>
               <TableHeader className="bg-muted/50">
                 <TableRow>
@@ -68,10 +98,10 @@ export function ConfigWebhooks() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500" title="Testar Webhook">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-500" title="Testar Webhook" onClick={() => handleTestWebhook(hook)}>
                           <Play className="w-4 h-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-rose-500">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-rose-500" title="Excluir Webhook" onClick={() => handleDeleteWebhook(hook.id, hook.evento)}>
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>

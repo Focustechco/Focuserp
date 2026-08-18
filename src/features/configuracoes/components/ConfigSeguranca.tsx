@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -6,8 +6,20 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Save, ShieldCheck, KeyRound, AlertOctagon } from 'lucide-react';
+import { toast } from 'sonner';
 
 export function ConfigSeguranca() {
+  const [mfaGlobal, setMfaGlobal] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = () => {
+    setSaving(true);
+    setTimeout(() => {
+      setSaving(false);
+      toast.success("Políticas de segurança salvas com sucesso!");
+    }, 400);
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex justify-between items-center">
@@ -15,8 +27,8 @@ export function ConfigSeguranca() {
           <h2 className="text-2xl font-bold tracking-tight">Segurança da Plataforma</h2>
           <p className="text-muted-foreground mt-1">Políticas globais de acesso e senhas para todos os usuários.</p>
         </div>
-        <Button className="gap-2">
-          <Save className="w-4 h-4" /> Salvar Alterações
+        <Button className="gap-2" onClick={handleSave} disabled={saving}>
+          <Save className="w-4 h-4" /> {saving ? "Salvando..." : "Salvar Alterações"}
         </Button>
       </div>
 

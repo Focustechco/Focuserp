@@ -1,11 +1,22 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Save, Globe2, Clock, DollarSign } from 'lucide-react';
+import { toast } from 'sonner';
 
 export function ConfigPreferenciasGlobais() {
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = () => {
+    setSaving(true);
+    setTimeout(() => {
+      setSaving(false);
+      toast.success("Preferências gerais salvas com sucesso!");
+    }, 400);
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex justify-between items-center">
@@ -13,8 +24,8 @@ export function ConfigPreferenciasGlobais() {
           <h2 className="text-2xl font-bold tracking-tight">Preferências Gerais</h2>
           <p className="text-muted-foreground mt-1">Configurações regionais e formatos padrão da plataforma.</p>
         </div>
-        <Button className="gap-2">
-          <Save className="w-4 h-4" /> Salvar Alterações
+        <Button className="gap-2" onClick={handleSave} disabled={saving}>
+          <Save className="w-4 h-4" /> {saving ? "Salvando..." : "Salvar Alterações"}
         </Button>
       </div>
 

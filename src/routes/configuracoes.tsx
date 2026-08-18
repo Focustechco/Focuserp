@@ -49,7 +49,6 @@ function ConfiguracoesPage() {
         {activeTab === 'apis' && <ConfigApis />}
         {activeTab === 'webhooks' && <ConfigWebhooks />}
         {activeTab === 'backup' && <ConfigBackup />}
-        {activeTab === 'logs' && <ConfigLogsAuditoria />}
         {activeTab === 'auditoria' && <ConfigLogsAuditoria />}
 
         {activeTab === 'dashboard' && (

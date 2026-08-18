@@ -16,7 +16,7 @@ function UsuariosPage() {
           <Shield className="w-6 h-6 text-primary" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Governança e Acessos (IAM)</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Governança e Acessos</h1>
           <p className="text-muted-foreground mt-1">
             Gestão centralizada de identidade, permissões e segurança corporativa.
           </p>
