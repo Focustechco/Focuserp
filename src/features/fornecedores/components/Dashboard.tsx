@@ -63,7 +63,7 @@ export function Dashboard() {
               {ativos}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              {(ativos/total * 100).toFixed(0)}% da base cadastrada
+              {(total > 0 ? (ativos/total * 100).toFixed(0) : 0)}% da base cadastrada
             </p>
           </CardContent>
         </Card>
@@ -90,7 +90,7 @@ export function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-              {mockFornecedores.filter(f => f.tipo === 'Pessoa Jurídica').length}
+              {fornecedores.filter(f => f?.tipo === 'Pessoa Jurídica').length}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               Empresas prestadoras

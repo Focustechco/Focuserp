@@ -91,16 +91,16 @@ export function ConfigCentralComunicacao() {
     toast.success('Preferncias de canais atualizadas.');
   };
 
-  // Filtragem de Notificaes
+  // Filtragem de Notificações
   const filteredNotificacoes = notificacoes.filter((n) => {
     const matchesSearch =
-      n.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      n.descricao.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (n.responsavel && n.responsavel.toLowerCase().includes(searchTerm.toLowerCase()));
+      (n?.titulo || '').toLowerCase().includes((searchTerm || '').toLowerCase()) ||
+      (n?.descricao || '').toLowerCase().includes((searchTerm || '').toLowerCase()) ||
+      (n?.responsavel && n.responsavel.toLowerCase().includes((searchTerm || '').toLowerCase()));
 
     if (selectedCategory === 'todas') return matchesSearch;
     if (selectedCategory === 'naoLidas') return matchesSearch && !n.lida;
-    return matchesSearch && n.origem.toLowerCase() === selectedCategory.toLowerCase();
+    return matchesSearch && (n?.origem || '').toLowerCase() === (selectedCategory || '').toLowerCase();
   });
 
   const handleSelectAll = (checked: boolean) => {
