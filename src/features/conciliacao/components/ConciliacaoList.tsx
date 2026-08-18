@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import { mockLancamentosSimulados } from '../mockData';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -8,9 +7,12 @@ import { format } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useLocalStorageState } from '@/hooks/useDataStore';
 import { ContaBancaria, MovimentacaoBancaria } from '../types';
+import { ContaPagar } from '@/features/contas-pagar/types';
+import { TituloReceber } from '@/features/contas-receber/types';
 
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+const formatCurrency = (value?: number | null) => {
+  const val = typeof value === 'number' && !isNaN(value) ? value : 0;
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 };
 
 const formatDateSafe = (dateStr?: string) => {
@@ -43,11 +45,68 @@ export const renderHistoricoSafe = (val: any): string => {
   return String(val);
 };
 
+export const isValidExtrato = (e: MovimentacaoBancaria) => {
+  if (!e || typeof e !== 'object') return false;
+  if (!e.id || !e.contaBancariaId) return false;
+  if (typeof e.valor !== 'number' || isNaN(e.valor) || e.valor === 0) return false;
+  if (!e.data || e.data === '-' || e.data === 'undefined') return false;
+  return true;
+};
+
 export function ConciliacaoList() {
   const [searchTerm, setSearchTerm] = useState('');
   
   const { data: contasBancarias } = useLocalStorageState<ContaBancaria>('focus_contas_bancarias', []);
-  const { data: extratos, updateItem: updateExtrato } = useLocalStorageState<MovimentacaoBancaria>('focus_extratos', []);
+  const { data: rawExtratos, updateItem: updateExtrato } = useLocalStorageState<MovimentacaoBancaria>('focus_extratos', []);
+  const { data: contasPagar } = useLocalStorageState<ContaPagar>('focus_contas_pagar', []);
+  const { data: contasReceber } = useLocalStorageState<TituloReceber>('focus_contas_receber', []);
+
+  // Limpeza automática de itens corrompidos/sem conta ou valor NaN
+  useEffect(() => {
+    if (Array.isArray(rawExtratos)) {
+      const validOnly = rawExtratos.filter(isValidExtrato);
+      if (validOnly.length !== rawExtratos.length) {
+        try {
+          localStorage.setItem('focus_extratos', JSON.stringify(validOnly));
+        } catch (err) {
+          console.error("Erro ao limpar extratos inválidos:", err);
+        }
+      }
+    }
+  }, [rawExtratos]);
+
+  const validExtratos = useMemo(() => {
+    return (rawExtratos || []).filter(isValidExtrato);
+  }, [rawExtratos]);
+
+  // Estrutura unificada de lançamentos ERP reais para Match
+  const erpLancamentos = useMemo(() => {
+    const list: { id: string; tipo: string; valor: number; historico: string; entidadeVinculo: string; statusFinanceiro: string }[] = [];
+    
+    (contasPagar || []).forEach(cp => {
+      list.push({
+        id: cp.id,
+        tipo: 'Despesa',
+        valor: cp.valorFinal || cp.valorOriginal || 0,
+        historico: cp.descricao || cp.fornecedor || 'Despesa ERP',
+        entidadeVinculo: cp.fornecedor || 'Fornecedor',
+        statusFinanceiro: cp.status === 'Pago' ? 'Baixado' : 'Aberto'
+      });
+    });
+
+    (contasReceber || []).forEach(cr => {
+      list.push({
+        id: cr.id,
+        tipo: 'Receita',
+        valor: cr.valorLiquido || cr.valorOriginal || 0,
+        historico: cr.descricao || cr.cliente || 'Receita ERP',
+        entidadeVinculo: cr.cliente || 'Cliente',
+        statusFinanceiro: cr.status === 'Recebido' ? 'Baixado' : 'Aberto'
+      });
+    });
+
+    return list;
+  }, [contasPagar, contasReceber]);
 
   const handleConciliar = (extId: string, lanId: string) => {
     updateExtrato(extId, { status: 'Conciliado', lancamentoFinanceiroId: lanId });
@@ -57,7 +116,7 @@ export function ConciliacaoList() {
     updateExtrato(extId, { status: 'Não Conciliado', lancamentoFinanceiroId: undefined });
   };
 
-  const filteredExtratos = (extratos || []).filter(e => {
+  const filteredExtratos = validExtratos.filter(e => {
     const safeHistorico = renderHistoricoSafe(e?.historico);
     return safeHistorico.toLowerCase().includes((searchTerm || '').toLowerCase());
   });
@@ -68,17 +127,15 @@ export function ConciliacaoList() {
     return <Badge className="bg-slate-100 text-slate-800 hover:bg-slate-200 border-slate-200 dark:bg-slate-800 dark:text-slate-300">Pendente</Badge>;
   };
 
-  // Motor de "Sugestão" Simplificado
+  // Motor de Match Real com dados do ERP
   const findMatchSuggestion = (extrato: MovimentacaoBancaria) => {
     if (!extrato) return null;
     if (extrato.lancamentoFinanceiroId) {
-      // Já está conciliado, retorna o lançamento amarrado
-      return mockLancamentosSimulados.find(l => l.id === extrato.lancamentoFinanceiroId);
+      return erpLancamentos.find(l => l.id === extrato.lancamentoFinanceiroId) || null;
     }
-    if (extrato.status === 'Divergente') return null; // Simulando que a inteligência não achou nada parecido
+    if (extrato.status === 'Divergente') return null;
     
-    // Sugestão Baseada em Valor Exato
-    return mockLancamentosSimulados.find(l => l.valor === extrato.valor && l.statusFinanceiro === 'Aberto');
+    return erpLancamentos.find(l => Math.abs(l.valor - Math.abs(extrato.valor || 0)) < 0.01 && l.statusFinanceiro === 'Aberto') || null;
   };
 
   return (

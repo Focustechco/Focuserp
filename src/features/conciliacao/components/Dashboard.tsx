@@ -5,15 +5,20 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis
 import { useLocalStorageState } from '@/hooks/useDataStore';
 import { ContaBancaria, MovimentacaoBancaria } from '../types';
 
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+import { renderHistoricoSafe, isValidExtrato } from './ConciliacaoList';
+
+const formatCurrency = (value?: number | null) => {
+  const val = typeof value === 'number' && !isNaN(value) ? value : 0;
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 };
 
 export function Dashboard() {
   const { data: contasBancarias } = useLocalStorageState<ContaBancaria>('focus_contas_bancarias', []);
-  const { data: extratos } = useLocalStorageState<MovimentacaoBancaria>('focus_extratos', []);
+  const { data: rawExtratos } = useLocalStorageState<MovimentacaoBancaria>('focus_extratos', []);
 
-  const totalSaldo = contasBancarias.reduce((acc, c) => acc + c.saldoAtual, 0);
+  const extratos = (rawExtratos || []).filter(isValidExtrato);
+
+  const totalSaldo = (contasBancarias || []).reduce((acc, c) => acc + (c.saldoAtual || 0), 0);
   
   const conciliados = extratos.filter(e => e.status === 'Conciliado').length;
   const divergentes = extratos.filter(e => e.status === 'Divergente').length;

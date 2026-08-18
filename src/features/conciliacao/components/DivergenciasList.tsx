@@ -7,7 +7,7 @@ import { useLocalStorageState } from '@/hooks/useDataStore';
 import { ContaBancaria, MovimentacaoBancaria } from '../types';
 import { toast } from 'sonner';
 
-import { renderHistoricoSafe } from './ConciliacaoList';
+import { renderHistoricoSafe, isValidExtrato } from './ConciliacaoList';
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
@@ -28,7 +28,7 @@ export function DivergenciasList() {
   const { data: contasBancarias } = useLocalStorageState<ContaBancaria>('focus_contas_bancarias', []);
   const { data: extratos, updateItem: updateExtrato } = useLocalStorageState<MovimentacaoBancaria>('focus_extratos', []);
 
-  const divergentesExtrato = (extratos || []).filter(e => e.status === 'Divergente');
+  const divergentesExtrato = (extratos || []).filter(isValidExtrato).filter(e => e.status === 'Divergente');
 
   const handleIgnorar = (id: string) => {
     updateExtrato(id, { status: 'Ignorado' });
