@@ -24,6 +24,25 @@ const formatDateSafe = (dateStr?: string) => {
   }
 };
 
+export const renderHistoricoSafe = (val: any): string => {
+  if (!val) return '';
+  if (typeof val === 'string') return val;
+  if (typeof val === 'number') return String(val);
+  if (Array.isArray(val)) {
+    return val.map(item => {
+      if (typeof item === 'string') return item;
+      if (item && typeof item === 'object') {
+        return item.acao || item.descricao || item.historico || JSON.stringify(item);
+      }
+      return String(item || '');
+    }).filter(Boolean).join('; ');
+  }
+  if (typeof val === 'object') {
+    return val.acao || val.descricao || val.historico || JSON.stringify(val);
+  }
+  return String(val);
+};
+
 export function ConciliacaoList() {
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -39,7 +58,7 @@ export function ConciliacaoList() {
   };
 
   const filteredExtratos = (extratos || []).filter(e => {
-    const safeHistorico = typeof e?.historico === 'string' ? e.historico : String(e?.historico || '');
+    const safeHistorico = renderHistoricoSafe(e?.historico);
     return safeHistorico.toLowerCase().includes((searchTerm || '').toLowerCase());
   });
 
@@ -127,7 +146,7 @@ export function ConciliacaoList() {
                 {/* LADO ESQUERDO: BANCO */}
                 <div className="col-span-5 space-y-1">
                   <div className="flex justify-between items-start">
-                    <span className="font-semibold text-sm">{formatDateSafe(extrato?.data)} - {extrato?.historico || 'Sem histórico'}</span>
+                    <span className="font-semibold text-sm">{formatDateSafe(extrato?.data)} - {renderHistoricoSafe(extrato?.historico) || 'Sem histórico'}</span>
                     <span className={`font-bold ${extrato.tipo === 'Crédito' ? 'text-emerald-600' : 'text-rose-600'}`}>
                       {extrato.tipo === 'Crédito' ? '+' : '-'}{formatCurrency(extrato.valor)}
                     </span>
@@ -163,7 +182,7 @@ export function ConciliacaoList() {
                   {suggestion ? (
                      <div className="space-y-1">
                       <div className="flex justify-between items-start">
-                        <span className="font-medium text-sm text-primary/90">{suggestion.historico}</span>
+                        <span className="font-medium text-sm text-primary/90">{renderHistoricoSafe(suggestion.historico) || 'Lançamento ERP'}</span>
                         <span className="font-bold text-muted-foreground">
                           {formatCurrency(suggestion.valor)}
                         </span>

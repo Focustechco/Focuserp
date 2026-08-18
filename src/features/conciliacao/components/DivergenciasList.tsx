@@ -7,6 +7,8 @@ import { useLocalStorageState } from '@/hooks/useDataStore';
 import { ContaBancaria, MovimentacaoBancaria } from '../types';
 import { toast } from 'sonner';
 
+import { renderHistoricoSafe } from './ConciliacaoList';
+
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
 };
@@ -62,7 +64,7 @@ export function DivergenciasList() {
               <TableRow key={extrato.id} className="hover:bg-rose-50/50 dark:hover:bg-rose-900/10">
                 <TableCell>{formatDateSafe(extrato.data)}</TableCell>
                 <TableCell>{contasBancarias.find(c => c.id === extrato.contaBancariaId)?.banco || 'Banco'}</TableCell>
-                <TableCell className="font-medium text-rose-700 dark:text-rose-400">{extrato.historico}</TableCell>
+                <TableCell className="font-medium text-rose-700 dark:text-rose-400">{renderHistoricoSafe(extrato.historico)}</TableCell>
                 <TableCell>{extrato.documento}</TableCell>
                 <TableCell className="text-right font-bold text-rose-600">
                   {extrato.tipo === 'Crédito' ? '+' : '-'}{formatCurrency(extrato.valor)}

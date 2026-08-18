@@ -13,6 +13,17 @@ const formatCurrency = (value?: number | null) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
 };
 
+const formatDateSafe = (dateStr?: string) => {
+  if (!dateStr) return '-';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString('pt-BR');
+  } catch {
+    return dateStr;
+  }
+};
+
 const getStatusCobrancaColor = (status: string) => {
   switch (status) {
     case 'Paga': return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300';
@@ -119,7 +130,7 @@ export function CobrancasList() {
                     <div className="text-xs text-muted-foreground">Tit: {cobranca.tituloReferencia}</div>
                   </TableCell>
                   <TableCell className="font-medium">{cobranca.cliente}</TableCell>
-                  <TableCell>{new Date(cobranca.vencimento).toLocaleDateString('pt-BR')}</TableCell>
+                  <TableCell>{formatDateSafe(cobranca.vencimento)}</TableCell>
                   <TableCell className="text-right font-medium">{formatCurrency(cobranca.valor)}</TableCell>
                   <TableCell>
                     <div className="flex gap-1">
