@@ -87,7 +87,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, shrink-to-fit=no, viewport-fit=cover" },
       { title: "Focus Finance — Gestão Financeira Corporativa" },
       {
         name: "description",
@@ -96,6 +96,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { name: "author", content: "Focus Tecnologia" },
       { name: "theme-color", content: "#FF6A00" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "apple-mobile-web-app-title", content: "Focus ERP" },
+      { name: "mobile-web-app-capable", content: "yes" },
       { property: "og:title", content: "Focus Finance — Gestão Financeira Corporativa" },
       { property: "og:description", content: "ERP financeiro premium da Focus Tecnologia." },
       { property: "og:type", content: "website" },
@@ -120,11 +124,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="pt-BR">
       <head>
         <HeadContent />
       </head>
-      <body>
+      <body className="overflow-x-hidden antialiased select-none touch-manipulation max-w-[100vw]">
         {children}
         <Scripts />
       </body>

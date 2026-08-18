@@ -91,9 +91,9 @@ function PerfilContratoPage() {
         <Card>
           <CardContent className="p-6 flex flex-col gap-2">
             <div className="text-sm font-medium text-muted-foreground flex items-center gap-2"><UserCheck className="w-4 h-4" /> Assinaturas</div>
-            <div className="text-lg font-bold">{contrato.assinaturas.filter(a => a.status === 'Assinado').length} de {contrato.assinaturas.length} assinados</div>
+            <div className="text-lg font-bold">{(contrato.assinaturas || []).filter(a => a.status === 'Assinado').length} de {(contrato.assinaturas || []).length} assinados</div>
             <div className="text-xs text-muted-foreground font-medium">
-              {contrato.assinaturas.some(a => a.status === 'Pendente') ? 'Aguardando partes' : 'Totalmente assinado'}
+              {(contrato.assinaturas || []).some(a => a.status === 'Pendente') ? 'Aguardando partes' : 'Totalmente assinado'}
             </div>
           </CardContent>
         </Card>
