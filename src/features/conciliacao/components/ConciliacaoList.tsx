@@ -13,6 +13,17 @@ const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 };
 
+const formatDateSafe = (dateStr?: string) => {
+  if (!dateStr) return '-';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return format(d, 'dd/MM/yyyy');
+  } catch {
+    return dateStr;
+  }
+};
+
 export function ConciliacaoList() {
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -27,7 +38,10 @@ export function ConciliacaoList() {
     updateExtrato(extId, { status: 'Não Conciliado', lancamentoFinanceiroId: undefined });
   };
 
-  const filteredExtratos = extratos.filter(e => e.historico.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredExtratos = (extratos || []).filter(e => {
+    const safeHistorico = typeof e?.historico === 'string' ? e.historico : String(e?.historico || '');
+    return safeHistorico.toLowerCase().includes((searchTerm || '').toLowerCase());
+  });
 
   const getStatusBadge = (status: string) => {
     if (status === 'Conciliado') return <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border-emerald-200">Conciliado</Badge>;
@@ -37,6 +51,7 @@ export function ConciliacaoList() {
 
   // Motor de "Sugestão" Simplificado
   const findMatchSuggestion = (extrato: MovimentacaoBancaria) => {
+    if (!extrato) return null;
     if (extrato.lancamentoFinanceiroId) {
       // Já está conciliado, retorna o lançamento amarrado
       return mockLancamentosSimulados.find(l => l.id === extrato.lancamentoFinanceiroId);
@@ -112,7 +127,7 @@ export function ConciliacaoList() {
                 {/* LADO ESQUERDO: BANCO */}
                 <div className="col-span-5 space-y-1">
                   <div className="flex justify-between items-start">
-                    <span className="font-semibold text-sm">{format(new Date(extrato.data), 'dd/MM/yyyy')} - {extrato.historico}</span>
+                    <span className="font-semibold text-sm">{formatDateSafe(extrato?.data)} - {extrato?.historico || 'Sem histórico'}</span>
                     <span className={`font-bold ${extrato.tipo === 'Crédito' ? 'text-emerald-600' : 'text-rose-600'}`}>
                       {extrato.tipo === 'Crédito' ? '+' : '-'}{formatCurrency(extrato.valor)}
                     </span>

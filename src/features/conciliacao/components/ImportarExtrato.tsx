@@ -82,7 +82,7 @@ export function ImportarExtrato() {
         tags: ['extrato', 'banco', contaSelecionada]
       });
 
-      // 3. Simular transaes extradas deste extrato (Parsing Mockado)
+      // 3. Simular transações extraídas deste extrato (Parsing Mockado)
       const dataHoje = new Date().toISOString().split('T')[0];
       
       const transacoesSimuladas: MovimentacaoBancaria[] = [
@@ -90,11 +90,11 @@ export function ImportarExtrato() {
           id: `mov-${Date.now()}-1`,
           contaBancariaId: contaSelecionada,
           data: dataHoje,
-          historico: 'PIX RECEBIDO - JOO SILVA',
+          historico: 'PIX RECEBIDO - JOÃO SILVA',
           documento: `NSU${Math.floor(Math.random() * 1000000)}`,
           valor: 1500.00,
-          tipo: 'Crdito',
-          status: 'No Conciliado'
+          tipo: 'Crédito',
+          status: 'Não Conciliado'
         },
         {
           id: `mov-${Date.now()}-2`,
@@ -103,18 +103,18 @@ export function ImportarExtrato() {
           historico: 'PAGTO BOLETO FORNECEDOR XYZ',
           documento: `NSU${Math.floor(Math.random() * 1000000)}`,
           valor: 850.50,
-          tipo: 'Dbito',
-          status: 'No Conciliado'
+          tipo: 'Débito',
+          status: 'Não Conciliado'
         },
         {
           id: `mov-${Date.now()}-3`,
           contaBancariaId: contaSelecionada,
           data: dataHoje,
-          historico: 'TARIFA BANCRIA MENSAL',
+          historico: 'TARIFA BANCÁRIA MENSAL',
           documento: `NSU${Math.floor(Math.random() * 1000000)}`,
           valor: 45.90,
-          tipo: 'Dbito',
-          status: 'No Conciliado'
+          tipo: 'Débito',
+          status: 'Não Conciliado'
         }
       ];
 

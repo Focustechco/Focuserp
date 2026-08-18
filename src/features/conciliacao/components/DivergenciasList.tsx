@@ -1,16 +1,37 @@
 import React from 'react';
-import { mockExtratoBancario, mockContasBancarias } from '../mockData';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
+import { useLocalStorageState } from '@/hooks/useDataStore';
+import { ContaBancaria, MovimentacaoBancaria } from '../types';
+import { toast } from 'sonner';
 
 const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
+};
+
+const formatDateSafe = (dateStr?: string) => {
+  if (!dateStr) return '-';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return format(d, 'dd/MM/yyyy');
+  } catch {
+    return dateStr;
+  }
 };
 
 export function DivergenciasList() {
-  const divergentesExtrato = mockExtratoBancario.filter(e => e.status === 'Divergente');
+  const { data: contasBancarias } = useLocalStorageState<ContaBancaria>('focus_contas_bancarias', []);
+  const { data: extratos, updateItem: updateExtrato } = useLocalStorageState<MovimentacaoBancaria>('focus_extratos', []);
+
+  const divergentesExtrato = (extratos || []).filter(e => e.status === 'Divergente');
+
+  const handleIgnorar = (id: string) => {
+    updateExtrato(id, { status: 'Ignorado' });
+    toast.success('Movimentação marcada como Ignorada.');
+  };
 
   return (
     <div className="space-y-4 animate-fade-in">
@@ -39,16 +60,17 @@ export function DivergenciasList() {
           <TableBody>
             {divergentesExtrato.map(extrato => (
               <TableRow key={extrato.id} className="hover:bg-rose-50/50 dark:hover:bg-rose-900/10">
-                <TableCell>{format(new Date(extrato.data), 'dd/MM/yyyy')}</TableCell>
-                <TableCell>{mockContasBancarias.find(c => c.id === extrato.contaBancariaId)?.banco}</TableCell>
+                <TableCell>{formatDateSafe(extrato.data)}</TableCell>
+                <TableCell>{contasBancarias.find(c => c.id === extrato.contaBancariaId)?.banco || 'Banco'}</TableCell>
                 <TableCell className="font-medium text-rose-700 dark:text-rose-400">{extrato.historico}</TableCell>
                 <TableCell>{extrato.documento}</TableCell>
                 <TableCell className="text-right font-bold text-rose-600">
                   {extrato.tipo === 'Crédito' ? '+' : '-'}{formatCurrency(extrato.valor)}
                 </TableCell>
                 <TableCell className="text-right space-x-2">
-                  <Button variant="outline" size="sm" className="h-8">Ignorar Movimentação</Button>
-                  <Button variant="default" size="sm" className="h-8 bg-rose-600 hover:bg-rose-700">Criar no ERP</Button>
+                  <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => handleIgnorar(extrato.id)}>
+                    Ignorar Movimentação
+                  </Button>
                 </TableCell>
               </TableRow>
             ))}
