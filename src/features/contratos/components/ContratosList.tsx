@@ -51,7 +51,50 @@ export function ContratosList({ filterEntidade }: { filterEntidade?: string[] })
   const [contratoToEdit, setContratoToEdit] = useState<Contrato | null>(null);
   const [editSheetOpen, setEditSheetOpen] = useState(false);
 
-  const filteredData = contratos.filter(c => {
+  // Deduplica e higieniza a lista de contratos automaticamente
+  const uniqueContratos = React.useMemo(() => {
+    const seenIds = new Set<string>();
+    const seenKeys = new Set<string>();
+    
+    return (contratos || []).filter((c) => {
+      if (!c || (!c.id && !c.numeroContrato && !c.nome)) return false;
+      if (seenIds.has(c.id)) return false;
+      
+      const key = `${c.numeroContrato || ''}_${c.clienteNome || ''}_${c.nome || ''}`;
+      if (seenKeys.has(key)) return false;
+      
+      seenIds.add(c.id);
+      seenKeys.add(key);
+      return true;
+    });
+  }, [contratos]);
+
+  const handlePurgeDuplicates = () => {
+    const seenKeys = new Set<string>();
+    const duplicates: string[] = [];
+
+    (contratos || []).forEach((c) => {
+      if (!c) return;
+      const key = `${c.numeroContrato || ''}_${c.clienteNome || ''}_${c.nome || ''}`;
+      if (seenKeys.has(key) || (!c.numeroContrato && !c.nome && !c.codigo)) {
+        duplicates.push(c.id);
+      } else {
+        seenKeys.add(key);
+      }
+    });
+
+    if (duplicates.length === 0) {
+      toast.info("Nenhum contrato duplicado ou corrompido encontrado!");
+      return;
+    }
+
+    if (window.confirm(`Foram encontrados ${duplicates.length} contrato(s) duplicados ou inválidos. Deseja limpá-los agora?`)) {
+      duplicates.forEach((id) => deleteItem(id));
+      toast.success(`${duplicates.length} contrato(s) duplicados removidos com sucesso!`);
+    }
+  };
+
+  const filteredData = uniqueContratos.filter(c => {
     const matchSearch = (c.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
            (c.numeroContrato || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
            (c.codigo || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -114,7 +157,19 @@ export function ContratosList({ filterEntidade }: { filterEntidade?: string[] })
           </Button>
         </div>
         
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          {contratos && contratos.length > uniqueContratos.length && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs text-rose-600 border-rose-200 hover:bg-rose-50 dark:hover:bg-rose-950"
+              onClick={handlePurgeDuplicates}
+              title="Limpar contratos duplicados"
+            >
+              <Trash2 className="mr-1.5 h-3.5 w-3.5 text-rose-500" />
+              Limpar Duplicados ({contratos.length - uniqueContratos.length})
+            </Button>
+          )}
           <Button variant="outline" onClick={() => toast.info("Exportação da lista de contratos iniciada.")}>
             <Download className="mr-2 h-4 w-4" />
             Exportar

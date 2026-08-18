@@ -163,6 +163,25 @@
   scrollbar-width: none;
 }
 
+/* Suporte a iOS PWA Safe Area (Notch / Dynamic Island) */
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.mt-safe {
+  margin-top: env(safe-area-inset-top, 0px);
+}
+
+/* Otimizacao de toque para telas mobile iOS */
+@media (max-width: 640px) {
+  button, a, input, select {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
 /* Container de tabelas responsivo no Mobile */
 .responsive-table-container {
   width: 100%;

@@ -11,7 +11,21 @@ const formatCurrency = (value?: number | null) => {
 };
 
 export function Dashboard() {
-  const { data: contratos } = useLocalStorageState<Contrato>('focus_contratos', []);
+  const { data: rawContratos } = useLocalStorageState<Contrato>('focus_contratos', []);
+
+  const contratos = React.useMemo(() => {
+    const seenIds = new Set<string>();
+    const seenKeys = new Set<string>();
+    return (rawContratos || []).filter((c) => {
+      if (!c || (!c.id && !c.numeroContrato && !c.nome)) return false;
+      if (seenIds.has(c.id)) return false;
+      const key = `${c.numeroContrato || ''}_${c.clienteNome || ''}_${c.nome || ''}`;
+      if (seenKeys.has(key)) return false;
+      seenIds.add(c.id);
+      seenKeys.add(key);
+      return true;
+    });
+  }, [rawContratos]);
 
   const total = contratos.length;
   const ativos = contratos.filter(c => c.status === 'Vigente').length;

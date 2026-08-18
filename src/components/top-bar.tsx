@@ -91,9 +91,9 @@ export function TopBar() {
 
   return (
     <>
-      <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur-md">
-        <SidebarTrigger className="-ml-1" />
-        <Separator orientation="vertical" className="h-5" />
+      <header className="sticky top-0 z-30 flex items-center gap-2 sm:gap-3 border-b bg-background/90 px-3 sm:px-4 backdrop-blur-md pt-[env(safe-area-inset-top,0px)] min-h-[3.75rem] py-1.5 transition-all">
+        <SidebarTrigger className="-ml-1 h-9 w-9 sm:h-8 sm:w-8 shrink-0 touch-manipulation text-foreground hover:bg-accent" />
+        <Separator orientation="vertical" className="h-5 shrink-0" />
         
         {/* BUSCADOR GLOBAL INTERATIVO */}
         <div 

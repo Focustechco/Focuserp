@@ -183,21 +183,27 @@ export function useCrmStore() {
       clienteId = novoCliente.id;
     }
 
-    const novoContrato: Contrato = {
-      id: `ctr-auto-${Date.now()}`,
-      numeroContrato: `CTR-2026-${Math.floor(100 + Math.random() * 900)}`,
-      clienteId: clienteId || `cli-${Date.now()}`,
-      clienteNome: op.empresaNome,
-      objetoContrato: op.titulo,
-      valorTotal: op.valorR$,
-      valorMensal: Math.round(op.valorR$ / 12),
-      dataInicio: new Date().toISOString().split('T')[0],
-      dataFim: new Date(Date.now() + 86400000 * 365).toISOString().split('T')[0],
-      status: "ativo",
-      tipoContrato: "SaaS Recorrente",
-      renovacaoAutomatica: true
-    };
-    addContratoItem(novoContrato);
+    const jaExisteContrato = (contratos || []).some(
+      (c) => (c.clienteNome === op.empresaNome && c.objetoContrato === op.titulo) || c.id === `ctr-auto-${op.id}`
+    );
+
+    if (!jaExisteContrato) {
+      const novoContrato: Contrato = {
+        id: `ctr-auto-${op.id}`,
+        numeroContrato: `CTR-2026-${Math.floor(100 + Math.random() * 900)}`,
+        clienteId: clienteId || `cli-${Date.now()}`,
+        clienteNome: op.empresaNome,
+        objetoContrato: op.titulo,
+        valorTotal: op.valorR$,
+        valorMensal: Math.round(op.valorR$ / 12),
+        dataInicio: new Date().toISOString().split('T')[0],
+        dataFim: new Date(Date.now() + 86400000 * 365).toISOString().split('T')[0],
+        status: "ativo",
+        tipoContrato: "SaaS Recorrente",
+        renovacaoAutomatica: true
+      };
+      addContratoItem(novoContrato);
+    }
 
     const novaConta: ContaReceber = {
       id: `cr-auto-${Date.now()}`,
