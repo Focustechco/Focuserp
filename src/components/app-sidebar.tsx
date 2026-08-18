@@ -149,7 +149,7 @@ function SidebarLogoHeader() {
   const isCollapsed = state === "collapsed";
 
   return (
-    <SidebarHeader className="border-b border-sidebar-border bg-transparent h-[84px] flex items-center justify-center px-4 py-3 transition-all duration-250 ease-in-out group-data-[collapsible=icon]:h-14 group-data-[collapsible=icon]:px-0">
+    <SidebarHeader className="border-b border-sidebar-border bg-transparent h-[84px] flex items-center justify-center px-4 py-3 transition-all duration-250 ease-in-out group-data-[collapsible=icon]:h-[3.75rem] group-data-[collapsible=icon]:min-h-[3.75rem] group-data-[collapsible=icon]:pt-[env(safe-area-inset-top,0px)] group-data-[collapsible=icon]:py-1.5 group-data-[collapsible=icon]:px-0">
       <Link to="/" className="flex items-center justify-center w-full h-full">
         {/* Logo Horizontal Completa - Sidebar Expandida */}
         <div
