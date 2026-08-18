@@ -9,6 +9,7 @@ import {
   User,
   Search,
   FileCheck,
+  Trash2,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,7 +29,7 @@ import { useEstoquePatrimonio } from '../hooks/useEstoquePatrimonio';
 import { Inventario } from '../types';
 
 export function InventarioView() {
-  const { inventarios, addInventario, updateInventario, estoqueItens } = useEstoquePatrimonio();
+  const { inventarios, addInventario, updateInventario, deleteInventario, estoqueItens } = useEstoquePatrimonio();
 
   const [isNovoModalOpen, setIsNovoModalOpen] = useState(false);
   const [selectedInventario, setSelectedInventario] = useState<Inventario | null>(null);
@@ -39,28 +40,32 @@ export function InventarioView() {
     localizacao: 'Head Office SP - Todos os Setores',
   });
 
+  const validInventarios = (inventarios || []).filter(
+    (inv) => inv && (inv.titulo || inv.responsavelNome || inv.dataInicio)
+  );
+
   const handleCreateInventario = (e: React.FormEvent) => {
     e.preventDefault();
 
-    const itensIniciais = estoqueItens.map((item) => ({
+    const itensIniciais = (estoqueItens || []).map((item) => ({
       itemId: item.id,
       nome: item.nome,
       codigo: item.codigo,
       quantidadeEsperada: item.quantidade,
-      quantidadeFisica: item.quantidade, // padrão inicial
+      quantidadeFisica: item.quantidade,
       divergencia: 0,
       estado: 'Bom',
-      localizacao: item.localizacao,
+      localizacao: item.localizacao || 'Almoxarifado SP',
     }));
 
     addInventario({
-      id: 'inv-' + Date.now(),
-      titulo: novoForm.titulo,
+      id: crypto.randomUUID(),
+      titulo: novoForm.titulo || `Inventário Q${Math.floor((new Date().getMonth() + 3) / 3)} ${new Date().getFullYear()}`,
       dataInicio: new Date().toISOString().split('T')[0],
       status: 'Em Progresso',
       responsavelId: 'usr-admin',
-      responsavelNome: novoForm.responsavelNome,
-      localizacao: novoForm.localizacao,
+      responsavelNome: novoForm.responsavelNome || 'Mariana Oliveira (Gestora TI)',
+      localizacao: novoForm.localizacao || 'Head Office SP - Todos os Setores',
       divergenciasCount: 0,
       perdasCount: 0,
       danificadosCount: 0,
@@ -85,7 +90,7 @@ export function InventarioView() {
         <div>
           <h2 className="text-xl font-bold tracking-tight text-foreground">Campanhas de Inventário Físico</h2>
           <p className="text-xs text-muted-foreground">
-            Auditoria física periódico de ativos e estoque, conciliação de divergências e conferência de perdas
+            Auditoria física periódica de ativos e estoque, conciliação de divergências e conferência de perdas
           </p>
         </div>
         <Button onClick={() => setIsNovoModalOpen(true)} className="gap-2 text-xs">
@@ -93,74 +98,108 @@ export function InventarioView() {
         </Button>
       </div>
 
-      {/* LISTA DE CAMPANHAS DE INVENTÁRIO */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {inventarios.map((inv) => (
-          <Card key={inv.id} className="hover:shadow-md transition-shadow">
-            <CardHeader className="pb-3">
-              <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle className="text-base font-bold text-foreground">{inv.titulo}</CardTitle>
-                  <CardDescription className="text-xs flex items-center gap-1 mt-1">
-                    <MapPin className="h-3 w-3 text-primary" /> {inv.localizacao}
-                  </CardDescription>
+      {/* LISTA DE CAMPANHAS DE INVENTÁRIO OU EMPTY STATE */}
+      {validInventarios.length === 0 ? (
+        <Card className="p-8 text-center border-dashed border-2">
+          <div className="flex flex-col items-center justify-center space-y-3">
+            <div className="p-3 rounded-full bg-primary/10 text-primary">
+              <ClipboardList className="h-8 w-8" />
+            </div>
+            <h3 className="text-base font-bold text-foreground">Nenhuma Campanha de Inventário Criada</h3>
+            <p className="text-xs text-muted-foreground max-w-md">
+              Inicie a primeira auditoria física de ativos para conferência de estoque, conciliação e histórico de patrimônio.
+            </p>
+            <Button onClick={() => setIsNovoModalOpen(true)} className="gap-2 text-xs mt-2">
+              <Plus className="h-4 w-4" /> Nova Campanha de Inventário
+            </Button>
+          </div>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {validInventarios.map((inv) => (
+            <Card key={inv.id} className="hover:shadow-md transition-shadow">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <CardTitle className="text-base font-bold text-foreground">
+                      {inv.titulo || 'Campanha de Inventário Físico'}
+                    </CardTitle>
+                    <CardDescription className="text-xs flex items-center gap-1 mt-1">
+                      <MapPin className="h-3 w-3 text-primary" /> {inv.localizacao || 'Matriz SP'}
+                    </CardDescription>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    {inv.status === 'Concluído' ? (
+                      <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
+                        Concluído
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-600 border-amber-500/30">
+                        Em Progresso
+                      </Badge>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-muted-foreground hover:text-rose-600"
+                      onClick={() => deleteInventario(inv.id)}
+                      title="Excluir campanha"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </div>
-                {inv.status === 'Concluído' ? (
-                  <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
-                    Concluído
-                  </Badge>
-                ) : (
-                  <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-600 border-amber-500/30">
-                    Em Progresso
-                  </Badge>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-3 gap-2 text-xs p-3 rounded-xl bg-muted/30 border border-border">
-                <div>
-                  <span className="text-[10px] text-muted-foreground block">Início / Fim</span>
-                  <span className="font-semibold text-foreground">{inv.dataInicio}</span>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-3 gap-2 text-xs p-3 rounded-xl bg-muted/30 border border-border">
+                  <div>
+                    <span className="text-[10px] text-muted-foreground block">Início / Fim</span>
+                    <span className="font-semibold text-foreground">
+                      {inv.dataInicio || inv.dataFim || new Date().toISOString().split('T')[0]}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-muted-foreground block">Auditor TI</span>
+                    <span className="font-semibold text-foreground truncate block">
+                      {inv.responsavelNome || 'Mariana Oliveira (TI)'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-muted-foreground block">Divergências</span>
+                    <span
+                      className={`font-bold ${
+                        (inv.divergenciasCount || 0) > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600'
+                      }`}
+                    >
+                      {inv.divergenciasCount ?? 0} item(ns)
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-[10px] text-muted-foreground block">Auditor TI</span>
-                  <span className="font-semibold text-foreground truncate block">{inv.responsavelNome}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] text-muted-foreground block">Divergências</span>
-                  <span
-                    className={`font-bold ${
-                      inv.divergenciasCount > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600'
-                    }`}
-                  >
-                    {inv.divergenciasCount} item(ns)
-                  </span>
-                </div>
-              </div>
 
-              <div className="flex items-center justify-between pt-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-xs gap-1"
-                  onClick={() => setSelectedInventario(inv)}
-                >
-                  <FileCheck className="h-3.5 w-3.5" /> Ver Detalhes e Checklist
-                </Button>
-                {inv.status === 'Em Progresso' && (
+                <div className="flex items-center justify-between pt-1">
                   <Button
+                    variant="outline"
                     size="sm"
-                    className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
-                    onClick={() => handleConcluirInventario(inv.id)}
+                    className="text-xs gap-1"
+                    onClick={() => setSelectedInventario(inv)}
                   >
-                    Finalizar Inventário
+                    <FileCheck className="h-3.5 w-3.5" /> Ver Detalhes e Checklist
                   </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+                  {inv.status === 'Em Progresso' && (
+                    <Button
+                      size="sm"
+                      className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white"
+                      onClick={() => handleConcluirInventario(inv.id)}
+                    >
+                      Finalizar Inventário
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {/* MODAL: NOVA CAMPANHA DE INVENTÁRIO */}
       <Dialog open={isNovoModalOpen} onOpenChange={setIsNovoModalOpen}>

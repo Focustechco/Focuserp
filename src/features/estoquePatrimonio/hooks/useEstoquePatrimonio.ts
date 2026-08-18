@@ -56,12 +56,14 @@ export function useEstoquePatrimonio() {
     data: inventarios,
     addItem: addInventario,
     updateItem: updateInventario,
+    deleteItem: deleteInventario,
   } = useLocalStorageState<Inventario>('focus_itam_inventarios', INITIAL_INVENTARIOS);
 
   const {
     data: manutencoes,
     addItem: addManutencao,
     updateItem: updateManutencao,
+    deleteItem: deleteManutencao,
   } = useLocalStorageState<Manutencao>('focus_itam_manutencoes', INITIAL_MANUTENCOES);
 
   // Helper para vincular compra ao Contas a Pagar (Integração Financeira)
@@ -308,8 +310,10 @@ export function useEstoquePatrimonio() {
     deletePatrimonio,
     addInventario,
     updateInventario,
+    deleteInventario,
     addManutencao,
     updateManutencao,
+    deleteManutencao,
     abrirManutencao,
     vincularDespesaFinanceira,
   };
