@@ -13,6 +13,7 @@ export function ProdutosScreen() {
     clientes,
     criarNovoProduto,
     updateProduto,
+    deleteProduto,
     addRoadmapItem,
     updateRoadmapItemStatus,
     addFuncionalidade,
@@ -38,6 +39,14 @@ export function ProdutosScreen() {
     // Se o produto editado é o selecionado no workspace, atualiza o estado local
     if (selectedProduto && selectedProduto.id === id) {
       setSelectedProduto((prev) => prev ? { ...prev, ...changes } : prev);
+    }
+  };
+
+  const handleDeleteProduto = (id: string) => {
+    deleteProduto(id);
+    if (selectedProduto && selectedProduto.id === id) {
+      setSelectedProduto(null);
+      setMainTab('catalogo');
     }
   };
 
@@ -78,6 +87,7 @@ export function ProdutosScreen() {
             onSelectProduto={handleSelectProduto}
             onAddProduto={criarNovoProduto}
             onUpdateProduto={handleUpdateProduto}
+            onDeleteProduto={handleDeleteProduto}
           />
         </TabsContent>
 

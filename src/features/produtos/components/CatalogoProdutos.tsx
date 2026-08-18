@@ -16,18 +16,21 @@ import {
   Boxes,
   ArrowRight,
   Pencil,
+  Trash2,
 } from 'lucide-react';
 import { NovoProdutoModal } from './NovoProdutoModal';
 import { EditarProdutoModal } from './EditarProdutoModal';
+import { toast } from 'sonner';
 
 interface CatalogoProdutosProps {
   produtos: ProdutoFocus[];
   onSelectProduto: (produto: ProdutoFocus) => void;
   onAddProduto: (p: Omit<ProdutoFocus, 'id' | 'createdAt' | 'updatedAt'>) => void;
   onUpdateProduto: (id: string, changes: Partial<ProdutoFocus>) => void;
+  onDeleteProduto?: (id: string) => void;
 }
 
-export function CatalogoProdutos({ produtos, onSelectProduto, onAddProduto, onUpdateProduto }: CatalogoProdutosProps) {
+export function CatalogoProdutos({ produtos, onSelectProduto, onAddProduto, onUpdateProduto, onDeleteProduto }: CatalogoProdutosProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoriaFilter, setCategoriaFilter] = useState('todos');
   const [statusFilter, setStatusFilter] = useState('todos');
@@ -183,15 +186,33 @@ export function CatalogoProdutos({ produtos, onSelectProduto, onAddProduto, onUp
                   )}
                   {/* Status Badge overlay */}
                   <div className="absolute top-3 right-3">{getStatusBadge(produto.status)}</div>
-                  {/* Boto de Edio */}
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); setProdutoEditando(produto); }}
-                    className="absolute top-3 left-3 bg-black/60 hover:bg-primary text-white rounded-lg p-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-lg"
-                    title="Editar produto"
-                  >
-                    <Pencil className="w-3.5 h-3.5" />
-                  </button>
+                  {/* Botoes de Acao (Editar e Excluir) */}
+                  <div className="absolute top-3 left-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200">
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setProdutoEditando(produto); }}
+                      className="bg-black/60 hover:bg-primary text-white rounded-lg p-1.5 shadow-lg"
+                      title="Editar produto"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    {onDeleteProduto && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (window.confirm(`Tem certeza que deseja excluir o produto "${produto.nome}"?`)) {
+                            onDeleteProduto(produto.id);
+                            toast.success(`Produto "${produto.nome}" excluído com sucesso!`);
+                          }
+                        }}
+                        className="bg-black/60 hover:bg-rose-600 text-white rounded-lg p-1.5 shadow-lg"
+                        title="Excluir produto"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-rose-300 hover:text-white" />
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* HEADER COM LOGO E NOME */}
@@ -235,7 +256,7 @@ export function CatalogoProdutos({ produtos, onSelectProduto, onAddProduto, onUp
                     </div>
                     <div className="flex items-center gap-1.5 text-muted-foreground">
                       <Rocket className="h-3.5 w-3.5 text-blue-500" />
-                      <span className="font-semibold text-foreground">{(produto.funcionalidades || []).length}</span> Mdulos
+                      <span className="font-semibold text-foreground">{(produto.funcionalidades || []).length}</span> Módulos
                     </div>
                   </div>
                 </CardContent>
@@ -254,6 +275,23 @@ export function CatalogoProdutos({ produtos, onSelectProduto, onAddProduto, onUp
                     >
                       <Pencil className="h-3 w-3" />
                     </Button>
+                    {onDeleteProduto && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-xs gap-1 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950 h-8 px-2"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (window.confirm(`Tem certeza que deseja excluir o produto "${produto.nome}"?`)) {
+                            onDeleteProduto(produto.id);
+                            toast.success(`Produto "${produto.nome}" excluído com sucesso!`);
+                          }
+                        }}
+                        title="Excluir produto"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    )}
                     <Button size="sm" variant="ghost" className="text-xs font-bold gap-1 text-primary hover:text-primary">
                       Workspace <ArrowRight className="h-3.5 w-3.5" />
                     </Button>
@@ -306,6 +344,23 @@ export function CatalogoProdutos({ produtos, onSelectProduto, onAddProduto, onUp
                 >
                   <Pencil className="h-3.5 w-3.5" />
                 </Button>
+                {onDeleteProduto && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-xs gap-1 h-8 px-2 text-rose-500 hover:text-rose-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (window.confirm(`Tem certeza que deseja excluir o produto "${produto.nome}"?`)) {
+                        onDeleteProduto(produto.id);
+                        toast.success(`Produto "${produto.nome}" excluído com sucesso!`);
+                      }
+                    }}
+                    title="Excluir produto"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                )}
                 <Button size="sm" variant="outline" className="text-xs font-semibold gap-1">
                   Workspace <ArrowRight className="h-3.5 w-3.5" />
                 </Button>
@@ -322,12 +377,13 @@ export function CatalogoProdutos({ produtos, onSelectProduto, onAddProduto, onUp
         onAddProduto={onAddProduto}
       />
 
-      {/* MODAL DE EDIO DE PRODUTO */}
+      {/* MODAL DE EDICAO DE PRODUTO */}
       <EditarProdutoModal
         open={!!produtoEditando}
         onOpenChange={(open) => { if (!open) setProdutoEditando(null); }}
         produto={produtoEditando}
         onSave={onUpdateProduto}
+        onDelete={onDeleteProduto}
       />
     </div>
   );

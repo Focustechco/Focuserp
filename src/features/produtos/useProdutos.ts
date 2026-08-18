@@ -32,9 +32,15 @@ export function useProdutos() {
     save: saveProdutos,
   } = useLocalStorageState<ProdutoFocus>('focus_produtos', []);
 
-  // Garantir remoção definitiva de IDs mockados antigos
+  // Garantir remoção definitiva de IDs mockados antigos e itens de teste
   const mockIds = ['prod-erp', 'prod-crm', 'prod-pay', 'prod-bi'];
-  const produtos = rawProdutos.filter((p) => !mockIds.includes(p.id));
+  const produtos = rawProdutos.filter(
+    (p) => !mockIds.includes(p.id) && p.nome && p.nome.trim() !== '' && p.nome !== 'teste'
+  );
+
+  const excluirProduto = (id: string) => {
+    deleteProduto(id);
+  };
 
   // Consumir coleções de outros módulos para integrações nativas em tempo real
   const { data: clientes } = useLocalStorageState<Cliente>('focus_clientes', []);
@@ -169,6 +175,7 @@ export function useProdutos() {
     criarNovoProduto,
     updateProduto,
     deleteProduto,
+    excluirProduto: deleteProduto,
     addRoadmapItem,
     updateRoadmapItemStatus,
     addFuncionalidade,
