@@ -11,16 +11,11 @@ export const Route = createFileRoute("/usuarios")({
 function UsuariosPage() {
   return (
     <div className="flex flex-col gap-6 p-6 max-w-[1400px] mx-auto w-full">
-      <div className="flex items-center gap-3">
-        <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-          <Shield className="w-6 h-6 text-primary" />
-        </div>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Governança e Acessos</h1>
-          <p className="text-muted-foreground mt-1">
-            Gestão centralizada de identidade, permissões e segurança corporativa.
-          </p>
-        </div>
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Governança e Acessos</h1>
+        <p className="text-muted-foreground mt-1">
+          Gestão centralizada de identidade, permissões e segurança corporativa.
+        </p>
       </div>
 
       <Tabs defaultValue="tabela" className="space-y-6 mt-4">

@@ -32,19 +32,12 @@ export function EstoquePatrimonioScreen() {
       {/* HEADER DA PLATAFORMA ITAM */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-5">
         <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <div className="p-2.5 rounded-xl bg-primary/10 text-primary border border-primary/20">
-              <Boxes className="h-6 w-6" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-black tracking-tight text-foreground">
-                Estoque e Patrimônio
-              </h1>
-              <p className="text-xs text-muted-foreground">
-                Gestão completa de ciclo de vida de ativos físicos e digitais, licenças SaaS e depreciação patrimonial
-              </p>
-            </div>
-          </div>
+          <h1 className="text-2xl font-black tracking-tight text-foreground">
+            Estoque e Patrimônio
+          </h1>
+          <p className="text-xs text-muted-foreground">
+            Gestão completa de ciclo de vida de ativos físicos e digitais, licenças SaaS e depreciação patrimonial
+          </p>
         </div>
 
         <div className="flex items-center gap-2">

@@ -20,16 +20,11 @@ function IntegrationHubPage() {
     <div className="flex flex-col gap-6 p-6 max-w-[1400px] mx-auto w-full animate-fade-in">
       {/* Cabeçalho do Hub de Integrações */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-orange-500/10 text-orange-600 flex items-center justify-center shadow-sm">
-            <Network className="w-6 h-6" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Hub de Integrações</h1>
-            <p className="text-muted-foreground mt-1 text-sm">
-              Barramento corporativo desacoplado para conexão com bancos, gateways, Google, Microsoft e serviços externos.
-            </p>
-          </div>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Hub de Integrações</h1>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Barramento corporativo desacoplado para conexão com bancos, gateways, Google, Microsoft e serviços externos.
+          </p>
         </div>
       </div>
 

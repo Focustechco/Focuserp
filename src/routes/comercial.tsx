@@ -20,18 +20,11 @@ function ModuloComercialPage() {
     <div className="flex flex-col gap-6 p-6 max-w-[1400px] mx-auto w-full animate-fade-in">
       {/* Cabeçalho do Módulo Comercial */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-orange-500/10 text-orange-600 flex items-center justify-center shadow-sm">
-            <ShoppingBag className="w-6 h-6" />
-          </div>
-          <div>
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Gestão Comercial</h1>
-            </div>
-            <p className="text-muted-foreground mt-1 text-sm">
-              Gestão operacional do departamento comercial: equipe, metas, OKRs, comissões, catálogo de produtos/serviços e propostas.
-            </p>
-          </div>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Gestão Comercial</h1>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Gestão operacional do departamento comercial: equipe, metas, OKRs, comissões, catálogo de produtos/serviços e propostas.
+          </p>
         </div>
       </div>
 

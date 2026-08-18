@@ -1,3 +1,6 @@
+import focusLogoHorizontal from "@/assets/focus-logo-horizontal.png";
+import focusLogoHorizontalDark from "@/assets/focus-logo-horizontal-dark.png";
+import { Link } from "@tanstack/react-router";
 import React, { useState, useEffect } from "react";
 import { 
   Search, Bell, Command, Moon, Sun, ArrowRight, LayoutDashboard, Wallet, 
@@ -93,7 +96,24 @@ export function TopBar() {
     <>
       <header className="sticky top-0 z-30 flex items-center gap-2 sm:gap-3 border-b bg-background/90 px-3 sm:px-4 backdrop-blur-md pt-[env(safe-area-inset-top,0px)] min-h-[3.75rem] py-1.5 transition-all">
         <SidebarTrigger className="-ml-1 h-9 w-9 sm:h-8 sm:w-8 shrink-0 touch-manipulation text-foreground hover:bg-accent" />
-        <Separator orientation="vertical" className="h-5 shrink-0" />
+        
+        {/* Logo Focus no Mobile */}
+        <div className="flex sm:hidden items-center ml-0.5 shrink-0">
+          <Link to="/" className="flex items-center">
+            <img
+              src={focusLogoHorizontal}
+              alt="Focus ERP"
+              className="h-6 w-auto max-w-[125px] object-contain dark:hidden"
+            />
+            <img
+              src={focusLogoHorizontalDark}
+              alt="Focus ERP"
+              className="h-6 w-auto max-w-[125px] object-contain hidden dark:block"
+            />
+          </Link>
+        </div>
+
+        <Separator orientation="vertical" className="h-5 shrink-0 hidden sm:block" />
         
         {/* BUSCADOR GLOBAL INTERATIVO */}
         <div 

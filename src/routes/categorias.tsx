@@ -11,16 +11,11 @@ export const Route = createFileRoute("/categorias")({
 function PlanoContasPage() {
   return (
     <div className="flex flex-col gap-6 p-6 max-w-[1400px] mx-auto w-full">
-      <div className="flex items-center gap-3">
-        <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-          <Layers className="w-6 h-6 text-primary" />
-        </div>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Plano de Contas</h1>
-          <p className="text-muted-foreground mt-1">
-            Categorização hierárquica e contábil de receitas e despesas gerenciais.
-          </p>
-        </div>
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Plano de Contas</h1>
+        <p className="text-muted-foreground mt-1">
+          Categorização hierárquica e contábil de receitas e despesas gerenciais.
+        </p>
       </div>
 
       <Tabs defaultValue="arvore" className="space-y-6 mt-4">

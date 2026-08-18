@@ -14,16 +14,11 @@ export const Route = createFileRoute("/indicadores")({
 function IndicadoresPage() {
   return (
     <div className="flex flex-col gap-6 p-6 max-w-[1400px] mx-auto w-full">
-      <div className="flex items-center gap-3">
-        <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
-          <LineChart className="w-6 h-6 text-primary" />
-        </div>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Indicadores Estratégicos (KPIs)</h1>
-          <p className="text-muted-foreground mt-1">
-            Centro de inteligência gerencial e performance da operação.
-          </p>
-        </div>
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Indicadores Estratégicos (KPIs)</h1>
+        <p className="text-muted-foreground mt-1">
+          Centro de inteligência gerencial e performance da operação.
+        </p>
       </div>
 
       <Tabs defaultValue="saas" className="space-y-6 mt-4">

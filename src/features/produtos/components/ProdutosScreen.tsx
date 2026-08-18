@@ -55,8 +55,8 @@ export function ProdutosScreen() {
       {/* HEADER PRINCIPAL DO MÓDULO PRODUTOS FOCUS */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
-            <Boxes className="h-8 w-8 text-primary" /> Produtos Focus
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+            Produtos Focus
           </h1>
           <p className="text-muted-foreground mt-1 text-sm">
             Central de gestão do ecossistema de softwares da Focus Tecnologia: ciclo de vida, roadmap, releases, clientes e métricas

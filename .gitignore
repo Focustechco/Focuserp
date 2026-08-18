@@ -32,3 +32,8 @@ dist-ssr
 *.sw?
 
 .vercel
+
+backend/
+focus-financial-insight-main/
+.env
+.env.*

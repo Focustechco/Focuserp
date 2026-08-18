@@ -31,16 +31,11 @@ function RouteComponent() {
   return (
     <div className="flex-1 space-y-6 p-8 pt-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-orange-500/10 text-orange-600 flex items-center justify-center shadow-sm">
-            <FileCheck2 className="w-6 h-6" />
-          </div>
-          <div>
-            <h2 className="text-3xl font-bold tracking-tight">Central Fiscal & Tributária</h2>
-            <p className="text-muted-foreground mt-1 text-sm">
-              Gestão centralizada de notas fiscais (NFS-e, NF-e), apuração de impostos e sincronização automática de arquivos no DMS.
-            </p>
-          </div>
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Central Fiscal & Tributária</h2>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Emissão de notas fiscais (NFe, NFSe, NFCe), gestão de certificados A1/A3, MDF-e, obrigações acessórias e SPED.
+          </p>
         </div>
       </div>
       

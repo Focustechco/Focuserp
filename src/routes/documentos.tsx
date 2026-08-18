@@ -21,16 +21,11 @@ function CentralDocumentacaoPage() {
     <div className="flex flex-col gap-6 p-6 max-w-[1400px] mx-auto w-full animate-fade-in">
       {/* Cabeçalho da Central de Documentação */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-orange-500/10 text-orange-600 flex items-center justify-center shadow-sm">
-            <FolderGit2 className="w-6 h-6" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Central de Documentação</h1>
-            <p className="text-muted-foreground mt-1 text-sm">
-              Único repositório corporativo de armazenamento, versionamento, permissões e auditoria do Focus Finance.
-            </p>
-          </div>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Central de Documentação</h1>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Único repositório corporativo de armazenamento, versionamento, permissões e auditoria do Focus Finance.
+          </p>
         </div>
       </div>
 

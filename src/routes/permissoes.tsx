@@ -18,18 +18,11 @@ function PermissoesPage() {
     <div className="flex flex-col gap-6 p-6 max-w-[1400px] mx-auto w-full animate-fade-in">
       {/* Cabeçalho do Módulo de Permissões */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-orange-500/10 text-orange-600 flex items-center justify-center shadow-sm">
-            <ShieldCheck className="w-6 h-6" />
-          </div>
-          <div>
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">Permissões & Governança</h1>
-            </div>
-            <p className="text-muted-foreground mt-1 text-sm">
-              Gestão de perfis de acesso, matriz de permissões por módulo e alteração de setores com sincronização automática com os módulos RH e Usuários.
-            </p>
-          </div>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Permissões & Governança</h1>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Gestão de perfis de acesso, matriz de permissões por módulo e alteração de setores com sincronização automática com os módulos RH e Usuários.
+          </p>
         </div>
       </div>
 

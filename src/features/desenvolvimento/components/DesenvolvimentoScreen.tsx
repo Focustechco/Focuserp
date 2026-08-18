@@ -49,8 +49,8 @@ export function DesenvolvimentoScreen() {
       {/* HEADER PRINCIPAL */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
-            <Code2 className="h-8 w-8 text-primary" /> Desenvolvimento
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+            Desenvolvimento
           </h1>
           <p className="text-muted-foreground mt-1 text-sm">
             Central de engenharia de software da Focus Tecnologia: Sprints, Backlog, Kanban, Git, CI/CD, Deploys e Bugs

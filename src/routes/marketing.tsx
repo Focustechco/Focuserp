@@ -29,8 +29,7 @@ function MarketingRoute() {
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6 h-[calc(100vh-4rem)] flex flex-col overflow-hidden">
       <div className="flex items-center justify-between space-y-2 shrink-0">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <Megaphone className="w-8 h-8 text-primary" />
+          <h2 className="text-3xl font-bold tracking-tight text-foreground">
             Marketing Ops
           </h2>
           <p className="text-muted-foreground">
