@@ -60,9 +60,9 @@ export function AgendaProjetosScreen() {
 
   const filteredEvents = eventos.filter((e) => {
     const matchesSearch =
-      e.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (e.projetoNome && e.projetoNome.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (e.responsavel && e.responsavel.toLowerCase().includes(searchTerm.toLowerCase()));
+      (e?.titulo || '').toLowerCase().includes((searchTerm || '').toLowerCase()) ||
+      (e?.projetoNome && e.projetoNome.toLowerCase().includes((searchTerm || '').toLowerCase())) ||
+      (e?.responsavel && e.responsavel.toLowerCase().includes((searchTerm || '').toLowerCase()));
     const matchesTipo = tipoFilter === 'todos' || e.tipo === tipoFilter;
     const matchesStatus = statusFilter === 'todos' || e.status === statusFilter;
     return matchesSearch && matchesTipo && matchesStatus;

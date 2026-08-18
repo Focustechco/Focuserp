@@ -49,8 +49,8 @@ export function AgendaTimeline() {
   const { eventos } = useAgendaEvents();
 
   const filteredEvents = eventos.filter(evt => {
-    const matchesSearch = evt.titulo.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      (evt.entidadeVinculo && evt.entidadeVinculo.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesSearch = (evt?.titulo || '').toLowerCase().includes((searchTerm || '').toLowerCase()) || 
+      (evt?.entidadeVinculo && evt.entidadeVinculo.toLowerCase().includes((searchTerm || '').toLowerCase()));
     
     let matchesCat = true;
     if (catFilter === 'rec') matchesCat = evt.categoria === 'Recebimento';

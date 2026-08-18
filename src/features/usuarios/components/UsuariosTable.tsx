@@ -120,7 +120,7 @@ export function UsuariosTable() {
                       <Avatar className="w-10 h-10 border border-primary/20 shadow-sm shrink-0">
                         <AvatarImage src={user.foto} className="object-cover" />
                         <AvatarFallback className="text-sm font-bold bg-primary/10 text-primary">
-                          {user.nome.substring(0, 2).toUpperCase()}
+                          {(user.nome || 'U').substring(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                       <div>
@@ -135,8 +135,8 @@ export function UsuariosTable() {
                   </TableCell>
                   <TableCell>
                     <Badge variant="secondary" className="font-normal">{user.perfil}</Badge>
-                    {user.rolesComplementares.length > 0 && (
-                      <div className="text-[10px] text-muted-foreground mt-1">+{user.rolesComplementares.length} roles</div>
+                    {(user.rolesComplementares || []).length > 0 && (
+                      <div className="text-[10px] text-muted-foreground mt-1">+{(user.rolesComplementares || []).length} roles</div>
                     )}
                   </TableCell>
                   <TableCell>

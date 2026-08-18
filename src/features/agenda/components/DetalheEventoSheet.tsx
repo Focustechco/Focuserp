@@ -58,7 +58,7 @@ export function DetalheEventoSheet({ evento, isOpen, onClose }: DetalheEventoShe
               {evento.titulo}
             </SheetTitle>
             <SheetDescription>
-              Acompanhamento de {evento.categoria.toLowerCase()} centralizado na Agenda.
+              Acompanhamento de {(evento?.categoria || '').toLowerCase()} centralizado na Agenda.
             </SheetDescription>
           </SheetHeader>
         </div>

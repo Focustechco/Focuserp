@@ -10,18 +10,23 @@ function toValidUuid(id?: string | null): string {
 
 /**
  * Service de dados reais para o módulo de Recursos Humanos (Colaboradores).
+ * Conectado exclusivamente ao Banco de Dados Real (Supabase).
  */
 export const colaboradorService = {
   async getColaboradores(): Promise<ColaboradorDTO[]> {
     try {
-      // 1. Tentar buscar na tabela relacional 'colaboradores' no Supabase
       const { data, error } = await supabase
         .from('colaboradores')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (!error && data && data.length > 0) {
-        const items = data.map((item: any) => ({
+      if (error) {
+        console.error('[colaboradorService.getColaboradores] Supabase Error:', error.message);
+        return [];
+      }
+
+      if (data && data.length > 0) {
+        return data.map((item: any) => ({
           id: item.id,
           matricula: item.matricula || `MAT-${String(item.id).slice(0, 4).toUpperCase()}`,
           nomeCompleto: item.nome || item.nomeCompleto || 'Colaborador',
@@ -37,21 +42,11 @@ export const colaboradorService = {
           metodoPagamento: item.metodo_pagamento || item.metodoPagamento || { formaPagamento: 'PIX' },
           documentos: item.documentos || [],
         }));
-        return items;
-      }
-
-      // 2. Fallback de cache local dinâmico
-      if (typeof window !== 'undefined') {
-        const rawLocal = window.localStorage.getItem('focus_app_focus_rh_colaboradores') || window.localStorage.getItem('focus_rh_colaboradores');
-        if (rawLocal) {
-          const parsedLocal = JSON.parse(rawLocal);
-          if (Array.isArray(parsedLocal)) return parsedLocal;
-        }
       }
 
       return [];
     } catch (err) {
-      console.error('[colaboradorService.getColaboradores] Erro:', err);
+      console.error('[colaboradorService.getColaboradores] Erro de conexão:', err);
       return [];
     }
   },
@@ -80,26 +75,11 @@ export const colaboradorService = {
 
     const { error } = await supabase.from('colaboradores').upsert(payload);
     if (error) {
-      console.warn('[colaboradorService.saveColaborador] Supabase upsert note:', error.message);
+      console.error('[colaboradorService.saveColaborador] Supabase upsert error:', error.message);
+      throw new Error(`Erro ao salvar no banco de dados: ${error.message}`);
     }
 
-    const savedColab: ColaboradorDTO = { ...validated, id: validId };
-
-    if (typeof window !== 'undefined') {
-      try {
-        const keys = ['focus_app_focus_rh_colaboradores', 'focus_rh_colaboradores'];
-        keys.forEach((key) => {
-          const rawLocal = window.localStorage.getItem(key);
-          const current: ColaboradorDTO[] = rawLocal ? JSON.parse(rawLocal) : [];
-          const updated = [savedColab, ...current.filter((c) => c.id !== validId)];
-          window.localStorage.setItem(key, JSON.stringify(updated));
-        });
-      } catch (err) {
-        console.warn('Erro ao atualizar cache local de colaboradores:', err);
-      }
-    }
-
-    return savedColab;
+    return { ...validated, id: validId };
   },
 
   async deleteColaborador(id: string): Promise<void> {
@@ -107,23 +87,8 @@ export const colaboradorService = {
 
     const { error } = await supabase.from('colaboradores').delete().eq('id', id);
     if (error) {
-      console.warn('[colaboradorService.deleteColaborador] Erro ao deletar no Supabase:', error.message);
-    }
-
-    if (typeof window !== 'undefined') {
-      try {
-        const keys = ['focus_app_focus_rh_colaboradores', 'focus_rh_colaboradores'];
-        keys.forEach((key) => {
-          const rawLocal = window.localStorage.getItem(key);
-          if (rawLocal) {
-            const current: ColaboradorDTO[] = JSON.parse(rawLocal);
-            const filtered = current.filter((c) => c.id !== id);
-            window.localStorage.setItem(key, JSON.stringify(filtered));
-          }
-        });
-      } catch (err) {
-        console.warn('Erro ao atualizar cache local de colaboradores:', err);
-      }
+      console.error('[colaboradorService.deleteColaborador] Erro ao deletar no Supabase:', error.message);
+      throw new Error(`Erro ao excluir no banco de dados: ${error.message}`);
     }
   },
 };
