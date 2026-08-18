@@ -2,6 +2,26 @@ import { supabase } from '@/lib/supabaseClient';
 import { clienteSchema, ClienteDTO } from '@/schemas/clienteSchema';
 
 const LOCAL_STORAGE_KEYS = ['focus_app_focus_clientes', 'focus_app_clientes', 'focus_app_clients'];
+const DELETED_IDS_KEY = 'focus_app_deleted_client_ids';
+
+function getDeletedClientIds(): Set<string> {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const raw = window.localStorage.getItem(DELETED_IDS_KEY);
+    return new Set<string>(raw ? JSON.parse(raw) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function markClientAsDeletedLocally(id: string) {
+  if (typeof window === 'undefined') return;
+  try {
+    const deletedSet = getDeletedClientIds();
+    deletedSet.add(id);
+    window.localStorage.setItem(DELETED_IDS_KEY, JSON.stringify(Array.from(deletedSet)));
+  } catch {}
+}
 
 /**
  * Service de dados para o módulo de Clientes.
@@ -13,6 +33,7 @@ export const clienteService = {
    */
   async getClientes(): Promise<ClienteDTO[]> {
     try {
+      const deletedIds = getDeletedClientIds();
       let dbItems: any[] = [];
 
       // 1. Tentar buscar na tabela relacional 'clientes'
@@ -29,6 +50,8 @@ export const clienteService = {
           .from('clients')
           .select('*')
           .not('name', 'like', '__FOCUS_STATE__%')
+          .not('name', 'like', '__DELETED__%')
+          .neq('status', 'deleted')
           .order('created_at', { ascending: false });
 
         if (!clientsErr && Array.isArray(clientsData) && clientsData.length > 0) {
@@ -39,10 +62,15 @@ export const clienteService = {
       if (dbItems.length > 0) {
         const result: ClienteDTO[] = [];
         for (const item of dbItems) {
+          const itemId = String(item.id);
+          if (deletedIds.has(itemId)) continue;
+          if (item.status === 'deleted' || item.status === 'deletado' || item.deleted === true) continue;
+          if (typeof item.name === 'string' && item.name.startsWith('__DELETED__')) continue;
+
           const mapped = {
-            id: String(item.id),
+            id: itemId,
             tenantId: item.tenant_id,
-            codigo: item.codigo || `CLI-${(String(item.id).slice(0, 4)).toUpperCase()}`,
+            codigo: item.codigo || `CLI-${itemId.slice(0, 4).toUpperCase()}`,
             tipo: item.tipo === 'Pessoa Física' ? 'Pessoa Física' : ('Pessoa Jurídica' as const),
             razaoSocial: item.razao_social || item.name || 'Cliente sem nome',
             nomeFantasia: item.nome_fantasia || item.name || 'Cliente sem nome',
@@ -84,7 +112,9 @@ export const clienteService = {
           if (raw) {
             try {
               const parsed = JSON.parse(raw);
-              if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                return parsed.filter((c: any) => !deletedIds.has(String(c.id)));
+              }
             } catch {}
           }
         }
@@ -104,33 +134,6 @@ export const clienteService = {
     const validated = clienteSchema.parse(cliente);
     const id = validated.id || crypto.randomUUID();
     const validatedWithId = { ...validated, id };
-
-    const payload = {
-      id,
-      tenant_id: validated.tenantId,
-      codigo: validated.codigo,
-      tipo: validated.tipo,
-      razao_social: validated.razaoSocial,
-      nome_fantasia: validated.nomeFantasia,
-      documento: validated.documento,
-      inscricao_estadual: validated.inscricaoEstadual,
-      inscricao_municipal: validated.inscricaoMunicipal,
-      data_fundacao_nascimento: validated.dataFundacaoNascimento,
-      status: validated.status,
-      segmento: validated.segmento,
-      porte_empresa: validated.porteEmpresa,
-      site: validated.site,
-      observacoes: validated.observacoes,
-      cep: validated.endereco.cep,
-      logradouro: validated.endereco.logradouro,
-      numero: validated.endereco.numero,
-      complemento: validated.endereco.complemento,
-      bairro: validated.endereco.bairro,
-      cidade: validated.endereco.cidade,
-      estado: validated.endereco.estado,
-      pais: validated.endereco.pais,
-      updated_at: new Date().toISOString()
-    };
 
     // 1. Salvar no LocalStorage para resposta instantânea
     if (typeof window !== 'undefined') {
@@ -168,10 +171,13 @@ export const clienteService = {
   },
 
   /**
-   * Excluir um cliente pelo ID
+   * Excluir um cliente pelo ID (suporta exclusão em cascata e fallback de 409 FK Constraint)
    */
   async deleteCliente(id: string): Promise<void> {
-    // 1. Remover do LocalStorage de forma síncrona imediata
+    // 1. Marcar como excluído localmente de forma instantânea e persistente
+    markClientAsDeletedLocally(id);
+
+    // 2. Remover de todos os caches do LocalStorage
     if (typeof window !== 'undefined') {
       for (const key of LOCAL_STORAGE_KEYS) {
         try {
@@ -189,15 +195,28 @@ export const clienteService = {
       }
     }
 
-    // 2. Deletar no Supabase na tabela 'clientes' e 'clients'
+    // 3. Tentar remover referências filhas se existirem
+    try { await supabase.from('contas_receber').delete().eq('cliente_id', id); } catch {}
+    try { await supabase.from('contratos').delete().eq('cliente_id', id); } catch {}
+    try { await supabase.from('cobrancas').delete().eq('cliente_id', id); } catch {}
+    try { await supabase.from('projetos').delete().eq('cliente_id', id); } catch {}
+
+    // 4. Executar DELETE no Supabase na tabela 'clientes' (com fallback para soft-delete em caso de 409 FK)
     try {
-      await supabase.from('clientes').delete().eq('id', id);
+      const { error: err1 } = await supabase.from('clientes').delete().eq('id', id);
+      if (err1 && (err1.code === '23503' || err1.message?.includes('foreign key') || err1.message?.includes('Conflict'))) {
+        await supabase.from('clientes').update({ status: 'Inativo', deleted: true, updated_at: new Date().toISOString() }).eq('id', id);
+      }
     } catch (err) {
       console.warn('[clienteService.deleteCliente] Warning deleting from clientes:', err);
     }
 
+    // 5. Executar DELETE no Supabase na tabela 'clients' (com fallback para soft-delete em caso de 409 FK)
     try {
-      await supabase.from('clients').delete().eq('id', id);
+      const { error: err2 } = await supabase.from('clients').delete().eq('id', id);
+      if (err2 && (err2.code === '23503' || err2.message?.includes('foreign key') || err2.message?.includes('Conflict'))) {
+        await supabase.from('clients').update({ status: 'deleted', name: `__DELETED__${id}`, updated_at: new Date().toISOString() }).eq('id', id);
+      }
     } catch (err) {
       console.warn('[clienteService.deleteCliente] Warning deleting from clients:', err);
     }

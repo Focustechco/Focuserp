@@ -99,40 +99,50 @@ export function useLocalStorageState<T extends { id: string }>(
           if (!isMounted) return;
 
           if (!dbErr && Array.isArray(dbClients)) {
-            const mapped = dbClients.map((c: any) => ({
-              id: c.id,
-              codigo: `CLI-${c.id.slice(0, 4).toUpperCase()}`,
-              tipo: 'Pessoa Jurídica',
-              razaoSocial: c.name || 'Cliente sem nome',
-              nomeFantasia: c.name || 'Cliente sem nome',
-              documento: '00.000.000/0001-00',
-              status: c.status === 'inativo' ? 'Inativo' : 'Ativo',
-              segmento: 'Geral',
-              endereco: {
-                cep: '',
-                logradouro: '',
-                numero: '',
-                bairro: '',
-                cidade: 'São Paulo',
-                estado: 'SP',
-                pais: 'Brasil'
-              },
-              contatos: [
-                {
-                  id: `ct-${c.id}`,
-                  nome: c.name || 'Contato Principal',
-                  cargo: 'Responsável',
-                  departamento: 'Geral',
-                  celular: c.contact_phone || '(11) 99999-9999',
-                  whatsapp: true,
-                  email: c.contact_email || 'contato@cliente.com',
-                  principal: true
-                }
-              ],
-              dataCadastro: c.created_at || new Date().toISOString(),
-              ultimaAtualizacao: c.updated_at || new Date().toISOString(),
-              ...c
-            })) as T[];
+            const rawDeletedIds = typeof window !== 'undefined' ? window.localStorage.getItem('focus_app_deleted_client_ids') : null;
+            const deletedSet = new Set<string>(rawDeletedIds ? JSON.parse(rawDeletedIds) : []);
+
+            const mapped = dbClients
+              .filter((c: any) => {
+                if (deletedSet.has(String(c.id))) return false;
+                if (c.status === 'deleted' || c.status === 'deletado' || c.deleted === true) return false;
+                if (typeof c.name === 'string' && c.name.startsWith('__DELETED__')) return false;
+                return true;
+              })
+              .map((c: any) => ({
+                id: c.id,
+                codigo: `CLI-${c.id.slice(0, 4).toUpperCase()}`,
+                tipo: 'Pessoa Jurídica',
+                razaoSocial: c.name || 'Cliente sem nome',
+                nomeFantasia: c.name || 'Cliente sem nome',
+                documento: '00.000.000/0001-00',
+                status: c.status === 'inativo' ? 'Inativo' : 'Ativo',
+                segmento: 'Geral',
+                endereco: {
+                  cep: '',
+                  logradouro: '',
+                  numero: '',
+                  bairro: '',
+                  cidade: 'São Paulo',
+                  estado: 'SP',
+                  pais: 'Brasil'
+                },
+                contatos: [
+                  {
+                    id: `ct-${c.id}`,
+                    nome: c.name || 'Contato Principal',
+                    cargo: 'Responsável',
+                    departamento: 'Geral',
+                    celular: c.contact_phone || '(11) 99999-9999',
+                    whatsapp: true,
+                    email: c.contact_email || 'contato@cliente.com',
+                    principal: true
+                  }
+                ],
+                dataCadastro: c.created_at || new Date().toISOString(),
+                ultimaAtualizacao: c.updated_at || new Date().toISOString(),
+                ...c
+              })) as T[];
 
             setData(mapped);
             writeLocalCache(table, mapped);
