@@ -119,7 +119,7 @@ export function ModalTrilhaAuditoria({ isOpen, onClose, documento }: ModalTrilha
           <div className="space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Trilha de Evidências (Log de Integridade)</h4>
             <div className="space-y-3 relative pl-4 border-l-2 border-primary/20">
-              {documento.auditoria.map((log) => (
+              {(documento?.auditoria || []).map((log) => (
                 <div key={log.id} className="relative space-y-1">
                   <div className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-primary" />
                   <div className="flex items-center justify-between text-xs font-bold">

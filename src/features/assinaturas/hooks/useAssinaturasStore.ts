@@ -18,34 +18,23 @@ export function useAssinaturasStore() {
   const assinarDocumento = (
     docId: string, 
     assinanteId: string, 
-    metodo: 'Eletrônica Simples' | 'Gov.br (Avançada)' | 'ICP-Brasil (Qualificada A1/A3)', 
-    detalhesAutenticacao: {
-      ip?: string;
-      dispositivo?: string;
-      rubricaOuDesenhoUrl?: string;
-      nivelGovBr?: 'Bronze' | 'Prata' | 'Ouro';
-      certificadoEmissor?: string;
-    }
+    metodo: 'Focus IAM' | 'Gov.br' | 'ICP-Brasil A1/A3',
+    detalhesAutenticacao: { ip?: string; dispositivo?: string }
   ) => {
     const doc = documentos.find(d => d.id === docId);
     if (!doc) return;
 
     const dataHoraNow = new Date().toISOString();
-    const hashRandom = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-    const novoHashDoc = `sha256_${hashRandom}_signed`;
+    const novoHashDoc = `SHA256-${Math.random().toString(36).substring(2, 10).toUpperCase()}-VERIFIED`;
 
-    const assinantesAtualizados = doc.assinantes.map(a => {
+    const assinantesAtualizados = (doc.assinantes || []).map(a => {
       if (a.id === assinanteId) {
         return {
           ...a,
           status: 'Assinado' as const,
-          dataAssinatura: dataHoraNow,
-          metodoUtilizado: metodo,
-          ip: detalhesAutenticacao.ip || '187.62.190.12',
-          dispositivo: detalhesAutenticacao.dispositivo || 'Navegador Web',
-          rubricaOuDesenhoUrl: detalhesAutenticacao.rubricaOuDesenhoUrl,
-          nivelGovBr: detalhesAutenticacao.nivelGovBr,
-          certificadoEmissor: detalhesAutenticacao.certificadoEmissor
+          dataHoraAssinatura: dataHoraNow,
+          metodoAutenticacao: metodo,
+          ipOrigem: detalhesAutenticacao.ip || '187.62.190.12'
         };
       }
       return a;
@@ -53,12 +42,14 @@ export function useAssinaturasStore() {
 
     const todosAssinados = assinantesAtualizados.every(a => a.status === 'Assinado');
 
+    const atorEncontrado = (doc.assinantes || []).find(a => a.id === assinanteId);
+
     const novoLogAuditoria: TrilhaAuditoria = {
       id: `aud-${Date.now()}`,
       dataHora: dataHoraNow,
       evento: `Assinatura Efetuada (${metodo})`,
-      ator: doc.assinantes.find(a => a.id === assinanteId)?.nome || 'Assinante',
-      emailAtor: doc.assinantes.find(a => a.id === assinanteId)?.email || 'email@exemplo.com',
+      ator: atorEncontrado?.nome || 'Assinante',
+      emailAtor: atorEncontrado?.email || 'email@exemplo.com',
       ip: detalhesAutenticacao.ip || '187.62.190.12',
       dispositivo: detalhesAutenticacao.dispositivo || 'Navegador Web',
       metodoAutenticacao: metodo,
@@ -71,7 +62,7 @@ export function useAssinaturasStore() {
       hashSHA256Assinado: novoHashDoc,
       carimboTempo: todosAssinados ? dataHoraNow : doc.carimboTempo,
       assinantes: assinantesAtualizados,
-      auditoria: [novoLogAuditoria, ...doc.auditoria]
+      auditoria: [novoLogAuditoria, ...(doc.auditoria || [])]
     });
 
     toast.success('Assinatura registrada com sucesso!', {
@@ -93,13 +84,13 @@ export function useAssinaturasStore() {
       ip: '187.62.190.12',
       dispositivo: 'Navegador Web',
       metodoAutenticacao: 'Focus IAM',
-      hashSHA256: doc.hashSHA256Original,
+      hashSHA256: doc.hashSHA256Original || 'HASH-ORIGINAL',
       detalhes: `Fluxo de assinatura interrompido: ${motivo}`
     };
 
     updateDocumento(docId, {
       status: 'Cancelado',
-      auditoria: [novoLog, ...doc.auditoria]
+      auditoria: [novoLog, ...(doc.auditoria || [])]
     });
 
     toast.warning('Documento cancelado.', { description: motivo });
