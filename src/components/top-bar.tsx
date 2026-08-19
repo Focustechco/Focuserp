@@ -2,6 +2,8 @@ import focusLogoHorizontal from "@/assets/focus-logo-horizontal.png";
 import focusLogoHorizontalDark from "@/assets/focus-logo-horizontal-dark.png";
 import focusLogoMobile from "@/assets/focus-logo-mobile.png";
 import focusLogoMobileDark from "@/assets/focus-logo-mobile-dark.png";
+import focusLogoMobileIos from "@/assets/focus-logo-mobile-ios.png";
+import focusLogoMobileIosDark from "@/assets/focus-logo-mobile-ios-dark.png";
 import { Link } from "@tanstack/react-router";
 import React, { useState, useEffect } from "react";
 import { 
@@ -26,7 +28,7 @@ import { Cliente } from "@/features/clientes/types";
 import { Contrato } from "@/features/contratos/types";
 import { NotificationBellDropdown } from "@/features/notificacoes/components/NotificationBellDropdown";
 
-// Importao dos Formulrios Oficiais dos Mdulos
+// Importação dos Formulários Oficiais dos Módulos
 import { NovoRecebimentoSheet } from "@/features/contas-receber/components/NovoRecebimentoSheet";
 import { NovaContaSheet } from "@/features/contas-pagar/components/NovaContaSheet";
 import { NovoClienteSheet } from "@/features/clientes/components/NovoClienteSheet";
@@ -39,12 +41,25 @@ interface QuickLink {
   icon: any;
 }
 
+// Helper function to check iOS environment
+function checkIsIOS(): boolean {
+  if (typeof window === "undefined" || !window.navigator) return false;
+  const ua = window.navigator.userAgent || "";
+  const platform = window.navigator.platform || "";
+  return /iPhone|iPad|iPod/.test(ua) || (platform === "MacIntel" && window.navigator.maxTouchPoints > 1);
+}
+
 export function TopBar() {
   const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
   const [openSearchModal, setOpenSearchModal] = useState(false);
   const [query, setQuery] = useState("");
+  const [isIOS, setIsIOS] = useState(false);
+
+  useEffect(() => {
+    setIsIOS(checkIsIOS());
+  }, []);
 
   const { data: clientes } = useLocalStorageState<Cliente>("focus_clientes");
   const { data: contratos } = useLocalStorageState<Contrato>("focus_contratos");
@@ -94,6 +109,10 @@ export function TopBar() {
     setQuery("");
   };
 
+  // Determine light/dark logos for mobile iOS or general mobile
+  const mobileLightLogo = isIOS ? focusLogoMobileIos : focusLogoMobile;
+  const mobileDarkLogo = isIOS ? focusLogoMobileIosDark : focusLogoMobileDark;
+
   return (
     <>
       <header className="sticky top-0 z-30 flex items-center gap-2 sm:gap-3 border-b bg-background/90 px-3 sm:px-4 backdrop-blur-md pt-[env(safe-area-inset-top,0px)] min-h-[3.75rem] py-1.5 transition-all">
@@ -103,14 +122,14 @@ export function TopBar() {
         <div className="flex sm:hidden items-center ml-0.5 shrink-0">
           <Link to="/" className="flex items-center">
             <img
-              src={focusLogoMobile}
+              src={mobileLightLogo}
               alt="Focus ERP"
-              className="h-7 w-auto max-w-[130px] object-contain dark:hidden"
+              className="h-7 sm:h-8 w-auto max-w-[135px] object-contain dark:hidden"
             />
             <img
-              src={focusLogoMobileDark}
+              src={mobileDarkLogo}
               alt="Focus ERP"
-              className="h-7 w-auto max-w-[130px] object-contain hidden dark:block"
+              className="h-7 sm:h-8 w-auto max-w-[135px] object-contain hidden dark:block"
             />
           </Link>
         </div>
