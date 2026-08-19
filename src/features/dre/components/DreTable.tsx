@@ -1,13 +1,15 @@
 import React, { useState, useMemo } from 'react';
-import { ChevronRight, ChevronDown, Download, Filter } from 'lucide-react';
+import { ChevronRight, ChevronDown, Download, Filter, Calendar, TrendingUp, TrendingDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { DreFiltrosSheet } from './DreFiltrosSheet';
 import { DreDrillDownSheet } from './DreDrillDownSheet';
 import { LinhaDRE } from '../types';
 import { useLocalStorageState } from '@/hooks/useDataStore';
 import { TituloReceber } from '@/features/contas-receber/types';
 import { ContaPagar } from '@/features/contas-pagar/types';
+import { buildDRE, FiltrosDREState, PeriodoDRE } from '../services/dreEngine';
 
 const formatCurrency = (value?: number | null) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
@@ -29,79 +31,23 @@ export function DreTable() {
   const [filtrosOpen, setFiltrosOpen] = useState(false);
   const [drillDownOpen, setDrillDownOpen] = useState(false);
   const [selectedLinha, setSelectedLinha] = useState<LinhaDRE | null>(null);
+  
+  // Estado reativo dos Filtros da DRE
+  const [filtros, setFiltros] = useState<FiltrosDREState>({
+    periodo: 'mes_atual',
+    regime: 'competencia',
+    clienteId: 'todos'
+  });
 
   const { data: contasReceber } = useLocalStorageState<TituloReceber>('focus_contas_receber', []);
   const { data: contasPagar } = useLocalStorageState<ContaPagar>('focus_contas_pagar', []);
 
-  // Construir a estrutura DRE dinamicamente
-  const dreBase = useMemo(() => {
-    let receita = 0;
-    let deducoes = 0;
-    let custos = 0;
-    let despAdm = 0;
-    let despComercial = 0;
-    let despFinan = 0;
-
-    contasReceber.forEach(t => {
-      receita += t.valorOriginal;
-    });
-
-    contasPagar.forEach(c => {
-      const cat = (c.categoria || '').toLowerCase();
-      if (cat.includes('imposto') || cat.includes('tributo')) {
-        deducoes += c.valorOriginal;
-      } else if (cat.includes('custo') || cat.includes('fornecedor') || cat.includes('infra') || cat.includes('cloud')) {
-        custos += c.valorOriginal;
-      } else if (cat.includes('marketing') || cat.includes('venda') || cat.includes('comissão') || cat.includes('comissao')) {
-        despComercial += c.valorOriginal;
-      } else if (cat.includes('tarifa') || cat.includes('banc') || cat.includes('juro') || cat.includes('iof')) {
-        despFinan += c.valorOriginal;
-      } else {
-        despAdm += c.valorOriginal;
-      }
-    });
-
-    const receitaLiquida = receita - deducoes;
-    const lucroBruto = receitaLiquida - custos;
-    const ebitda = lucroBruto - despAdm - despComercial;
-    const ebit = ebitda - 0; // depreciação não controlada aqui
-    const lucroLiquido = ebit - despFinan;
-
-    return [
-      { id: "1", codigo: "1.0", nome: "Receita Bruta", tipo: "Receita Bruta", valorAtual: receita, valorAnterior: receita * 0.9, isCalculated: true },
-      { id: "1.1", codigo: "1.1", nome: "Faturamento Geral", tipo: "Subcategoria", valorAtual: receita, valorAnterior: receita * 0.9, isCalculated: false, parentId: "1" },
-    
-      { id: "2", codigo: "2.0", nome: "(-) Deduções da Receita Bruta", tipo: "Deduções", valorAtual: -deducoes, valorAnterior: -deducoes * 0.9, isCalculated: true },
-      { id: "2.1", codigo: "2.1", nome: "Impostos / Devoluções", tipo: "Subcategoria", valorAtual: -deducoes, valorAnterior: -deducoes * 0.9, isCalculated: false, parentId: "2" },
-    
-      { id: "3", codigo: "3.0", nome: "(=) Receita Líquida", tipo: "Receita Líquida", valorAtual: receitaLiquida, valorAnterior: receitaLiquida * 0.9, isCalculated: true },
-    
-      { id: "4", codigo: "4.0", nome: "(-) Custos dos Serviços Prestados", tipo: "Custo", valorAtual: -custos, valorAnterior: -custos * 0.9, isCalculated: true },
-      { id: "4.1", codigo: "4.1", nome: "Custos Operacionais", tipo: "Subcategoria", valorAtual: -custos, valorAnterior: -custos * 0.9, isCalculated: false, parentId: "4" },
-    
-      { id: "5", codigo: "5.0", nome: "(=) Lucro Bruto", tipo: "Lucro Bruto", valorAtual: lucroBruto, valorAnterior: lucroBruto * 0.9, isCalculated: true },
-    
-      { id: "6", codigo: "6.0", nome: "(-) Despesas Administrativas", tipo: "Despesa Administrativa", valorAtual: -despAdm, valorAnterior: -despAdm * 0.9, isCalculated: true },
-      { id: "6.1", codigo: "6.1", nome: "Gerais e Administrativas", tipo: "Subcategoria", valorAtual: -despAdm, valorAnterior: -despAdm * 0.9, isCalculated: false, parentId: "6" },
-    
-      { id: "7", codigo: "7.0", nome: "(-) Despesas Comerciais", tipo: "Despesa Comercial", valorAtual: -despComercial, valorAnterior: -despComercial * 0.9, isCalculated: true },
-      { id: "7.1", codigo: "7.1", nome: "Marketing e Vendas", tipo: "Subcategoria", valorAtual: -despComercial, valorAnterior: -despComercial * 0.9, isCalculated: false, parentId: "7" },
-    
-      { id: "8", codigo: "8.0", nome: "(-) Despesas Financeiras", tipo: "Despesa Financeira", valorAtual: -despFinan, valorAnterior: -despFinan * 0.9, isCalculated: true },
-      { id: "8.1", codigo: "8.1", nome: "Tarifas / Juros", tipo: "Subcategoria", valorAtual: -despFinan, valorAnterior: -despFinan * 0.9, isCalculated: false, parentId: "8" },
-    
-      { id: "9", codigo: "9.0", nome: "(=) EBITDA", tipo: "EBITDA", valorAtual: ebitda, valorAnterior: ebitda * 0.9, isCalculated: true },
-      
-      { id: "10", codigo: "10.0", nome: "(=) Resultado Operacional (EBIT)", tipo: "Resultado Operacional", valorAtual: ebit, valorAnterior: ebit * 0.9, isCalculated: true },
-    
-      { id: "11", codigo: "11.0", nome: "(-) Tributos Sobre o Lucro (IRPJ / CSLL)", tipo: "Tributos Sobre Lucro", valorAtual: 0, valorAnterior: 0, isCalculated: true },
-      
-      { id: "12", codigo: "12.0", nome: "(=) Lucro Líquido", tipo: "Lucro Líquido", valorAtual: lucroLiquido, valorAnterior: lucroLiquido * 0.9, isCalculated: true },
-    ] as LinhaDRE[];
-  }, [contasReceber, contasPagar]);
+  // Construir a estrutura DRE dinamicamente conforme os filtros ativos
+  const { linhas: dreBase, indicadores, labelPeriodoAtual, labelPeriodoAnterior } = useMemo(() => {
+    return buildDRE(contasReceber, contasPagar, filtros);
+  }, [contasReceber, contasPagar, filtros]);
 
   const handleRowClick = (node: LinhaDRE) => {
-    // Permite drill down apenas nas linhas folha e não calculadas
     const hasChildren = dreBase.some(l => l.parentId === node.id);
     if (!hasChildren && !node.isCalculated) {
       setSelectedLinha(node);
@@ -115,7 +61,7 @@ export function DreTable() {
 
   const totalReceita = dreBase.find(l => l.tipo === 'Receita Bruta')?.valorAtual || 1;
 
-  // Render Recursive
+  // Renderização Recursiva das Linhas da DRE
   const renderTree = (parentId?: string, level = 0) => {
     const nodes = dreBase.filter(l => (parentId ? l.parentId === parentId : !l.parentId));
 
@@ -125,23 +71,21 @@ export function DreTable() {
       const isExpanded = expandedNodes[node.id];
       const hasChildren = dreBase.some(l => l.parentId === node.id);
       
-      const av = (node.valorAtual / totalReceita) * 100; // Análise Vertical
+      const av = totalReceita > 0 ? (node.valorAtual / totalReceita) * 100 : 0;
       const isHeaderRow = node.isCalculated && level === 0;
       
       const absAtual = Math.abs(node.valorAtual);
       const absAnterior = Math.abs(node.valorAnterior);
       const crescimento = absAnterior > 0 ? ((absAtual - absAnterior) / absAnterior) * 100 : 0;
       
-      // Lógica visual: Crescimento de Receita é bom (verde), crescimento de Custo é ruim (vermelho).
-      // Se for despesa (valor negativo), o aumento do valor absoluto (custo maior) é vermelho.
       const isPositiveGrowth = crescimento > 0;
       let colorClass = 'text-muted-foreground';
       
-      if (crescimento !== 0) {
-        if (node.valorAtual >= 0) { // Receitas ou Lucros
-          colorClass = isPositiveGrowth ? 'text-emerald-500' : 'text-rose-500';
-        } else { // Custos ou Despesas
-          colorClass = isPositiveGrowth ? 'text-rose-500' : 'text-emerald-500';
+      if (crescimento !== 0 && absAnterior > 0) {
+        if (node.valorAtual >= 0) {
+          colorClass = isPositiveGrowth ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-rose-600 dark:text-rose-400 font-semibold';
+        } else {
+          colorClass = isPositiveGrowth ? 'text-rose-600 dark:text-rose-400 font-semibold' : 'text-emerald-600 dark:text-emerald-400 font-semibold';
         }
       }
 
@@ -151,18 +95,23 @@ export function DreTable() {
         <React.Fragment key={node.id}>
           <div 
             onClick={() => canDrillDown && handleRowClick(node)}
-            className={`group flex items-center justify-between p-3 border-b transition-colors hover:bg-muted/50 ${isHeaderRow ? 'bg-muted/10 font-bold' : 'text-sm'} ${canDrillDown ? 'cursor-pointer hover:bg-primary/5' : ''}`}
+            className={`group flex items-center justify-between p-3 border-b transition-colors hover:bg-muted/50 ${
+              isHeaderRow ? 'bg-muted/15 font-bold text-foreground' : 'text-sm'
+            } ${canDrillDown ? 'cursor-pointer hover:bg-primary/5' : ''}`}
           >
             
             <div className="flex items-center gap-2 flex-1" style={{ paddingLeft: `${level * 24}px` }}>
               <div 
                 className={`w-5 h-5 flex items-center justify-center cursor-pointer text-muted-foreground hover:text-foreground ${hasChildren ? '' : 'invisible'}`}
-                onClick={() => toggleNode(node.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleNode(node.id);
+                }}
               >
                 {hasChildren && (isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />)}
               </div>
-              <span className={`w-12 font-mono text-xs ${isHeaderRow ? 'text-foreground' : 'text-muted-foreground'}`}>{node.codigo}</span>
-              <span className="truncate">{node.nome}</span>
+              <span className={`w-12 font-mono text-xs ${isHeaderRow ? 'text-foreground font-semibold' : 'text-muted-foreground'}`}>{node.codigo}</span>
+              <span className="truncate font-medium">{node.nome}</span>
             </div>
 
             <div className="flex items-center gap-4 flex-none">
@@ -178,8 +127,8 @@ export function DreTable() {
                 {formatCurrency(node.valorAnterior)}
               </div>
 
-              <div className={`w-24 text-right text-xs font-medium ${colorClass}`}>
-                {crescimento !== 0 ? `${isPositiveGrowth ? '+' : ''}${crescimento.toFixed(1)}%` : '-'}
+              <div className={`w-24 text-right text-xs ${colorClass}`}>
+                {absAnterior > 0 && crescimento !== 0 ? `${isPositiveGrowth ? '+' : ''}${crescimento.toFixed(1)}%` : (absAnterior === 0 && absAtual > 0 ? '+100%' : '-')}
               </div>
             </div>
           </div>
@@ -190,51 +139,104 @@ export function DreTable() {
     });
   };
 
+  const handleExportCSV = () => {
+    let csv = `Código;Conta DRE;${labelPeriodoAtual};AV %;${labelPeriodoAnterior};Crescimento %\n`;
+    dreBase.forEach(l => {
+      const av = totalReceita > 0 ? ((l.valorAtual / totalReceita) * 100).toFixed(1) : '0';
+      const absAtual = Math.abs(l.valorAtual);
+      const absAnt = Math.abs(l.valorAnterior);
+      const cresc = absAnt > 0 ? (((absAtual - absAnt) / absAnt) * 100).toFixed(1) : '0';
+      csv += `"${l.codigo}";"${l.nome}";"${l.valorAtual}";"${av}%";"${l.valorAnterior}";"${cresc}%"\n`;
+    });
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `DRE_Gerencial_${filtros.periodo}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
-    <div className="space-y-4 animate-fade-in pt-4">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="space-y-4 animate-fade-in pt-2">
+      {/* Barra de Filtros */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-card p-3 rounded-lg border">
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <Select defaultValue="atual">
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Período" />
+          <Calendar className="w-4 h-4 text-primary shrink-0" />
+          <Select 
+            value={filtros.periodo} 
+            onValueChange={(val: PeriodoDRE) => setFiltros(prev => ({ ...prev, periodo: val }))}
+          >
+            <SelectTrigger className="w-[200px] font-medium">
+              <SelectValue placeholder="Selecione o período" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="atual">Mês Atual</SelectItem>
-              <SelectItem value="anterior">Mês Anterior</SelectItem>
-              <SelectItem value="trimestre">Trimestre Atual</SelectItem>
-              <SelectItem value="ano">Ano Atual</SelectItem>
+              <SelectItem value="mes_atual">Mês Atual</SelectItem>
+              <SelectItem value="mes_anterior">Mês Anterior</SelectItem>
+              <SelectItem value="dois_meses_atras">2 Meses Atrás</SelectItem>
+              <SelectItem value="trimestre_atual">Trimestre Atual</SelectItem>
+              <SelectItem value="trimestre_anterior">Trimestre Anterior</SelectItem>
+              <SelectItem value="semestre_atual">Semestre Atual</SelectItem>
+              <SelectItem value="ano_atual">Ano Atual</SelectItem>
+              <SelectItem value="ano_anterior">Ano Anterior</SelectItem>
+              <SelectItem value="todos">Todo o Histórico</SelectItem>
             </SelectContent>
           </Select>
+
+          {filtros.clienteId && filtros.clienteId !== 'todos' && (
+            <Badge variant="outline" className="text-xs bg-primary/5 text-primary border-primary/20">
+              Cliente Filtrado
+            </Badge>
+          )}
+
+          {filtros.regime === 'caixa' && (
+            <Badge variant="secondary" className="text-xs">
+              Regime de Caixa
+            </Badge>
+          )}
         </div>
         
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <Button variant="outline" className="gap-2" onClick={() => setFiltrosOpen(true)}>
+          <Button variant="outline" size="sm" className="gap-2" onClick={() => setFiltrosOpen(true)}>
             <Filter className="w-4 h-4" /> Filtros e Dimensões
           </Button>
-          <Button variant="outline" className="gap-2">
-            <Download className="w-4 h-4" /> Exportar (PDF)
+          <Button variant="outline" size="sm" className="gap-2" onClick={handleExportCSV}>
+            <Download className="w-4 h-4" /> Exportar (CSV)
           </Button>
         </div>
       </div>
 
-      <div className="bg-card border rounded-md overflow-hidden shadow-sm">
-        <div className="flex items-center justify-between p-3 border-b bg-muted/50 font-semibold text-sm text-muted-foreground">
-          <div className="flex-1 pl-12">Estrutura DRE Gerencial</div>
+      {/* Tabela DRE */}
+      <div className="bg-card border rounded-lg overflow-hidden shadow-sm">
+        <div className="flex items-center justify-between p-3.5 border-b bg-muted/60 font-semibold text-xs text-muted-foreground uppercase tracking-wider">
+          <div className="flex-1 pl-12">Estrutura DRE Gerencial ({labelPeriodoAtual})</div>
           <div className="flex items-center gap-4 flex-none">
-            <div className="w-32 text-right">Realizado Atual</div>
+            <div className="w-32 text-right font-bold text-foreground">Realizado ({labelPeriodoAtual})</div>
             <div className="w-20 text-right" title="Análise Vertical">AV %</div>
-            <div className="hidden md:block w-32 text-right">Mês Anterior</div>
-            <div className="w-24 text-right">Crescimento</div>
+            <div className="hidden md:block w-32 text-right">{labelPeriodoAnterior}</div>
+            <div className="w-24 text-right">Variação (AH)</div>
           </div>
         </div>
 
-        <div className="flex flex-col">
+        <div className="flex flex-col divide-y divide-border/40">
           {renderTree()}
         </div>
       </div>
 
-      <DreFiltrosSheet isOpen={filtrosOpen} onClose={() => setFiltrosOpen(false)} />
-      <DreDrillDownSheet isOpen={drillDownOpen} onClose={() => setDrillDownOpen(false)} linhaDRE={selectedLinha} />
+      {/* Sheets Modais */}
+      <DreFiltrosSheet 
+        isOpen={filtrosOpen} 
+        onClose={() => setFiltrosOpen(false)} 
+        filtros={filtros}
+        onApplyFiltros={setFiltros}
+      />
+      <DreDrillDownSheet 
+        isOpen={drillDownOpen} 
+        onClose={() => setDrillDownOpen(false)} 
+        linhaDRE={selectedLinha} 
+      />
     </div>
   );
 }

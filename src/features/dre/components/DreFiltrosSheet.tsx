@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Sheet,
   SheetContent,
@@ -9,14 +9,41 @@ import {
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Filter, CheckCircle2 } from 'lucide-react';
+import { Filter, CheckCircle2, RotateCcw } from 'lucide-react';
+import { FiltrosDREState, PeriodoDRE } from '../services/dreEngine';
+import { useClientesQuery } from '@/features/clientes/hooks/useClientesQuery';
 
 interface DreFiltrosSheetProps {
   isOpen: boolean;
   onClose: () => void;
+  filtros: FiltrosDREState;
+  onApplyFiltros: (filtros: FiltrosDREState) => void;
 }
 
-export function DreFiltrosSheet({ isOpen, onClose }: DreFiltrosSheetProps) {
+export function DreFiltrosSheet({ isOpen, onClose, filtros, onApplyFiltros }: DreFiltrosSheetProps) {
+  const { clientes = [] } = useClientesQuery();
+  const [localFiltros, setLocalFiltros] = useState<FiltrosDREState>(filtros);
+
+  useEffect(() => {
+    setLocalFiltros(filtros);
+  }, [filtros, isOpen]);
+
+  const handleApply = () => {
+    onApplyFiltros(localFiltros);
+    onClose();
+  };
+
+  const handleReset = () => {
+    const defaultFiltros: FiltrosDREState = {
+      periodo: 'mes_atual',
+      regime: 'competencia',
+      clienteId: 'todos'
+    };
+    setLocalFiltros(defaultFiltros);
+    onApplyFiltros(defaultFiltros);
+    onClose();
+  };
+
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent className="sm:max-w-[450px] flex flex-col p-0 h-full overflow-hidden">
@@ -28,9 +55,9 @@ export function DreFiltrosSheet({ isOpen, onClose }: DreFiltrosSheetProps) {
                 <Filter className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <SheetTitle className="text-xl">Filtros Dimensionais</SheetTitle>
+                <SheetTitle className="text-xl">Filtros da DRE</SheetTitle>
                 <SheetDescription>
-                  Gere a DRE focada em segmentos específicos da empresa.
+                  Personalize o período contábil e as dimensões da Demonstração de Resultado.
                 </SheetDescription>
               </div>
             </div>
@@ -39,80 +66,70 @@ export function DreFiltrosSheet({ isOpen, onClose }: DreFiltrosSheetProps) {
 
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           <div className="space-y-2">
-            <Label>Período Base</Label>
-            <Select defaultValue="mes">
+            <Label>Período de Análise</Label>
+            <Select 
+              value={localFiltros.periodo} 
+              onValueChange={(val: PeriodoDRE) => setLocalFiltros(prev => ({ ...prev, periodo: val }))}
+            >
               <SelectTrigger>
-                <SelectValue placeholder="Selecione..." />
+                <SelectValue placeholder="Selecione o período" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="mes">Mês Atual</SelectItem>
-                <SelectItem value="trimestre">Trimestre Atual</SelectItem>
-                <SelectItem value="semestre">Semestre Atual</SelectItem>
-                <SelectItem value="ano">Ano Atual</SelectItem>
+                <SelectItem value="mes_atual">Mês Atual</SelectItem>
+                <SelectItem value="mes_anterior">Mês Anterior</SelectItem>
+                <SelectItem value="dois_meses_atras">2 Meses Atrás</SelectItem>
+                <SelectItem value="trimestre_atual">Trimestre Atual</SelectItem>
+                <SelectItem value="trimestre_anterior">Trimestre Anterior</SelectItem>
+                <SelectItem value="semestre_atual">Semestre Atual</SelectItem>
+                <SelectItem value="ano_atual">Ano Atual</SelectItem>
+                <SelectItem value="ano_anterior">Ano Anterior</SelectItem>
+                <SelectItem value="todos">Todo o Histórico</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="space-y-2">
-            <Label>DRE por Centro de Custo</Label>
-            <Select>
-              <SelectTrigger>
-                <SelectValue placeholder="Todos os Centros" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos os Centros</SelectItem>
-                <SelectItem value="cc-01">Marketing (CC-001)</SelectItem>
-                <SelectItem value="cc-02">Tecnologia (CC-002)</SelectItem>
-                <SelectItem value="cc-03">Administrativo (CC-003)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label>DRE por Projeto</Label>
-            <Select>
-              <SelectTrigger>
-                <SelectValue placeholder="Todos os Projetos" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos os Projetos</SelectItem>
-                <SelectItem value="p1">Implantação ERP Alpha</SelectItem>
-                <SelectItem value="p2">Migração Cloud Beta</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label>DRE por Cliente</Label>
-            <Select>
+            <Label>DRE Filtrada por Cliente</Label>
+            <Select 
+              value={localFiltros.clienteId || 'todos'} 
+              onValueChange={(val) => setLocalFiltros(prev => ({ ...prev, clienteId: val }))}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Todos os Clientes" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos os Clientes</SelectItem>
-                <SelectItem value="c1">TechCorp S.A.</SelectItem>
-                <SelectItem value="c2">Indústria XPTO</SelectItem>
+                {clientes.map(c => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.nomeFantasia || c.razaoSocial} ({c.codigo})
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
           
           <div className="space-y-2">
             <Label>Regime Contábil</Label>
-            <Select defaultValue="competencia">
+            <Select 
+              value={localFiltros.regime} 
+              onValueChange={(val: 'competencia' | 'caixa') => setLocalFiltros(prev => ({ ...prev, regime: val }))}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Regime" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="competencia">Competência (Padrão DRE)</SelectItem>
-                <SelectItem value="caixa">Caixa (Realizado Banco)</SelectItem>
+                <SelectItem value="competencia">Competência (Data de Vencimento / Emissão)</SelectItem>
+                <SelectItem value="caixa">Caixa (Títulos Efetivamente Recebidos / Pagos)</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
 
         <div className="p-6 border-t bg-background flex items-center justify-between">
-          <Button variant="outline" onClick={onClose}>Limpar Filtros</Button>
-          <Button className="gap-2" onClick={onClose}>
+          <Button variant="outline" onClick={handleReset} className="gap-1.5 text-xs">
+            <RotateCcw className="w-3.5 h-3.5" /> Limpar Filtros
+          </Button>
+          <Button className="gap-2" onClick={handleApply}>
             <CheckCircle2 className="w-4 h-4" /> Aplicar na DRE
           </Button>
         </div>
