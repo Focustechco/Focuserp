@@ -5,14 +5,19 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Filter, Download, Plus, MoreHorizontal, User, Building2 } from 'lucide-react';
+import { Search, Filter, Download, Plus, MoreHorizontal, User, Building2, Eye } from 'lucide-react';
 import { NovoClienteSheet } from './NovoClienteSheet';
+import { ClientePerfilSheet } from './ClientePerfilSheet';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Link } from '@tanstack/react-router';
 
 export function ClientesList() {
   const [searchTerm, setSearchTerm] = useState('');
   const { clientes, isLoading, deleteCliente } = useClientesQuery();
+
+  // Estados para o Modal Lateral (Sheet) de Perfil Read-Only
+  const [clientePerfil, setClientePerfil] = useState<Cliente | null>(null);
+  const [perfilOpen, setPerfilOpen] = useState(false);
 
   const filteredData = clientes.filter(c => 
     (c.razaoSocial || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -82,7 +87,13 @@ export function ClientesList() {
                   <TableRow key={cliente.id} className="group hover:bg-muted/50 transition-colors">
                     <TableCell className="font-medium text-xs">{cliente.codigo}</TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
+                      <div 
+                        className="flex items-center gap-2 cursor-pointer group-hover:text-primary transition-colors"
+                        onClick={() => {
+                          setClientePerfil(cliente);
+                          setPerfilOpen(true);
+                        }}
+                      >
                         {cliente.tipo === 'Pessoa Jurídica' ? <Building2 className="w-4 h-4 text-blue-500" /> : <User className="w-4 h-4 text-amber-500" />}
                         <div className="flex flex-col">
                           <span className="font-medium">{cliente.nomeFantasia || cliente.razaoSocial}</span>
@@ -121,9 +132,17 @@ export function ClientesList() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <Link to="/clientes/$clienteId" params={{ clienteId: cliente.id }}>
-                            <DropdownMenuItem className="cursor-pointer">Ver Perfil</DropdownMenuItem>
-                          </Link>
+                          <DropdownMenuItem 
+                            className="cursor-pointer font-medium"
+                            onSelect={(e) => {
+                              e.preventDefault();
+                              setClientePerfil(cliente);
+                              setPerfilOpen(true);
+                            }}
+                          >
+                            <Eye className="w-4 h-4 mr-2 text-primary" />
+                            Ver Perfil
+                          </DropdownMenuItem>
                           
                           <NovoClienteSheet clienteToEdit={cliente}>
                             <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer">
@@ -160,6 +179,13 @@ export function ClientesList() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Modal Lateral / Sheet Read-Only de Ver Perfil */}
+      <ClientePerfilSheet
+        cliente={clientePerfil}
+        open={perfilOpen}
+        onOpenChange={setPerfilOpen}
+      />
     </div>
   );
 }
