@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useLocalStorageState } from '@/hooks/useDataStore';
 import { Usuario } from '@/features/usuarios/types';
@@ -28,19 +28,41 @@ export function SelectResponsavel({
   allowUnassigned = false,
   unassignedLabel = "Não Atribuído"
 }: SelectResponsavelProps) {
-  const { data: usuarios = [] } = useLocalStorageState<Usuario>('focus_usuarios', INITIAL_USUARIOS);
+  const { data: storedUsuarios } = useLocalStorageState<Usuario>('focus_usuarios', INITIAL_USUARIOS);
 
-  // Filtrar usuários válidos e ativos
-  const activeUsers = (usuarios && usuarios.length > 0 ? usuarios : INITIAL_USUARIOS).filter(
-    u => u.status === 'Ativo' || !u.status
-  );
+  const activeUsers = useMemo(() => {
+    // 1. Tentar ler do hook
+    let list: Usuario[] = (storedUsuarios && Array.isArray(storedUsuarios) && storedUsuarios.length > 0)
+      ? storedUsuarios
+      : [];
+
+    // 2. Tentar ler diretamente do LocalStorage
+    if (list.length === 0 && typeof window !== 'undefined') {
+      try {
+        const raw = window.localStorage.getItem('focus_app_focus_usuarios') || window.localStorage.getItem('focus_usuarios');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            list = parsed;
+          }
+        }
+      } catch {}
+    }
+
+    // 3. Fallback garantido para INITIAL_USUARIOS
+    if (list.length === 0) {
+      list = INITIAL_USUARIOS;
+    }
+
+    return list.filter(u => u.status === 'Ativo' || !u.status);
+  }, [storedUsuarios]);
 
   return (
     <Select value={value || undefined} onValueChange={onValueChange} disabled={disabled}>
       <SelectTrigger className={className}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
-      <SelectContent className="max-h-72">
+      <SelectContent className="max-h-72 z-[9999]">
         {includeAllOption && (
           <SelectItem value="todos">
             <div className="flex items-center gap-2">
