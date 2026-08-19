@@ -13,6 +13,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SelectResponsavel } from '@/components/SelectResponsavel';
+import { useNotificacoesStore } from '@/features/notificacoes/useNotificacoesStore';
 import { BugItem, SeveridadeBug, PrioridadeDev } from '../types';
 
 interface NovoBugSheetProps {
@@ -23,6 +25,7 @@ interface NovoBugSheetProps {
 }
 
 export function NovoBugSheet({ open, onOpenChange, projetoId, onReportBug }: NovoBugSheetProps) {
+  const { notificar } = useNotificacoesStore();
   const [form, setForm] = useState({
     titulo: '',
     descricao: '',
@@ -48,6 +51,18 @@ export function NovoBugSheet({ open, onOpenChange, projetoId, onReportBug }: Nov
       status: 'Aberto',
       evidencias: form.evidencias,
     });
+
+    if (form.responsavel) {
+      notificar({
+        titulo: `Novo Bug/Defeito atribuído a você: "${form.titulo}"`,
+        descricao: `Severidade: ${form.severidade}, Prioridade: ${form.prioridade}, Ambiente: ${form.ambiente}.`,
+        origem: 'Projetos',
+        tipo: 'Aviso',
+        prioridade: (form.severidade === 'Crítico' || form.severidade === 'Alto') ? 'Alta' : 'Normal',
+        targetUrl: '/desenvolvimento',
+        usuarioDestino: form.responsavel
+      });
+    }
 
     onOpenChange(false);
     setForm({
@@ -118,11 +133,10 @@ export function NovoBugSheet({ open, onOpenChange, projetoId, onReportBug }: Nov
 
           <div className="space-y-1">
             <Label className="text-xs font-semibold">Desenvolvedor / Responsável Atribuído</Label>
-            <Input
-              placeholder="Ex: Lucas Mendes (Backend Lead)"
+            <SelectResponsavel
               value={form.responsavel}
-              onChange={(e) => setForm({ ...form, responsavel: e.target.value })}
-              className="text-xs"
+              onValueChange={(val) => setForm({ ...form, responsavel: val })}
+              placeholder="Selecione o Desenvolvedor Responsável"
             />
           </div>
 

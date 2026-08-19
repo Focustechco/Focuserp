@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { Projeto } from '../types';
 import { Usuario } from '@/features/usuarios/types';
 import { INITIAL_USUARIOS } from '@/features/usuarios/data/initialData';
+import { SelectResponsavel } from '@/components/SelectResponsavel';
 
 import { useNotificacoesStore } from "@/features/notificacoes/useNotificacoesStore";
 
@@ -233,15 +234,12 @@ export function NovoProjetoSheet({ children }: { children: React.ReactNode }) {
 
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label>Responsvel (PM) *</Label>
-                <Select value={responsavel} onValueChange={setResponsavel}>
-                  <SelectTrigger><SelectValue placeholder="Selecione o Usurio" /></SelectTrigger>
-                  <SelectContent>
-                    {usuarios.filter(u => u.status === 'Ativo').map(u => (
-                      <SelectItem key={u.id} value={u.nome}>{u.nome} ({u.cargo || u.departamento})</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label>Responsável (PM) *</Label>
+                <SelectResponsavel 
+                  value={responsavel} 
+                  onValueChange={setResponsavel} 
+                  placeholder="Selecione o Usuário" 
+                />
               </div>
               <div className="space-y-2">
                 <Label>Valor Contratado (R$) *</Label>

@@ -15,6 +15,7 @@ import { TituloReceber, FormaPagamento } from '../types';
 import { useLocalStorageState } from '@/hooks/useDataStore';
 import { Usuario } from '@/features/usuarios/types';
 import { INITIAL_USUARIOS } from '@/features/usuarios/data/initialData';
+import { SelectResponsavel } from '@/components/SelectResponsavel';
 import { RecorrenciaFinanceira, FrequenciaRecorrencia } from '@/features/recorrencias/types';
 import { useNotificacoesStore } from '@/features/notificacoes/useNotificacoesStore';
 
@@ -220,11 +221,10 @@ export function NovoRecebimentoSheet({ children }: { children: React.ReactNode }
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="responsavel">Responsável</Label>
-                  <Input 
-                    id="responsavel" 
-                    placeholder="Nome do vendedor/atendente" 
-                    value={responsavel} 
-                    onChange={e => setResponsavel(e.target.value)} 
+                  <SelectResponsavel
+                    value={responsavel}
+                    onValueChange={setResponsavel}
+                    placeholder="Selecione o Usuário Responsável"
                   />
                 </div>
               </div>

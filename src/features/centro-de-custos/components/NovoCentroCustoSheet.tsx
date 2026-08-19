@@ -13,6 +13,8 @@ import { CentroCusto } from '../types';
 import { INITIAL_CENTROS } from '../data/initialData';
 import { Usuario } from '@/features/usuarios/types';
 import { INITIAL_USUARIOS } from '@/features/usuarios/data/initialData';
+import { SelectResponsavel } from '@/components/SelectResponsavel';
+import { useNotificacoesStore } from '@/features/notificacoes/useNotificacoesStore';
 import { toast } from 'sonner';
 
 export function NovoCentroCustoSheet({ children }: { children?: React.ReactNode }) {
@@ -78,6 +80,19 @@ export function NovoCentroCustoSheet({ children }: { children?: React.ReactNode 
     };
 
     addItem(novoCC);
+
+    if (responsavel) {
+      notificar({
+        titulo: `Você foi definido como gestor do Centro de Custo "${novoCC.nome}"`,
+        descricao: `Centro de Custo ${novoCC.codigo} (${novoCC.departamento}) registrado sob sua responsabilidade.`,
+        origem: 'Configurações',
+        tipo: 'Informação',
+        prioridade: 'Normal',
+        targetUrl: '/centro-de-custos',
+        usuarioDestino: responsavel.trim()
+      });
+    }
+
     toast.success("Centro de Custo cadastrado com sucesso!");
     setOpen(false);
     
@@ -191,14 +206,11 @@ export function NovoCentroCustoSheet({ children }: { children?: React.ReactNode 
 
                 <div className="space-y-2 col-span-2">
                   <Label>Gestor / Responsável *</Label>
-                  <Select value={responsavel} onValueChange={setResponsavel}>
-                    <SelectTrigger><SelectValue placeholder="Selecione o Gestor responsável" /></SelectTrigger>
-                    <SelectContent>
-                      {usuarios.filter(u => u.status === 'Ativo').map(u => (
-                        <SelectItem key={u.id} value={u.nome}>{u.nome} ({u.cargo || u.departamento})</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <SelectResponsavel
+                    value={responsavel}
+                    onValueChange={setResponsavel}
+                    placeholder="Selecione o Gestor responsável"
+                  />
                 </div>
               </div>
               <div className="space-y-2">

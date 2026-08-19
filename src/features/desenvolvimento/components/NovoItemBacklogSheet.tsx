@@ -12,7 +12,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SelectResponsavel } from '@/components/SelectResponsavel';
+import { useNotificacoesStore } from '@/features/notificacoes/useNotificacoesStore';
 import { ItemBacklog, TipoItemBacklog, StatusKanban, PrioridadeDev } from '../types';
 
 interface NovoItemBacklogSheetProps {
@@ -30,6 +31,7 @@ export function NovoItemBacklogSheet({
   sprintId,
   onAddItem,
 }: NovoItemBacklogSheetProps) {
+  const { notificar } = useNotificacoesStore();
   const [form, setForm] = useState({
     titulo: '',
     descricao: '',
@@ -57,6 +59,18 @@ export function NovoItemBacklogSheet({
       storyPoints: Number(form.storyPoints) || 1,
       estimativaHoras: Number(form.estimativaHoras) || 4,
     });
+
+    if (form.responsavel) {
+      notificar({
+        titulo: `Nova tarefa atribuída a você: "${form.titulo}"`,
+        descricao: `Você foi definido como responsável por um item no backlog (${form.tipoItem}, Prioridade: ${form.prioridade}).`,
+        origem: 'Projetos',
+        tipo: 'Informação',
+        prioridade: (form.prioridade === 'Crítica' || form.prioridade === 'Alta') ? 'Alta' : 'Normal',
+        targetUrl: '/desenvolvimento',
+        usuarioDestino: form.responsavel
+      });
+    }
 
     onOpenChange(false);
     setForm({
@@ -155,11 +169,10 @@ export function NovoItemBacklogSheet({
 
           <div className="space-y-1">
             <Label className="text-xs font-semibold">Responsável pela Tarefa</Label>
-            <Input
-              placeholder="Ex: Carlos Andrade (Fullstack Dev)"
+            <SelectResponsavel
               value={form.responsavel}
-              onChange={(e) => setForm({ ...form, responsavel: e.target.value })}
-              className="text-xs"
+              onValueChange={(val) => setForm({ ...form, responsavel: val })}
+              placeholder="Selecione o Usuário Responsável"
             />
           </div>
 

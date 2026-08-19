@@ -15,6 +15,7 @@ import { useLocalStorageState } from '@/hooks/useDataStore';
 import { Contrato, CategoriaContrato, StatusContrato, TipoServicoContrato } from '../types';
 import { Usuario } from '@/features/usuarios/types';
 import { INITIAL_USUARIOS } from '@/features/usuarios/data/initialData';
+import { SelectResponsavel } from '@/components/SelectResponsavel';
 import { Cliente } from '@/features/clientes/types';
 import { useDocumentosStore } from '@/features/documentos/hooks/useDocumentosStore';
 import { useNotificacoesStore } from '@/features/notificacoes/useNotificacoesStore';
@@ -354,16 +355,11 @@ export function NovoContratoSheet({ children, contratoToEdit, open: externalOpen
                 {/* RESPONSÁVEL INTERNO */}
                 <div className="space-y-2 col-span-2 sm:col-span-1">
                   <Label>Responsável Interno</Label>
-                  <Select value={responsavel} onValueChange={setResponsavel}>
-                    <SelectTrigger><SelectValue placeholder="Selecione o Usuário Responsável" /></SelectTrigger>
-                    <SelectContent>
-                      {usuarios.filter(u => u.status === 'Ativo').map(u => (
-                        <SelectItem key={u.id} value={u.nome}>
-                          {u.nome} — {u.cargo || u.departamento}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <SelectResponsavel
+                    value={responsavel}
+                    onValueChange={setResponsavel}
+                    placeholder="Selecione o Usuário Responsável"
+                  />
                 </div>
 
                 <div className="space-y-2 col-span-2 sm:col-span-1">

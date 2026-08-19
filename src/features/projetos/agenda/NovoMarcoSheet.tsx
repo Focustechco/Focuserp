@@ -13,6 +13,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SelectResponsavel } from '@/components/SelectResponsavel';
+import { useNotificacoesStore } from '@/features/notificacoes/useNotificacoesStore';
 import { EventoProjeto, TipoEventoProjeto, PrioridadeEventoProjeto } from './types';
 import { Projeto } from '../types';
 
@@ -24,6 +26,7 @@ interface NovoMarcoSheetProps {
 }
 
 export function NovoMarcoSheet({ open, onOpenChange, projetos, onAddEvent }: NovoMarcoSheetProps) {
+  const { notificar } = useNotificacoesStore();
   const [form, setForm] = useState({
     titulo: '',
     tipo: 'Entrega de Projeto' as TipoEventoProjeto,
@@ -40,19 +43,32 @@ export function NovoMarcoSheet({ open, onOpenChange, projetos, onAddEvent }: Nov
     if (!form.titulo || !form.data) return;
 
     const projetoEncontrado = projetos.find((p) => p.id === form.projetoId);
+    const respFinal = form.responsavel || (projetoEncontrado ? projetoEncontrado.responsavelPrincipal : undefined);
 
     onAddEvent({
       titulo: form.titulo,
       tipo: form.tipo,
       data: form.data,
       hora: form.hora,
-      projetoId: form.projetoId || undefined,
+      projetoId: form.projetoId && form.projetoId !== 'none' ? form.projetoId : undefined,
       projetoNome: projetoEncontrado ? projetoEncontrado.nome : undefined,
-      responsavel: form.responsavel || (projetoEncontrado ? projetoEncontrado.responsavelPrincipal : undefined),
+      responsavel: respFinal,
       status: 'Previsto',
       prioridade: form.prioridade,
       observacoes: form.observacoes,
     });
+
+    if (respFinal) {
+      notificar({
+        titulo: `Novo Marco / Entrega Agendado: "${form.titulo}"`,
+        descricao: `Data: ${form.data} às ${form.hora}, Tipo: ${form.tipo}, Prioridade: ${form.prioridade}.`,
+        origem: 'Projetos',
+        tipo: 'Informação',
+        prioridade: (form.prioridade === 'Crítica' || form.prioridade === 'Alta') ? 'Alta' : 'Normal',
+        targetUrl: '/projetos',
+        usuarioDestino: respFinal
+      });
+    }
 
     onOpenChange(false);
     setForm({
@@ -174,11 +190,10 @@ export function NovoMarcoSheet({ open, onOpenChange, projetos, onAddEvent }: Nov
 
           <div className="space-y-1">
             <Label className="text-xs font-semibold">Responsável pela Entrega</Label>
-            <Input
-              placeholder="Ex: Carlos Silva (Tech Lead)"
+            <SelectResponsavel
               value={form.responsavel}
-              onChange={(e) => setForm({ ...form, responsavel: e.target.value })}
-              className="text-xs"
+              onValueChange={(val) => setForm({ ...form, responsavel: val })}
+              placeholder="Selecione o Usuário Responsável"
             />
           </div>
 

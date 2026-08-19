@@ -15,6 +15,7 @@ import { useLocalStorageState } from '@/hooks/useDataStore';
 import { Fornecedor } from '@/features/fornecedores/types';
 import { Usuario } from '@/features/usuarios/types';
 import { INITIAL_USUARIOS } from '@/features/usuarios/data/initialData';
+import { SelectResponsavel } from '@/components/SelectResponsavel';
 
 import { useNotificacoesStore } from '@/features/notificacoes/useNotificacoesStore';
 
@@ -169,14 +170,11 @@ export function NovaContaSheet({ children }: { children: React.ReactNode }) {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="responsavel">Aprovador / Responsável</Label>
-                  <Select value={responsavel} onValueChange={setResponsavel}>
-                    <SelectTrigger id="responsavel"><SelectValue placeholder="Selecione o Responsável" /></SelectTrigger>
-                    <SelectContent>
-                      {usuarios.filter(u => u.status === 'Ativo').map(u => (
-                        <SelectItem key={u.id} value={u.nome}>{u.nome} ({u.cargo || u.departamento})</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <SelectResponsavel
+                    value={responsavel}
+                    onValueChange={setResponsavel}
+                    placeholder="Selecione o Responsável"
+                  />
                 </div>
               </div>
               <div className="space-y-2">
