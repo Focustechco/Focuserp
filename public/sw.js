@@ -100,7 +100,3 @@ self.addEventListener('notificationclick', function (event) {
   );
 });
 
-// ── Fetch: passthrough (no offline caching needed) ────────────────────────────
-self.addEventListener('fetch', function (event) {
-  // Do nothing — let all requests go to network normally
-});

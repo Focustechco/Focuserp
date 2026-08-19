@@ -62,12 +62,24 @@ export const financeiroService = {
             historico: Array.isArray(item.historico) ? item.historico : [],
             parcelas: Array.isArray(item.parcelas) ? item.parcelas : [],
             recorrente: Boolean(item.recorrente),
+            recorrenciaId: item.recorrencia_id || item.recorrenciaId,
+            origem: item.origem || (item.recorrente ? 'recorrencia' : 'manual'),
           };
         });
 
-        // Sincronizar cache local com dados reais do banco
+        // Sincronizar cache local com dados reais do banco com proteção contra QuotaExceededError
         if (typeof window !== 'undefined') {
-          window.localStorage.setItem('focus_app_focus_contas_receber', JSON.stringify(mapped));
+          try {
+            window.localStorage.setItem('focus_app_focus_contas_receber', JSON.stringify(mapped));
+          } catch (e: any) {
+            // Em caso de quota atingida, limpa caches não críticos
+            try {
+              window.localStorage.removeItem('focus_app_notificacoes');
+              window.localStorage.setItem('focus_app_focus_contas_receber', JSON.stringify(mapped));
+            } catch {
+              // Silently ignore localStorage quota limits
+            }
+          }
         }
 
         return mapped;
@@ -76,13 +88,22 @@ export const financeiroService = {
       // 2. Fallback de cache local se offline
       const rawLocal = typeof window !== 'undefined' ? window.localStorage.getItem('focus_app_focus_contas_receber') : null;
       if (rawLocal) {
-        const parsedLocal = JSON.parse(rawLocal);
-        if (Array.isArray(parsedLocal)) return parsedLocal;
+        try {
+          const parsedLocal = JSON.parse(rawLocal);
+          if (Array.isArray(parsedLocal)) return parsedLocal;
+        } catch {}
       }
 
       return [];
     } catch (err) {
-      console.error('[financeiroService.getContasReceber] Erro:', err);
+      console.warn('[financeiroService.getContasReceber] Fallback:', err);
+      const rawLocal = typeof window !== 'undefined' ? window.localStorage.getItem('focus_app_focus_contas_receber') : null;
+      if (rawLocal) {
+        try {
+          const parsedLocal = JSON.parse(rawLocal);
+          if (Array.isArray(parsedLocal)) return parsedLocal;
+        } catch {}
+      }
       return [];
     }
   },
@@ -92,7 +113,7 @@ export const financeiroService = {
     const id = toValidUuid(validated.id);
     const validatedWithId = { ...validated, id };
 
-    // Update local cache
+    // Update local cache com proteção
     if (typeof window !== 'undefined') {
       ['focus_app_focus_contas_receber', 'focus_app_contas_receber'].forEach((key) => {
         try {
@@ -196,9 +217,13 @@ export const financeiroService = {
           };
         });
 
-        // Sincronizar cache local
+        // Sincronizar cache local com proteção contra quota
         if (typeof window !== 'undefined') {
-          window.localStorage.setItem('focus_app_focus_contas_pagar', JSON.stringify(mapped));
+          try {
+            window.localStorage.setItem('focus_app_focus_contas_pagar', JSON.stringify(mapped));
+          } catch {
+            // Silently ignore quota exceeded
+          }
         }
 
         return mapped;
@@ -207,13 +232,22 @@ export const financeiroService = {
       // 2. Fallback de cache local se offline
       const rawLocal = typeof window !== 'undefined' ? window.localStorage.getItem('focus_app_focus_contas_pagar') : null;
       if (rawLocal) {
-        const parsedLocal = JSON.parse(rawLocal);
-        if (Array.isArray(parsedLocal)) return parsedLocal;
+        try {
+          const parsedLocal = JSON.parse(rawLocal);
+          if (Array.isArray(parsedLocal)) return parsedLocal;
+        } catch {}
       }
 
       return [];
     } catch (err) {
-      console.error('[financeiroService.getContasPagar] Erro:', err);
+      console.warn('[financeiroService.getContasPagar] Fallback:', err);
+      const rawLocal = typeof window !== 'undefined' ? window.localStorage.getItem('focus_app_focus_contas_pagar') : null;
+      if (rawLocal) {
+        try {
+          const parsedLocal = JSON.parse(rawLocal);
+          if (Array.isArray(parsedLocal)) return parsedLocal;
+        } catch {}
+      }
       return [];
     }
   },

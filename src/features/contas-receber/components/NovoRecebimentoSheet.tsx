@@ -40,6 +40,7 @@ export function NovoRecebimentoSheet({ children }: { children: React.ReactNode }
   const { saveTitulo } = useContasReceberQuery();
   const { clientes } = useClientesQuery();
   const { data: usuarios } = useLocalStorageState<Usuario>('focus_usuarios', INITIAL_USUARIOS);
+  const { data: titulos = [], setAllItems: setAllTitulos } = useLocalStorageState<TituloReceber>('focus_contas_receber');
   const { data: recorrencias = [], setAllItems: setAllRecorrencias } = useLocalStorageState<RecorrenciaFinanceira>('focus_recorrencias');
   const { notificar } = useNotificacoesStore();
 
@@ -125,6 +126,7 @@ export function NovoRecebimentoSheet({ children }: { children: React.ReactNode }
       ]
     };
 
+    setAllTitulos([novoTitulo, ...titulos.filter(t => t.id !== novoTitulo.id)]);
     saveTitulo(novoTitulo as any);
 
     // Disparar Notificação Automática

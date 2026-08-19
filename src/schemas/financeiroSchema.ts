@@ -65,6 +65,8 @@ export const tituloReceberSchema = z.object({
   historico: z.array(historicoSchema).default([]),
   parcelas: z.array(parcelaSchema).optional(),
   recorrente: z.boolean().default(false),
+  recorrenciaId: z.string().optional(),
+  origem: z.string().optional(),
   recorrenciaFrequencia: frequenciaRecorrenciaSchema.optional(),
   recorrenciaFim: z.string().optional(),
 });
