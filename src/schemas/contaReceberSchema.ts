@@ -1,11 +1,11 @@
 import { z } from 'zod';
 
 export const contaReceberSchema = z.object({
-  id: z.union([z.string().uuid(), z.literal('')]).optional(),
-  tenantId: z.union([z.string().uuid(), z.literal('')]).optional(),
+  id: z.string().optional(),
+  tenantId: z.string().optional(),
   numero: z.string().optional(),
   descricao: z.string().min(1, 'Descrição é obrigatória'),
-  clienteId: z.union([z.string().uuid(), z.literal('')]).optional(),
+  clienteId: z.string().optional(),
   clienteNome: z.string().optional().default(''),
   categoria: z.string().default('Geral'),
   valorOriginal: z.number().min(0, 'Valor original deve ser maior ou igual a zero'),

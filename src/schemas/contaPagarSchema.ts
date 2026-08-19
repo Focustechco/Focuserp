@@ -1,11 +1,11 @@
 import { z } from 'zod';
 
 export const contaPagarSchema = z.object({
-  id: z.union([z.string().uuid(), z.literal('')]).optional(),
-  tenantId: z.union([z.string().uuid(), z.literal('')]).optional(),
+  id: z.string().optional(),
+  tenantId: z.string().optional(),
   numero: z.string().optional(),
   descricao: z.string().min(1, 'Descrição é obrigatória'),
-  fornecedorId: z.union([z.string().uuid(), z.literal('')]).optional(),
+  fornecedorId: z.string().optional(),
   fornecedorNome: z.string().optional().default(''),
   categoria: z.string().default('Geral'),
   centroCusto: z.string().optional().default(''),

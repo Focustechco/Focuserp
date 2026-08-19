@@ -98,7 +98,7 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
       },
       contatos: [
         {
-          id: contatoPrincipal?.id || `ct-${Date.now()}`,
+          id: contatoPrincipal?.id || crypto.randomUUID(),
           nome: contatoNome,
           cargo: contatoPrincipal?.cargo || 'Responsável',
           departamento: contatoPrincipal?.departamento || 'Geral',
@@ -118,7 +118,7 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
       } as any);
     } else {
       const novoCliente: Cliente = {
-        id: `cli-${Date.now()}`,
+        id: crypto.randomUUID(),
         codigo: `CLI-${Math.floor(100 + Math.random() * 900)}`,
         dataCadastro: new Date().toISOString(),
         ...(clienteData as any)

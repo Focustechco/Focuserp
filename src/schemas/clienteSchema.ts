@@ -12,7 +12,7 @@ export const enderecoSchema = z.object({
 });
 
 export const contatoSchema = z.object({
-  id: z.union([z.string().uuid(), z.literal('')]).optional(),
+  id: z.string().optional(),
   nome: z.string().min(1, 'Nome do contato é obrigatório'),
   cargo: z.string().default('Responsável'),
   departamento: z.string().default('Geral'),
@@ -24,8 +24,8 @@ export const contatoSchema = z.object({
 });
 
 export const clienteSchema = z.object({
-  id: z.union([z.string().uuid(), z.literal('')]).optional(),
-  tenantId: z.union([z.string().uuid(), z.literal('')]).optional(),
+  id: z.string().optional(),
+  tenantId: z.string().optional(),
   codigo: z.string().min(1, 'Código é obrigatório'),
   tipo: z.enum(['Pessoa Física', 'Pessoa Jurídica']).default('Pessoa Jurídica'),
   razaoSocial: z.string().min(1, 'Razão social é obrigatória'),

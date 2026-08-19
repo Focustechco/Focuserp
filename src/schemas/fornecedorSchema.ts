@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
 export const fornecedorSchema = z.object({
-  id: z.union([z.string().uuid(), z.literal('')]).optional(),
-  tenantId: z.union([z.string().uuid(), z.literal('')]).optional(),
+  id: z.string().optional(),
+  tenantId: z.string().optional(),
   codigo: z.string().optional(),
   razaoSocial: z.string().min(1, 'Razão social é obrigatória'),
   nomeFantasia: z.string().min(1, 'Nome fantasia é obrigatório'),

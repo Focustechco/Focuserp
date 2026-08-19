@@ -149,6 +149,29 @@ export const clienteService = {
 
     // 2. Persistir no Supabase
     try {
+      const payload = {
+        id,
+        tipo: validated.tipo,
+        razao_social: validated.razaoSocial,
+        nome_fantasia: validated.nomeFantasia,
+        documento: validated.documento,
+        inscricao_estadual: validated.inscricaoEstadual,
+        inscricao_municipal: validated.inscricaoMunicipal,
+        status: validated.status,
+        segmento: validated.segmento,
+        porte_empresa: validated.porteEmpresa,
+        site: validated.site,
+        observacoes: validated.observacoes,
+        cep: validated.endereco?.cep || '',
+        logradouro: validated.endereco?.logradouro || '',
+        numero: validated.endereco?.numero || '',
+        complemento: validated.endereco?.complemento || '',
+        bairro: validated.endereco?.bairro || '',
+        cidade: validated.endereco?.cidade || 'São Paulo',
+        estado: validated.endereco?.estado || 'SP',
+        pais: validated.endereco?.pais || 'Brasil',
+        updated_at: new Date().toISOString()
+      };
       await supabase.from('clientes').upsert(payload);
     } catch (e) {
       console.warn('[clienteService.saveCliente] Warning upserting to clientes:', e);

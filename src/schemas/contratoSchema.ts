@@ -1,10 +1,10 @@
 import { z } from 'zod';
 
 export const contratoSchema = z.object({
-  id: z.union([z.string().uuid(), z.literal('')]).optional(),
-  tenantId: z.union([z.string().uuid(), z.literal('')]).optional(),
+  id: z.string().optional(),
+  tenantId: z.string().optional(),
   numeroContrato: z.string().min(1, 'Número do contrato é obrigatório'),
-  clienteId: z.union([z.string().uuid(), z.literal('')]).optional(),
+  clienteId: z.string().optional(),
   clienteNome: z.string().optional().default(''),
   objetoContrato: z.string().min(1, 'Objeto do contrato é obrigatório'),
   valorTotal: z.number().min(0, 'Valor total deve ser maior ou igual a zero'),
