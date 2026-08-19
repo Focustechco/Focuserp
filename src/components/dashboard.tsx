@@ -40,6 +40,8 @@ import { useContasPagarQuery } from "@/features/contas-pagar/hooks/useContasPaga
 import { useClientesQuery } from "@/features/clientes/hooks/useClientesQuery";
 import { useLocalStorageState } from "@/hooks/useDataStore";
 import { Contrato } from "@/features/contratos/types";
+import { RecorrenciaFinanceira } from "@/features/recorrencias/types";
+import { calculateTotalMRR } from "@/features/recorrencias/services/recorrenciaEngine";
 import { NovoRecebimentoSheet } from "@/features/contas-receber/components/NovoRecebimentoSheet";
 
 const currency = (v?: number | null) => {
@@ -114,6 +116,7 @@ export function Dashboard() {
 
   const { clientes = [] } = useClientesQuery();
   const { data: contratos = [] } = useLocalStorageState<Contrato>("focus_contratos");
+  const { data: recorrencias = [] } = useLocalStorageState<RecorrenciaFinanceira>("focus_recorrencias");
 
   // Cálculos dinâmicos
   const totalRecebido = contasReceber.reduce((acc, c) => acc + (c.valorRecebido || (c.status === "Recebido" ? c.valorOriginal : 0) || 0), 0);
@@ -124,7 +127,7 @@ export function Dashboard() {
   const despesasDoMes = listContasPagar.reduce((acc, c) => acc + (c.valorOriginal || 0), 0);
   const lucroLiquido = receitasDoMes - despesasDoMes;
 
-  const mrr = contratos.reduce((acc, c) => acc + (c.valorMensalidade || (c as any).valor_mensal || 0), 0);
+  const mrr = calculateTotalMRR(recorrencias, contratos);
   const arr = mrr * 12;
   const clientesAtivosCount = clientes.length;
 

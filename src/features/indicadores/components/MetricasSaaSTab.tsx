@@ -6,6 +6,9 @@ import { KpiDrillDownSheet } from './KpiDrillDownSheet';
 import { useLocalStorageState } from '@/hooks/useDataStore';
 import { TituloReceber } from '@/features/contas-receber/types';
 import { Cliente } from '@/features/clientes/types';
+import { RecorrenciaFinanceira } from '@/features/recorrencias/types';
+import { Contrato } from '@/features/contratos/types';
+import { calculateTotalMRR } from '@/features/recorrencias/services/recorrenciaEngine';
 import { mockEvolucaoSaaS } from '../mockData';
 
 const formatCurrency = (value: number) => {
@@ -16,17 +19,21 @@ export function MetricasSaaSTab() {
   const [drillDownOpen, setDrillDownOpen] = useState(false);
   const { data: contasReceber } = useLocalStorageState<TituloReceber>('focus_contas_receber', []);
   const { data: clientes } = useLocalStorageState<Cliente>('focus_clientes', []);
+  const { data: recorrencias = [] } = useLocalStorageState<RecorrenciaFinanceira>('focus_recorrencias', []);
+  const { data: contratos = [] } = useLocalStorageState<Contrato>('focus_contratos', []);
 
   const metricas = useMemo(() => {
-    let mrr = 0;
+    let mrr = calculateTotalMRR(recorrencias, contratos);
     
-    // Calcula MRR somando as receitas marcadas como recorrentes ou SaaS
-    contasReceber.forEach(t => {
-      const cat = (t.categoria || '').toLowerCase();
-      if (t.recorrente || cat.includes('saas') || cat.includes('mensalidade') || cat.includes('licença')) {
-        mrr += t.valorOriginal;
-      }
-    });
+    // Fallback se não houver recorrências nem contratos cadastrados
+    if (mrr === 0) {
+      contasReceber.forEach(t => {
+        const cat = (t.categoria || '').toLowerCase();
+        if (t.recorrente || cat.includes('saas') || cat.includes('mensalidade') || cat.includes('licença')) {
+          mrr += t.valorOriginal;
+        }
+      });
+    }
 
     const ativos = clientes.filter(c => c.status === 'Ativo').length;
     const arpa = ativos > 0 ? mrr / ativos : 0;

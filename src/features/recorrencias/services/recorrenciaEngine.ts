@@ -1,5 +1,5 @@
 import { TituloReceber } from '@/features/contas-receber/types';
-import { RecorrenciaFinanceira } from '../types';
+import { RecorrenciaFinanceira, FrequenciaRecorrencia } from '../types';
 import { Contrato } from '@/features/contratos/types';
 
 export interface ResumoFinanceiroCliente {
@@ -9,6 +9,52 @@ export interface ResumoFinanceiroCliente {
   titulosAtrasados: number;
   titulosDoCliente: TituloReceber[];
   recorrenciasDoCliente: RecorrenciaFinanceira[];
+}
+
+/**
+ * Converte qualquer valor de frequência para valor mensal (MRR).
+ */
+export function getValorMensalEquivalente(valor: number, frequencia: FrequenciaRecorrencia): number {
+  const v = Number(valor) || 0;
+  switch (frequencia) {
+    case 'Semanal': return v * 4;
+    case 'Quinzenal': return v * 2;
+    case 'Mensal': return v;
+    case 'Trimestral': return v / 3;
+    case 'Semestral': return v / 6;
+    case 'Anual': return v / 12;
+    default: return v;
+  }
+}
+
+/**
+ * Calcula o MRR Global (Receita Recorrente Mensal) em tempo real a partir
+ * de todas as recorrências ativas de clientes e contratos vigentes (sem duplicar clientes).
+ */
+export function calculateTotalMRR(
+  recorrencias: RecorrenciaFinanceira[] = [],
+  contratos: Contrato[] = []
+): number {
+  const activeRecs = recorrencias.filter(r => r.status === 'Ativa');
+  
+  // Soma todas as recorrências ativas de clientes
+  const mrrRecorrencias = activeRecs.reduce((acc, r) => {
+    return acc + getValorMensalEquivalente(r.valor, r.frequencia);
+  }, 0);
+
+  // Clientes que já possuem recorrência ativa
+  const clientIdsComRecorrencia = new Set(activeRecs.map(r => r.clientId));
+
+  // Soma contratos vigentes de clientes que não possuem recorrência cadastrada
+  const mrrContratos = contratos.reduce((acc, c) => {
+    if (c.clienteId && clientIdsComRecorrencia.has(c.clienteId)) return acc;
+    if (c.status === 'Vigente' || c.status === 'Assinado' || (c as any).status === 'Ativo') {
+      return acc + Number(c.valorMensalidade || (c as any).valor_mensal || 0);
+    }
+    return acc;
+  }, 0);
+
+  return mrrRecorrencias + mrrContratos;
 }
 
 /**
@@ -34,7 +80,7 @@ export function calculateClienteFinanceiro(
 
   const hoje = new Date().toISOString().split('T')[0];
 
-  // 1. Filtrar títulos pelo clientId (ou fallback seguro para dados legados)
+  // 1. Filtrar títulos pelo clientId
   const titulosDoCliente = titulos.filter(t => t.clienteId === clienteId);
   const recorrenciasDoCliente = recorrencias.filter(r => r.clientId === clienteId);
   const contratosDoCliente = contratos.filter(c => c.clienteId === clienteId);
@@ -59,21 +105,10 @@ export function calculateClienteFinanceiro(
   const recorrenciasAtivas = recorrenciasDoCliente.filter(r => r.status === 'Ativa');
   
   if (recorrenciasAtivas.length > 0) {
-    // Soma os valores das recorrências ativas convertidos para base mensal
     mensalidade = recorrenciasAtivas.reduce((acc, r) => {
-      const val = Number(r.valor) || 0;
-      switch (r.frequencia) {
-        case 'Semanal': return acc + (val * 4);
-        case 'Quinzenal': return acc + (val * 2);
-        case 'Mensal': return acc + val;
-        case 'Trimestral': return acc + (val / 3);
-        case 'Semestral': return acc + (val / 6);
-        case 'Anual': return acc + (val / 12);
-        default: return acc + val;
-      }
+      return acc + getValorMensalEquivalente(r.valor, r.frequencia);
     }, 0);
   } else {
-    // Fallback: Contratos vigentes do cliente
     const contratoAtivo = contratosDoCliente.find(c => c.status === 'Vigente' || c.status === 'Assinado');
     if (contratoAtivo && contratoAtivo.valorMensalidade > 0) {
       mensalidade = Number(contratoAtivo.valorMensalidade);
@@ -97,10 +132,77 @@ export function calculateClienteFinanceiro(
 }
 
 /**
- * Sincroniza os títulos de Contas a Receber gerados por uma recorrência.
+ * Gera as datas dos títulos de acordo com a frequência, dia de vencimento e vigência.
+ */
+export function generateRecorrenciaDates(
+  recorrencia: RecorrenciaFinanceira,
+  maxCiclos = 12
+): string[] {
+  const dates: string[] = [];
+  const diaVenc = Math.min(31, Math.max(1, recorrencia.diaVencimento || 10));
+  const dataBase = recorrencia.dataInicio ? new Date(recorrencia.dataInicio + 'T12:00:00Z') : new Date();
+  const totalCiclos = recorrencia.quantidade && recorrencia.quantidade > 0 ? Math.min(recorrencia.quantidade, maxCiclos) : maxCiclos;
+
+  let currentYear = dataBase.getUTCFullYear();
+  let currentMonth = dataBase.getUTCMonth(); // 0-11
+
+  for (let i = 0; i < totalCiclos; i++) {
+    let targetYear = currentYear;
+    let targetMonth = currentMonth;
+    let targetDay = diaVenc;
+
+    switch (recorrencia.frequencia) {
+      case 'Semanal': {
+        const d = new Date(dataBase.getTime() + i * 7 * 24 * 60 * 60 * 1000);
+        dates.push(d.toISOString().split('T')[0]);
+        continue;
+      }
+      case 'Quinzenal': {
+        const d = new Date(dataBase.getTime() + i * 15 * 24 * 60 * 60 * 1000);
+        dates.push(d.toISOString().split('T')[0]);
+        continue;
+      }
+      case 'Mensal': {
+        targetMonth = currentMonth + i;
+        break;
+      }
+      case 'Trimestral': {
+        targetMonth = currentMonth + (i * 3);
+        break;
+      }
+      case 'Semestral': {
+        targetMonth = currentMonth + (i * 6);
+        break;
+      }
+      case 'Anual': {
+        targetYear = currentYear + i;
+        break;
+      }
+      default: {
+        targetMonth = currentMonth + i;
+        break;
+      }
+    }
+
+    const calculatedDate = new Date(Date.UTC(targetYear, targetMonth, 1));
+    const finalYear = calculatedDate.getUTCFullYear();
+    const finalMonth = calculatedDate.getUTCMonth();
+    // Último dia do mês para não estourar fevereiro ou meses de 30 dias
+    const lastDayOfMonth = new Date(Date.UTC(finalYear, finalMonth + 1, 0)).getUTCDate();
+    const safeDay = Math.min(targetDay, lastDayOfMonth);
+
+    const dateStr = `${finalYear}-${String(finalMonth + 1).padStart(2, '0')}-${String(safeDay).padStart(2, '0')}`;
+    dates.push(dateStr);
+  }
+
+  return dates;
+}
+
+/**
+ * Sincroniza todos os títulos de Contas a Receber e Agenda para a vigência da recorrência.
+ * - Gera os recebimentos para cada ciclo (ex: todo dia 10 durante o período).
  * - Proteção contra duplicidade de títulos.
- * - Não gera títulos se a recorrência estiver 'Pausada' ou 'Encerrada'.
- * - Preserva histórico financeiro intacto.
+ * - Se 'Pausada' ou 'Encerrada', preserva o histórico e não gera novos títulos futuros.
  */
 export function syncRecorrenciaTitulos(
   recorrencia: RecorrenciaFinanceira,
@@ -113,68 +215,76 @@ export function syncRecorrenciaTitulos(
     return titulosAtuais;
   }
 
-  const proximoVencimento = recorrencia.proximaCobranca || recorrencia.dataInicio || new Date().toISOString().split('T')[0];
+  const hoje = new Date().toISOString().split('T')[0];
+  const scheduledDates = generateRecorrenciaDates(recorrencia, 12);
+  let updatedList = [...titulosAtuais];
 
-  // Verificar se já existe um título gerado para esta recorrência nesta data de vencimento
-  const tituloExistenteIndex = titulosAtuais.findIndex(
-    t => (t.recorrenciaId === recorrencia.id || (t.clienteId === recorrencia.clientId && t.origem === 'recorrencia')) &&
-         t.dataVencimento === proximoVencimento
-  );
+  scheduledDates.forEach((dueDate, index) => {
+    // Checar se já existe título desta recorrência nesta data específica
+    const existingIndex = updatedList.findIndex(
+      t => (t.recorrenciaId === recorrencia.id || (t.clienteId === recorrencia.clientId && t.origem === 'recorrencia')) &&
+           t.dataVencimento === dueDate
+    );
 
-  if (tituloExistenteIndex >= 0) {
-    // Título já existe para este ciclo. Se ainda não foi pago/fechado, apenas atualiza descrição/valor se necessário
-    const tituloExistente = titulosAtuais[tituloExistenteIndex];
-    if (tituloExistente.status !== 'Recebido' && tituloExistente.status !== 'Cancelado') {
-      const tituloAtualizado: TituloReceber = {
-        ...tituloExistente,
+    if (existingIndex >= 0) {
+      const existing = updatedList[existingIndex];
+      // Se não estiver recebido nem cancelado, atualiza dados da recorrência
+      if (existing.status !== 'Recebido' && existing.status !== 'Cancelado') {
+        const isPastDue = dueDate < hoje;
+        const currentStatus = isPastDue ? 'Atrasado' : (dueDate === hoje ? 'Pendente' : 'Previsto');
+
+        updatedList[existingIndex] = {
+          ...existing,
+          cliente: recorrencia.clienteNome,
+          clienteId: recorrencia.clientId,
+          recorrenciaId: recorrencia.id,
+          descricao: `${recorrencia.descricao} (${index + 1}/${scheduledDates.length})`,
+          valorOriginal: Number(recorrencia.valor) || 0,
+          saldo: Number(recorrencia.valor) - (existing.valorRecebido || 0),
+          status: existing.status === 'Recebido Parcialmente' ? 'Recebido Parcialmente' : currentStatus,
+          formaPagamento: recorrencia.formaPagamento || existing.formaPagamento || 'PIX',
+          ultimaAtualizacao: new Date().toISOString()
+        };
+      }
+    } else {
+      // Criar novo título financeiro periódico
+      const isPastDue = dueDate < hoje;
+      const initialStatus = isPastDue ? 'Atrasado' : (dueDate === hoje ? 'Pendente' : 'Previsto');
+
+      const novoTitulo: TituloReceber = {
+        id: crypto.randomUUID(),
+        numero: `REC-${Math.floor(1000 + Math.random() * 9000)}`,
         cliente: recorrencia.clienteNome,
         clienteId: recorrencia.clientId,
         recorrenciaId: recorrencia.id,
-        descricao: recorrencia.descricao,
-        valorOriginal: recorrencia.valor,
-        saldo: recorrencia.valor - (tituloExistente.valorRecebido || 0),
-        categoria: recorrencia.categoria || tituloExistente.categoria || 'Mensalidade',
-        formaPagamento: recorrencia.formaPagamento || tituloExistente.formaPagamento || 'PIX',
-        ultimaAtualizacao: new Date().toISOString()
+        origem: 'recorrencia',
+        descricao: `${recorrencia.descricao} (${index + 1}/${scheduledDates.length})`,
+        categoria: recorrencia.categoria || 'Mensalidade',
+        valorOriginal: Number(recorrencia.valor) || 0,
+        valorRecebido: 0,
+        saldo: Number(recorrencia.valor) || 0,
+        dataEmissao: new Date().toISOString().split('T')[0],
+        dataVencimento: dueDate,
+        formaPagamento: recorrencia.formaPagamento || 'PIX',
+        status: initialStatus,
+        responsavel: 'Financeiro',
+        ultimaAtualizacao: new Date().toISOString(),
+        recorrente: true,
+        recorrenciaFrequencia: recorrencia.frequencia,
+        historico: [
+          {
+            id: `h-${Date.now()}-${index}`,
+            data: new Date().toISOString(),
+            usuario: 'Sistema',
+            acao: 'Criação do título recorrente',
+            observacao: `Gerado automaticamente da recorrência "${recorrencia.descricao}". Ciclo ${index + 1}.`
+          }
+        ]
       };
-      const novos = [...titulosAtuais];
-      novos[tituloExistenteIndex] = tituloAtualizado;
-      return novos;
+
+      updatedList.unshift(novoTitulo);
     }
-    return titulosAtuais;
-  }
+  });
 
-  // Criar novo título financeiro com vinculação estrita ao clientId e recorrenciaId
-  const novoTitulo: TituloReceber = {
-    id: crypto.randomUUID(),
-    numero: `REC-${Math.floor(1000 + Math.random() * 9000)}`,
-    cliente: recorrencia.clienteNome,
-    clienteId: recorrencia.clientId,
-    recorrenciaId: recorrencia.id,
-    origem: 'recorrencia',
-    descricao: recorrencia.descricao || `Cobrança Recorrente - ${recorrencia.clienteNome}`,
-    categoria: recorrencia.categoria || 'Mensalidade',
-    valorOriginal: Number(recorrencia.valor) || 0,
-    valorRecebido: 0,
-    saldo: Number(recorrencia.valor) || 0,
-    dataEmissao: new Date().toISOString().split('T')[0],
-    dataVencimento: proximoVencimento,
-    formaPagamento: recorrencia.formaPagamento || 'PIX',
-    status: 'Pendente',
-    responsavel: 'Financeiro',
-    ultimaAtualizacao: new Date().toISOString(),
-    recorrente: true,
-    recorrenciaFrequencia: recorrencia.frequencia,
-    historico: [
-      {
-        id: `h-${Date.now()}`,
-        data: new Date().toISOString(),
-        usuario: 'Sistema',
-        acao: 'Criação do título recorrente',
-        observacao: `Gerado automaticamente da recorrência "${recorrencia.descricao}".`
-      }
-    ]
-  };
-
-  return [novoTitulo, ...titulosAtuais];
+  return updatedList;
 }
