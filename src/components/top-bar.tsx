@@ -1,5 +1,7 @@
 import focusLogoHorizontal from "@/assets/focus-logo-horizontal.png";
 import focusLogoHorizontalDark from "@/assets/focus-logo-horizontal-dark.png";
+import focusLogoMobile from "@/assets/focus-logo-mobile.png";
+import focusLogoMobileDark from "@/assets/focus-logo-mobile-dark.png";
 import { Link } from "@tanstack/react-router";
 import React, { useState, useEffect } from "react";
 import { 
@@ -99,6 +101,22 @@ export function TopBar() {
         
         {/* Logo Focus no Mobile */}
         <div className="flex sm:hidden items-center ml-0.5 shrink-0">
+          <Link to="/" className="flex items-center">
+            <img
+              src={focusLogoMobile}
+              alt="Focus ERP"
+              className="h-7 w-auto max-w-[130px] object-contain dark:hidden"
+            />
+            <img
+              src={focusLogoMobileDark}
+              alt="Focus ERP"
+              className="h-7 w-auto max-w-[130px] object-contain hidden dark:block"
+            />
+          </Link>
+        </div>
+
+        {/* Logo Focus Desktop */}
+        <div className="hidden sm:flex items-center ml-0.5 shrink-0">
           <Link to="/" className="flex items-center">
             <img
               src={focusLogoHorizontal}
