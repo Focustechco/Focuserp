@@ -1,5 +1,3 @@
-import focusLogoHorizontal from "@/assets/focus-logo-horizontal.png";
-import focusLogoHorizontalDark from "@/assets/focus-logo-horizontal-dark.png";
 import focusLogoMobile from "@/assets/focus-logo-mobile.png";
 import focusLogoMobileDark from "@/assets/focus-logo-mobile-dark.png";
 import focusLogoMobileIos from "@/assets/focus-logo-mobile-ios.png";
@@ -14,7 +12,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -133,24 +130,6 @@ export function TopBar() {
             />
           </Link>
         </div>
-
-        {/* Logo Focus Desktop */}
-        <div className="hidden sm:flex items-center ml-0.5 shrink-0">
-          <Link to="/" className="flex items-center">
-            <img
-              src={focusLogoHorizontal}
-              alt="Focus ERP"
-              className="h-6 w-auto max-w-[125px] object-contain dark:hidden"
-            />
-            <img
-              src={focusLogoHorizontalDark}
-              alt="Focus ERP"
-              className="h-6 w-auto max-w-[125px] object-contain hidden dark:block"
-            />
-          </Link>
-        </div>
-
-        <Separator orientation="vertical" className="h-5 shrink-0 hidden sm:block" />
         
         {/* BUSCADOR GLOBAL INTERATIVO */}
         <div 
