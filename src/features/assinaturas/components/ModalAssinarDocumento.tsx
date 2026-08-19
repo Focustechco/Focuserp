@@ -116,17 +116,19 @@ export function ModalAssinarDocumento({
 
           {/* Abas por Modalidade */}
           <Tabs value={metodoSelecionado} onValueChange={(val: any) => setMetodoSelecionado(val)} className="space-y-4">
-            <TabsList className="w-full grid grid-cols-3 bg-muted/50 p-1">
-              <TabsTrigger value="Eletrônica Simples" className="text-xs gap-1.5">
-                <PenTool className="w-3.5 h-3.5" /> Simples
-              </TabsTrigger>
-              <TabsTrigger value="Gov.br (Avançada)" className="text-xs gap-1.5">
-                <Landmark className="w-3.5 h-3.5" /> Gov.br
-              </TabsTrigger>
-              <TabsTrigger value="ICP-Brasil (Qualificada A1/A3)" className="text-xs gap-1.5">
-                <Award className="w-3.5 h-3.5" /> ICP-Brasil
-              </TabsTrigger>
-            </TabsList>
+            <div className="w-full overflow-x-auto scrollbar-hide border-b pb-1">
+              <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
+                <TabsTrigger value="Eletrônica Simples" className="text-xs gap-1.5 shrink-0 whitespace-nowrap">
+                  <PenTool className="w-3.5 h-3.5" /> Simples
+                </TabsTrigger>
+                <TabsTrigger value="Gov.br (Avançada)" className="text-xs gap-1.5 shrink-0 whitespace-nowrap">
+                  <Landmark className="w-3.5 h-3.5" /> Gov.br
+                </TabsTrigger>
+                <TabsTrigger value="ICP-Brasil (Qualificada A1/A3)" className="text-xs gap-1.5 shrink-0 whitespace-nowrap">
+                  <Award className="w-3.5 h-3.5" /> ICP-Brasil
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
             {/* ABA 1: ELETRÔNICA SIMPLES */}
             <TabsContent value="Eletrônica Simples" className="space-y-4">

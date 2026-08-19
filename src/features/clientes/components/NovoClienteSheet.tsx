@@ -185,7 +185,7 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
 
               {tipoPessoa === 'pj' ? (
                 <>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="cnpj">CNPJ *</Label>
                       <Input id="cnpj" placeholder="00.000.000/0001-00" value={documento} onChange={e => setDocumento(e.target.value)} />
@@ -195,7 +195,7 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
                       <Input id="razaoSocial" placeholder="Empresa XYZ Ltda" value={razaoSocial} onChange={e => setRazaoSocial(e.target.value)} />
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="nomeFantasia">Nome Fantasia</Label>
                       <Input id="nomeFantasia" placeholder="XYZ" value={nomeFantasia} onChange={e => setNomeFantasia(e.target.value)} />
@@ -207,7 +207,7 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
                   </div>
                 </>
               ) : (
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="cpf">CPF *</Label>
                     <Input id="cpf" placeholder="000.000.000-00" value={documento} onChange={e => setDocumento(e.target.value)} />
@@ -219,7 +219,7 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
                 </div>
               )}
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="situacao">Situação</Label>
                   <Select defaultValue="ativo">
@@ -262,7 +262,7 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
             </div>
             <div className="border rounded-md p-4 space-y-4 relative">
               <Button variant="ghost" size="icon" className="absolute top-2 right-2 text-red-500 h-8 w-8"><Trash2 className="w-4 h-4" /></Button>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Nome do Contato *</Label>
                   <Input value={contatoNome} onChange={e => setContatoNome(e.target.value)} placeholder="João Silva" />
@@ -289,12 +289,12 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
 
           {/* 3. ENDEREÇO */}
           <TabsContent value="endereco" className="space-y-4">
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2 col-span-1">
                 <Label htmlFor="cep">CEP</Label>
                 <Input id="cep" placeholder="00000-000" defaultValue={clienteToEdit?.endereco?.cep} />
               </div>
-              <div className="space-y-2 col-span-2">
+              <div className="space-y-2 col-span-1 sm:col-span-2">
                 <Label htmlFor="logradouro">Logradouro</Label>
                 <Input id="logradouro" placeholder="Avenida Brasil" defaultValue={clienteToEdit?.endereco?.logradouro} />
               </div>
@@ -302,7 +302,7 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
                 <Label htmlFor="numero">Número</Label>
                 <Input id="numero" placeholder="1000" defaultValue={clienteToEdit?.endereco?.numero} />
               </div>
-              <div className="space-y-2 col-span-2">
+              <div className="space-y-2 col-span-1 sm:col-span-2">
                 <Label htmlFor="complemento">Complemento</Label>
                 <Input id="complemento" placeholder="Sala 101" />
               </div>

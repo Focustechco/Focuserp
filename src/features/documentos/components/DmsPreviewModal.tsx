@@ -461,12 +461,14 @@ Qualquer alterao gera uma nova verso auditvel no histrico.`;
             </div>
 
             <Tabs defaultValue="detalhes" className="space-y-4 flex-1 flex flex-col">
-              <TabsList className="grid grid-cols-2 w-full">
-                <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
-                <TabsTrigger value="versoes" className="gap-1">
-                  <History className="w-3.5 h-3.5" /> Verses ({documento.historicoVersoes?.length || 1})
-                </TabsTrigger>
-              </TabsList>
+              <div className="w-full overflow-x-auto scrollbar-hide border-b pb-1">
+                <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
+                  <TabsTrigger value="detalhes" className="shrink-0 whitespace-nowrap">Detalhes</TabsTrigger>
+                  <TabsTrigger value="versoes" className="gap-1 shrink-0 whitespace-nowrap">
+                    <History className="w-3.5 h-3.5" /> Versões ({documento.historicoVersoes?.length || 1})
+                  </TabsTrigger>
+                </TabsList>
+              </div>
 
               <TabsContent value="detalhes" className="space-y-4 text-xs outline-none">
                 <div className="space-y-3 border p-3.5 rounded-lg bg-muted/20">

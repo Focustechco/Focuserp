@@ -113,12 +113,14 @@ export function NovaContaSheet({ children }: { children: React.ReactNode }) {
         </SheetHeader>
 
         <Tabs defaultValue="geral" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-4">
-            <TabsTrigger value="geral">Geral</TabsTrigger>
-            <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
-            <TabsTrigger value="parcelamento">Parcelas</TabsTrigger>
-            <TabsTrigger value="recorrencia">Recorrência</TabsTrigger>
-          </TabsList>
+          <div className="w-full overflow-x-auto scrollbar-hide border-b pb-1 mb-4">
+            <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
+              <TabsTrigger value="geral" className="shrink-0 whitespace-nowrap">Geral</TabsTrigger>
+              <TabsTrigger value="financeiro" className="shrink-0 whitespace-nowrap">Financeiro</TabsTrigger>
+              <TabsTrigger value="parcelamento" className="shrink-0 whitespace-nowrap">Parcelas</TabsTrigger>
+              <TabsTrigger value="recorrencia" className="shrink-0 whitespace-nowrap">Recorrência</TabsTrigger>
+            </TabsList>
+          </div>
           
           {/* Aba: Geral */}
           <TabsContent value="geral" className="space-y-4">
@@ -151,7 +153,7 @@ export function NovaContaSheet({ children }: { children: React.ReactNode }) {
                 <Label htmlFor="descricao">Descrição *</Label>
                 <Input id="descricao" placeholder="Ex: Fatura de Hospedagem Cloud" value={descricao} onChange={e => setDescricao(e.target.value)} />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="categoria">Categoria *</Label>
                   <Select>
@@ -186,7 +188,7 @@ export function NovaContaSheet({ children }: { children: React.ReactNode }) {
 
           {/* Aba: Financeiro */}
           <TabsContent value="financeiro" className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="valorOriginal">Valor da Despesa (R$) *</Label>
                 <Input id="valorOriginal" type="number" placeholder="0,00" value={valorOriginal} onChange={e => setValorOriginal(e.target.value)} />
@@ -217,7 +219,7 @@ export function NovaContaSheet({ children }: { children: React.ReactNode }) {
             </div>
 
             {parcelado && (
-              <div className="grid grid-cols-2 gap-4 p-4 border rounded-lg animate-in fade-in slide-in-from-top-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 border rounded-lg animate-in fade-in slide-in-from-top-2">
                 <div className="space-y-2">
                   <Label>Quantidade de Parcelas</Label>
                   <Input type="number" placeholder="Ex: 12" />
@@ -230,7 +232,7 @@ export function NovaContaSheet({ children }: { children: React.ReactNode }) {
                   <Label>1º Vencimento</Label>
                   <Input type="date" />
                 </div>
-                <div className="col-span-2 pt-2">
+                <div className="col-span-1 sm:col-span-2 pt-2">
                   <Button variant="secondary" className="w-full">Simular Parcelas</Button>
                 </div>
               </div>
@@ -248,8 +250,8 @@ export function NovaContaSheet({ children }: { children: React.ReactNode }) {
             </div>
 
             {recorrente && (
-              <div className="grid grid-cols-2 gap-4 p-4 border rounded-lg animate-in fade-in slide-in-from-top-2">
-                <div className="space-y-2 col-span-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 border rounded-lg animate-in fade-in slide-in-from-top-2">
+                <div className="space-y-2 col-span-1 sm:col-span-2">
                   <Label>Frequência</Label>
                   <Select>
                     <SelectTrigger>

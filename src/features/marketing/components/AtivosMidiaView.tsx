@@ -61,10 +61,12 @@ export function AtivosMidiaView() {
       </div>
 
       <Tabs defaultValue="midia" className="space-y-4" onValueChange={setActiveTab}>
-        <TabsList className="grid w-[400px] grid-cols-2">
-          <TabsTrigger value="midia" className="gap-2"><ImageIcon className="w-4 h-4"/> Biblioteca de Mídia</TabsTrigger>
-          <TabsTrigger value="brand" className="gap-2"><Palette className="w-4 h-4"/> Brand Center</TabsTrigger>
-        </TabsList>
+        <div className="w-full overflow-x-auto scrollbar-hide border-b pb-1">
+          <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
+            <TabsTrigger value="midia" className="gap-2 shrink-0 whitespace-nowrap"><ImageIcon className="w-4 h-4"/> Biblioteca de Mídia</TabsTrigger>
+            <TabsTrigger value="brand" className="gap-2 shrink-0 whitespace-nowrap"><Palette className="w-4 h-4"/> Brand Center</TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="midia" className="space-y-4 m-0 pt-4">
           <div className="flex gap-2 mb-4">

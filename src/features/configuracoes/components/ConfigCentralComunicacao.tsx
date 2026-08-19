@@ -171,16 +171,18 @@ export function ConfigCentralComunicacao() {
         </div>
       </div>
 
-      {/* TABS INTERNAS (INBOX VS PREFERNCIAS) */}
+      {/* TABS INTERNAS (INBOX VS PREFERÊNCIAS) */}
       <Tabs value={activeSubTab} onValueChange={(val: any) => setActiveSubTab(val)} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 max-w-xs">
-          <TabsTrigger value="inbox" className="text-xs font-semibold gap-1.5">
-            <Bell className="w-3.5 h-3.5" /> Mensagens & Alertas
-          </TabsTrigger>
-          <TabsTrigger value="preferencias" className="text-xs font-semibold gap-1.5">
-            <BellRing className="w-3.5 h-3.5" /> Canais & Preferncias
-          </TabsTrigger>
-        </TabsList>
+        <div className="w-full overflow-x-auto scrollbar-hide border-b pb-1">
+          <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
+            <TabsTrigger value="inbox" className="text-xs font-semibold gap-1.5 shrink-0 whitespace-nowrap">
+              <Bell className="w-3.5 h-3.5" /> Mensagens & Alertas
+            </TabsTrigger>
+            <TabsTrigger value="preferencias" className="text-xs font-semibold gap-1.5 shrink-0 whitespace-nowrap">
+              <BellRing className="w-3.5 h-3.5" /> Canais & Preferências
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* SUB-TAB 1: INBOX DE NOTIFICAES */}
         <TabsContent value="inbox" className="space-y-6 outline-none">
