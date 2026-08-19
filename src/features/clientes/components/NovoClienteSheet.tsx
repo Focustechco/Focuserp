@@ -7,17 +7,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Trash2, FileText, Upload } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Plus, Trash2, FileText, Upload, RefreshCw, Calendar, DollarSign, CheckCircle2, PauseCircle, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { useClientesQuery } from '../hooks/useClientesQuery';
 import { Cliente } from '../types';
-
+import { useLocalStorageState } from '@/hooks/useDataStore';
+import { TituloReceber } from '@/features/contas-receber/types';
+import { Contrato } from '@/features/contratos/types';
+import { RecorrenciaFinanceira, FrequenciaRecorrencia, StatusRecorrencia } from '@/features/recorrencias/types';
+import { calculateClienteFinanceiro, syncRecorrenciaTitulos } from '@/features/recorrencias/services/recorrenciaEngine';
 import { useNotificacoesStore } from '@/features/notificacoes/useNotificacoesStore';
 
 export function NovoClienteSheet({ children, clienteToEdit }: { children: React.ReactNode, clienteToEdit?: Cliente }) {
   const [open, setOpen] = useState(false);
   
+  // Dados Gerais
   const [tipoPessoa, setTipoPessoa] = useState(clienteToEdit?.tipo === 'Pessoa Física' ? 'pf' : 'pj');
   const [documento, setDocumento] = useState(clienteToEdit?.documento || '');
   const [razaoSocial, setRazaoSocial] = useState(clienteToEdit?.razaoSocial || '');
@@ -28,15 +34,36 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
   const [cidade, setCidade] = useState(clienteToEdit?.endereco?.cidade || '');
   const [estado, setEstado] = useState(clienteToEdit?.endereco?.estado || '');
   
+  // Contatos
   const contatoPrincipal = clienteToEdit?.contatos?.find(c => c.principal) || clienteToEdit?.contatos?.[0];
   const [contatoNome, setContatoNome] = useState(contatoPrincipal?.nome || '');
   const [contatoEmail, setContatoEmail] = useState(contatoPrincipal?.email || '');
   const [contatoCelular, setContatoCelular] = useState(contatoPrincipal?.celular || '');
 
+  // Dados da Recorrência Financeira
+  const [recorrenciaHabilitada, setRecorrenciaHabilitada] = useState(false);
+  const [recorrenciaId, setRecorrenciaId] = useState('');
+  const [recorrenciaDescricao, setRecorrenciaDescricao] = useState('');
+  const [recorrenciaValor, setRecorrenciaValor] = useState('');
+  const [recorrenciaFrequencia, setRecorrenciaFrequencia] = useState<FrequenciaRecorrencia>('Mensal');
+  const [recorrenciaDataInicio, setRecorrenciaDataInicio] = useState('');
+  const [recorrenciaProximaCobranca, setRecorrenciaProximaCobranca] = useState('');
+  const [recorrenciaDiaVencimento, setRecorrenciaDiaVencimento] = useState('10');
+  const [recorrenciaQuantidade, setRecorrenciaQuantidade] = useState('');
+  const [recorrenciaStatus, setRecorrenciaStatus] = useState<StatusRecorrencia>('Ativa');
+  const [recorrenciaObservacoes, setRecorrenciaObservacoes] = useState('');
+
+  // Stores Financeiros e de Contratos Reais
   const { saveCliente } = useClientesQuery();
   const { notificar } = useNotificacoesStore();
+  const { data: titulos = [], setAllItems: setAllTitulos } = useLocalStorageState<TituloReceber>('focus_contas_receber');
+  const { data: recorrencias = [], setAllItems: setAllRecorrencias } = useLocalStorageState<RecorrenciaFinanceira>('focus_recorrencias');
+  const { data: contratos = [] } = useLocalStorageState<Contrato>('focus_contratos');
 
-  // Reset fields if modal is opened/closed or clienteToEdit changes
+  // Resumo financeiro calculado em tempo real para este cliente
+  const resumoFinanceiro = calculateClienteFinanceiro(clienteToEdit?.id || '', titulos, recorrencias, contratos);
+
+  // Reset/Preenchimento dos campos ao abrir ou mudar cliente
   useEffect(() => {
     if (open) {
       setTipoPessoa(clienteToEdit?.tipo === 'Pessoa Física' ? 'pf' : 'pj');
@@ -53,8 +80,45 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
       setContatoNome(principal?.nome || '');
       setContatoEmail(principal?.email || '');
       setContatoCelular(principal?.celular || '');
+
+      // Carregar recorrência existente se houver
+      if (clienteToEdit?.id) {
+        const recExistente = recorrencias.find(r => r.clientId === clienteToEdit.id);
+        if (recExistente) {
+          setRecorrenciaHabilitada(true);
+          setRecorrenciaId(recExistente.id);
+          setRecorrenciaDescricao(recExistente.descricao || '');
+          setRecorrenciaValor(String(recExistente.valor || ''));
+          setRecorrenciaFrequencia(recExistente.frequencia || 'Mensal');
+          setRecorrenciaDataInicio(recExistente.dataInicio || '');
+          setRecorrenciaProximaCobranca(recExistente.proximaCobranca || '');
+          setRecorrenciaDiaVencimento(String(recExistente.diaVencimento || '10'));
+          setRecorrenciaQuantidade(recExistente.quantidade ? String(recExistente.quantidade) : '');
+          setRecorrenciaStatus(recExistente.status || 'Ativa');
+          setRecorrenciaObservacoes(recExistente.observacoes || '');
+        } else {
+          resetRecorrenciaFields(clienteToEdit?.nomeFantasia || clienteToEdit?.razaoSocial || '');
+        }
+      } else {
+        resetRecorrenciaFields('');
+      }
     }
-  }, [open, clienteToEdit]);
+  }, [open, clienteToEdit, recorrencias]);
+
+  const resetRecorrenciaFields = (nome: string) => {
+    const hoje = new Date().toISOString().split('T')[0];
+    setRecorrenciaHabilitada(false);
+    setRecorrenciaId('');
+    setRecorrenciaDescricao(nome ? `Mensalidade - ${nome}` : '');
+    setRecorrenciaValor('');
+    setRecorrenciaFrequencia('Mensal');
+    setRecorrenciaDataInicio(hoje);
+    setRecorrenciaProximaCobranca(hoje);
+    setRecorrenciaDiaVencimento('10');
+    setRecorrenciaQuantidade('');
+    setRecorrenciaStatus('Ativa');
+    setRecorrenciaObservacoes('');
+  };
 
   const handleSave = () => {
     if (!razaoSocial && !nomeFantasia) {
@@ -77,10 +141,34 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
       return;
     }
 
+    // Validações da Recorrência se habilitada
+    if (recorrenciaHabilitada) {
+      if (!recorrenciaDescricao) {
+        toast.error("Informe a descrição/referência da recorrência.");
+        return;
+      }
+      const valorNum = parseFloat(recorrenciaValor);
+      if (isNaN(valorNum) || valorNum <= 0) {
+        toast.error("O valor da recorrência deve ser maior que zero.");
+        return;
+      }
+      if (!recorrenciaDataInicio) {
+        toast.error("Informe a data de início da recorrência.");
+        return;
+      }
+      if (!recorrenciaProximaCobranca) {
+        toast.error("Informe a data da próxima cobrança.");
+        return;
+      }
+    }
+
+    const clienteId = clienteToEdit?.id || crypto.randomUUID();
+    const clienteNomeOficial = nomeFantasia || razaoSocial;
+
     const clienteData = {
       tipo: tipoPessoa === 'pj' ? 'Pessoa Jurídica' : 'Pessoa Física',
       razaoSocial: razaoSocial || nomeFantasia,
-      nomeFantasia: nomeFantasia || razaoSocial,
+      nomeFantasia: clienteNomeOficial,
       documento: documento,
       inscricaoEstadual: ie || 'Isento',
       status: clienteToEdit?.status || 'Ativo',
@@ -110,22 +198,22 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
       ]
     };
 
+    // 1. Salvar ou Atualizar Cliente
     if (clienteToEdit) {
       saveCliente({
         ...clienteToEdit,
         ...clienteData,
-        id: clienteToEdit.id,
+        id: clienteId,
       } as any);
     } else {
       const novoCliente: Cliente = {
-        id: crypto.randomUUID(),
+        id: clienteId,
         codigo: `CLI-${Math.floor(100 + Math.random() * 900)}`,
         dataCadastro: new Date().toISOString(),
         ...(clienteData as any)
       };
       saveCliente(novoCliente as any);
       
-      // Disparar Notificação Real
       notificar({
         titulo: `Novo Cliente Cadastrado (${novoCliente.nomeFantasia || novoCliente.razaoSocial})`,
         descricao: `Cliente ${novoCliente.tipo} registrado na base com documento ${novoCliente.documento}.`,
@@ -134,6 +222,51 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
         prioridade: 'Normal',
         targetUrl: '/clientes'
       });
+    }
+
+    // 2. Salvar/Atualizar Recorrência e Sincronizar Títulos Financeiros
+    if (recorrenciaHabilitada) {
+      const recId = recorrenciaId || `rec_${crypto.randomUUID()}`;
+      const recExistente = recorrencias.find(r => r.id === recId || r.clientId === clienteId);
+      
+      const novaRecorrencia: RecorrenciaFinanceira = {
+        id: recExistente?.id || recId,
+        clientId: clienteId,
+        clienteNome: clienteNomeOficial,
+        descricao: recorrenciaDescricao,
+        valor: parseFloat(recorrenciaValor) || 0,
+        frequencia: recorrenciaFrequencia,
+        dataInicio: recorrenciaDataInicio,
+        proximaCobranca: recorrenciaProximaCobranca,
+        diaVencimento: parseInt(recorrenciaDiaVencimento, 10) || 10,
+        quantidade: recorrenciaQuantidade ? parseInt(recorrenciaQuantidade, 10) : null,
+        status: recorrenciaStatus,
+        observacoes: recorrenciaObservacoes,
+        origem: 'cliente',
+        categoria: 'Mensalidade',
+        formaPagamento: 'PIX',
+        createdAt: recExistente?.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      // Atualizar lista de recorrências sem duplicidade
+      const indexRec = recorrencias.findIndex(r => r.id === novaRecorrencia.id || r.clientId === clienteId);
+      let novasRecorrencias: RecorrenciaFinanceira[];
+      if (indexRec >= 0) {
+        novasRecorrencias = [...recorrencias];
+        novasRecorrencias[indexRec] = novaRecorrencia;
+      } else {
+        novasRecorrencias = [novaRecorrencia, ...recorrencias];
+      }
+      setAllRecorrencias(novasRecorrencias);
+
+      // Sincronizar títulos a receber vinculados a esta recorrência e ao clientId
+      const novosTitulos = syncRecorrenciaTitulos(novaRecorrencia, titulos);
+      setAllTitulos(novosTitulos);
+
+      toast.success(clienteToEdit ? "Cliente e recorrência atualizados com sucesso!" : "Cliente e recorrência cadastrados com sucesso!");
+    } else {
+      toast.success(clienteToEdit ? "Alterações do cliente salvas!" : "Cliente cadastrado com sucesso!");
     }
     
     setOpen(false);
@@ -153,7 +286,7 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
         </SheetHeader>
 
         <Tabs defaultValue="geral" className="w-full">
-          {/* Scrollable Tabs List for many tabs */}
+          {/* Scrollable Tabs List */}
           <div className="overflow-x-auto pb-2 mb-4 scrollbar-hide">
             <TabsList className="w-max inline-flex">
               <TabsTrigger value="geral">Dados Gerais</TabsTrigger>
@@ -331,31 +464,200 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
             </div>
           </TabsContent>
 
-          {/* 4. FINANCEIRO (Apenas Consumo) */}
-          <TabsContent value="financeiro" className="space-y-4">
-            <div className="rounded-md border border-dashed p-6 text-center">
-              <h3 className="font-semibold mb-2">Consulta Financeira (Contas a Receber)</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Esta aba apenas reflete os dados existentes nos módulos financeiros. Você não cria títulos por aqui.
-              </p>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-left">
-                <div className="border rounded p-3">
-                  <div className="text-xs text-muted-foreground">Valor em Aberto</div>
-                  <div className="font-bold text-red-600">R$ 0,00</div>
+          {/* 4. FINANCEIRO & RECORRÊNCIA INTEGRADA */}
+          <TabsContent value="financeiro" className="space-y-6">
+            {/* Seção 1: Indicadores Calculados */}
+            <div className="rounded-lg border bg-card p-5 space-y-4">
+              <div>
+                <h3 className="font-semibold text-sm">Consulta Financeira (Contas a Receber)</h3>
+                <p className="text-xs text-muted-foreground">
+                  Visão consolidada calculada a partir dos lançamentos e títulos vinculados a este cliente.
+                </p>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-left">
+                <div className="border rounded-md p-3 bg-background/50">
+                  <div className="text-[11px] text-muted-foreground font-medium">Valor em Aberto</div>
+                  <div className="font-bold text-base text-rose-600 dark:text-rose-400 mt-0.5">
+                    R$ {resumoFinanceiro.valorEmAberto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
                 </div>
-                <div className="border rounded p-3">
-                  <div className="text-xs text-muted-foreground">Total Recebido</div>
-                  <div className="font-bold text-emerald-600">R$ 0,00</div>
+                <div className="border rounded-md p-3 bg-background/50">
+                  <div className="text-[11px] text-muted-foreground font-medium">Total Recebido</div>
+                  <div className="font-bold text-base text-emerald-600 dark:text-emerald-400 mt-0.5">
+                    R$ {resumoFinanceiro.totalRecebido.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
                 </div>
-                <div className="border rounded p-3">
-                  <div className="text-xs text-muted-foreground">Mensalidade (Contrato)</div>
-                  <div className="font-bold">R$ 0,00</div>
+                <div className="border rounded-md p-3 bg-background/50">
+                  <div className="text-[11px] text-muted-foreground font-medium">Mensalidade (Contrato/Recorrência)</div>
+                  <div className="font-bold text-base text-foreground mt-0.5">
+                    R$ {resumoFinanceiro.mensalidade.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </div>
                 </div>
-                <div className="border rounded p-3">
-                  <div className="text-xs text-muted-foreground">Títulos Atrasados</div>
-                  <div className="font-bold text-muted-foreground">0</div>
+                <div className="border rounded-md p-3 bg-background/50">
+                  <div className="text-[11px] text-muted-foreground font-medium">Títulos Atrasados</div>
+                  <div className={`font-bold text-base mt-0.5 ${resumoFinanceiro.titulosAtrasados > 0 ? 'text-amber-600' : 'text-muted-foreground'}`}>
+                    {resumoFinanceiro.titulosAtrasados}
+                  </div>
                 </div>
               </div>
+            </div>
+
+            {/* Seção 2: Recorrência Financeira do Cliente */}
+            <div className="rounded-lg border bg-card p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-sm flex items-center gap-2">
+                    <RefreshCw className="w-4 h-4 text-orange-500" />
+                    Recorrência Financeira
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Configurar cobrança recorrente diretamente para este cliente.
+                  </p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Label htmlFor="toggle-recorrencia" className="text-xs font-semibold">
+                    {recorrenciaHabilitada ? 'Ativado' : 'Desativado'}
+                  </Label>
+                  <Switch 
+                    id="toggle-recorrencia" 
+                    checked={recorrenciaHabilitada} 
+                    onCheckedChange={setRecorrenciaHabilitada} 
+                  />
+                </div>
+              </div>
+
+              {recorrenciaHabilitada && (
+                <div className="space-y-4 pt-2 border-t animate-in fade-in slide-in-from-top-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="rec-descricao">Descrição / Referência *</Label>
+                      <Input 
+                        id="rec-descricao" 
+                        placeholder="Ex: Mensalidade de Desenvolvimento" 
+                        value={recorrenciaDescricao} 
+                        onChange={e => setRecorrenciaDescricao(e.target.value)} 
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="rec-valor">Valor da Recorrência (R$) *</Label>
+                      <Input 
+                        id="rec-valor" 
+                        type="number" 
+                        placeholder="2500,00" 
+                        value={recorrenciaValor} 
+                        onChange={e => setRecorrenciaValor(e.target.value)} 
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="rec-freq">Frequência *</Label>
+                      <Select 
+                        value={recorrenciaFrequencia} 
+                        onValueChange={(v: FrequenciaRecorrencia) => setRecorrenciaFrequencia(v)}
+                      >
+                        <SelectTrigger id="rec-freq">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Mensal">Mensal</SelectItem>
+                          <SelectItem value="Semanal">Semanal</SelectItem>
+                          <SelectItem value="Quinzenal">Quinzenal</SelectItem>
+                          <SelectItem value="Trimestral">Trimestral</SelectItem>
+                          <SelectItem value="Semestral">Semestral</SelectItem>
+                          <SelectItem value="Anual">Anual</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="rec-inicio">Data de Início *</Label>
+                      <Input 
+                        id="rec-inicio" 
+                        type="date" 
+                        value={recorrenciaDataInicio} 
+                        onChange={e => setRecorrenciaDataInicio(e.target.value)} 
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="rec-prox">Próxima Cobrança *</Label>
+                      <Input 
+                        id="rec-prox" 
+                        type="date" 
+                        value={recorrenciaProximaCobranca} 
+                        onChange={e => setRecorrenciaProximaCobranca(e.target.value)} 
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="rec-dia">Dia do Vencimento</Label>
+                      <Input 
+                        id="rec-dia" 
+                        type="number" 
+                        min="1" 
+                        max="31" 
+                        placeholder="Ex: 10" 
+                        value={recorrenciaDiaVencimento} 
+                        onChange={e => setRecorrenciaDiaVencimento(e.target.value)} 
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="rec-qtd">Quantidade (Vazia = Indefinida)</Label>
+                      <Input 
+                        id="rec-qtd" 
+                        type="number" 
+                        placeholder="Indefinida" 
+                        value={recorrenciaQuantidade} 
+                        onChange={e => setRecorrenciaQuantidade(e.target.value)} 
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="rec-status">Status da Recorrência *</Label>
+                      <Select 
+                        value={recorrenciaStatus} 
+                        onValueChange={(v: StatusRecorrencia) => setRecorrenciaStatus(v)}
+                      >
+                        <SelectTrigger id="rec-status">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Ativa">
+                            <span className="flex items-center gap-1.5 text-emerald-600 font-medium">
+                              <CheckCircle2 className="w-3.5 h-3.5" /> Ativa
+                            </span>
+                          </SelectItem>
+                          <SelectItem value="Pausada">
+                            <span className="flex items-center gap-1.5 text-amber-600 font-medium">
+                              <PauseCircle className="w-3.5 h-3.5" /> Pausada
+                            </span>
+                          </SelectItem>
+                          <SelectItem value="Encerrada">
+                            <span className="flex items-center gap-1.5 text-rose-600 font-medium">
+                              <XCircle className="w-3.5 h-3.5" /> Encerrada
+                            </span>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="rec-obs">Observações da Cobrança Recorrente</Label>
+                    <Textarea 
+                      id="rec-obs" 
+                      placeholder="Instruções de cobrança, contratos associados ou notas financeiras..." 
+                      value={recorrenciaObservacoes} 
+                      onChange={e => setRecorrenciaObservacoes(e.target.value)} 
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </TabsContent>
 
@@ -366,9 +668,23 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
               <p className="text-sm text-muted-foreground mb-4">
                 Consumo automático do módulo de Contratos.
               </p>
-              <div className="border rounded text-center p-6 text-muted-foreground text-sm">
-                Nenhum contrato ativo registrado para este cliente.
-              </div>
+              {contratos.filter(c => c.clienteId === clienteToEdit?.id).length > 0 ? (
+                <div className="space-y-2 text-left">
+                  {contratos.filter(c => c.clienteId === clienteToEdit?.id).map(c => (
+                    <div key={c.id} className="border rounded-md p-3 flex justify-between items-center bg-card">
+                      <div>
+                        <div className="font-semibold text-sm">{c.nome} ({c.numeroContrato || c.codigo})</div>
+                        <div className="text-xs text-muted-foreground">Mensalidade: R$ {(c.valorMensalidade || 0).toLocaleString('pt-BR')} • Status: {c.status}</div>
+                      </div>
+                      <span className="text-xs font-semibold px-2 py-1 bg-primary/10 text-primary rounded">{c.tipoServico}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="border rounded text-center p-6 text-muted-foreground text-sm">
+                  Nenhum contrato ativo registrado para este cliente.
+                </div>
+              )}
             </div>
           </TabsContent>
 

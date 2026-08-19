@@ -25,6 +25,9 @@ export interface TituloReceber {
   id: string;
   numero: string;
   cliente: string;
+  clienteId?: string;
+  recorrenciaId?: string;
+  origem?: string;
   descricao: string;
   categoria: string;
   valorOriginal: number;

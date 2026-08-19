@@ -11,32 +11,43 @@ import { toast } from 'sonner';
 
 import { useContasReceberQuery } from '../hooks/useContasReceberQuery';
 import { useClientesQuery } from '@/features/clientes/hooks/useClientesQuery';
-import { TituloReceber } from '../types';
+import { TituloReceber, FormaPagamento } from '../types';
 import { useLocalStorageState } from '@/hooks/useDataStore';
 import { Usuario } from '@/features/usuarios/types';
 import { INITIAL_USUARIOS } from '@/features/usuarios/data/initialData';
-
+import { RecorrenciaFinanceira, FrequenciaRecorrencia } from '@/features/recorrencias/types';
 import { useNotificacoesStore } from '@/features/notificacoes/useNotificacoesStore';
 
 export function NovoRecebimentoSheet({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [parcelado, setParcelado] = useState(false);
   const [recorrente, setRecorrente] = useState(false);
-  const [cliente, setCliente] = useState('');
+  
+  const [clienteId, setClienteId] = useState('');
   const [descricao, setDescricao] = useState('');
   const [categoria, setCategoria] = useState('Serviços');
   const [valorOriginal, setValorOriginal] = useState('');
   const [dataVencimento, setDataVencimento] = useState('');
-  const [formaPagamento, setFormaPagamento] = useState('PIX');
+  const [formaPagamento, setFormaPagamento] = useState<FormaPagamento>('PIX');
   const [responsavel, setResponsavel] = useState('');
+  const [observacoes, setObservacoes] = useState('');
+
+  // Recorrência
+  const [frequencia, setFrequencia] = useState<FrequenciaRecorrencia>('Mensal');
+  const [dataInicioRec, setDataInicioRec] = useState('');
+  const [fimRecorrencia, setFimRecorrencia] = useState('');
 
   const { saveTitulo } = useContasReceberQuery();
   const { clientes } = useClientesQuery();
   const { data: usuarios } = useLocalStorageState<Usuario>('focus_usuarios', INITIAL_USUARIOS);
+  const { data: recorrencias = [], setAllItems: setAllRecorrencias } = useLocalStorageState<RecorrenciaFinanceira>('focus_recorrencias');
   const { notificar } = useNotificacoesStore();
 
+  const selectedClienteObj = clientes.find(c => c.id === clienteId);
+  const clienteNome = selectedClienteObj ? (selectedClienteObj.nomeFantasia || selectedClienteObj.razaoSocial) : '';
+
   const handleSave = () => {
-    if (!cliente || cliente === 'none') {
+    if (!clienteId || clienteId === 'none') {
       toast.error("Por favor, selecione um Cliente cadastrado no sistema.");
       return;
     }
@@ -58,11 +69,37 @@ export function NovoRecebimentoSheet({ children }: { children: React.ReactNode }
     }
 
     const val = parseFloat(valorOriginal) || 1500;
+    let recId: string | undefined = undefined;
+
+    // Se habilitar recorrência, cadastrar/vincular a RecorrenciaFinanceira
+    if (recorrente) {
+      recId = `rec_${crypto.randomUUID()}`;
+      const novaRecorrencia: RecorrenciaFinanceira = {
+        id: recId,
+        clientId: clienteId,
+        clienteNome: clienteNome || 'Cliente',
+        descricao: descricao || `Recorrência - ${clienteNome}`,
+        valor: val,
+        frequencia: frequencia,
+        dataInicio: dataInicioRec || dataVencimento || new Date().toISOString().split('T')[0],
+        proximaCobranca: dataVencimento || new Date().toISOString().split('T')[0],
+        status: 'Ativa',
+        origem: 'financeiro',
+        categoria: categoria,
+        formaPagamento: formaPagamento,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      setAllRecorrencias([novaRecorrencia, ...recorrencias]);
+    }
 
     const novoTitulo: TituloReceber = {
       id: crypto.randomUUID(),
-      numero: `REC-${Math.floor(100 + Math.random() * 900)}`,
-      cliente,
+      numero: `REC-${Math.floor(1000 + Math.random() * 9000)}`,
+      cliente: clienteNome,
+      clienteId: clienteId,
+      recorrenciaId: recId,
+      origem: recorrente ? 'recorrencia' : 'manual',
       descricao,
       categoria: categoria || 'Serviços',
       valorOriginal: val,
@@ -70,12 +107,21 @@ export function NovoRecebimentoSheet({ children }: { children: React.ReactNode }
       saldo: val,
       dataEmissao: new Date().toISOString().split('T')[0],
       dataVencimento: dataVencimento || new Date().toISOString().split('T')[0],
-      formaPagamento: (formaPagamento as any) || 'PIX',
+      formaPagamento: formaPagamento,
       status: 'Pendente',
       responsavel: responsavel || 'Financeiro',
       ultimaAtualizacao: new Date().toISOString(),
+      recorrente: recorrente,
+      recorrenciaFrequencia: recorrente ? frequencia : undefined,
+      recorrenciaFim: fimRecorrencia || undefined,
+      observacoes: observacoes || undefined,
       historico: [
-        { id: `h-${Date.now()}`, data: new Date().toISOString(), usuario: 'Usuário', acao: 'Criação do título' }
+        { 
+          id: `h-${Date.now()}`, 
+          data: new Date().toISOString(), 
+          usuario: 'Usuário', 
+          acao: recorrente ? 'Criação de título recorrente' : 'Criação do título' 
+        }
       ]
     };
 
@@ -84,7 +130,7 @@ export function NovoRecebimentoSheet({ children }: { children: React.ReactNode }
     // Disparar Notificação Automática
     notificar({
       titulo: `Novo Recebimento Cadastrado (${novoTitulo.numero})`,
-      descricao: `Recebimento de R$ ${val.toLocaleString('pt-BR')} para ${cliente} com vencimento em ${dataVencimento}.`,
+      descricao: `Recebimento de R$ ${val.toLocaleString('pt-BR')} para ${clienteNome} com vencimento em ${dataVencimento}.`,
       origem: 'Financeiro',
       tipo: 'Sucesso',
       prioridade: 'Normal',
@@ -95,8 +141,9 @@ export function NovoRecebimentoSheet({ children }: { children: React.ReactNode }
     toast.success("Recebimento cadastrado com sucesso!");
     setOpen(false);
     setDescricao('');
-    setCliente('');
+    setClienteId('');
     setValorOriginal('');
+    setRecorrente(false);
   };
 
   return (
@@ -127,7 +174,7 @@ export function NovoRecebimentoSheet({ children }: { children: React.ReactNode }
             <div className="grid grid-cols-1 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="cliente">Cliente *</Label>
-                <Select value={cliente} onValueChange={setCliente}>
+                <Select value={clienteId} onValueChange={setClienteId}>
                   <SelectTrigger id="cliente">
                     <SelectValue placeholder="Selecione o cliente cadastrado" />
                   </SelectTrigger>
@@ -138,9 +185,9 @@ export function NovoRecebimentoSheet({ children }: { children: React.ReactNode }
                       </SelectItem>
                     ) : (
                       clientes.map((c) => {
-                        const name = c.nomeFantasia || c.razaoSocial || c.nomeContato || 'Cliente Sem Nome';
+                        const name = c.nomeFantasia || c.razaoSocial || 'Cliente Sem Nome';
                         return (
-                          <SelectItem key={c.id} value={name}>
+                          <SelectItem key={c.id} value={c.id}>
                             {name} ({c.documento || 'Sem doc'})
                           </SelectItem>
                         );
@@ -156,25 +203,37 @@ export function NovoRecebimentoSheet({ children }: { children: React.ReactNode }
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="categoria">Categoria *</Label>
-                  <Select>
+                  <Select value={categoria} onValueChange={setCategoria}>
                     <SelectTrigger id="categoria">
                       <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="servicos">Serviços</SelectItem>
-                      <SelectItem value="produtos">Produtos</SelectItem>
-                      <SelectItem value="mensalidade">Mensalidade</SelectItem>
+                      <SelectItem value="Serviços">Serviços</SelectItem>
+                      <SelectItem value="Produtos">Produtos</SelectItem>
+                      <SelectItem value="Mensalidade">Mensalidade</SelectItem>
+                      <SelectItem value="Consultoria">Consultoria</SelectItem>
+                      <SelectItem value="Licenciamento">Licenciamento</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="responsavel">Responsável</Label>
-                  <Input id="responsavel" placeholder="Nome do vendedor/atendente" />
+                  <Input 
+                    id="responsavel" 
+                    placeholder="Nome do vendedor/atendente" 
+                    value={responsavel} 
+                    onChange={e => setResponsavel(e.target.value)} 
+                  />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="observacoes">Observações</Label>
-                <Input id="observacoes" placeholder="Informações adicionais..." />
+                <Input 
+                  id="observacoes" 
+                  placeholder="Informações adicionais..." 
+                  value={observacoes} 
+                  onChange={e => setObservacoes(e.target.value)} 
+                />
               </div>
             </div>
           </TabsContent>
@@ -191,12 +250,24 @@ export function NovoRecebimentoSheet({ children }: { children: React.ReactNode }
                 <Input id="dataVencimento" type="date" value={dataVencimento} onChange={e => setDataVencimento(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="desconto">Desconto (R$)</Label>
-                <Input id="desconto" type="number" placeholder="0,00" />
+                <Label htmlFor="formaPagamento">Forma de Pagamento</Label>
+                <Select value={formaPagamento} onValueChange={(v: FormaPagamento) => setFormaPagamento(v)}>
+                  <SelectTrigger id="formaPagamento">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="PIX">PIX</SelectItem>
+                    <SelectItem value="Boleto">Boleto</SelectItem>
+                    <SelectItem value="Cartão">Cartão de Crédito</SelectItem>
+                    <SelectItem value="Transferência">Transferência</SelectItem>
+                    <SelectItem value="Dinheiro">Dinheiro</SelectItem>
+                    <SelectItem value="Outros">Outros</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="juros">Juros/Multa (R$)</Label>
-                <Input id="juros" type="number" placeholder="0,00" />
+                <Label htmlFor="desconto">Desconto (R$)</Label>
+                <Input id="desconto" type="number" placeholder="0,00" />
               </div>
             </div>
           </TabsContent>
@@ -246,26 +317,27 @@ export function NovoRecebimentoSheet({ children }: { children: React.ReactNode }
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 border rounded-lg animate-in fade-in slide-in-from-top-2">
                 <div className="space-y-2 col-span-1 sm:col-span-2">
                   <Label>Frequência</Label>
-                  <Select>
+                  <Select value={frequencia} onValueChange={(v: FrequenciaRecorrencia) => setFrequencia(v)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione a frequência" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="semanal">Semanal</SelectItem>
-                      <SelectItem value="quinzenal">Quinzenal</SelectItem>
-                      <SelectItem value="mensal">Mensal</SelectItem>
-                      <SelectItem value="semestral">Semestral</SelectItem>
-                      <SelectItem value="anual">Anual</SelectItem>
+                      <SelectItem value="Mensal">Mensal</SelectItem>
+                      <SelectItem value="Semanal">Semanal</SelectItem>
+                      <SelectItem value="Quinzenal">Quinzenal</SelectItem>
+                      <SelectItem value="Trimestral">Trimestral</SelectItem>
+                      <SelectItem value="Semestral">Semestral</SelectItem>
+                      <SelectItem value="Anual">Anual</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
                   <Label>Data de Início</Label>
-                  <Input type="date" />
+                  <Input type="date" value={dataInicioRec} onChange={e => setDataInicioRec(e.target.value)} />
                 </div>
                 <div className="space-y-2">
                   <Label>Fim da Recorrência (Opcional)</Label>
-                  <Input type="date" />
+                  <Input type="date" value={fimRecorrencia} onChange={e => setFimRecorrencia(e.target.value)} />
                 </div>
               </div>
             )}
