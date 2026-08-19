@@ -97,11 +97,13 @@ function PerfilProjetoPage() {
 
       {/* TABS */}
       <Tabs defaultValue="visaogeral" className="space-y-6 mt-4">
-        <TabsList className="w-full justify-start border-b rounded-none h-auto p-0 bg-transparent">
-          <TabsTrigger value="visaogeral" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-6 py-3">Visão Geral & Escopo</TabsTrigger>
-          <TabsTrigger value="cronograma" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-6 py-3">Cronograma (Gantt)</TabsTrigger>
-          <TabsTrigger value="equipe" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-6 py-3">Equipe</TabsTrigger>
-        </TabsList>
+        <div className="w-full overflow-x-auto scrollbar-hide border-b pb-1">
+          <TabsList className="w-max min-w-full justify-start border-b-0 rounded-none h-auto p-0 bg-transparent gap-2">
+            <TabsTrigger value="visaogeral" className="shrink-0 whitespace-nowrap data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-2.5">Visão Geral</TabsTrigger>
+            <TabsTrigger value="lancamentos" className="shrink-0 whitespace-nowrap data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-2.5">Lançamentos do Projeto</TabsTrigger>
+            <TabsTrigger value="relatorio" className="shrink-0 whitespace-nowrap data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-2.5">DRE Sintético do Projeto</TabsTrigger>
+          </TabsList>
+        </div>
         
         <TabsContent value="visaogeral" className="space-y-4">
           <div className="grid gap-6 md:grid-cols-2">

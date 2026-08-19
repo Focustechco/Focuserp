@@ -89,12 +89,14 @@ function PerfilClientePage() {
       </div>
 
       <Tabs defaultValue="visaogeral" className="space-y-6 mt-4">
-        <TabsList className="w-full justify-start border-b rounded-none h-auto p-0 bg-transparent">
-          <TabsTrigger value="visaogeral" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-6 py-3">Visão Geral</TabsTrigger>
-          <TabsTrigger value="titulos" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-6 py-3">Títulos e Faturas</TabsTrigger>
-          <TabsTrigger value="contratos" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-6 py-3">Contratos</TabsTrigger>
-          <TabsTrigger value="historico" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-6 py-3">Timeline</TabsTrigger>
-        </TabsList>
+        <div className="w-full overflow-x-auto scrollbar-hide border-b pb-1">
+          <TabsList className="w-max min-w-full justify-start border-b-0 rounded-none h-auto p-0 bg-transparent gap-2">
+            <TabsTrigger value="visaogeral" className="shrink-0 whitespace-nowrap data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-2.5">Visão Geral</TabsTrigger>
+            <TabsTrigger value="titulos" className="shrink-0 whitespace-nowrap data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-2.5">Títulos e Faturas</TabsTrigger>
+            <TabsTrigger value="contratos" className="shrink-0 whitespace-nowrap data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-2.5">Contratos</TabsTrigger>
+            <TabsTrigger value="historico" className="shrink-0 whitespace-nowrap data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-2.5">Timeline</TabsTrigger>
+          </TabsList>
+        </div>
         
         <TabsContent value="visaogeral" className="space-y-4">
           <div className="grid gap-6 md:grid-cols-2">
