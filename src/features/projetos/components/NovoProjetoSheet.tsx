@@ -280,11 +280,11 @@ export function NovoProjetoSheet({ children }: { children: React.ReactNode }) {
                 <Label>Prioridade *</Label>
                 <Select value={prioridade} onValueChange={setPrioridade}>
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[9999]">
                     <SelectItem value="Baixa">Baixa</SelectItem>
-                    <SelectItem value="Mdia">Mdia</SelectItem>
+                    <SelectItem value="Média">Média</SelectItem>
                     <SelectItem value="Alta">Alta</SelectItem>
-                    <SelectItem value="Crtica">Crtica</SelectItem>
+                    <SelectItem value="Crítica">Crítica</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -292,19 +292,24 @@ export function NovoProjetoSheet({ children }: { children: React.ReactNode }) {
                 <Label>Status</Label>
                 <Select value={status} onValueChange={setStatus}>
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[9999]">
                     <SelectItem value="Planejamento">Planejamento</SelectItem>
                     <SelectItem value="Kickoff">Kickoff</SelectItem>
                     <SelectItem value="Em Desenvolvimento">Em Desenvolvimento</SelectItem>
-                    <SelectItem value="Em Homologao">Em Homologao</SelectItem>
-                    <SelectItem value="Concludo">Concludo</SelectItem>
+                    <SelectItem value="Em Homologação">Em Homologação</SelectItem>
+                    <SelectItem value="Aguardando Cliente">Aguardando Cliente</SelectItem>
+                    <SelectItem value="Em Revisão">Em Revisão</SelectItem>
+                    <SelectItem value="Implantação">Implantação</SelectItem>
+                    <SelectItem value="Concluído">Concluído</SelectItem>
+                    <SelectItem value="Suspenso">Suspenso</SelectItem>
+                    <SelectItem value="Cancelado">Cancelado</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label>Descrio Geral / Resumo</Label>
+              <Label>Descrição Geral / Resumo</Label>
               <Textarea placeholder="Descreva brevemente do que se trata o projeto..." value={descricao} onChange={e => setDescricao(e.target.value)} />
             </div>
           </TabsContent>

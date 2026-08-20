@@ -23,15 +23,32 @@ export const dmsService = {
           criadoPor: item.criado_por || 'Usuário Administrador',
         }));
       }
+
+      // Fallback para localStorage
+      if (typeof window !== 'undefined') {
+        const raw = window.localStorage.getItem('focus_app_dms_pastas');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      }
+
       return [];
-    } catch (err) {
-      console.error('[dmsService.getPastas] Erro ao buscar no Supabase:', err);
+    } catch {
       return [];
     }
   },
 
   async savePasta(pasta: PastaDMS): Promise<void> {
     try {
+      // Salvar no localStorage
+      if (typeof window !== 'undefined') {
+        const raw = window.localStorage.getItem('focus_app_dms_pastas');
+        const list = raw ? JSON.parse(raw) : [];
+        const filtered = list.filter((p: any) => p.id !== pasta.id);
+        window.localStorage.setItem('focus_app_dms_pastas', JSON.stringify([...filtered, pasta]));
+      }
+
       const payload = {
         id: pasta.id,
         nome: pasta.nome,
@@ -42,13 +59,8 @@ export const dmsService = {
         criado_por: pasta.criadoPor,
         updated_at: new Date().toISOString(),
       };
-      const { error } = await supabase.from('dms_pastas').upsert(payload);
-      if (error) {
-        console.warn('[dmsService.savePasta] Supabase upsert note:', error.message);
-      }
-    } catch (err) {
-      console.error('[dmsService.savePasta] Erro:', err);
-    }
+      await supabase.from('dms_pastas').upsert(payload);
+    } catch {}
   },
 
   async getDocumentos(): Promise<DocumentoDMS[]> {
@@ -87,15 +99,32 @@ export const dmsService = {
           historicoVersoes: item.historico_versoes || [],
         }));
       }
+
+      // Fallback para localStorage
+      if (typeof window !== 'undefined') {
+        const raw = window.localStorage.getItem('focus_app_dms_documentos');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      }
+
       return [];
-    } catch (err) {
-      console.error('[dmsService.getDocumentos] Erro ao buscar no Supabase:', err);
+    } catch {
       return [];
     }
   },
 
   async saveDocumento(doc: DocumentoDMS): Promise<void> {
     try {
+      // Salvar no localStorage
+      if (typeof window !== 'undefined') {
+        const raw = window.localStorage.getItem('focus_app_dms_documentos');
+        const list = raw ? JSON.parse(raw) : [];
+        const filtered = list.filter((d: any) => d.id !== doc.id);
+        window.localStorage.setItem('focus_app_dms_documentos', JSON.stringify([...filtered, doc]));
+      }
+
       const payload = {
         id: doc.id,
         codigo: doc.codigo,
@@ -124,23 +153,22 @@ export const dmsService = {
         historico_versoes: doc.historicoVersoes,
         updated_at: new Date().toISOString(),
       };
-      const { error } = await supabase.from('dms_documentos').upsert(payload);
-      if (error) {
-        console.warn('[dmsService.saveDocumento] Supabase upsert note:', error.message);
-      }
-    } catch (err) {
-      console.error('[dmsService.saveDocumento] Erro:', err);
-    }
+      await supabase.from('dms_documentos').upsert(payload);
+    } catch {}
   },
 
   async deleteDocumento(id: string): Promise<void> {
     try {
-      const { error } = await supabase.from('dms_documentos').delete().eq('id', id);
-      if (error) {
-        console.warn('[dmsService.deleteDocumento] Supabase delete note:', error.message);
+      if (typeof window !== 'undefined') {
+        const raw = window.localStorage.getItem('focus_app_dms_documentos');
+        if (raw) {
+          const list = JSON.parse(raw);
+          const filtered = list.filter((d: any) => d.id !== id);
+          window.localStorage.setItem('focus_app_dms_documentos', JSON.stringify(filtered));
+        }
       }
-    } catch (err) {
-      console.error('[dmsService.deleteDocumento] Erro:', err);
-    }
+
+      await supabase.from('dms_documentos').delete().eq('id', id);
+    } catch {}
   }
 };
