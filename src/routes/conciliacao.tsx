@@ -13,12 +13,14 @@ export const Route = createFileRoute("/conciliacao")({
 
 function ConciliacaoPage() {
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-[1400px] mx-auto w-full">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Conciliação Bancária</h1>
-        <p className="text-muted-foreground mt-1">
-          Validação oficial entre os extratos bancários e os lançamentos financeiros do sistema.
-        </p>
+    <div className="flex flex-col gap-6 p-4 sm:p-6 max-w-[1400px] mx-auto w-full">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Conciliação Bancária</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-2xl">
+            Validação oficial entre os extratos bancários e os lançamentos financeiros do sistema.
+          </p>
+        </div>
       </div>
 
       <Tabs defaultValue="conciliacao" className="space-y-6 mt-4">
