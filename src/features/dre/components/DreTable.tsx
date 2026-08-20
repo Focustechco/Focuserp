@@ -163,69 +163,6 @@ export function DreTable() {
   return (
     <div className="space-y-4 animate-fade-in pt-1">
       
-      {/* Cards de Resumo Executivo em Tempo Real (Otimizado Mobile e Desktop) */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4">
-        <Card className="bg-card shadow-xs border">
-          <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] sm:text-xs font-medium text-muted-foreground">Receita Bruta</span>
-              <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
-            </div>
-            <div className="text-sm sm:text-lg font-bold text-foreground mt-1 truncate">
-              {formatCurrency(indicadores.receitaBruta)}
-            </div>
-            <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
-              Líq: {formatCurrency(indicadores.receitaLiquida)}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card shadow-xs border">
-          <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] sm:text-xs font-medium text-muted-foreground">Margem Bruta</span>
-              <span className="text-[10px] font-bold text-primary">{indicadores.margemBruta.toFixed(1)}%</span>
-            </div>
-            <div className="text-sm sm:text-lg font-bold text-primary mt-1 truncate">
-              {formatCurrency(indicadores.lucroBruto)}
-            </div>
-            <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
-              Custos: {formatCurrency(indicadores.custos)}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card shadow-xs border">
-          <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] sm:text-xs font-medium text-muted-foreground">EBITDA</span>
-              <Activity className="w-3.5 h-3.5 text-blue-500" />
-            </div>
-            <div className={`text-sm sm:text-lg font-bold mt-1 truncate ${indicadores.ebitda >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-rose-600'}`}>
-              {formatCurrency(indicadores.ebitda)}
-            </div>
-            <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
-              Margem: {indicadores.margemEbitda.toFixed(1)}%
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card shadow-xs border">
-          <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] sm:text-xs font-medium text-muted-foreground">Lucro Líquido</span>
-              <Wallet className="w-3.5 h-3.5 text-purple-500" />
-            </div>
-            <div className={`text-sm sm:text-lg font-bold mt-1 truncate ${indicadores.lucroLiquido >= 0 ? 'text-purple-600 dark:text-purple-400' : 'text-rose-600'}`}>
-              {formatCurrency(indicadores.lucroLiquido)}
-            </div>
-            <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
-              Margem: {indicadores.margemLiquida.toFixed(1)}%
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Barra de Filtros Responsiva */}
       <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 bg-card p-3 rounded-lg border">
         <div className="flex flex-wrap items-center gap-2">
