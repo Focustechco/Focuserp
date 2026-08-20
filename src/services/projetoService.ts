@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabaseClient';
 import { projetoSchema, ProjetoDTO } from '@/schemas/projetoSchema';
+import { safeSetItem, safeGetItem, safeRemoveItem } from '@/lib/safeStorage';
 
 function toValidUuid(idStr?: string): string {
   if (!idStr) return crypto.randomUUID();
@@ -14,24 +15,24 @@ function isValidUuid(idStr?: string): boolean {
 }
 
 /**
- * Service de dados para o módulo de Projetos.
+ * Service de dados para o módulo de Projetos com persistência resiliente.
  */
 export const projetoService = {
   async getProjetos(): Promise<ProjetoDTO[]> {
+    // 1. Ler do cache local primeiro
+    let localProjetos: ProjetoDTO[] = [];
     try {
-      // 1. Buscar do cache local primeiro para resposta instantânea
-      let localProjetos: ProjetoDTO[] = [];
-      if (typeof window !== 'undefined') {
-        const rawLocal = window.localStorage.getItem('focus_app_focus_projetos') || window.localStorage.getItem('focus_projetos');
-        if (rawLocal) {
-          const parsed = JSON.parse(rawLocal);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            localProjetos = parsed;
-          }
+      const rawLocal = safeGetItem('focus_app_focus_projetos') || safeGetItem('focus_projetos');
+      if (rawLocal) {
+        const parsed = JSON.parse(rawLocal);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          localProjetos = parsed;
         }
       }
+    } catch {}
 
-      // 2. Buscar na tabela relacional 'projetos' do Supabase
+    // 2. Buscar no Supabase
+    try {
       const { data, error } = await supabase
         .from('projetos')
         .select('*')
@@ -65,23 +66,14 @@ export const projetoService = {
           return parsed.success ? parsed.data : (item as ProjetoDTO);
         });
 
-        // Atualizar cache local
-        if (typeof window !== 'undefined') {
-          window.localStorage.setItem('focus_app_focus_projetos', JSON.stringify(cloudProjetos));
-        }
+        // Atualizar cache local de forma segura
+        safeSetItem('focus_app_focus_projetos', JSON.stringify(cloudProjetos));
 
         return cloudProjetos;
       }
+    } catch {}
 
-      return localProjetos;
-    } catch (err) {
-      console.warn('[projetoService.getProjetos] Usando fallback local:', err);
-      if (typeof window !== 'undefined') {
-        const rawLocal = window.localStorage.getItem('focus_app_focus_projetos');
-        if (rawLocal) return JSON.parse(rawLocal);
-      }
-      return [];
-    }
+    return localProjetos;
   },
 
   async saveProjeto(projeto: ProjetoDTO): Promise<ProjetoDTO> {
@@ -89,21 +81,17 @@ export const projetoService = {
     const validId = toValidUuid(validated.id);
     const finalProjeto: ProjetoDTO = { ...validated, id: validId };
 
-    // 1. Persistência local instantânea
-    if (typeof window !== 'undefined') {
-      try {
-        const rawLocal = window.localStorage.getItem('focus_app_focus_projetos');
-        const list: ProjetoDTO[] = rawLocal ? JSON.parse(rawLocal) : [];
-        const filtered = list.filter(p => p.id !== validId);
-        const updated = [finalProjeto, ...filtered];
-        window.localStorage.setItem('focus_app_focus_projetos', JSON.stringify(updated));
-        window.localStorage.setItem('focus_projetos', JSON.stringify(updated));
-      } catch (e) {
-        console.warn('[projetoService.saveProjeto] LocalStorage warn:', e);
-      }
-    }
+    // 1. Gravar imediatamente no LocalStorage
+    try {
+      const rawLocal = safeGetItem('focus_app_focus_projetos') || safeGetItem('focus_projetos');
+      const list: ProjetoDTO[] = rawLocal ? JSON.parse(rawLocal) : [];
+      const filtered = list.filter(p => p.id !== validId);
+      const updated = [finalProjeto, ...filtered];
+      safeSetItem('focus_app_focus_projetos', JSON.stringify(updated));
+      safeSetItem('focus_projetos', JSON.stringify(updated));
+    } catch {}
 
-    // 2. Persistência na nuvem Supabase com payload seguro (UUID válido)
+    // 2. Sincronizar com Supabase
     try {
       const payload: any = {
         id: validId,
@@ -130,25 +118,21 @@ export const projetoService = {
       }
 
       await supabase.from('projetos').upsert(payload);
-    } catch (err: any) {
-      console.warn('[projetoService.saveProjeto] Supabase sync fallback:', err?.message);
-    }
+    } catch {}
 
     return finalProjeto;
   },
 
   async deleteProjeto(id: string): Promise<void> {
-    if (typeof window !== 'undefined') {
-      try {
-        const rawLocal = window.localStorage.getItem('focus_app_focus_projetos');
-        if (rawLocal) {
-          const list: ProjetoDTO[] = JSON.parse(rawLocal);
-          const filtered = list.filter(p => p.id !== id);
-          window.localStorage.setItem('focus_app_focus_projetos', JSON.stringify(filtered));
-          window.localStorage.setItem('focus_projetos', JSON.stringify(filtered));
-        }
-      } catch {}
-    }
+    try {
+      const rawLocal = safeGetItem('focus_app_focus_projetos');
+      if (rawLocal) {
+        const list: ProjetoDTO[] = JSON.parse(rawLocal);
+        const filtered = list.filter(p => p.id !== id);
+        safeSetItem('focus_app_focus_projetos', JSON.stringify(filtered));
+        safeSetItem('focus_projetos', JSON.stringify(filtered));
+      }
+    } catch {}
 
     try {
       if (isValidUuid(id)) {

@@ -24,22 +24,22 @@ function toValidUuid(idStr?: string): string {
   return crypto.randomUUID();
 }
 
+import { safeSetItem, safeGetItem, safeRemoveItem } from '@/lib/safeStorage';
+
 /**
  * Helper to safely read from localStorage
  */
 function readLocalCache<T>(table: string, fallback: T[]): T[] {
   if (typeof window === 'undefined') return fallback;
   try {
-    const raw = window.localStorage.getItem(`focus_app_${table}`);
+    const raw = safeGetItem(`focus_app_${table}`);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
         return parsed;
       }
     }
-  } catch (e) {
-    console.warn(`[LocalStorage] Error reading key focus_app_${table}:`, e);
-  }
+  } catch {}
   return fallback;
 }
 
@@ -49,20 +49,8 @@ function readLocalCache<T>(table: string, fallback: T[]): T[] {
 function writeLocalCache<T>(table: string, items: T[]) {
   if (typeof window === 'undefined') return;
   try {
-    window.localStorage.setItem(`focus_app_${table}`, JSON.stringify(items));
-  } catch (e: any) {
-    if (e?.name === 'QuotaExceededError' || e?.code === 22) {
-      try {
-        // Attempt to clean non-essential notifications cache to free up storage space
-        window.localStorage.removeItem('focus_app_notificacoes');
-        window.localStorage.setItem(`focus_app_${table}`, JSON.stringify(items));
-      } catch {
-        // Silent catch: LocalStorage quota exceeded, Supabase cloud sync continues asynchronously
-      }
-    } else {
-      console.warn(`[LocalStorage] Error writing key focus_app_${table}:`, e);
-    }
-  }
+    safeSetItem(`focus_app_${table}`, JSON.stringify(items));
+  } catch {}
 }
 
 /**
