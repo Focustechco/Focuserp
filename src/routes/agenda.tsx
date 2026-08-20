@@ -18,17 +18,17 @@ function AgendaPage() {
   const [selectedEvent, setSelectedEvent] = useState<EventoFinanceiro | null>(null);
 
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-[1400px] mx-auto w-full">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-6 p-4 sm:p-6 max-w-[1400px] mx-auto w-full">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Agenda Financeira</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Agenda Financeira</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-2xl">
             Calendário inteligente agregando Títulos, Projetos, Contratos e Impostos automaticamente.
           </p>
         </div>
 
         <NovoEventoAgendaSheet>
-          <Button className="gap-2">
+          <Button className="w-full sm:w-auto gap-2 shrink-0">
             <Plus className="w-4 h-4" /> Novo Evento / Lembrete
           </Button>
         </NovoEventoAgendaSheet>

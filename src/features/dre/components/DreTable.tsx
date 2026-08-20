@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { ChevronRight, ChevronDown, Download, Filter, Calendar, TrendingUp, TrendingDown } from 'lucide-react';
+import { ChevronRight, ChevronDown, Download, Filter, Calendar, TrendingUp, TrendingDown, DollarSign, Activity, Wallet, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { DreFiltrosSheet } from './DreFiltrosSheet';
 import { DreDrillDownSheet } from './DreDrillDownSheet';
 import { LinhaDRE } from '../types';
@@ -95,14 +96,14 @@ export function DreTable() {
         <React.Fragment key={node.id}>
           <div 
             onClick={() => canDrillDown && handleRowClick(node)}
-            className={`group flex items-center justify-between p-3 border-b transition-colors hover:bg-muted/50 ${
-              isHeaderRow ? 'bg-muted/15 font-bold text-foreground' : 'text-sm'
+            className={`group flex items-center justify-between p-3 border-b transition-colors hover:bg-muted/50 active:bg-muted/70 ${
+              isHeaderRow ? 'bg-muted/20 font-bold text-foreground' : 'text-sm'
             } ${canDrillDown ? 'cursor-pointer hover:bg-primary/5' : ''}`}
           >
             
-            <div className="flex items-center gap-2 flex-1" style={{ paddingLeft: `${level * 24}px` }}>
+            <div className="flex items-center gap-2 flex-1 min-w-[200px]" style={{ paddingLeft: `${level * 16}px` }}>
               <div 
-                className={`w-5 h-5 flex items-center justify-center cursor-pointer text-muted-foreground hover:text-foreground ${hasChildren ? '' : 'invisible'}`}
+                className={`w-6 h-6 rounded flex items-center justify-center cursor-pointer text-muted-foreground hover:text-foreground hover:bg-muted/80 ${hasChildren ? '' : 'invisible'}`}
                 onClick={(e) => {
                   e.stopPropagation();
                   toggleNode(node.id);
@@ -110,24 +111,24 @@ export function DreTable() {
               >
                 {hasChildren && (isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />)}
               </div>
-              <span className={`w-12 font-mono text-xs ${isHeaderRow ? 'text-foreground font-semibold' : 'text-muted-foreground'}`}>{node.codigo}</span>
-              <span className="truncate font-medium">{node.nome}</span>
+              <span className={`w-10 sm:w-12 font-mono text-xs ${isHeaderRow ? 'text-foreground font-semibold' : 'text-muted-foreground'}`}>{node.codigo}</span>
+              <span className="font-medium text-xs sm:text-sm">{node.nome}</span>
             </div>
 
-            <div className="flex items-center gap-4 flex-none">
-              <div className={`w-32 text-right font-medium ${isHeaderRow ? (node.valorAtual < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400') : ''}`}>
+            <div className="flex items-center gap-3 sm:gap-4 flex-none">
+              <div className={`w-28 sm:w-32 text-right font-semibold text-xs sm:text-sm ${isHeaderRow ? (node.valorAtual < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400') : ''}`}>
                 {formatCurrency(node.valorAtual)}
               </div>
               
-              <div className="w-20 text-right text-muted-foreground text-xs">
+              <div className="w-16 sm:w-20 text-right text-muted-foreground text-[11px] sm:text-xs">
                 {formatPercent(Math.abs(av))}
               </div>
               
-              <div className="hidden md:block w-32 text-right text-muted-foreground">
+              <div className="w-24 sm:w-32 text-right text-muted-foreground text-xs hidden sm:block">
                 {formatCurrency(node.valorAnterior)}
               </div>
 
-              <div className={`w-24 text-right text-xs ${colorClass}`}>
+              <div className={`w-20 sm:w-24 text-right text-[11px] sm:text-xs ${colorClass}`}>
                 {absAnterior > 0 && crescimento !== 0 ? `${isPositiveGrowth ? '+' : ''}${crescimento.toFixed(1)}%` : (absAnterior === 0 && absAtual > 0 ? '+100%' : '-')}
               </div>
             </div>
@@ -160,68 +161,144 @@ export function DreTable() {
   };
 
   return (
-    <div className="space-y-4 animate-fade-in pt-2">
-      {/* Barra de Filtros */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-card p-3 rounded-lg border">
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <Calendar className="w-4 h-4 text-primary shrink-0" />
-          <Select 
-            value={filtros.periodo} 
-            onValueChange={(val: PeriodoDRE) => setFiltros(prev => ({ ...prev, periodo: val }))}
-          >
-            <SelectTrigger className="w-[200px] font-medium">
-              <SelectValue placeholder="Selecione o período" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="mes_atual">Mês Atual</SelectItem>
-              <SelectItem value="mes_anterior">Mês Anterior</SelectItem>
-              <SelectItem value="dois_meses_atras">2 Meses Atrás</SelectItem>
-              <SelectItem value="trimestre_atual">Trimestre Atual</SelectItem>
-              <SelectItem value="trimestre_anterior">Trimestre Anterior</SelectItem>
-              <SelectItem value="semestre_atual">Semestre Atual</SelectItem>
-              <SelectItem value="ano_atual">Ano Atual</SelectItem>
-              <SelectItem value="ano_anterior">Ano Anterior</SelectItem>
-              <SelectItem value="todos">Todo o Histórico</SelectItem>
-            </SelectContent>
-          </Select>
+    <div className="space-y-4 animate-fade-in pt-1">
+      
+      {/* Cards de Resumo Executivo em Tempo Real (Otimizado Mobile e Desktop) */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4">
+        <Card className="bg-card shadow-xs border">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] sm:text-xs font-medium text-muted-foreground">Receita Bruta</span>
+              <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
+            </div>
+            <div className="text-sm sm:text-lg font-bold text-foreground mt-1 truncate">
+              {formatCurrency(indicadores.receitaBruta)}
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
+              Líq: {formatCurrency(indicadores.receitaLiquida)}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card shadow-xs border">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] sm:text-xs font-medium text-muted-foreground">Margem Bruta</span>
+              <span className="text-[10px] font-bold text-primary">{indicadores.margemBruta.toFixed(1)}%</span>
+            </div>
+            <div className="text-sm sm:text-lg font-bold text-primary mt-1 truncate">
+              {formatCurrency(indicadores.lucroBruto)}
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
+              Custos: {formatCurrency(indicadores.custos)}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card shadow-xs border">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] sm:text-xs font-medium text-muted-foreground">EBITDA</span>
+              <Activity className="w-3.5 h-3.5 text-blue-500" />
+            </div>
+            <div className={`text-sm sm:text-lg font-bold mt-1 truncate ${indicadores.ebitda >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-rose-600'}`}>
+              {formatCurrency(indicadores.ebitda)}
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
+              Margem: {indicadores.margemEbitda.toFixed(1)}%
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card shadow-xs border">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] sm:text-xs font-medium text-muted-foreground">Lucro Líquido</span>
+              <Wallet className="w-3.5 h-3.5 text-purple-500" />
+            </div>
+            <div className={`text-sm sm:text-lg font-bold mt-1 truncate ${indicadores.lucroLiquido >= 0 ? 'text-purple-600 dark:text-purple-400' : 'text-rose-600'}`}>
+              {formatCurrency(indicadores.lucroLiquido)}
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
+              Margem: {indicadores.margemLiquida.toFixed(1)}%
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Barra de Filtros Responsiva */}
+      <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 bg-card p-3 rounded-lg border">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Calendar className="w-4 h-4 text-primary shrink-0" />
+            <Select 
+              value={filtros.periodo} 
+              onValueChange={(val: PeriodoDRE) => setFiltros(prev => ({ ...prev, periodo: val }))}
+            >
+              <SelectTrigger className="w-full sm:w-[190px] font-medium text-xs sm:text-sm h-9">
+                <SelectValue placeholder="Selecione o período" />
+              </SelectTrigger>
+              <SelectContent className="z-[9999]">
+                <SelectItem value="mes_atual">Mês Atual</SelectItem>
+                <SelectItem value="mes_anterior">Mês Anterior</SelectItem>
+                <SelectItem value="dois_meses_atras">2 Meses Atrás</SelectItem>
+                <SelectItem value="trimestre_atual">Trimestre Atual</SelectItem>
+                <SelectItem value="trimestre_anterior">Trimestre Anterior</SelectItem>
+                <SelectItem value="semestre_atual">Semestre Atual</SelectItem>
+                <SelectItem value="ano_atual">Ano Atual</SelectItem>
+                <SelectItem value="ano_anterior">Ano Anterior</SelectItem>
+                <SelectItem value="todos">Todo o Histórico</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
           {filtros.clienteId && filtros.clienteId !== 'todos' && (
-            <Badge variant="outline" className="text-xs bg-primary/5 text-primary border-primary/20">
+            <Badge variant="outline" className="text-[10px] sm:text-xs bg-primary/5 text-primary border-primary/20">
               Cliente Filtrado
             </Badge>
           )}
 
           {filtros.regime === 'caixa' && (
-            <Badge variant="secondary" className="text-xs">
+            <Badge variant="secondary" className="text-[10px] sm:text-xs">
               Regime de Caixa
             </Badge>
           )}
         </div>
         
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <Button variant="outline" size="sm" className="gap-2" onClick={() => setFiltrosOpen(true)}>
-            <Filter className="w-4 h-4" /> Filtros e Dimensões
+        <div className="grid grid-cols-2 sm:flex items-center gap-2">
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs h-9" onClick={() => setFiltrosOpen(true)}>
+            <Filter className="w-3.5 h-3.5" /> Dimensões
           </Button>
-          <Button variant="outline" size="sm" className="gap-2" onClick={handleExportCSV}>
-            <Download className="w-4 h-4" /> Exportar (CSV)
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs h-9" onClick={handleExportCSV}>
+            <Download className="w-3.5 h-3.5" /> CSV
           </Button>
         </div>
       </div>
 
-      {/* Tabela DRE */}
-      <div className="bg-card border rounded-lg overflow-hidden shadow-sm">
-        <div className="flex items-center justify-between p-3.5 border-b bg-muted/60 font-semibold text-xs text-muted-foreground uppercase tracking-wider">
-          <div className="flex-1 pl-12">Estrutura DRE Gerencial ({labelPeriodoAtual})</div>
-          <div className="flex items-center gap-4 flex-none">
-            <div className="w-32 text-right font-bold text-foreground">Realizado ({labelPeriodoAtual})</div>
-            <div className="w-20 text-right" title="Análise Vertical">AV %</div>
-            <div className="hidden md:block w-32 text-right">{labelPeriodoAnterior}</div>
-            <div className="w-24 text-right">Variação (AH)</div>
-          </div>
-        </div>
+      {/* Dica de Swipe no Mobile */}
+      <div className="sm:hidden flex items-center justify-between px-3 py-1.5 text-[11px] bg-muted/30 border rounded-md text-muted-foreground">
+        <span>Estrutura de Contas</span>
+        <span className="flex items-center gap-1 font-medium text-primary">
+          Deslize para ver detalhes <ArrowRight className="w-3 h-3" />
+        </span>
+      </div>
 
-        <div className="flex flex-col divide-y divide-border/40">
-          {renderTree()}
+      {/* Tabela DRE com Rolagem Horizontal Suave para Mobile */}
+      <div className="bg-card border rounded-lg overflow-x-auto scrollbar-thin shadow-xs">
+        <div className="min-w-[580px] sm:min-w-full">
+          <div className="flex items-center justify-between p-3 border-b bg-muted/60 font-semibold text-[11px] sm:text-xs text-muted-foreground uppercase tracking-wider">
+            <div className="flex-1 pl-8 sm:pl-10">Estrutura DRE ({labelPeriodoAtual})</div>
+            <div className="flex items-center gap-3 sm:gap-4 flex-none">
+              <div className="w-28 sm:w-32 text-right font-bold text-foreground">Realizado</div>
+              <div className="w-16 sm:w-20 text-right" title="Análise Vertical">AV %</div>
+              <div className="w-24 sm:w-32 text-right hidden sm:block">{labelPeriodoAnterior}</div>
+              <div className="w-20 sm:w-24 text-right">Var. AH</div>
+            </div>
+          </div>
+
+          <div className="flex flex-col divide-y divide-border/40">
+            {renderTree()}
+          </div>
         </div>
       </div>
 

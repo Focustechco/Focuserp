@@ -55,21 +55,21 @@ export function CalendarioGrid({ onEventClick }: CalendarioGridProps) {
   const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
   return (
-    <div className="flex flex-col h-[750px] bg-card border rounded-md shadow-sm overflow-hidden animate-fade-in pt-4">
+    <div className="flex flex-col h-[750px] bg-card border rounded-md shadow-sm overflow-hidden animate-fade-in pt-2">
       {/* Header do Calendário */}
-      <div className="flex items-center justify-between p-4 border-b bg-muted/20">
-        <div className="flex items-center gap-4">
-          <h2 className="text-xl font-bold capitalize w-48">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 border-b bg-muted/20 gap-3">
+        <div className="flex items-center justify-between sm:justify-start gap-2 sm:gap-4">
+          <h2 className="text-base sm:text-xl font-bold capitalize">
             {format(currentDate, 'MMMM yyyy', { locale: ptBR })}
           </h2>
           <div className="flex items-center gap-1">
-            <Button variant="outline" size="icon" className="h-8 w-8" onClick={prevMonth}>
+            <Button variant="outline" size="icon" className="h-7 w-7 sm:h-8 sm:w-8" onClick={prevMonth}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <Button variant="outline" size="sm" className="h-8" onClick={goToToday}>
+            <Button variant="outline" size="sm" className="h-7 text-xs sm:h-8" onClick={goToToday}>
               Hoje
             </Button>
-            <Button variant="outline" size="icon" className="h-8 w-8" onClick={nextMonth}>
+            <Button variant="outline" size="icon" className="h-7 w-7 sm:h-8 sm:w-8" onClick={nextMonth}>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>

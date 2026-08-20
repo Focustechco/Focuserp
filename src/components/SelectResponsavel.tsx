@@ -3,7 +3,73 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useLocalStorageState } from '@/hooks/useDataStore';
 import { Usuario } from '@/features/usuarios/types';
 import { INITIAL_USUARIOS } from '@/features/usuarios/data/initialData';
-import { User, Shield } from 'lucide-react';
+
+export const DEFAULT_SYSTEM_USERS: Usuario[] = [
+  {
+    id: 'usr-101',
+    nome: 'Adriano Leal',
+    nomeExibicao: 'Adriano Leal',
+    email: 'adriano.leal@focustecnologia.com.br',
+    cargo: 'CEO / Diretor Executivo',
+    departamento: 'Diretoria',
+    status: 'Ativo',
+    perfil: 'Super Administrador',
+    rolesComplementares: ['Financeiro', 'Projetos', 'Comercial'],
+    mfaHabilitado: true,
+    tentativasFalhas: 0,
+    sessoes: [],
+    permissoes: {} as any,
+    auditoria: []
+  },
+  {
+    id: 'usr-102',
+    nome: 'Mariana Costa',
+    nomeExibicao: 'Mariana Costa',
+    email: 'mariana.costa@focustecnologia.com.br',
+    cargo: 'Gerente de Projetos & Operações',
+    departamento: 'Engenharia',
+    status: 'Ativo',
+    perfil: 'Projetos',
+    rolesComplementares: ['Operações'],
+    mfaHabilitado: true,
+    tentativasFalhas: 0,
+    sessoes: [],
+    permissoes: {} as any,
+    auditoria: []
+  },
+  {
+    id: 'usr-103',
+    nome: 'Carlos Andrade',
+    nomeExibicao: 'Carlos Andrade',
+    email: 'carlos.andrade@focustecnologia.com.br',
+    cargo: 'Gerente Financeiro & Controller',
+    departamento: 'Financeiro',
+    status: 'Ativo',
+    perfil: 'Administrador Financeiro',
+    rolesComplementares: ['Fiscal', 'Tesouraria'],
+    mfaHabilitado: true,
+    tentativasFalhas: 0,
+    sessoes: [],
+    permissoes: {} as any,
+    auditoria: []
+  },
+  {
+    id: 'usr-104',
+    nome: 'Felipe Santos',
+    nomeExibicao: 'Felipe Santos',
+    email: 'felipe.santos@focustecnologia.com.br',
+    cargo: 'Head Comercial & Vendas SaaS',
+    departamento: 'Vendas',
+    status: 'Ativo',
+    perfil: 'Comercial',
+    rolesComplementares: ['CRM'],
+    mfaHabilitado: false,
+    tentativasFalhas: 0,
+    sessoes: [],
+    permissoes: {} as any,
+    auditoria: []
+  }
+];
 
 interface SelectResponsavelProps {
   value?: string;
@@ -28,16 +94,14 @@ export function SelectResponsavel({
   allowUnassigned = false,
   unassignedLabel = "Não Atribuído"
 }: SelectResponsavelProps) {
-  const { data: storedUsuarios } = useLocalStorageState<Usuario>('focus_usuarios', INITIAL_USUARIOS);
+  const { data: storedUsuarios } = useLocalStorageState<Usuario>('focus_usuarios', INITIAL_USUARIOS || DEFAULT_SYSTEM_USERS);
 
-  const activeUsers = useMemo(() => {
-    // 1. Tentar ler do hook
-    let list: Usuario[] = (storedUsuarios && Array.isArray(storedUsuarios) && storedUsuarios.length > 0)
-      ? storedUsuarios
-      : [];
-
-    // 2. Tentar ler diretamente do LocalStorage
-    if (list.length === 0 && typeof window !== 'undefined') {
+  const usersList = useMemo(() => {
+    // 1. Obter lista de usuários
+    let list: Usuario[] = [];
+    if (storedUsuarios && Array.isArray(storedUsuarios) && storedUsuarios.length > 0) {
+      list = storedUsuarios;
+    } else if (typeof window !== 'undefined') {
       try {
         const raw = window.localStorage.getItem('focus_app_focus_usuarios') || window.localStorage.getItem('focus_usuarios');
         if (raw) {
@@ -49,12 +113,13 @@ export function SelectResponsavel({
       } catch {}
     }
 
-    // 3. Fallback garantido para INITIAL_USUARIOS
     if (list.length === 0) {
-      list = INITIAL_USUARIOS;
+      list = INITIAL_USUARIOS && INITIAL_USUARIOS.length > 0 ? INITIAL_USUARIOS : DEFAULT_SYSTEM_USERS;
     }
 
-    return list.filter(u => u.status === 'Ativo' || !u.status);
+    // 2. Filtrar ativos
+    const active = list.filter(u => !u.status || String(u.status).toLowerCase() === 'ativo');
+    return active.length > 0 ? active : list;
   }, [storedUsuarios]);
 
   return (
@@ -62,45 +127,20 @@ export function SelectResponsavel({
       <SelectTrigger className={className}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
-      <SelectContent className="max-h-72 z-[9999]">
+      <SelectContent className="max-h-72">
         {includeAllOption && (
-          <SelectItem value="todos">
-            <div className="flex items-center gap-2">
-              <Shield className="w-3.5 h-3.5 text-primary" />
-              <span>{allOptionLabel}</span>
-            </div>
-          </SelectItem>
+          <SelectItem value="todos">{allOptionLabel}</SelectItem>
         )}
 
         {allowUnassigned && (
-          <SelectItem value="none">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <User className="w-3.5 h-3.5" />
-              <span>{unassignedLabel}</span>
-            </div>
-          </SelectItem>
+          <SelectItem value="none">{unassignedLabel}</SelectItem>
         )}
 
-        {activeUsers.map((u) => {
-          const initials = u.nome
-            ? u.nome.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()
-            : 'U';
-
+        {usersList.map((u) => {
+          const userRole = u.cargo || u.departamento || 'Usuário';
           return (
-            <SelectItem key={u.id || u.email || u.nome} value={u.nome}>
-              <div className="flex items-center gap-2.5 py-0.5">
-                <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold shrink-0 border border-primary/20">
-                  {initials}
-                </div>
-                <div className="flex flex-col text-left">
-                  <span className="font-medium text-xs text-foreground leading-tight">{u.nome}</span>
-                  {(u.cargo || u.departamento) && (
-                    <span className="text-[10px] text-muted-foreground leading-tight">
-                      {u.cargo || u.departamento}
-                    </span>
-                  )}
-                </div>
-              </div>
+            <SelectItem key={u.id || u.nome} value={u.nome}>
+              {u.nome} ({userRole})
             </SelectItem>
           );
         })}

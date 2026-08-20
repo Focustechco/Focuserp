@@ -13,21 +13,15 @@ export const Route = createFileRoute("/fluxo-de-caixa")({
 
 function FluxoCaixaPage() {
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Fluxo de Caixa</h1>
-        <p className="text-muted-foreground mt-2">
-          Visão consolidada do saldo, projeções preditivas, comparativo previsto vs. realizado e histórico financeiro.
-        </p>
+    <div className="flex flex-col gap-6 p-4 sm:p-6 max-w-7xl mx-auto w-full">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Fluxo de Caixa</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-2xl">
+            Visão consolidada do saldo, projeções preditivas, comparativo previsto vs. realizado e histórico financeiro.
+          </p>
+        </div>
       </div>
-
-      <Alert>
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Visualização Consolidada Automática</AlertTitle>
-        <AlertDescription>
-          O fluxo de caixa é alimentado e atualizado automaticamente em tempo real pelos módulos de Contas a Receber e Contas a Pagar.
-        </AlertDescription>
-      </Alert>
 
       <Tabs defaultValue="extrato" className="space-y-6">
         <div className="w-full overflow-x-auto scrollbar-hide border-b pb-1">
