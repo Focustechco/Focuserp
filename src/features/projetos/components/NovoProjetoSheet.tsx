@@ -126,7 +126,7 @@ export function NovoProjetoSheet({ children }: { children: React.ReactNode }) {
     }
 
     const novoProjeto: Projeto = {
-      id: `proj-${Date.now()}`,
+      id: crypto.randomUUID(),
       codigo: `PRJ-${Math.floor(100 + Math.random() * 900)}`,
       nome,
       idCliente,
@@ -137,7 +137,7 @@ export function NovoProjetoSheet({ children }: { children: React.ReactNode }) {
       status: (status as any),
       dataInicio,
       dataFinal,
-      descricaoGeral: descricao || 'Projeto criado pelo formulrio.',
+      descricaoGeral: descricao || 'Projeto criado pelo formulário.',
       valorContratado: val,
       valorRecebido: 0,
       saldoRestante: val,
