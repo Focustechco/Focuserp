@@ -4,6 +4,7 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -22,22 +23,26 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { TopBar } from "@/components/top-bar";
 import { Toaster } from "@/components/ui/sonner";
+import { AuthProvider, useAuth } from "@/features/auth/AuthContext";
+import { ShieldAlert, ArrowLeft, Lock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
+        <h2 className="mt-4 text-xl font-semibold text-foreground">Página não encontrada</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
+          A rota solicitada não existe ou foi remanejada.
         </p>
         <div className="mt-6">
           <Link
             to="/"
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            Go home
+            Voltar ao Dashboard
           </Link>
         </div>
       </div>
@@ -56,10 +61,10 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
+          Falha ao carregar a visualização
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
+          Ocorreu um erro no processamento deste componente.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
@@ -69,18 +74,59 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
             }}
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            Try again
+            Tentar novamente
           </button>
           <a
             href="/"
             className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
           >
-            Go home
+            Voltar ao Dashboard
           </a>
         </div>
       </div>
     </div>
   );
+}
+
+function RouteAccessGate() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { canAccessRoute, currentUser, isSuperAdmin, logout } = useAuth();
+
+  const isAllowed = canAccessRoute(pathname);
+
+  if (!isAllowed) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[70vh] p-6 text-center animate-fade-in">
+        <div className="p-4 rounded-2xl bg-destructive/10 border border-destructive/20 mb-4 shadow-sm">
+          <ShieldAlert className="w-12 h-12 text-destructive" />
+        </div>
+        <Badge variant="outline" className="text-xs px-3 py-1 bg-destructive/5 text-destructive border-destructive/30 mb-2">
+          Acesso Restrito
+        </Badge>
+        <h2 className="text-2xl font-bold text-foreground">
+          Permissão Insuficiente
+        </h2>
+        <p className="text-sm text-muted-foreground max-w-md mt-2">
+          O seu perfil <strong>{currentUser?.perfil || 'Colaborador'}</strong> ({currentUser?.email}) não possui privilégios de visualização no módulo correspondente a <code className="bg-muted px-1.5 py-0.5 rounded text-xs">{pathname}</code>.
+        </p>
+        <p className="text-xs text-muted-foreground mt-1">
+          Solicite ao Super Administrador a liberação na Matriz de Permissões (IAM).
+        </p>
+        <div className="flex items-center gap-3 mt-6">
+          <Button asChild variant="default" className="gap-2">
+            <Link to="/">
+              <ArrowLeft className="w-4 h-4" /> Ir para o Dashboard
+            </Link>
+          </Button>
+          <Button variant="outline" onClick={logout} className="gap-2">
+            <Lock className="w-4 h-4" /> Alternar Conta
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return <Outlet />;
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
@@ -140,11 +186,8 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   useEffect(() => {
-    // Register Service Worker for Push Notifications (PWA) — silent, no permission request yet
     autoRegisterServiceWorker().catch(console.error);
 
-    // If user has already granted permission in a previous session, re-subscribe silently
-    // This ensures the device subscription is refreshed and persisted to Supabase
     if (isPushSupported() && getNotificationPermission() === 'granted') {
       subscribeToPush(getPushUserId()).catch(console.error);
     }
@@ -152,18 +195,20 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <SidebarProvider>
-        <div className="flex min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-background">
-          <AppSidebar />
-          <SidebarInset className="flex min-w-0 flex-1 flex-col w-full max-w-[100vw]">
-            <TopBar />
-            <main className="flex-1 overflow-x-hidden w-full max-w-[100vw]">
-              <Outlet />
-            </main>
-          </SidebarInset>
-        </div>
-        <Toaster position="top-right" />
-      </SidebarProvider>
+      <AuthProvider>
+        <SidebarProvider>
+          <div className="flex min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-background">
+            <AppSidebar />
+            <SidebarInset className="flex min-w-0 flex-1 flex-col w-full max-w-[100vw]">
+              <TopBar />
+              <main className="flex-1 overflow-x-hidden w-full max-w-[100vw]">
+                <RouteAccessGate />
+              </main>
+            </SidebarInset>
+          </div>
+          <Toaster position="top-right" />
+        </SidebarProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

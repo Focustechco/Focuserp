@@ -12,13 +12,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useLocalStorageState } from '@/hooks/useDataStore';
 import { INITIAL_USUARIOS } from '../data/initialData';
-import { Search, Filter, MoreHorizontal, KeyRound, ShieldAlert, UserCheck, UserX, Smartphone, Trash2 } from 'lucide-react';
+import { Search, Filter, MoreHorizontal, KeyRound, ShieldAlert, UserCheck, UserX, Smartphone, Trash2, Key, Copy, Eye, EyeOff, UserSwitch } from 'lucide-react';
 import { UserFormSheet } from './UserFormSheet';
 import { Usuario, UserStatus } from '../types';
 import { toast } from 'sonner';
+import { useAuth } from '@/features/auth/AuthContext';
 
 export function UsuariosTable() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -26,9 +28,14 @@ export function UsuariosTable() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<Usuario | null>(null);
 
-  const { data: usuarios, updateItem, deleteItem } = useLocalStorageState<Usuario>('focus_usuarios', INITIAL_USUARIOS);
+  // Modal para Visualizar Senha (Exclusivo Super Admin)
+  const [viewPasswordUser, setViewPasswordUser] = useState<Usuario | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
-  const filteredUsers = usuarios.filter(user => {
+  const { data: usuarios, updateItem, deleteItem } = useLocalStorageState<Usuario>('focus_usuarios', INITIAL_USUARIOS);
+  const { isSuperAdmin, currentUser, switchUser } = useAuth();
+
+  const filteredUsers = (usuarios || []).filter(user => {
     const matchesSearch = 
       (user.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
       (user.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -82,12 +89,15 @@ export function UsuariosTable() {
           </Select>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <Button variant="outline" className="gap-2 w-full sm:w-auto">
-            <Filter className="w-4 h-4" /> Mais Filtros
-          </Button>
-          <Button className="gap-2 w-full sm:w-auto" onClick={() => { setSelectedUser(null); setSheetOpen(true); }}>
-            <UserCheck className="w-4 h-4" /> Novo Usuário
-          </Button>
+          {isSuperAdmin ? (
+            <Button className="gap-2 w-full sm:w-auto" onClick={() => { setSelectedUser(null); setSheetOpen(true); }}>
+              <UserCheck className="w-4 h-4" /> Novo Usuário
+            </Button>
+          ) : (
+            <Badge variant="outline" className="text-xs py-2 px-3 bg-muted/40">
+              Apenas Super Administrador pode cadastrar usuários
+            </Badge>
+          )}
         </div>
       </div>
 
@@ -99,7 +109,7 @@ export function UsuariosTable() {
               <TableHead>Usuário</TableHead>
               <TableHead>Departamento & Cargo</TableHead>
               <TableHead>Perfil (IAM)</TableHead>
-              <TableHead>Segurança</TableHead>
+              <TableHead>Segurança & 2FA</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Último Acesso</TableHead>
               <TableHead className="w-[50px]"></TableHead>
@@ -124,7 +134,14 @@ export function UsuariosTable() {
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <div className="font-medium text-sm">{user.nome}</div>
+                        <div className="font-medium text-sm flex items-center gap-2">
+                          {user.nome}
+                          {user.id === currentUser?.id && (
+                            <Badge variant="secondary" className="text-[10px] py-0 px-1.5 bg-primary/10 text-primary border-primary/20">
+                              Você (Sessão Ativa)
+                            </Badge>
+                          )}
+                        </div>
                         <div className="text-xs text-muted-foreground">{user.email}</div>
                       </div>
                     </div>
@@ -163,46 +180,66 @@ export function UsuariosTable() {
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
+                      <DropdownMenuContent align="end" className="w-56">
                         <DropdownMenuLabel>Ações Administrativas</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => { setSelectedUser(user as unknown as Usuario); setSheetOpen(true); }}>
-                          Editar Configurações IAM
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => toast.success(`E-mail de redefinição de senha enviado para ${user.email}`)}>
-                          <KeyRound className="w-4 h-4 mr-2 text-muted-foreground" /> Forçar Reset de Senha
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        {user.status === 'Ativo' ? (
-                          <DropdownMenuItem className="text-amber-600" onClick={() => {
-                            updateItem(user.id, { status: 'Bloqueado' });
-                            toast.success(`Acesso bloqueado para o usuário ${user.nome}`);
-                          }}>
-                            <ShieldAlert className="w-4 h-4 mr-2" /> Bloquear Acesso
-                          </DropdownMenuItem>
-                        ) : (
-                          <DropdownMenuItem className="text-emerald-600" onClick={() => {
-                            updateItem(user.id, { status: 'Ativo' });
-                            toast.success(`Acesso desbloqueado para o usuário ${user.nome}`);
-                          }}>
-                            <UserCheck className="w-4 h-4 mr-2" /> Desbloquear Acesso
+                        
+                        {isSuperAdmin && (
+                          <DropdownMenuItem onClick={() => { setSelectedUser(user as unknown as Usuario); setSheetOpen(true); }}>
+                            Editar Configurações IAM
                           </DropdownMenuItem>
                         )}
-                        <DropdownMenuItem className="text-rose-600" onClick={() => {
-                          updateItem(user.id, { status: 'Inativo' });
-                          toast.success(`O usuário ${user.nome} foi inativado`);
-                        }}>
-                          <UserX className="w-4 h-4 mr-2" /> Inativar Usuário
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="text-rose-600 font-semibold" onClick={() => {
-                          if (usuarios.length <= 1) {
-                            toast.error('Não é possível excluir o único usuário administrador do sistema.');
-                            return;
-                          }
-                          deleteItem(user.id);
-                          toast.success(`Usuário ${user.nome} excluído do diretório.`);
-                        }}>
-                          <Trash2 className="w-4 h-4 mr-2" /> Excluir Registro
-                        </DropdownMenuItem>
+
+                        {isSuperAdmin && (
+                          <DropdownMenuItem onClick={() => { setViewPasswordUser(user); setShowPassword(false); }}>
+                            <Key className="w-4 h-4 mr-2 text-primary" /> Visualizar / Copiar Senha
+                          </DropdownMenuItem>
+                        )}
+
+                        {isSuperAdmin && user.id !== currentUser?.id && (
+                          <DropdownMenuItem onClick={() => switchUser(user.id)} className="text-blue-600 dark:text-blue-400">
+                            <KeyRound className="w-4 h-4 mr-2" /> Alternar para este Usuário
+                          </DropdownMenuItem>
+                        )}
+
+                        <DropdownMenuSeparator />
+
+                        {isSuperAdmin && (
+                          <>
+                            {user.status === 'Ativo' ? (
+                              <DropdownMenuItem className="text-amber-600" onClick={() => {
+                                updateItem(user.id, { status: 'Bloqueado' });
+                                toast.success(`Acesso bloqueado para o usuário ${user.nome}`);
+                              }}>
+                                <ShieldAlert className="w-4 h-4 mr-2" /> Bloquear Acesso
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem className="text-emerald-600" onClick={() => {
+                                updateItem(user.id, { status: 'Ativo' });
+                                toast.success(`Acesso desbloqueado para o usuário ${user.nome}`);
+                              }}>
+                                <UserCheck className="w-4 h-4 mr-2" /> Desbloquear Acesso
+                              </DropdownMenuItem>
+                            )}
+                            
+                            <DropdownMenuItem className="text-rose-600" onClick={() => {
+                              updateItem(user.id, { status: 'Inativo' });
+                              toast.success(`O usuário ${user.nome} foi inativado`);
+                            }}>
+                              <UserX className="w-4 h-4 mr-2" /> Inativar Usuário
+                            </DropdownMenuItem>
+
+                            <DropdownMenuItem className="text-rose-600 font-semibold" onClick={() => {
+                              if (usuarios.length <= 1) {
+                                toast.error('Não é possível excluir o único usuário administrador do sistema.');
+                                return;
+                              }
+                              deleteItem(user.id);
+                              toast.success(`Usuário ${user.nome} excluído do diretório.`);
+                            }}>
+                              <Trash2 className="w-4 h-4 mr-2" /> Excluir Registro
+                            </DropdownMenuItem>
+                          </>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -212,6 +249,63 @@ export function UsuariosTable() {
           </TableBody>
         </Table>
       </div>
+
+      {/* MODAL DE VISUALIZAÇÃO DE SENHA (SUPER ADMIN) */}
+      <Dialog open={!!viewPasswordUser} onOpenChange={(open) => !open && setViewPasswordUser(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Key className="w-5 h-5 text-primary" /> Credenciais de Acesso
+            </DialogTitle>
+            <DialogDescription>
+              Senha corporativa de <strong>{viewPasswordUser?.nome}</strong> ({viewPasswordUser?.email}).
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-3">
+            <div className="space-y-1.5">
+              <span className="text-xs font-semibold text-muted-foreground">Senha Atual:</span>
+              <div className="flex items-center gap-2">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  readOnly
+                  value={viewPasswordUser?.senha || 'Focus@2026'}
+                  className="font-mono text-sm"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setShowPassword(!showPassword)}
+                  title={showPassword ? "Ocultar" : "Mostrar"}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </Button>
+                <Button
+                  variant="default"
+                  size="icon"
+                  onClick={() => {
+                    navigator.clipboard.writeText(viewPasswordUser?.senha || 'Focus@2026');
+                    toast.success('Senha copiada com sucesso!');
+                  }}
+                  title="Copiar Senha"
+                >
+                  <Copy className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="p-3 bg-muted/30 rounded-lg text-xs text-muted-foreground">
+              Como Super Administrador, você pode repassar esta credencial para o colaborador realizar o primeiro acesso ao Focus ERP.
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewPasswordUser(null)}>
+              Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <UserFormSheet 
         isOpen={sheetOpen} 

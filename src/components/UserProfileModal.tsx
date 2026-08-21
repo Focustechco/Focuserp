@@ -1,29 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Camera, User, Briefcase, Mail, Save } from 'lucide-react';
-import { useLocalStorageState } from '@/hooks/useDataStore';
-import { Usuario } from '@/features/usuarios/types';
+import { Camera, User, Briefcase, Mail, Save, Shield } from 'lucide-react';
 import { toast } from 'sonner';
-
-export interface ActiveUserProfile {
-  id: string;
-  nome: string;
-  cargo: string;
-  email: string;
-  avatarUrl?: string;
-}
-
-export const DEFAULT_ACTIVE_USER: ActiveUserProfile = {
-  id: '00000000-0000-0000-0000-000000000001',
-  nome: "Adriano Leal",
-  cargo: "CEO / Diretor de Tecnologia",
-  email: "adriano.leal@focustecnologia.com.br",
-  avatarUrl: ""
-};
+import { useAuth } from '@/features/auth/AuthContext';
+import { Badge } from './ui/badge';
 
 interface UserProfileModalProps {
   open: boolean;
@@ -31,24 +15,21 @@ interface UserProfileModalProps {
 }
 
 export function UserProfileModal({ open, onOpenChange }: UserProfileModalProps) {
-  const { data: activeUsers, setAllItems: setActiveUsers } = useLocalStorageState<ActiveUserProfile>('focus_active_user', [DEFAULT_ACTIVE_USER]);
-  const activeUser = activeUsers[0] || DEFAULT_ACTIVE_USER;
+  const { currentUser, updateCurrentUserProfile } = useAuth();
 
-  const { data: usuarios, updateItem: updateUser } = useLocalStorageState<Usuario>('focus_usuarios');
-
-  const [nome, setNome] = useState(activeUser.nome);
-  const [cargo, setCargo] = useState(activeUser.cargo);
-  const [email, setEmail] = useState(activeUser.email);
-  const [avatarUrl, setAvatarUrl] = useState(activeUser.avatarUrl || '');
+  const [nome, setNome] = useState(currentUser?.nome || '');
+  const [cargo, setCargo] = useState(currentUser?.cargo || '');
+  const [email, setEmail] = useState(currentUser?.email || '');
+  const [avatarUrl, setAvatarUrl] = useState(currentUser?.foto || '');
 
   useEffect(() => {
-    if (activeUser) {
-      setNome(activeUser.nome);
-      setCargo(activeUser.cargo);
-      setEmail(activeUser.email);
-      setAvatarUrl(activeUser.avatarUrl || '');
+    if (currentUser) {
+      setNome(currentUser.nome || '');
+      setCargo(currentUser.cargo || '');
+      setEmail(currentUser.email || '');
+      setAvatarUrl(currentUser.foto || '');
     }
-  }, [activeUser, open]);
+  }, [currentUser, open]);
 
   const handleFotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -56,62 +37,69 @@ export function UserProfileModal({ open, onOpenChange }: UserProfileModalProps) 
     const file = files[0];
     const reader = new FileReader();
     reader.onload = (evt) => {
-      if (evt.target?.result) {
-        setAvatarUrl(evt.target.result as string);
-        toast.success("Foto de perfil carregada com sucesso!");
-      }
+      const src = evt.target?.result as string;
+      if (!src) return;
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const maxDim = 120;
+        let w = img.width;
+        let h = img.height;
+        if (w > h) {
+          h = Math.round((h * maxDim) / w);
+          w = maxDim;
+        } else {
+          w = Math.round((w * maxDim) / h);
+          h = maxDim;
+        }
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, w, h);
+          const compressed = canvas.toDataURL('image/jpeg', 0.8);
+          setAvatarUrl(compressed);
+          toast.success("Foto de perfil otimizada e carregada!");
+        }
+      };
+      img.src = src;
     };
     reader.readAsDataURL(file);
   };
 
   const handleSave = () => {
     if (!nome.trim()) {
-      toast.error("Informe seu Nome de Exibio.");
+      toast.error("Informe seu Nome de Exibição.");
       return;
     }
 
-    const updatedUser: ActiveUserProfile = {
+    updateCurrentUserProfile({
       nome: nome.trim(),
+      nomeExibicao: nome.trim(),
       cargo: cargo.trim() || 'Colaborador Focus',
-      email: email.trim() || 'usuario@focustecnologia.com.br',
-      avatarUrl
-    };
+      email: email.trim(),
+      foto: avatarUrl,
+    });
 
-    // 1. Atualizar Perfil Ativo Global
-    setActiveUsers([updatedUser]);
-
-
-
-    // 3. Sincronizar com Mdulo Usurios (IAM) se houver registro correspondente
-    const userCorrespondente = usuarios.find(u => u.nome === activeUser.nome || u.email === activeUser.email || u.nome === updatedUser.nome);
-    if (userCorrespondente) {
-      updateUser(userCorrespondente.id, {
-        ...userCorrespondente,
-        nome: updatedUser.nome,
-        cargo: updatedUser.cargo,
-        email: updatedUser.email,
-        avatarUrl: updatedUser.avatarUrl
-      });
-    }
-
-    toast.success(`Perfil de "${updatedUser.nome}" atualizado com sucesso!`);
     onOpenChange(false);
   };
 
-  const getInitials = (name: string) => {
-    return (name || 'AL').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+  const getInitials = (nameStr: string) => {
+    return (nameStr || 'AL').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md bg-background border shadow-2xl p-6">
         <DialogHeader className="mb-2">
-          {/* SEM O CONE DA FOTO 2 DE ACORDO COM A SOLICITAO */}
-          <DialogTitle className="text-lg font-bold">
-            Personalizao do Perfil
+          <DialogTitle className="text-lg font-bold flex items-center justify-between">
+            <span>Meu Perfil de Acesso</span>
+            <Badge variant="secondary" className="text-xs">
+              {currentUser?.perfil || 'Usuário'}
+            </Badge>
           </DialogTitle>
           <DialogDescription className="text-xs">
-            Altere seu nome, cargo e foto de perfil de exibio na plataforma.
+            Altere seu nome, cargo e foto de exibição corporativa.
           </DialogDescription>
         </DialogHeader>
 
@@ -136,48 +124,67 @@ export function UserProfileModal({ open, onOpenChange }: UserProfileModalProps) 
                 title="Clique para alterar a foto de perfil"
               />
             </div>
-            <span className="text-[11px] text-muted-foreground font-medium">Clique no cone da cmera para enviar a foto</span>
+            <span className="text-[11px] text-muted-foreground font-medium">Clique no ícone da câmera para enviar a foto</span>
           </div>
 
-          <div className="space-y-2">
-            <Label className="font-semibold flex items-center gap-1.5">
-              <User className="w-3.5 h-3.5 text-primary" /> Nome de Exibio *
-            </Label>
-            <Input 
-              placeholder="Ex: Adriano Leal" 
-              value={nome} 
-              onChange={e => setNome(e.target.value)} 
-            />
-          </div>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold flex items-center gap-1.5">
+                <User className="w-3.5 h-3.5 text-primary" /> Nome Completo
+              </Label>
+              <Input 
+                value={nome} 
+                onChange={(e) => setNome(e.target.value)} 
+                placeholder="Seu nome"
+                className="text-xs h-9"
+              />
+            </div>
 
-          <div className="space-y-2">
-            <Label className="font-semibold flex items-center gap-1.5">
-              <Briefcase className="w-3.5 h-3.5 text-primary" /> Cargo / Posio *
-            </Label>
-            <Input 
-              placeholder="Ex: CEO / Diretor de Tecnologia" 
-              value={cargo} 
-              onChange={e => setCargo(e.target.value)} 
-            />
-          </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold flex items-center gap-1.5">
+                <Briefcase className="w-3.5 h-3.5 text-primary" /> Cargo / Função
+              </Label>
+              <Input 
+                value={cargo} 
+                onChange={(e) => setCargo(e.target.value)} 
+                placeholder="Ex: CEO / Diretor Executivo"
+                className="text-xs h-9"
+              />
+            </div>
 
-          <div className="space-y-2">
-            <Label className="font-semibold flex items-center gap-1.5">
-              <Mail className="w-3.5 h-3.5 text-primary" /> E-mail Corporativo
-            </Label>
-            <Input 
-              type="email"
-              placeholder="exemplo@focustecnologia.com.br" 
-              value={email} 
-              onChange={e => setEmail(e.target.value)} 
-            />
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold flex items-center gap-1.5">
+                <Mail className="w-3.5 h-3.5 text-primary" /> E-mail Corporativo
+              </Label>
+              <Input 
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)} 
+                placeholder="seu.email@focustecnologia.com.br"
+                className="text-xs h-9"
+              />
+            </div>
+
+            <div className="p-3 bg-muted/40 rounded-lg flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Shield className="w-4 h-4 text-primary" />
+                <div>
+                  <div className="font-semibold text-xs text-foreground">Perfil de Acesso IAM</div>
+                  <div className="text-[11px] text-muted-foreground">{currentUser?.departamento || 'Geral'}</div>
+                </div>
+              </div>
+              <Badge variant="outline" className="text-xs font-medium bg-background">
+                {currentUser?.perfil || 'Usuário'}
+              </Badge>
+            </div>
           </div>
         </div>
 
-        <DialogFooter className="mt-4 flex justify-end gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleSave} className="bg-orange-600 hover:bg-orange-700 text-white gap-2">
-            <Save className="w-4 h-4" /> Salvar Alteraes
+        <DialogFooter className="pt-2 gap-2 sm:gap-0">
+          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} className="text-xs">
+            Cancelar
+          </Button>
+          <Button size="sm" onClick={handleSave} className="text-xs gap-1.5 bg-orange-600 hover:bg-orange-700 text-white">
+            <Save className="w-3.5 h-3.5" /> Salvar Alterações
           </Button>
         </DialogFooter>
       </DialogContent>

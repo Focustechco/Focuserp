@@ -1,38 +1,3 @@
-import focusLogoHorizontal from "@/assets/focus-logo-horizontal.png";
-import focusLogoHorizontalDark from "@/assets/focus-logo-horizontal-dark.png";
-import focusSymbolTransparent from "@/assets/focus-symbol-transparent.png";
-import { Link, useRouterState } from "@tanstack/react-router";
-import {
-  LayoutDashboard,
-  Wallet,
-  TrendingUp,
-  TrendingDown,
-  Bell,
-  Users,
-  Truck,
-  FileText,
-  Briefcase,
-  Building2,
-  Tags,
-  BarChart3,
-  PieChart,
-  LineChart,
-  Landmark,
-  CalendarDays,
-  FolderOpen,
-  Package,
-  Boxes,
-  Code2,
-  Headphones,
-  ShoppingBag,
-  Target,
-  Heart,
-  UserCog,
-  Shield,
-  Settings,
-  Plug,
-} from "lucide-react";
-
 import {
   Sidebar,
   SidebarContent,
@@ -46,25 +11,50 @@ import {
   SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
+import {
+  LayoutDashboard,
+  Wallet,
+  TrendingUp,
+  TrendingDown,
+  Users,
+  Building2,
+  Tags,
+  CalendarDays,
+  Truck,
+  Package,
+  Boxes,
+  Briefcase,
+  FileText,
+  Plug,
+  UserCog,
+  Shield,
+  Settings,
+  Bell,
+  Landmark,
+  PieChart,
+  BarChart3,
+  LineChart,
+  FolderOpen,
+  ShoppingBag,
+  Target,
+  Heart,
+  Code2,
+  Headphones,
+  KeyRound,
+  LogOut,
+  ChevronUp,
+} from "lucide-react";
+import { Link, useRouterState } from "@tanstack/react-router";
+import focusLogoHorizontal from "@/assets/focus-logo-horizontal.png";
+import focusLogoHorizontalDark from "@/assets/focus-logo-horizontal-dark.png";
+import focusSymbolTransparent from "@/assets/focus-symbol-transparent.png";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { useLocalStorageState } from "@/hooks/useDataStore";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { UserProfileModal } from "./UserProfileModal";
+import React, { useState } from "react";
 import { cn } from "@/lib/utils";
-
-export interface ActiveUserProfile {
-  id: string;
-  nome: string;
-  cargo: string;
-  email: string;
-  avatarUrl?: string;
-}
-
-export const DEFAULT_ACTIVE_USER: ActiveUserProfile = {
-  id: 'active_user_1',
-  nome: "Administrador",
-  cargo: "Usuário Principal",
-  email: "admin@focustecnologia.com.br",
-  avatarUrl: ""
-};
+import { useAuth } from "@/features/auth/AuthContext";
+import { Badge } from "./ui/badge";
 
 const groups = [
   {
@@ -158,13 +148,13 @@ function SidebarLogoHeader() {
             isCollapsed ? "opacity-0 scale-95 hidden" : "opacity-100 scale-100 flex"
           )}
         >
-          {/* Light Mode Logo (Black "Focus", Orange Icon & ERP) */}
+          {/* Light Mode Logo */}
           <img
             src={focusLogoHorizontal}
             alt="Focus ERP — powered by focus tech®"
             className="w-[160px] max-w-[165px] h-auto object-contain transition-all duration-200 dark:hidden"
           />
-          {/* Dark Mode Logo (White "Focus", Orange Icon & ERP) */}
+          {/* Dark Mode Logo */}
           <img
             src={focusLogoHorizontalDark}
             alt="Focus ERP — powered by focus tech®"
@@ -194,19 +184,27 @@ export function AppSidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isActive = (url: string) => pathname === url;
 
-  const { data: activeUsers } = useLocalStorageState<ActiveUserProfile>('focus_active_user', [DEFAULT_ACTIVE_USER]);
-  const activeUser = activeUsers[0] || DEFAULT_ACTIVE_USER;
+  const { currentUser, isSuperAdmin, usuarios, switchUser, canAccessRoute, logout } = useAuth();
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
 
   const getInitials = (name: string) => {
     return (name || 'AL').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
   };
+
+  // Filtrar itens do menu de acordo com as permissões funcionais do usuário logado
+  const filteredGroups = groups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => canAccessRoute(item.url)),
+    }))
+    .filter((group) => group.items.length > 0);
 
   return (
     <>
       <Sidebar collapsible="icon">
         <SidebarLogoHeader />
         <SidebarContent>
-          {groups.map((group) => (
+          {filteredGroups.map((group) => (
             <SidebarGroup key={group.label}>
               <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                 {group.label}
@@ -234,27 +232,92 @@ export function AppSidebar() {
           ))}
         </SidebarContent>
 
-        {/* PERFIL DO USUÁRIO INTEGRADO */}
+        {/* PERFIL DO USUÁRIO INTEGRADO COM CONTROLE DE SESSÃO */}
         <SidebarFooter className="border-t border-sidebar-border p-2">
-          <div 
-            className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/60 dark:hover:bg-sidebar-accent transition-colors group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0"
-          >
-            <div className="flex items-center gap-2.5 min-w-0">
-              <Avatar className="h-8 w-8 border border-primary/20 shrink-0 overflow-hidden">
-                <AvatarImage src={activeUser.avatarUrl} className="object-cover" />
-                <AvatarFallback className="text-xs font-bold bg-orange-500/10 text-orange-600">
-                  {getInitials(activeUser.nome)}
-                </AvatarFallback>
-              </Avatar>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="flex w-full items-center justify-between p-2 rounded-lg hover:bg-muted/60 dark:hover:bg-sidebar-accent transition-colors text-left group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <Avatar className="h-8 w-8 border border-primary/20 shrink-0 overflow-hidden">
+                    <AvatarImage src={currentUser?.foto} className="object-cover" />
+                    <AvatarFallback className="text-xs font-bold bg-orange-500/10 text-orange-600">
+                      {getInitials(currentUser?.nome || 'Admin')}
+                    </AvatarFallback>
+                  </Avatar>
 
-              <div className="flex min-w-0 flex-col leading-tight group-data-[collapsible=icon]:hidden">
-                <span className="truncate text-xs font-bold text-foreground">{activeUser.nome}</span>
-                <span className="truncate text-[10px] text-muted-foreground">{activeUser.cargo || activeUser.email}</span>
-              </div>
-            </div>
-          </div>
+                  <div className="flex min-w-0 flex-col leading-tight group-data-[collapsible=icon]:hidden">
+                    <div className="flex items-center gap-1.5">
+                      <span className="truncate text-xs font-bold text-foreground">{currentUser?.nome}</span>
+                      {isSuperAdmin && (
+                        <Badge variant="outline" className="text-[9px] py-0 px-1 text-primary border-primary/30">
+                          Admin
+                        </Badge>
+                      )}
+                    </div>
+                    <span className="truncate text-[10px] text-muted-foreground">{currentUser?.cargo || currentUser?.email}</span>
+                  </div>
+                </div>
+                <ChevronUp className="w-3.5 h-3.5 text-muted-foreground group-data-[collapsible=icon]:hidden" />
+              </button>
+            </DropdownMenuTrigger>
+
+            <DropdownMenuContent align="end" side="top" className="w-64 mb-2">
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-semibold leading-none">{currentUser?.nome}</p>
+                  <p className="text-xs leading-none text-muted-foreground">{currentUser?.email}</p>
+                  <Badge variant="secondary" className="w-fit text-[10px] mt-1">
+                    {currentUser?.perfil || 'Usuário'}
+                  </Badge>
+                </div>
+              </DropdownMenuLabel>
+              
+              <DropdownMenuSeparator />
+
+              <DropdownMenuItem onClick={() => setProfileModalOpen(true)}>
+                <UserCog className="w-4 h-4 mr-2" /> Editar Meu Perfil
+              </DropdownMenuItem>
+
+              {/* Menu de Alternância de Usuário para Super Administrador */}
+              {isSuperAdmin && usuarios && usuarios.length > 1 && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel className="text-[10px] uppercase text-muted-foreground">
+                    Alternar Sessão de Usuário
+                  </DropdownMenuLabel>
+                  {usuarios.map((u) => (
+                    <DropdownMenuItem
+                      key={u.id}
+                      onClick={() => switchUser(u.id)}
+                      className={cn(
+                        "text-xs flex items-center justify-between",
+                        u.id === currentUser?.id && "font-bold text-primary bg-primary/5"
+                      )}
+                    >
+                      <span className="truncate">{u.nome} ({u.perfil})</span>
+                      {u.id === currentUser?.id && <span className="text-[10px]">● Ativo</span>}
+                    </DropdownMenuItem>
+                  ))}
+                </>
+              )}
+
+              <DropdownMenuSeparator />
+
+              <DropdownMenuItem onClick={logout} className="text-rose-600 dark:text-rose-400">
+                <LogOut className="w-4 h-4 mr-2" /> Desconectar / Sair
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </SidebarFooter>
       </Sidebar>
+
+      <UserProfileModal 
+        open={profileModalOpen} 
+        onOpenChange={setProfileModalOpen} 
+      />
     </>
   );
 }

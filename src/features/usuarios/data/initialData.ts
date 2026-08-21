@@ -37,6 +37,7 @@ export const INITIAL_USUARIOS: Usuario[] = [
     nome: 'Adriano Leal',
     nomeExibicao: 'Adriano Leal',
     email: 'adriano.leal@focustecnologia.com.br',
+    senha: 'FocusAdmin@2026',
     telefone: '(11) 99888-7766',
     cargo: 'CEO / Diretor Executivo',
     departamento: 'Diretoria',

@@ -58,6 +58,7 @@ export interface Usuario {
   nome: string;
   nomeExibicao: string;
   email: string;
+  senha?: string;
   telefone?: string;
   cargo: string;
   departamento: string;

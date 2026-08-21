@@ -15,12 +15,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { User, Key, Shield, Lock, Globe, Laptop, History, Save, XCircle, Camera } from 'lucide-react';
+import { User, Key, Shield, Lock, Globe, Laptop, History, Save, XCircle, Camera, Eye, EyeOff, Sparkles, Copy, Check } from 'lucide-react';
 import { useLocalStorageState } from '@/hooks/useDataStore';
 import { Usuario, UserProfile, UserStatus } from '../types';
 import { INITIAL_USUARIOS } from '../data/initialData';
 import { toast } from 'sonner';
-import { ActiveUserProfile, DEFAULT_ACTIVE_USER } from '@/components/UserProfileModal';
+import { useAuth } from '@/features/auth/AuthContext';
 
 interface UserFormSheetProps {
   isOpen: boolean;
@@ -30,10 +30,13 @@ interface UserFormSheetProps {
 
 export function UserFormSheet({ isOpen, onClose, user }: UserFormSheetProps) {
   const isEditing = !!user;
+  const { isSuperAdmin, currentUser } = useAuth();
 
   const [nome, setNome] = useState('');
   const [nomeExibicao, setNomeExibicao] = useState('');
   const [email, setEmail] = useState('');
+  const [senha, setSenha] = useState('');
+  const [showSenha, setShowSenha] = useState(false);
   const [telefone, setTelefone] = useState('');
   const [cargo, setCargo] = useState('');
   const [departamento, setDepartamento] = useState('financeiro');
@@ -43,16 +46,16 @@ export function UserFormSheet({ isOpen, onClose, user }: UserFormSheetProps) {
   const [foto, setFoto] = useState('');
 
   const { addItem, updateItem } = useLocalStorageState<Usuario>('focus_usuarios', INITIAL_USUARIOS);
-  const { data: activeUsers, save: setActiveUsers } = useLocalStorageState<ActiveUserProfile>('focus_active_user', [DEFAULT_ACTIVE_USER]);
 
   useEffect(() => {
     if (user) {
       setNome(user.nome || '');
       setNomeExibicao(user.nomeExibicao || user.nome || '');
       setEmail(user.email || '');
+      setSenha(user.senha || 'Focus@2026');
       setTelefone(user.telefone || '');
       setCargo(user.cargo || '');
-      setDepartamento(user.departamento || 'financeiro');
+      setDepartamento(user.departamento || 'Financeiro');
       setStatus(user.status || 'Ativo');
       setPerfil(user.perfil || 'Financeiro');
       setMfaHabilitado(user.mfaHabilitado ?? true);
@@ -61,9 +64,10 @@ export function UserFormSheet({ isOpen, onClose, user }: UserFormSheetProps) {
       setNome('');
       setNomeExibicao('');
       setEmail('');
+      setSenha('Focus@2026');
       setTelefone('');
       setCargo('');
-      setDepartamento('financeiro');
+      setDepartamento('Financeiro');
       setStatus('Ativo');
       setPerfil('Financeiro');
       setMfaHabilitado(true);
@@ -107,7 +111,29 @@ export function UserFormSheet({ isOpen, onClose, user }: UserFormSheetProps) {
     }
   };
 
+  const handleGerarSenha = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%&*';
+    let pass = '';
+    for (let i = 0; i < 12; i++) {
+      pass += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setSenha(pass);
+    setShowSenha(true);
+    toast.success('Nova senha gerada!');
+  };
+
+  const handleCopiarSenha = () => {
+    if (!senha) return;
+    navigator.clipboard.writeText(senha);
+    toast.success('Senha copiada para a área de transferência!');
+  };
+
   const handleSave = () => {
+    if (!isSuperAdmin && !isEditing) {
+      toast.error('Permissão Negada', { description: 'Apenas o Super Administrador pode cadastrar novos usuários.' });
+      return;
+    }
+
     if (!nome.trim()) {
       toast.error('Erro de Validação', { description: 'O Nome Completo do usuário é obrigatório.' });
       return;
@@ -122,41 +148,30 @@ export function UserFormSheet({ isOpen, onClose, user }: UserFormSheetProps) {
     }
 
     if (isEditing && user) {
-      const updatedUser = {
+      const updatedUser: Usuario = {
         ...user,
         nome: nome.trim(),
         nomeExibicao: nomeExibicao.trim() || nome.trim(),
         email: email.trim(),
+        senha: senha.trim() || user.senha || 'Focus@2026',
         telefone: telefone.trim(),
         cargo: cargo.trim(),
         departamento,
         status,
         perfil,
         mfaHabilitado,
-        foto
+        foto,
       };
       updateItem(user.id, updatedUser);
-
-      // Se o usuário editado for o ativo, atualiza o perfil ativo
-      if (activeUsers.length > 0 && (activeUsers[0].nome === user.nome || activeUsers[0].email === user.email)) {
-        setActiveUsers([{
-          ...activeUsers[0],
-          id: 'active_user_1',
-          nome: updatedUser.nome,
-          cargo: updatedUser.cargo,
-          email: updatedUser.email,
-          avatarUrl: foto || activeUsers[0].avatarUrl
-        }]);
-      }
-
       toast.success('Usuário atualizado com sucesso!');
     } else {
       const novoUsuario: Usuario = {
-        id: `usr-${Date.now()}`,
+        id: crypto.randomUUID(),
         foto,
         nome: nome.trim(),
         nomeExibicao: nomeExibicao.trim() || nome.trim(),
         email: email.trim(),
+        senha: senha.trim() || 'Focus@2026',
         telefone: telefone.trim() || '(11) 90000-0000',
         cargo: cargo.trim(),
         departamento,
@@ -185,32 +200,22 @@ export function UserFormSheet({ isOpen, onClose, user }: UserFormSheetProps) {
           conciliacao: { visualizar: true, criar: true, editar: true, excluir: false, aprovar: false, exportar: true, importar: false, imprimir: true },
           dre: { visualizar: true, criar: true, editar: true, excluir: false, aprovar: false, exportar: true, importar: false, imprimir: true },
           kpis: { visualizar: true, criar: true, editar: true, excluir: false, aprovar: false, exportar: true, importar: false, imprimir: true },
-          administracao: { visualizar: false, criar: false, editar: false, excluir: false, aprovar: false, exportar: false, importar: false, imprimir: false }
+          administracao: { visualizar: perfil === 'Super Administrador', criar: perfil === 'Super Administrador', editar: perfil === 'Super Administrador', excluir: false, aprovar: perfil === 'Super Administrador', exportar: true, importar: false, imprimir: true }
         },
         auditoria: [
           {
             id: `aud-${Date.now()}`,
             dataHora: new Date().toISOString(),
-            acao: 'Usuário Criado',
-            modulo: 'Administração',
+            acao: 'Criação de Usuário',
+            modulo: 'Governança IAM',
             ip: '127.0.0.1',
-            dispositivo: 'Navegador Web',
-            detalhes: 'Usuário ativado no diretório local.'
+            dispositivo: 'Painel Web',
+            detalhes: `Conta criada pelo Administrador: ${currentUser?.nome || 'Admin'}`
           }
         ]
       };
       addItem(novoUsuario);
-
-      // Ao criar um usuário, ele vira o perfil da conta (Active User)
-      setActiveUsers([{
-        id: 'active_user_1',
-        nome: novoUsuario.nome,
-        cargo: novoUsuario.cargo,
-        email: novoUsuario.email,
-        avatarUrl: foto || (activeUsers.length > 0 ? activeUsers[0].avatarUrl : '') // seta a nova foto enviada
-      }]);
-
-      toast.success('Novo usuário cadastrado e definido como Perfil da Conta!');
+      toast.success('Novo usuário cadastrado com sucesso!');
     }
 
     onClose();
@@ -251,7 +256,7 @@ export function UserFormSheet({ isOpen, onClose, user }: UserFormSheetProps) {
                   {isEditing ? `Editar: ${user?.nome}` : 'Novo Usuário (IAM)'}
                 </SheetTitle>
                 <SheetDescription>
-                  Configure identidade, perfil e matriz de acesso.
+                  Configure identidade, credenciais de acesso, perfil e permissões funcionais.
                 </SheetDescription>
               </div>
             </div>
@@ -262,7 +267,7 @@ export function UserFormSheet({ isOpen, onClose, user }: UserFormSheetProps) {
           <div className="px-6 pt-4">
             <TabsList className="w-full h-auto flex flex-wrap bg-muted/50 p-1">
               <TabsTrigger value="pessoais" className="gap-2 flex-1 min-w-[100px] text-xs"><User className="w-3.5 h-3.5"/> Dados</TabsTrigger>
-              <TabsTrigger value="acesso" className="gap-2 flex-1 min-w-[100px] text-xs"><Key className="w-3.5 h-3.5"/> Acesso</TabsTrigger>
+              <TabsTrigger value="acesso" className="gap-2 flex-1 min-w-[100px] text-xs"><Key className="w-3.5 h-3.5"/> Acesso & Senha</TabsTrigger>
               <TabsTrigger value="perfil" className="gap-2 flex-1 min-w-[100px] text-xs"><Shield className="w-3.5 h-3.5"/> Perfil</TabsTrigger>
               <TabsTrigger value="permissoes" className="gap-2 flex-1 min-w-[110px] text-xs"><Lock className="w-3.5 h-3.5"/> Matriz</TabsTrigger>
               <TabsTrigger value="seguranca" className="gap-2 flex-1 min-w-[100px] text-xs"><Globe className="w-3.5 h-3.5"/> Seg.</TabsTrigger>
@@ -338,12 +343,63 @@ export function UserFormSheet({ isOpen, onClose, user }: UserFormSheetProps) {
               </div>
             </TabsContent>
 
-            {/* ABA 2: ACESSO */}
+            {/* ABA 2: ACESSO & SENHA */}
             <TabsContent value="acesso" className="space-y-6 outline-none m-0">
               <div className="grid grid-cols-2 gap-4">
                  <div className="col-span-2 space-y-2">
-                  <Label>Login de Usuário</Label>
-                  <Input value={email} readOnly disabled className="bg-muted/40" />
+                  <Label>Login de Usuário (E-mail)</Label>
+                  <Input value={email || 'Informe o e-mail na aba Dados'} readOnly disabled className="bg-muted/40" />
+                </div>
+
+                {/* SENHA (VISÍVEL E GERÁVEL PARA SUPER ADMIN) */}
+                <div className="col-span-2 space-y-2 bg-primary/5 p-4 rounded-lg border border-primary/20">
+                  <div className="flex items-center justify-between">
+                    <Label className="font-semibold text-foreground flex items-center gap-1.5">
+                      <Key className="w-4 h-4 text-primary" /> Senha de Acesso do Usuário
+                    </Label>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleGerarSenha}
+                        className="h-7 text-xs gap-1 text-primary hover:text-primary/80"
+                      >
+                        <Sparkles className="w-3 h-3" /> Gerar Senha
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleCopiarSenha}
+                        className="h-7 text-xs gap-1"
+                      >
+                        <Copy className="w-3 h-3" /> Copiar
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="relative">
+                    <Input
+                      type={showSenha ? "text" : "password"}
+                      value={senha}
+                      onChange={e => setSenha(e.target.value)}
+                      placeholder="Defina a senha do usuário"
+                      className="pr-10 font-mono text-sm"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowSenha(!showSenha)}
+                      className="absolute right-1 top-1 h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                    >
+                      {showSenha ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    O Super Administrador tem permissão para visualizar, redefinir e fornecer esta senha diretamente ao colaborador.
+                  </p>
                 </div>
               </div>
               
@@ -358,7 +414,7 @@ export function UserFormSheet({ isOpen, onClose, user }: UserFormSheetProps) {
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label className="text-base">Status da Conta</Label>
-                    <p className="text-xs text-muted-foreground">Contas ativas podem receber atribuição de tarefas.</p>
+                    <p className="text-xs text-muted-foreground">Contas ativas podem acessar o sistema e receber atribuições.</p>
                   </div>
                   <Select value={status} onValueChange={val => setStatus(val as UserStatus)}>
                     <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
@@ -379,78 +435,68 @@ export function UserFormSheet({ isOpen, onClose, user }: UserFormSheetProps) {
                   <Select value={perfil} onValueChange={val => setPerfil(val as UserProfile)}>
                     <SelectTrigger><SelectValue placeholder="Selecione um perfil padrão" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Super Administrador">Super Administrador (Full Access)</SelectItem>
+                      <SelectItem value="Super Administrador">Super Administrador (Full Access Total)</SelectItem>
                       <SelectItem value="Administrador Financeiro">Administrador Financeiro</SelectItem>
                       <SelectItem value="Financeiro">Operação Financeira</SelectItem>
                       <SelectItem value="Comercial">Comercial & Contratos</SelectItem>
-                      <SelectItem value="Projetos">Gestão de Projetos</SelectItem>
-                      <SelectItem value="Diretoria">Diretoria (Read-Only Total)</SelectItem>
+                      <SelectItem value="Projetos">Gestão de Projetos & Dev</SelectItem>
+                      <SelectItem value="Diretoria">Diretoria</SelectItem>
                       <SelectItem value="Auditor">Auditor Externo</SelectItem>
                     </SelectContent>
                   </Select>
-               </div>
+                  <p className="text-xs text-muted-foreground">
+                    Apenas contas com perfil <strong>Super Administrador</strong> podem cadastrar usuários e gerenciar credenciais.
+                  </p>
+                </div>
             </TabsContent>
 
             {/* ABA 4: MATRIZ DE PERMISSÕES */}
             <TabsContent value="permissoes" className="space-y-4 outline-none m-0">
-               <div className="border rounded-md overflow-x-auto">
-                 <table className="w-full text-sm text-left">
-                   <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
-                     <tr>
-                       <th className="px-4 py-3 font-medium">Módulo</th>
-                       <th className="px-4 py-3 font-medium text-center">Ver</th>
-                       <th className="px-4 py-3 font-medium text-center">Criar</th>
-                       <th className="px-4 py-3 font-medium text-center">Editar</th>
-                       <th className="px-4 py-3 font-medium text-center">Excluir</th>
-                     </tr>
-                   </thead>
-                   <tbody className="divide-y">
-                     {modulesList.map((mod) => (
-                       <tr key={mod.id} className="hover:bg-muted/20">
-                         <td className="px-4 py-3 font-medium">{mod.name}</td>
-                         <td className="px-4 py-3 text-center"><Checkbox defaultChecked /></td>
-                         <td className="px-4 py-3 text-center"><Checkbox defaultChecked /></td>
-                         <td className="px-4 py-3 text-center"><Checkbox defaultChecked /></td>
-                         <td className="px-4 py-3 text-center"><Checkbox defaultChecked /></td>
-                       </tr>
-                     ))}
-                   </tbody>
-                 </table>
-               </div>
+              <div className="border rounded-lg overflow-hidden">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-muted/50 border-b">
+                    <tr>
+                      <th className="p-3">Módulo</th>
+                      <th className="p-3 text-center">Ver</th>
+                      <th className="p-3 text-center">Criar</th>
+                      <th className="p-3 text-center">Editar</th>
+                      <th className="p-3 text-center">Excluir</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {modulesList.map(mod => (
+                      <tr key={mod.id} className="hover:bg-muted/20">
+                        <td className="p-3 font-medium">{mod.name}</td>
+                        <td className="p-3 text-center"><Checkbox defaultChecked /></td>
+                        <td className="p-3 text-center"><Checkbox defaultChecked={perfil.includes('Admin')} /></td>
+                        <td className="p-3 text-center"><Checkbox defaultChecked={perfil.includes('Admin')} /></td>
+                        <td className="p-3 text-center"><Checkbox defaultChecked={perfil === 'Super Administrador'} /></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </TabsContent>
 
-            {/* ABA 5: SEGURANÇA AVANÇADA */}
-            <TabsContent value="seguranca" className="space-y-6 outline-none m-0">
-               <div className="grid grid-cols-2 gap-4">
-                 <div className="col-span-2 sm:col-span-1 space-y-2">
-                   <Label>Horário Permitido</Label>
-                   <Select defaultValue="qualquer">
-                     <SelectTrigger><SelectValue/></SelectTrigger>
-                     <SelectContent>
-                       <SelectItem value="qualquer">Qualquer horário</SelectItem>
-                       <SelectItem value="comercial">Horário Comercial (08h às 18h)</SelectItem>
-                     </SelectContent>
-                   </Select>
-                 </div>
-                 <div className="col-span-2 sm:col-span-1 space-y-2">
-                   <Label>Dias Permitidos</Label>
-                   <Select defaultValue="todos">
-                     <SelectTrigger><SelectValue/></SelectTrigger>
-                     <SelectContent>
-                       <SelectItem value="todos">Todos os dias</SelectItem>
-                       <SelectItem value="uteis">Apenas dias úteis (Seg-Sex)</SelectItem>
-                     </SelectContent>
-                   </Select>
-                 </div>
-               </div>
+            {/* ABA 5: SEGURANÇA */}
+            <TabsContent value="seguranca" className="space-y-4 outline-none m-0">
+              <div className="p-4 bg-muted/20 border rounded-lg text-xs space-y-2">
+                <p className="font-semibold text-foreground">Políticas de Segurança Focus IAM</p>
+                <p className="text-muted-foreground">Senhas devem possuir no mínimo 8 caracteres com letras maiúsculas e caracteres especiais.</p>
+                <p className="text-muted-foreground">A autenticação corporativa aplica isolamento de rotas e privilégios mínimos de acesso.</p>
+              </div>
             </TabsContent>
+
           </ScrollArea>
         </Tabs>
 
-        <div className="p-4 border-t bg-muted/20 flex items-center justify-between">
-          <Button variant="ghost" onClick={onClose}>Cancelar</Button>
+        {/* RODAPÉ COM AÇÕES */}
+        <div className="p-4 border-t flex justify-end gap-3 bg-muted/10">
+          <Button variant="outline" onClick={onClose} className="gap-2">
+            <XCircle className="w-4 h-4" /> Cancelar
+          </Button>
           <Button onClick={handleSave} className="gap-2">
-            <Save className="w-4 h-4" /> Salvar Usuário
+            <Save className="w-4 h-4" /> {isEditing ? 'Salvar Alterações' : 'Cadastrar Usuário'}
           </Button>
         </div>
 
