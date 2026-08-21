@@ -19,23 +19,23 @@ import {
 } from 'lucide-react';
 
 interface ProjetosDeliveryListProps {
-  projetosTecnicos: Projeto[];
-  backlogItems: ItemBacklog[];
-  bugs: BugItem[];
-  sprints: SprintDelivery[];
+  projetosTecnicos?: Projeto[];
+  backlogItems?: ItemBacklog[];
+  bugs?: BugItem[];
+  sprints?: SprintDelivery[];
   onSelectProjeto: (projeto: Projeto) => void;
 }
 
 export function ProjetosDeliveryList({
-  projetosTecnicos,
-  backlogItems,
-  bugs,
-  sprints,
+  projetosTecnicos = [],
+  backlogItems = [],
+  bugs = [],
+  sprints = [],
   onSelectProjeto,
 }: ProjetosDeliveryListProps) {
   const [searchTerm, setSearchTerm] = useState('');
 
-  const filteredProjetos = projetosTecnicos.filter((p) => {
+  const filteredProjetos = (projetosTecnicos || []).filter((p) => {
     if (!p) return false;
     const search = searchTerm.toLowerCase();
     return (p.nome || '').toLowerCase().includes(search) ||
@@ -77,9 +77,9 @@ export function ProjetosDeliveryList({
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredProjetos.map((proj) => {
-            const projBacklog = backlogItems.filter((b) => b.projetoId === proj.id);
-            const projBugs = bugs.filter((b) => b.projetoId === proj.id && b.status !== 'Resolvido' && b.status !== 'Fechado');
-            const activeSprint = sprints.find((s) => s.projetoId === proj.id && s.status === 'Em Andamento');
+            const projBacklog = (backlogItems || []).filter((b) => b && b.projetoId === proj.id);
+            const projBugs = (bugs || []).filter((b) => b && b.projetoId === proj.id && b.status !== 'Resolvido' && b.status !== 'Fechado');
+            const activeSprint = (sprints || []).find((s) => s && s.projetoId === proj.id && s.status === 'Em Andamento');
 
             return (
               <Card

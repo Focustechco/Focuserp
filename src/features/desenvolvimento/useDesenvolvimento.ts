@@ -20,11 +20,11 @@ import {
 } from './types';
 
 export function useDesenvolvimento() {
-  const { data: projetos } = useLocalStorageState<Projeto>('focus_projetos', []);
+  const { data: projetos = [] } = useLocalStorageState<Projeto>('focus_projetos', []);
 
   // Coleções de Engenharia e Delivery
   const {
-    data: backlogItems,
+    data: backlogItems = [],
     addItem: addBacklogItem,
     updateItem: updateBacklogItem,
     deleteItem: deleteBacklogItem,
@@ -32,92 +32,93 @@ export function useDesenvolvimento() {
   } = useLocalStorageState<ItemBacklog>('focus_dev_backlog', []);
 
   const {
-    data: sprints,
+    data: sprints = [],
     addItem: addSprint,
     updateItem: updateSprint,
     save: saveSprints,
   } = useLocalStorageState<SprintDelivery>('focus_dev_sprints', []);
 
   const {
-    data: versoes,
+    data: versoes = [],
     addItem: addVersao,
     save: saveVersoes,
   } = useLocalStorageState<VersaoSemVer>('focus_dev_versions', []);
 
   const {
-    data: repositóriosGit,
+    data: repositoriosGit = [],
     addItem: addRepositorioGit,
     updateItem: updateRepositorioGit,
     save: saveGit,
   } = useLocalStorageState<RepositorioGitConfig>('focus_dev_git', []);
 
   const {
-    data: branches,
+    data: branches = [],
     addItem: addBranch,
     save: saveBranches,
   } = useLocalStorageState<GitBranchItem>('focus_dev_branches', []);
 
   const {
-    data: releases,
+    data: releases = [],
     addItem: addRelease,
     save: saveReleases,
   } = useLocalStorageState<ReleaseDelivery>('focus_dev_releases', []);
 
   const {
-    data: deploys,
+    data: deploys = [],
     addItem: addDeploy,
     save: saveDeploys,
   } = useLocalStorageState<DeployItem>('focus_dev_deploys', []);
 
   const {
-    data: casosQA,
+    data: casosQA = [],
     addItem: addCasoQA,
     updateItem: updateCasoQA,
     save: saveQA,
   } = useLocalStorageState<CasoTesteQA>('focus_dev_qa', []);
 
   const {
-    data: bugs,
+    data: bugs = [],
     addItem: addBug,
     updateItem: updateBug,
     save: saveBugs,
   } = useLocalStorageState<BugItem>('focus_dev_bugs', []);
 
   const {
-    data: correcoes,
+    data: correcoes = [],
     addItem: addCorrecao,
     save: saveCorrecoes,
   } = useLocalStorageState<CorrecaoBugItem>('focus_dev_fixes', []);
 
   const {
-    data: ambientes,
+    data: ambientes = [],
     addItem: addAmbiente,
     updateItem: updateAmbiente,
     save: saveAmbientes,
   } = useLocalStorageState<AmbienteInfo>('focus_dev_ambientes', []);
 
   const {
-    data: publicacoes,
+    data: publicacoes = [],
     addItem: addPublicacao,
     save: savePublicacoes,
   } = useLocalStorageState<PublicacaoApp>('focus_dev_publicacoes', []);
 
   const {
-    data: logsDelivery,
+    data: logsDelivery = [],
     addItem: addLogDelivery,
     save: saveLogs,
   } = useLocalStorageState<LogDelivery>('focus_dev_logs', []);
 
   const {
-    data: pipelines,
+    data: pipelines = [],
     addItem: addPipeline,
     updateItem: updatePipeline,
     save: savePipelines,
   } = useLocalStorageState<PipelineCICD>('focus_dev_pipelines', []);
 
-  // Filtrar Projetos Técnicos Eligíveis originados do módulo Projetos
-  const projetosTecnicos = projetos.filter(
+  // Filtrar Projetos Técnicos Elegíveis originados do módulo Projetos
+  const projetosTecnicos = (projetos || []).filter(
     (p) =>
+      p &&
       p.tipo !== 'Consultoria' &&
       (p.tipo === 'Software Sob Medida' ||
         p.tipo === 'Sistema Web' ||
@@ -134,18 +135,20 @@ export function useDesenvolvimento() {
         !p.tipo)
   );
 
-  // Inicialização Automática de Workspaces Técnicos para Projetos Eligíveis sem dados prévios
+  // Inicialização Automática de Workspaces Técnicos para Projetos Elegíveis sem dados prévios
   useEffect(() => {
-    if (projetosTecnicos.length === 0) return;
+    if (!projetosTecnicos || projetosTecnicos.length === 0) return;
 
-    let updatedBacklog = [...backlogItems];
-    let updatedSprints = [...sprints];
-    let updatedGit = [...repositóriosGit];
-    let updatedAmbientes = [...ambientes];
-    let updatedPipelines = [...pipelines];
+    let updatedBacklog = [...(backlogItems || [])];
+    let updatedSprints = [...(sprints || [])];
+    let updatedGit = [...(repositoriosGit || [])];
+    let updatedAmbientes = [...(ambientes || [])];
+    let updatedPipelines = [...(pipelines || [])];
     let hasChanges = false;
 
     projetosTecnicos.forEach((proj) => {
+      if (!proj || !proj.id) return;
+
       // 1. Seed Sprint se não existir
       const projSprints = updatedSprints.filter((s) => s.projetoId === proj.id);
       if (projSprints.length === 0) {
@@ -158,210 +161,237 @@ export function useDesenvolvimento() {
           objetivo: `Setup inicial da arquitetura, banco de dados e prototipação de ${proj.nome}`,
           dataInicio: proj.dataInicio || new Date().toISOString().split('T')[0],
           dataFim: new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0],
-          responsavel: proj.responsavelPrincipal || 'Tech Lead',
           status: 'Em Andamento',
-          velocityEstimado: 34,
-          velocityRealizado: 21,
+          totalPontosEstimados: 40,
+          totalPontosEntregues: 18,
+          taxaConclusao: 45,
         });
 
-        // 2. Seed Items de Backlog
-        updatedBacklog.push(
+        // Seed Tarefas Iniciais do Backlog
+        const tasks = [
           {
-            id: `bk-${proj.id}-1`,
-            projetoId: proj.id,
-            tipoItem: 'Épico',
-            titulo: 'Modelagem da Arquitetura & Banco de Dados',
-            descricao: 'Definição de schemas, tabelas e migrações SQL',
-            prioridade: 'Crítica',
-            status: 'Concluído',
+            titulo: 'Modelagem do Banco de Dados & Schemas PostgreSQL',
+            tipo: 'User Story' as const,
+            status: 'Concluído' as StatusKanban,
+            pontos: 8,
+            prioridade: 'Alta' as const,
             responsavel: proj.responsavelPrincipal || 'Tech Lead',
-            storyPoints: 8,
-            sprintId,
-            createdAt: new Date().toISOString(),
           },
           {
-            id: `bk-${proj.id}-2`,
-            projetoId: proj.id,
-            tipoItem: 'Funcionalidade',
-            titulo: 'Autenticação & Controle de Acesso JWT',
-            descricao: 'Implementação de login, refresh token e papéis de acesso',
-            prioridade: 'Alta',
-            status: 'Em Desenvolvimento',
-            responsavel: 'Dev Senior',
-            storyPoints: 5,
-            sprintId,
-            createdAt: new Date().toISOString(),
+            titulo: 'Implementação dos Endpoints REST & Autenticação JWT',
+            tipo: 'Feature' as const,
+            status: 'Em Desenvolvimento' as StatusKanban,
+            pontos: 13,
+            prioridade: 'Alta' as const,
+            responsavel: 'Engenheiro Backend',
           },
           {
-            id: `bk-${proj.id}-3`,
-            projetoId: proj.id,
-            tipoItem: 'História de Usuário',
-            titulo: 'Interface de Usuário & Componentes UI',
-            descricao: 'Desenvolvimento das telas e formulários reativos',
-            prioridade: 'Média',
-            status: 'Code Review',
-            responsavel: 'UX/UI Designer',
-            storyPoints: 5,
-            sprintId,
-            createdAt: new Date().toISOString(),
+            titulo: 'Desenvolvimento do Painel Frontend Responsivo',
+            tipo: 'Feature' as const,
+            status: 'A Fazer' as StatusKanban,
+            pontos: 13,
+            prioridade: 'Média' as const,
+            responsavel: 'Engenheiro Frontend',
           },
           {
-            id: `bk-${proj.id}-4`,
+            titulo: 'Configuração da Esteira de CI/CD e Ambientes Cloud',
+            tipo: 'DevOps' as const,
+            status: 'Code Review' as StatusKanban,
+            pontos: 5,
+            prioridade: 'Média' as const,
+            responsavel: 'DevOps Lead',
+          },
+        ];
+
+        tasks.forEach((t, idx) => {
+          updatedBacklog.push({
+            id: `item-${proj.id}-${idx + 1}`,
             projetoId: proj.id,
-            tipoItem: 'Tarefa Técnica',
-            titulo: 'Pipeline de CI/CD no GitHub Actions',
-            descricao: 'Automação de testes de unidade e deploy em Staging',
-            prioridade: 'Alta',
-            status: 'QA',
-            responsavel: 'DevOps Engineer',
-            storyPoints: 3,
             sprintId,
-            createdAt: new Date().toISOString(),
-          }
-        );
+            codigo: `${proj.codigo}-ENG-${idx + 101}`,
+            titulo: t.titulo,
+            descricao: `Implementação técnica para entrega dos marcos de ${proj.nome}.`,
+            tipo: t.tipo,
+            status: t.status,
+            prioridade: t.prioridade,
+            storyPoints: t.pontos,
+            responsavel: t.responsavel,
+            criadoEm: new Date().toISOString(),
+            atualizadoEm: new Date().toISOString(),
+            tags: ['core', 'mvp', 'focus'],
+          });
+        });
       }
 
-      // 3. Seed Git Config
+      // 2. Seed Git Repo se não existir
       const projGit = updatedGit.find((g) => g.projetoId === proj.id);
       if (!projGit) {
         hasChanges = true;
-        const nameSlug = (proj.nome || 'projeto').toLowerCase().replace(/\s+/g, '-');
+        const nameSlug = proj.nome.toLowerCase().replace(/[^a-z0-9]/g, '-');
         updatedGit.push({
           id: `git-${proj.id}`,
           projetoId: proj.id,
           provedor: 'GitHub',
-          nomeRepositorio: nameSlug,
           organizacao: 'focustecnologia',
-          urlRepositorio: `https://github.com/focustecnologia/${nameSlug}`,
+          nomeRepositorio: nameSlug,
           branchPrincipal: 'main',
-          statusConexao: 'Conectado',
+          urlRepositorio: `https://github.com/focustecnologia/${nameSlug}`,
+          totalCommits: 42,
+          totalBranches: 4,
+          totalPullRequests: 2,
+          ultimoCommit: {
+            hash: '7f9a2b1',
+            mensagem: 'feat: setup core architecture & services',
+            autor: proj.responsavelPrincipal || 'Tech Lead',
+            dataHora: new Date().toISOString(),
+          },
         });
       }
 
-      // 4. Seed Ambientes
-      const projAmbientes = updatedAmbientes.filter((a) => a.projetoId === proj.id);
-      if (projAmbientes.length === 0) {
+      // 3. Seed Ambientes
+      const projAmbs = updatedAmbientes.filter((a) => a.projetoId === proj.id);
+      if (projAmbs.length === 0) {
         hasChanges = true;
-        const slug = (proj.nome || 'projeto').toLowerCase().replace(/\s+/g, '-');
+        const nameSlug = proj.nome.toLowerCase().replace(/[^a-z0-9]/g, '-');
         updatedAmbientes.push(
           {
-            id: `amb-dev-${proj.id}`,
+            id: `amb-${proj.id}-dev`,
             projetoId: proj.id,
-            tipo: 'Desenvolvimento',
-            url: `https://dev-${slug}.focustecnologia.com.br`,
+            nomeAmbiente: 'Desenvolvimento',
+            tipoAmbiente: 'Development',
+            url: `https://dev-${nameSlug}.focustech.dev`,
+            versaoDeployada: 'v0.9.0-alpha',
             status: 'Online',
-            versaoAtual: 'v0.9.0-dev',
-            ultimoDeploy: new Date().toISOString(),
+            ultimoDeployEm: new Date().toISOString(),
+            responsavel: 'DevOps Lead',
           },
           {
-            id: `amb-stg-${proj.id}`,
+            id: `amb-${proj.id}-stage`,
             projetoId: proj.id,
-            tipo: 'Homologação',
-            url: `https://staging-${slug}.focustecnologia.com.br`,
+            nomeAmbiente: 'Homologação (Staging)',
+            tipoAmbiente: 'Staging',
+            url: `https://stage-${nameSlug}.focustech.dev`,
+            versaoDeployada: 'v0.8.2-rc',
             status: 'Online',
-            versaoAtual: 'v1.0.0-rc1',
-            ultimoDeploy: new Date().toISOString(),
+            ultimoDeployEm: new Date(Date.now() - 86400000).toISOString(),
+            responsavel: 'DevOps Lead',
           },
           {
-            id: `amb-prd-${proj.id}`,
+            id: `amb-${proj.id}-prod`,
             projetoId: proj.id,
-            tipo: 'Produção',
-            url: `https://${slug}.focustecnologia.com.br`,
+            nomeAmbiente: 'Produção',
+            tipoAmbiente: 'Production',
+            url: `https://${nameSlug}.focustech.com.br`,
+            versaoDeployada: 'v0.8.0',
             status: 'Online',
-            versaoAtual: 'v1.0.0',
-            ultimoDeploy: new Date().toISOString(),
+            ultimoDeployEm: new Date(Date.now() - 5 * 86400000).toISOString(),
+            responsavel: 'DevOps Lead',
           }
         );
       }
 
-      // 5. Seed Pipeline CI/CD
-      const projPipelines = updatedPipelines.filter((p) => p.projetoId === proj.id);
-      if (projPipelines.length === 0) {
+      // 4. Seed Pipelines
+      const projPipes = updatedPipelines.filter((p) => p.projetoId === proj.id);
+      if (projPipes.length === 0) {
         hasChanges = true;
         updatedPipelines.push({
-          id: `pipe-${proj.id}`,
+          id: `pipe-${proj.id}-1`,
           projetoId: proj.id,
-          nomePipeline: 'Production Release Pipeline',
-          provedor: 'GitHub Actions',
-          ambiente: 'Produção',
+          nomePipeline: 'CI / Testes Automatizados & Linter',
+          branchGatilho: 'main',
           status: 'Sucesso',
-          tempoExecucaoSegundos: 142,
-          ultimaExecucao: new Date().toISOString(),
-          buildNumber: 'Build #104',
+          duracaoSegundos: 94,
+          dataExecucao: new Date().toISOString(),
+          autor: proj.responsavelPrincipal || 'Tech Lead',
+          commitSha: '7f9a2b1',
         });
       }
     });
 
     if (hasChanges) {
-      saveBacklog(updatedBacklog);
       saveSprints(updatedSprints);
+      saveBacklog(updatedBacklog);
       saveGit(updatedGit);
       saveAmbientes(updatedAmbientes);
       savePipelines(updatedPipelines);
     }
   }, [projetosTecnicos]);
 
-  // Ações de Atualização Kanban & Delivery
+  // Ações do Kanban e Delivery
   const moverItemKanban = (itemId: string, novoStatus: StatusKanban) => {
-    const item = backlogItems.find((b) => b.id === itemId);
+    const item = (backlogItems || []).find((b) => b.id === itemId);
     if (!item) return;
 
-    updateBacklogItem(itemId, { status: novoStatus });
+    updateBacklogItem(itemId, {
+      status: novoStatus,
+      atualizadoEm: new Date().toISOString(),
+    });
 
     addLogDelivery({
       id: `log-${Date.now()}`,
       projetoId: item.projetoId,
       dataHora: new Date().toISOString(),
-      tipoEvento: 'Status',
-      usuario: item.responsavel || 'Dev Leader',
-      descricao: `Item "${item.titulo}" movido para a coluna [${novoStatus}]`,
+      tipoEvento: 'Kanban',
+      usuario: 'Usuário Conectado',
+      descricao: `Tarefa "${item.titulo}" movida para [${novoStatus}]`,
     });
   };
 
-  const criarCriarItemBacklog = (item: Omit<ItemBacklog, 'id' | 'createdAt'>) => {
-    const newId = `bk-${Date.now()}`;
-    const novo: ItemBacklog = {
-      ...item,
-      id: newId,
-      createdAt: new Date().toISOString(),
+  const criarCriarItemBacklog = (novoItem: Omit<ItemBacklog, 'id' | 'criadoEm' | 'atualizadoEm'>) => {
+    const itemCriado: ItemBacklog = {
+      ...novoItem,
+      id: `item-${Date.now()}`,
+      criadoEm: new Date().toISOString(),
+      atualizadoEm: new Date().toISOString(),
     };
-    addBacklogItem(novo);
-  };
-
-  const registrarNovoBug = (bug: Omit<BugItem, 'id' | 'createdAt'>) => {
-    const newId = `bug-${Date.now()}`;
-    const novoBug: BugItem = {
-      ...bug,
-      id: newId,
-      createdAt: new Date().toISOString(),
-    };
-    addBug(novoBug);
+    addBacklogItem(itemCriado);
 
     addLogDelivery({
       id: `log-${Date.now()}`,
-      projetoId: bug.projetoId,
+      projetoId: novoItem.projetoId,
       dataHora: new Date().toISOString(),
-      tipoEvento: 'Erro',
-      usuario: bug.responsavel || 'QA Tester',
-      descricao: `Bug Severidade [${bug.severidade}] reportado: "${bug.titulo}"`,
+      tipoEvento: 'Backlog',
+      usuario: novoItem.responsavel || 'Tech Lead',
+      descricao: `Nova tarefa criada no Backlog: "${novoItem.titulo}"`,
     });
   };
 
-  const resolverBug = (bugId: string, solucao: string, versao: string, responsavel: string) => {
-    const targetBug = bugs.find((b) => b.id === bugId);
+  const registrarNovoBug = (novoBug: Omit<BugItem, 'id' | 'reportadoEm'>) => {
+    const bugCriado: BugItem = {
+      ...novoBug,
+      id: `bug-${Date.now()}`,
+      reportadoEm: new Date().toISOString(),
+    };
+    addBug(bugCriado);
+
+    addLogDelivery({
+      id: `log-${Date.now()}`,
+      projetoId: novoBug.projetoId,
+      dataHora: new Date().toISOString(),
+      tipoEvento: 'Bug',
+      usuario: novoBug.reportadoPor,
+      descricao: `Bug reportado: [${novoBug.severidade}] ${novoBug.titulo}`,
+    });
+  };
+
+  const resolverBug = (bugId: string, versao: string, responsavel: string) => {
+    const targetBug = (bugs || []).find((b) => b.id === bugId);
     if (!targetBug) return;
 
-    updateBug(bugId, { status: 'Resolvido' });
+    updateBug(bugId, {
+      status: 'Resolvido',
+      resolvidoEm: new Date().toISOString(),
+      versaoCorrecao: versao,
+    });
 
     addCorrecao({
       id: `fix-${Date.now()}`,
-      projetoId: targetBug.projetoId,
       bugId,
-      bugTitulo: targetBug.titulo,
-      solucao,
-      responsavel,
-      versao,
-      data: new Date().toISOString(),
+      projetoId: targetBug.projetoId,
+      descricaoCorrecao: `Correção validada e aplicada na versão ${versao}`,
+      autorCorrecao: responsavel,
+      commitHash: `fix-${Date.now().toString().slice(-6)}`,
+      dataHora: new Date().toISOString(),
     });
 
     addLogDelivery({
@@ -397,7 +427,9 @@ export function useDesenvolvimento() {
     backlogItems,
     sprints,
     versoes,
-    repositóriosGit,
+    repositoriosGit,
+    repositriosGit: repositoriosGit,
+    repositóriosGit: repositoriosGit,
     branches,
     releases,
     deploys,

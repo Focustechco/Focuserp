@@ -52,20 +52,21 @@ import { NovoBugSheet } from './NovoBugSheet';
 
 interface WorkspaceDevProjetoProps {
   projeto: Projeto;
-  backlogItems: ItemBacklog[];
-  sprints: SprintDelivery[];
-  versoes: VersaoSemVer[];
-  repositriosGit: RepositorioGitConfig[];
-  branches: GitBranchItem[];
-  releases: ReleaseDelivery[];
-  deploys: DeployItem[];
-  casosQA: CasoTesteQA[];
-  bugs: BugItem[];
-  correcoes: CorrecaoBugItem[];
-  ambientes: AmbienteInfo[];
-  publicacoes: PublicacaoApp[];
-  logsDelivery: LogDelivery[];
-  pipelines: PipelineCICD[];
+  backlogItems?: ItemBacklog[];
+  sprints?: SprintDelivery[];
+  versoes?: VersaoSemVer[];
+  repositriosGit?: RepositorioGitConfig[];
+  repositoriosGit?: RepositorioGitConfig[];
+  branches?: GitBranchItem[];
+  releases?: ReleaseDelivery[];
+  deploys?: DeployItem[];
+  casosQA?: CasoTesteQA[];
+  bugs?: BugItem[];
+  correcoes?: CorrecaoBugItem[];
+  ambientes?: AmbienteInfo[];
+  publicacoes?: PublicacaoApp[];
+  logsDelivery?: LogDelivery[];
+  pipelines?: PipelineCICD[];
   onBack: () => void;
   onMoverItemKanban: (itemId: string, status: StatusKanban) => void;
   onCriarItemBacklog: (item: Omit<ItemBacklog, 'id' | 'createdAt'>) => void;
@@ -76,20 +77,21 @@ interface WorkspaceDevProjetoProps {
 
 export function WorkspaceDevProjeto({
   projeto,
-  backlogItems,
-  sprints,
-  versoes,
+  backlogItems = [],
+  sprints = [],
+  versoes = [],
   repositriosGit,
-  branches,
-  releases,
-  deploys,
-  casosQA,
-  bugs,
-  correcoes,
-  ambientes,
-  publicacoes,
-  logsDelivery,
-  pipelines,
+  repositoriosGit,
+  branches = [],
+  releases = [],
+  deploys = [],
+  casosQA = [],
+  bugs = [],
+  correcoes = [],
+  ambientes = [],
+  publicacoes = [],
+  logsDelivery = [],
+  pipelines = [],
   onBack,
   onMoverItemKanban,
   onCriarItemBacklog,
@@ -103,21 +105,23 @@ export function WorkspaceDevProjeto({
   const [isNovoItemSheetOpen, setIsNovoItemSheetOpen] = useState(false);
   const [isNovoBugSheetOpen, setIsNovoBugSheetOpen] = useState(false);
 
-  // Filter entities for this specific project
-  const projBacklog = backlogItems.filter((b) => b.projetoId === projeto.id);
-  const projSprints = sprints.filter((s) => s.projetoId === projeto.id);
-  const projVersoes = versoes.filter((v) => v.projetoId === projeto.id);
-  const projGit = repositriosGit.find((g) => g.projetoId === projeto.id);
-  const projBranches = branches.filter((br) => br.projetoId === projeto.id);
-  const projReleases = releases.filter((r) => r.projetoId === projeto.id);
-  const projDeploys = deploys.filter((d) => d.projetoId === projeto.id);
-  const projQA = casosQA.filter((q) => q.projetoId === projeto.id);
-  const projBugs = bugs.filter((b) => b.projetoId === projeto.id);
-  const projFixes = correcoes.filter((f) => f.projetoId === projeto.id);
-  const projAmbientes = ambientes.filter((a) => a.projetoId === projeto.id);
-  const projPublicacoes = publicacoes.filter((p) => p.projetoId === projeto.id);
-  const projLogs = logsDelivery.filter((l) => l.projetoId === projeto.id);
-  const projPipelines = pipelines.filter((p) => p.projetoId === projeto.id);
+  const gitList = repositoriosGit || repositriosGit || [];
+
+  // Filter entities for this specific project safely
+  const projBacklog = (backlogItems || []).filter((b) => b && b.projetoId === projeto?.id);
+  const projSprints = (sprints || []).filter((s) => s && s.projetoId === projeto?.id);
+  const projVersoes = (versoes || []).filter((v) => v && v.projetoId === projeto?.id);
+  const projGit = gitList.find((g) => g && g.projetoId === projeto?.id);
+  const projBranches = (branches || []).filter((br) => br && br.projetoId === projeto?.id);
+  const projReleases = (releases || []).filter((r) => r && r.projetoId === projeto?.id);
+  const projDeploys = (deploys || []).filter((d) => d && d.projetoId === projeto?.id);
+  const projQA = (casosQA || []).filter((q) => q && q.projetoId === projeto?.id);
+  const projBugs = (bugs || []).filter((b) => b && b.projetoId === projeto?.id);
+  const projFixes = (correcoes || []).filter((f) => f && f.projetoId === projeto?.id);
+  const projAmbientes = (ambientes || []).filter((a) => a && a.projetoId === projeto?.id);
+  const projPublicacoes = (publicacoes || []).filter((p) => p && p.projetoId === projeto?.id);
+  const projLogs = (logsDelivery || []).filter((l) => l && l.projetoId === projeto?.id);
+  const projPipelines = (pipelines || []).filter((p) => p && p.projetoId === projeto?.id);
 
   const activeSprint = projSprints.find((s) => s.status === 'Em Andamento') || projSprints[0];
 

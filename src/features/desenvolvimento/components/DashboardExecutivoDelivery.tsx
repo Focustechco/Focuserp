@@ -38,27 +38,27 @@ import {
 } from 'recharts';
 
 interface DashboardExecutivoDeliveryProps {
-  projetosTecnicos: Projeto[];
-  backlogItems: ItemBacklog[];
-  sprints: SprintDelivery[];
-  bugs: BugItem[];
-  deploys: DeployItem[];
-  releases: ReleaseDelivery[];
+  projetosTecnicos?: Projeto[];
+  backlogItems?: ItemBacklog[];
+  sprints?: SprintDelivery[];
+  bugs?: BugItem[];
+  deploys?: DeployItem[];
+  releases?: ReleaseDelivery[];
 }
 
 const SEVERITY_COLORS = ['#ef4444', '#f97316', '#eab308', '#3b82f6'];
 
 export function DashboardExecutivoDelivery({
-  projetosTecnicos,
-  backlogItems,
-  sprints,
-  bugs,
-  deploys,
-  releases,
+  projetosTecnicos = [],
+  backlogItems = [],
+  sprints = [],
+  bugs = [],
+  deploys = [],
+  releases = [],
 }: DashboardExecutivoDeliveryProps) {
-  const totalProjetosDev = projetosTecnicos.length;
-  const totalBacklog = backlogItems.length;
-  const sprintsAtivas = sprints.filter((s) => s.status === 'Em Andamento').length;
+  const totalProjetosDev = (projetosTecnicos || []).length;
+  const totalBacklog = (backlogItems || []).length;
+  const sprintsAtivas = (sprints || []).filter((s) => s && s.status === 'Em Andamento').length;
 
   const bugsAbertos = bugs.filter((b) => b.status !== 'Resolvido' && b.status !== 'Fechado').length;
   const bugsResolvidos = bugs.filter((b) => b.status === 'Resolvido' || b.status === 'Fechado').length;
