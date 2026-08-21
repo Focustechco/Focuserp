@@ -34,6 +34,7 @@ import { Route as FornecedoresRouteImport } from './routes/fornecedores'
 import { Route as IaFinanceiraRouteImport } from './routes/ia-financeira'
 import { Route as IndicadoresRouteImport } from './routes/indicadores'
 import { Route as IntegracoesRouteImport } from './routes/integracoes'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as LogsRouteImport } from './routes/logs'
 import { Route as MarketingRouteImport } from './routes/marketing'
 import { Route as NotificacoesRouteImport } from './routes/notificacoes'
@@ -175,6 +176,11 @@ const IntegracoesRoute = IntegracoesRouteImport.update({
   path: '/integracoes',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LogsRoute = LogsRouteImport.update({
   id: '/logs',
   path: '/logs',
@@ -277,6 +283,7 @@ export interface FileRoutesByFullPath {
   '/ia-financeira': typeof IaFinanceiraRoute
   '/indicadores': typeof IndicadoresRoute
   '/integracoes': typeof IntegracoesRoute
+  '/login': typeof LoginRoute
   '/logs': typeof LogsRoute
   '/marketing': typeof MarketingRoute
   '/notificacoes': typeof NotificacoesRoute
@@ -319,6 +326,7 @@ export interface FileRoutesByTo {
   '/ia-financeira': typeof IaFinanceiraRoute
   '/indicadores': typeof IndicadoresRoute
   '/integracoes': typeof IntegracoesRoute
+  '/login': typeof LoginRoute
   '/logs': typeof LogsRoute
   '/marketing': typeof MarketingRoute
   '/notificacoes': typeof NotificacoesRoute
@@ -362,6 +370,7 @@ export interface FileRoutesById {
   '/ia-financeira': typeof IaFinanceiraRoute
   '/indicadores': typeof IndicadoresRoute
   '/integracoes': typeof IntegracoesRoute
+  '/login': typeof LoginRoute
   '/logs': typeof LogsRoute
   '/marketing': typeof MarketingRoute
   '/notificacoes': typeof NotificacoesRoute
@@ -406,6 +415,7 @@ export interface FileRouteTypes {
     | '/ia-financeira'
     | '/indicadores'
     | '/integracoes'
+    | '/login'
     | '/logs'
     | '/marketing'
     | '/notificacoes'
@@ -448,6 +458,7 @@ export interface FileRouteTypes {
     | '/ia-financeira'
     | '/indicadores'
     | '/integracoes'
+    | '/login'
     | '/logs'
     | '/marketing'
     | '/notificacoes'
@@ -490,6 +501,7 @@ export interface FileRouteTypes {
     | '/ia-financeira'
     | '/indicadores'
     | '/integracoes'
+    | '/login'
     | '/logs'
     | '/marketing'
     | '/notificacoes'
@@ -533,6 +545,7 @@ export interface RootRouteChildren {
   IaFinanceiraRoute: typeof IaFinanceiraRoute
   IndicadoresRoute: typeof IndicadoresRoute
   IntegracoesRoute: typeof IntegracoesRoute
+  LoginRoute: typeof LoginRoute
   LogsRoute: typeof LogsRoute
   MarketingRoute: typeof MarketingRoute
   NotificacoesRoute: typeof NotificacoesRoute
@@ -724,6 +737,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IntegracoesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/logs': {
       id: '/logs'
       path: '/logs'
@@ -893,6 +913,7 @@ const rootRouteChildren: RootRouteChildren = {
   IaFinanceiraRoute: IaFinanceiraRoute,
   IndicadoresRoute: IndicadoresRoute,
   IntegracoesRoute: IntegracoesRoute,
+  LoginRoute: LoginRoute,
   LogsRoute: LogsRoute,
   MarketingRoute: MarketingRoute,
   NotificacoesRoute: NotificacoesRoute,

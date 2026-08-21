@@ -1,6 +1,6 @@
 import { Usuario, MatrizPermissoes } from '../types';
 
-const fullAccess = {
+export const fullAccess = {
   visualizar: true,
   criar: true,
   editar: true,
@@ -8,6 +8,28 @@ const fullAccess = {
   aprovar: true,
   exportar: true,
   importar: true,
+  imprimir: true,
+};
+
+export const noAccess = {
+  visualizar: false,
+  criar: false,
+  editar: false,
+  excluir: false,
+  aprovar: false,
+  exportar: false,
+  importar: false,
+  imprimir: false,
+};
+
+export const readOnlyAccess = {
+  visualizar: true,
+  criar: false,
+  editar: false,
+  excluir: false,
+  aprovar: false,
+  exportar: true,
+  importar: false,
   imprimir: true,
 };
 
@@ -31,6 +53,46 @@ export const superAdminPermissoes: MatrizPermissoes = {
   administracao: fullAccess,
 };
 
+export const financeiroPermissoes: MatrizPermissoes = {
+  dashboard: readOnlyAccess,
+  contasReceber: fullAccess,
+  contasPagar: fullAccess,
+  cobrancas: fullAccess,
+  fluxoCaixa: fullAccess,
+  clientes: readOnlyAccess,
+  fornecedores: fullAccess,
+  projetos: readOnlyAccess,
+  contratos: readOnlyAccess,
+  centroCustos: fullAccess,
+  planoContas: fullAccess,
+  fiscal: fullAccess,
+  agenda: fullAccess,
+  conciliacao: fullAccess,
+  dre: fullAccess,
+  kpis: fullAccess,
+  administracao: noAccess,
+};
+
+export const comercialPermissoes: MatrizPermissoes = {
+  dashboard: readOnlyAccess,
+  contasReceber: readOnlyAccess,
+  contasPagar: noAccess,
+  cobrancas: readOnlyAccess,
+  fluxoCaixa: noAccess,
+  clientes: fullAccess,
+  fornecedores: noAccess,
+  projetos: fullAccess,
+  contratos: fullAccess,
+  centroCustos: noAccess,
+  planoContas: noAccess,
+  fiscal: noAccess,
+  agenda: fullAccess,
+  conciliacao: noAccess,
+  dre: noAccess,
+  kpis: readOnlyAccess,
+  administracao: noAccess,
+};
+
 export const INITIAL_USUARIOS: Usuario[] = [
   {
     id: '00000000-0000-0000-0000-000000000001',
@@ -50,6 +112,66 @@ export const INITIAL_USUARIOS: Usuario[] = [
     tentativasFalhas: 0,
     sessoes: [],
     permissoes: superAdminPermissoes,
+    auditoria: [],
+  },
+  {
+    id: '00000000-0000-0000-0000-000000000002',
+    nome: 'Gabriel Sbrana',
+    nomeExibicao: 'Gabriel Sbrana',
+    email: 'gabriel.sbrana@focustecnologia.com.br',
+    senha: 'FocusAdmin@2026',
+    telefone: '(11) 99777-6655',
+    cargo: 'CTO / Diretor de Tecnologia',
+    departamento: 'Engenharia',
+    matricula: 'FT-002',
+    status: 'Ativo',
+    perfil: 'Super Administrador',
+    rolesComplementares: ['Tecnologia', 'DevOps', 'Arquitetura'],
+    mfaHabilitado: true,
+    ultimoLogin: new Date().toISOString(),
+    tentativasFalhas: 0,
+    sessoes: [],
+    permissoes: superAdminPermissoes,
+    auditoria: [],
+  },
+  {
+    id: '00000000-0000-0000-0000-000000000003',
+    nome: 'Davi Nogueira',
+    nomeExibicao: 'Davi Nogueira',
+    email: 'davi.nogueira@focustecnologia.com.br',
+    senha: 'FocusFinanceiro@2026',
+    telefone: '(11) 99666-5544',
+    cargo: 'Gestor Financeiro & Tesouraria',
+    departamento: 'Financeiro',
+    matricula: 'FT-003',
+    status: 'Ativo',
+    perfil: 'Financeiro',
+    rolesComplementares: ['Tesouraria', 'Contas a Pagar/Receber', 'Fiscal'],
+    mfaHabilitado: true,
+    ultimoLogin: new Date().toISOString(),
+    tentativasFalhas: 0,
+    sessoes: [],
+    permissoes: financeiroPermissoes,
+    auditoria: [],
+  },
+  {
+    id: '00000000-0000-0000-0000-000000000004',
+    nome: 'Marcelo Rezende',
+    nomeExibicao: 'Marcelo Rezende',
+    email: 'marcelo.rezende@focustecnologia.com.br',
+    senha: 'FocusComercial@2026',
+    telefone: '(11) 99555-4433',
+    cargo: 'Head Comercial & CRM',
+    departamento: 'Comercial',
+    matricula: 'FT-004',
+    status: 'Ativo',
+    perfil: 'Comercial',
+    rolesComplementares: ['Vendas', 'CRM', 'Contratos', 'CS'],
+    mfaHabilitado: true,
+    ultimoLogin: new Date().toISOString(),
+    tentativasFalhas: 0,
+    sessoes: [],
+    permissoes: comercialPermissoes,
     auditoria: [],
   },
 ];

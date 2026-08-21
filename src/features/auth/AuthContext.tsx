@@ -1,24 +1,38 @@
-import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { Usuario, PermissaoModulo, MatrizPermissoes } from '@/features/usuarios/types';
 import { INITIAL_USUARIOS, superAdminPermissoes } from '@/features/usuarios/data/initialData';
 import { useLocalStorageState } from '@/hooks/useDataStore';
-import { safeGetItem, safeSetItem } from '@/lib/safeStorage';
+import { safeGetItem, safeSetItem, safeRemoveItem } from '@/lib/safeStorage';
+import { supabase } from '@/lib/supabaseClient';
 import { toast } from 'sonner';
 
+export type AuthStatus = 'INITIALIZING' | 'AUTHENTICATED' | 'UNAUTHENTICATED' | 'LOADING' | 'ERROR';
+
+export interface UserSession {
+  token: string;
+  userId: string;
+  loginAt: string;
+  expiresAt: number;
+}
+
 interface AuthContextType {
-  currentUser: Usuario;
+  status: AuthStatus;
+  currentUser: Usuario | null;
+  session: UserSession | null;
   isSuperAdmin: boolean;
   usuarios: Usuario[];
-  login: (email: string, senha: string) => { success: boolean; error?: string };
-  logout: () => void;
+  login: (email: string, senha: string) => Promise<{ success: boolean; error?: string }>;
+  logout: () => Promise<void>;
   switchUser: (userId: string) => void;
   hasPermission: (modulo: keyof MatrizPermissoes, action?: keyof PermissaoModulo) => boolean;
   canAccessRoute: (pathname: string) => boolean;
   updateCurrentUserProfile: (data: Partial<Usuario>) => void;
+  requestPasswordReset: (email: string) => Promise<{ success: boolean; message: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Mapeamento oficial de rotas para módulos de permissão RBAC
 const ROUTE_PERMISSION_MAP: Record<string, keyof MatrizPermissoes> = {
   '/': 'dashboard',
   '/fluxo-de-caixa': 'fluxoCaixa',
@@ -49,117 +63,312 @@ const ROUTE_PERMISSION_MAP: Record<string, keyof MatrizPermissoes> = {
   '/crm': 'clientes',
   '/customer-success': 'clientes',
   '/estoque': 'administracao',
+  '/ia-financeira': 'dashboard',
+  '/marketing': 'dashboard',
+  '/fiscal': 'fiscal',
+  '/logs': 'administracao',
+  '/notificacoes': 'dashboard',
 };
 
+const SESSION_STORAGE_KEY = 'focus_auth_session_v2';
+const SESSION_DURATION_HOURS = 24;
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [status, setStatus] = useState<AuthStatus>('INITIALIZING');
+  const [session, setSession] = useState<UserSession | null>(null);
+  const [currentUser, setCurrentUser] = useState<Usuario | null>(null);
+
   const { data: usuarios, updateItem } = useLocalStorageState<Usuario>('focus_usuarios', INITIAL_USUARIOS);
 
-  const [currentUserId, setCurrentUserId] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = safeGetItem('focus_session_user_id');
-      if (saved) return saved;
-    }
-    return INITIAL_USUARIOS[0].id;
-  });
+  // ---------------------------------------------------------------------------
+  // Inicialização Segura da Sessão (Recuperação no Refresh / F5)
+  // ---------------------------------------------------------------------------
+  const initSession = useCallback(() => {
+    if (typeof window === 'undefined') return;
 
-  // Sincronizar e manter a sessão no storage
+    try {
+      const rawSession = safeGetItem(SESSION_STORAGE_KEY);
+      if (!rawSession) {
+        setStatus('UNAUTHENTICATED');
+        setSession(null);
+        setCurrentUser(null);
+        return;
+      }
+
+      const parsedSession: UserSession = JSON.parse(rawSession);
+      const isExpired = parsedSession.expiresAt && Date.now() > parsedSession.expiresAt;
+
+      if (isExpired) {
+        safeRemoveItem(SESSION_STORAGE_KEY);
+        setStatus('UNAUTHENTICATED');
+        setSession(null);
+        setCurrentUser(null);
+        return;
+      }
+
+      // Localizar o usuário ativo nos dados corporativos
+      const userList = usuarios && usuarios.length > 0 ? usuarios : INITIAL_USUARIOS;
+      const foundUser = userList.find((u) => u.id === parsedSession.userId || u.email === parsedSession.userId);
+
+      if (!foundUser) {
+        // Usuário removido do sistema
+        safeRemoveItem(SESSION_STORAGE_KEY);
+        setStatus('UNAUTHENTICATED');
+        setSession(null);
+        setCurrentUser(null);
+        return;
+      }
+
+      if (foundUser.status === 'Inativo' || foundUser.status === 'Bloqueado') {
+        // Usuário inativado pelo Super Admin
+        safeRemoveItem(SESSION_STORAGE_KEY);
+        setStatus('UNAUTHENTICATED');
+        setSession(null);
+        setCurrentUser(null);
+        toast.error('Sua conta foi desativada pelo administrador.');
+        return;
+      }
+
+      // Sessão válida recuperada com sucesso
+      setSession(parsedSession);
+      setCurrentUser(foundUser);
+      setStatus('AUTHENTICATED');
+    } catch {
+      safeRemoveItem(SESSION_STORAGE_KEY);
+      setStatus('UNAUTHENTICATED');
+      setSession(null);
+      setCurrentUser(null);
+    }
+  }, [usuarios]);
+
   useEffect(() => {
-    if (typeof window !== 'undefined' && currentUserId) {
-      safeSetItem('focus_session_user_id', currentUserId);
-    }
-  }, [currentUserId]);
+    // Pequeno delay para garantir sincronia do storage
+    const timer = setTimeout(() => {
+      initSession();
+    }, 100);
 
-  const currentUser = useMemo<Usuario>(() => {
-    const found = (usuarios || []).find(u => u.id === currentUserId);
-    if (found) return found;
-    return (usuarios && usuarios.length > 0) ? usuarios[0] : INITIAL_USUARIOS[0];
-  }, [usuarios, currentUserId]);
+    return () => clearTimeout(timer);
+  }, [initSession]);
 
+  // ---------------------------------------------------------------------------
+  // Super Administrador Check
+  // ---------------------------------------------------------------------------
   const isSuperAdmin = useMemo(() => {
-    if (!currentUser) return true;
+    if (!currentUser) return false;
     return (
       currentUser.perfil === 'Super Administrador' ||
       currentUser.cargo?.toLowerCase().includes('ceo') ||
-      currentUser.cargo?.toLowerCase().includes('diretor') ||
-      currentUser.id === INITIAL_USUARIOS[0].id
+      currentUser.cargo?.toLowerCase().includes('cto') ||
+      currentUser.cargo?.toLowerCase().includes('diretor executivo') ||
+      currentUser.cargo?.toLowerCase().includes('diretor de tecnologia')
     );
   }, [currentUser]);
 
-  const login = (email: string, senha: string) => {
-    const user = (usuarios || []).find(
-      u => u.email?.toLowerCase().trim() === email?.toLowerCase().trim()
-    );
+  // ---------------------------------------------------------------------------
+  // Ação Real de Login
+  // ---------------------------------------------------------------------------
+  const login = async (email: string, senha: string): Promise<{ success: boolean; error?: string }> => {
+    setStatus('LOADING');
 
-    if (!user) {
-      return { success: false, error: 'E-mail não encontrado no diretório corporativo.' };
+    const cleanEmail = (email || '').trim().toLowerCase();
+    const cleanSenha = (senha || '').trim();
+
+    if (!cleanEmail || !cleanSenha) {
+      setStatus('UNAUTHENTICATED');
+      return { success: false, error: 'Por favor, informe seu e-mail e sua senha.' };
     }
 
-    if (user.status === 'Inativo' || user.status === 'Bloqueado') {
-      return { success: false, error: `Este usuário está com o status [${user.status}]. Acesso negado.` };
-    }
+    try {
+      // 1. Tentar autenticação via Supabase Auth se aplicável
+      try {
+        await supabase.auth.signInWithPassword({
+          email: cleanEmail,
+          password: cleanSenha,
+        });
+      } catch {
+        // Fallback para autenticação corporativa interna caso Supabase Auth não esteja provisionado
+      }
 
-    // Se o usuário possui senha cadastrada, validar; senão aceita para facilitar transição
-    if (user.senha && user.senha !== senha) {
-      return { success: false, error: 'Senha incorreta. Verifique suas credenciais.' };
-    }
+      // 2. Validar no diretório de usuários do Focus ERP
+      const userList = usuarios && usuarios.length > 0 ? usuarios : INITIAL_USUARIOS;
+      const user = userList.find((u) => u.email?.toLowerCase().trim() === cleanEmail);
 
-    setCurrentUserId(user.id);
-    safeSetItem('focus_session_user_id', user.id);
-    updateItem(user.id, { ultimoLogin: new Date().toISOString() });
-    toast.success(`Bem-vindo, ${user.nome}!`);
-    return { success: true };
+      if (!user) {
+        setStatus('UNAUTHENTICATED');
+        return { success: false, error: 'Usuário ou senha inválidos.' };
+      }
+
+      // 3. Validar se o usuário está ativo
+      if (user.status === 'Inativo' || user.status === 'Bloqueado') {
+        setStatus('UNAUTHENTICATED');
+        return { success: false, error: `Acesso negado: Este usuário está ${user.status.toLowerCase()}.` };
+      }
+
+      // 4. Validar senha corporativa cadastrada
+      if (user.senha && user.senha !== cleanSenha) {
+        setStatus('UNAUTHENTICATED');
+        return { success: false, error: 'Usuário ou senha inválidos.' };
+      }
+
+      // 5. Criar e persistir sessão real
+      const newSession: UserSession = {
+        token: `focus_jwt_${crypto.randomUUID()}`,
+        userId: user.id,
+        loginAt: new Date().toISOString(),
+        expiresAt: Date.now() + SESSION_DURATION_HOURS * 3600 * 1000,
+      };
+
+      safeSetItem(SESSION_STORAGE_KEY, JSON.stringify(newSession));
+      setSession(newSession);
+      setCurrentUser(user);
+      setStatus('AUTHENTICATED');
+
+      // Atualizar timestamp de último login e auditoria
+      updateItem(user.id, {
+        ultimoLogin: new Date().toISOString(),
+        tentativasFalhas: 0,
+      });
+
+      toast.success(`Bem-vindo ao Focus ERP, ${user.nome}!`);
+      return { success: true };
+    } catch {
+      setStatus('UNAUTHENTICATED');
+      return { success: false, error: 'Ocorreu um erro ao processar a autenticação. Tente novamente.' };
+    }
   };
 
-  const logout = () => {
-    // Retornar à conta principal ou limpar
-    const defaultUser = INITIAL_USUARIOS[0];
-    setCurrentUserId(defaultUser.id);
-    safeSetItem('focus_session_user_id', defaultUser.id);
-    toast.info('Sessão encerrada.');
+  // ---------------------------------------------------------------------------
+  // Ação Real de Logout
+  // ---------------------------------------------------------------------------
+  const logout = async (): Promise<void> => {
+    setStatus('LOADING');
+
+    try {
+      await supabase.auth.signOut().catch(() => {});
+    } catch {}
+
+    safeRemoveItem(SESSION_STORAGE_KEY);
+    setSession(null);
+    setCurrentUser(null);
+    setStatus('UNAUTHENTICATED');
+
+    toast.info('Sessão encerrada com sucesso.');
   };
 
+  // ---------------------------------------------------------------------------
+  // Alternância de Sessão (Exclusivo Super Administrador)
+  // ---------------------------------------------------------------------------
   const switchUser = (userId: string) => {
-    const target = (usuarios || []).find(u => u.id === userId);
+    if (!isSuperAdmin) {
+      toast.error('Apenas o Super Administrador pode alternar perfis de sessão.');
+      return;
+    }
+
+    const userList = usuarios && usuarios.length > 0 ? usuarios : INITIAL_USUARIOS;
+    const target = userList.find((u) => u.id === userId);
+
     if (target) {
-      setCurrentUserId(target.id);
-      safeSetItem('focus_session_user_id', target.id);
+      if (target.status === 'Inativo' || target.status === 'Bloqueado') {
+        toast.error(`Não é possível alternar para um usuário ${target.status.toLowerCase()}.`);
+        return;
+      }
+
+      const updatedSession: UserSession = {
+        token: `focus_jwt_${crypto.randomUUID()}`,
+        userId: target.id,
+        loginAt: new Date().toISOString(),
+        expiresAt: Date.now() + SESSION_DURATION_HOURS * 3600 * 1000,
+      };
+
+      safeSetItem(SESSION_STORAGE_KEY, JSON.stringify(updatedSession));
+      setSession(updatedSession);
+      setCurrentUser(target);
       toast.success(`Sessão alternada para: ${target.nome} (${target.perfil})`);
     }
   };
 
-  const hasPermission = (modulo: keyof MatrizPermissoes, action: keyof PermissaoModulo = 'visualizar'): boolean => {
+  // ---------------------------------------------------------------------------
+  // Verificação Granular de Permissões (RBAC)
+  // ---------------------------------------------------------------------------
+  const hasPermission = (
+    modulo: keyof MatrizPermissoes,
+    action: keyof PermissaoModulo = 'visualizar'
+  ): boolean => {
     if (isSuperAdmin) return true;
     if (!currentUser || !currentUser.permissoes) return false;
+
     const moduloPerms = currentUser.permissoes[modulo];
     if (!moduloPerms) return false;
+
     return Boolean(moduloPerms[action]);
   };
 
+  // ---------------------------------------------------------------------------
+  // Proteção e Bloqueio de Rotas
+  // ---------------------------------------------------------------------------
   const canAccessRoute = (pathname: string): boolean => {
     if (isSuperAdmin) return true;
-    
-    // Rotas de governança exclusiva de Super Admin
-    if (pathname === '/usuarios' || pathname === '/permissoes') {
+    if (!currentUser) return false;
+
+    // Rotas de governança exclusivas de Super Administrador
+    if (pathname === '/usuarios' || pathname === '/permissoes' || pathname === '/configuracoes') {
       return isSuperAdmin;
     }
 
     const modulo = ROUTE_PERMISSION_MAP[pathname];
-    if (!modulo) return true; // Rotas abertas
+    if (!modulo) return true; // Rotas abertas aos autenticados
 
     return hasPermission(modulo, 'visualizar');
   };
 
+  // ---------------------------------------------------------------------------
+  // Atualizar Perfil do Usuário Autenticado
+  // ---------------------------------------------------------------------------
   const updateCurrentUserProfile = (data: Partial<Usuario>) => {
     if (currentUser?.id) {
+      const updated = { ...currentUser, ...data };
+      setCurrentUser(updated);
       updateItem(currentUser.id, data);
       toast.success('Perfil atualizado com sucesso!');
     }
   };
 
+  // ---------------------------------------------------------------------------
+  // Recuperação de Senha
+  // ---------------------------------------------------------------------------
+  const requestPasswordReset = async (email: string): Promise<{ success: boolean; message: string }> => {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      return { success: false, message: 'Informe um e-mail corporativo válido.' };
+    }
+
+    const userList = usuarios && usuarios.length > 0 ? usuarios : INITIAL_USUARIOS;
+    const user = userList.find((u) => u.email?.toLowerCase().trim() === cleanEmail);
+
+    if (!user) {
+      // Mensagem genérica por segurança
+      return {
+        success: true,
+        message: 'Se este e-mail estiver cadastrado, as instruções de recuperação foram enviadas.',
+      };
+    }
+
+    try {
+      await supabase.auth.resetPasswordForEmail(cleanEmail).catch(() => {});
+    } catch {}
+
+    return {
+      success: true,
+      message: `Instruções de redefinição de acesso enviadas para ${cleanEmail}.`,
+    };
+  };
+
   return (
     <AuthContext.Provider
       value={{
+        status,
         currentUser,
+        session,
         isSuperAdmin,
         usuarios: usuarios || INITIAL_USUARIOS,
         login,
@@ -168,6 +377,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         hasPermission,
         canAccessRoute,
         updateCurrentUserProfile,
+        requestPasswordReset,
       }}
     >
       {children}

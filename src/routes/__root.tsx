@@ -5,6 +5,7 @@ import {
   createRootRouteWithContext,
   useRouter,
   useRouterState,
+  useNavigate,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -24,9 +25,11 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { TopBar } from "@/components/top-bar";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider, useAuth } from "@/features/auth/AuthContext";
-import { ShieldAlert, ArrowLeft, Lock } from "lucide-react";
+import { ShieldAlert, ArrowLeft, Lock, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import focusLogoHorizontal from "@/assets/focus-logo-horizontal.png";
+import focusLogoHorizontalDark from "@/assets/focus-logo-horizontal-dark.png";
 
 function NotFoundComponent() {
   return (
@@ -88,6 +91,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   );
 }
 
+// Guarda Granular de Acesso por Módulo e Permissão
 function RouteAccessGate() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { canAccessRoute, currentUser, isSuperAdmin, logout } = useAuth();
@@ -113,7 +117,7 @@ function RouteAccessGate() {
           Solicite ao Super Administrador a liberação na Matriz de Permissões (IAM).
         </p>
         <div className="flex items-center gap-3 mt-6">
-          <Button asChild variant="default" className="gap-2">
+          <Button asChild variant="default" className="gap-2 bg-orange-600 hover:bg-orange-700 text-white">
             <Link to="/">
               <ArrowLeft className="w-4 h-4" /> Ir para o Dashboard
             </Link>
@@ -127,6 +131,73 @@ function RouteAccessGate() {
   }
 
   return <Outlet />;
+}
+
+// Componente Principal de Roteamento com Proteção de Sessão
+function ProtectedAppLayout() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const navigate = useNavigate();
+  const { status, currentUser } = useAuth();
+
+  const isLoginPage = pathname === '/login';
+
+  // Redirecionamento automático baseado no estado real de autenticação
+  useEffect(() => {
+    if (status === 'UNAUTHENTICATED' && !isLoginPage) {
+      navigate({ to: '/login' });
+    } else if (status === 'AUTHENTICATED' && isLoginPage) {
+      navigate({ to: '/' });
+    }
+  }, [status, isLoginPage, navigate]);
+
+  // 1. Tela de Carregamento Inicial (Splash Screen Premium)
+  if (status === 'INITIALIZING') {
+    return (
+      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-background px-4">
+        <div className="flex flex-col items-center gap-6 animate-pulse">
+          <img
+            src={focusLogoHorizontal}
+            alt="Focus ERP"
+            className="h-10 w-auto object-contain dark:hidden"
+          />
+          <img
+            src={focusLogoHorizontalDark}
+            alt="Focus ERP"
+            className="h-10 w-auto object-contain hidden dark:block"
+          />
+          <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <Loader2 className="w-4 h-4 animate-spin text-orange-600" />
+            <span>Carregando Focus ERP...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 2. Tela de Login (Livre de Sidebar/TopBar)
+  if (isLoginPage || status === 'UNAUTHENTICATED') {
+    return (
+      <main className="min-h-screen w-full bg-background">
+        <Outlet />
+      </main>
+    );
+  }
+
+  // 3. Aplicação ERP Autenticada Completa
+  return (
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-background">
+        <AppSidebar />
+        <SidebarInset className="flex min-w-0 flex-1 flex-col w-full max-w-[100vw]">
+          <TopBar />
+          <main className="flex-1 overflow-x-hidden w-full max-w-[100vw]">
+            <RouteAccessGate />
+          </main>
+        </SidebarInset>
+      </div>
+      <Toaster position="top-right" />
+    </SidebarProvider>
+  );
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
@@ -196,18 +267,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <SidebarProvider>
-          <div className="flex min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-background">
-            <AppSidebar />
-            <SidebarInset className="flex min-w-0 flex-1 flex-col w-full max-w-[100vw]">
-              <TopBar />
-              <main className="flex-1 overflow-x-hidden w-full max-w-[100vw]">
-                <RouteAccessGate />
-              </main>
-            </SidebarInset>
-          </div>
-          <Toaster position="top-right" />
-        </SidebarProvider>
+        <ProtectedAppLayout />
       </AuthProvider>
     </QueryClientProvider>
   );
