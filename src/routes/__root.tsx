@@ -28,8 +28,8 @@ import { AuthProvider, useAuth } from "@/features/auth/AuthContext";
 import { ShieldAlert, ArrowLeft, Lock, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import focusLogoHorizontal from "@/assets/focus-logo-horizontal.png";
-import focusLogoHorizontalDark from "@/assets/focus-logo-horizontal-dark.png";
+import focusLogoHq from "@/assets/focus-erp-logo-hq.png";
+import focusLogoHqDark from "@/assets/focus-erp-logo-hq-dark.png";
 
 function NotFoundComponent() {
   return (
@@ -156,12 +156,12 @@ function ProtectedAppLayout() {
       <div className="min-h-screen w-full flex flex-col items-center justify-center bg-background px-4">
         <div className="flex flex-col items-center gap-6 animate-pulse">
           <img
-            src={focusLogoHorizontal}
+            src={focusLogoHq}
             alt="Focus ERP"
             className="h-10 w-auto object-contain dark:hidden"
           />
           <img
-            src={focusLogoHorizontalDark}
+            src={focusLogoHqDark}
             alt="Focus ERP"
             className="h-10 w-auto object-contain hidden dark:block"
           />
