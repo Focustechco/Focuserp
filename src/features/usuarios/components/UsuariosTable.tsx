@@ -15,7 +15,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useLocalStorageState } from '@/hooks/useDataStore';
 import { INITIAL_USUARIOS } from '../data/initialData';
-import { Search, Filter, MoreHorizontal, KeyRound, ShieldAlert, UserCheck, UserX, Smartphone } from 'lucide-react';
+import { Search, Filter, MoreHorizontal, KeyRound, ShieldAlert, UserCheck, UserX, Smartphone, Trash2 } from 'lucide-react';
 import { UserFormSheet } from './UserFormSheet';
 import { Usuario, UserStatus } from '../types';
 import { toast } from 'sonner';
@@ -26,7 +26,7 @@ export function UsuariosTable() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<Usuario | null>(null);
 
-  const { data: usuarios, updateItem } = useLocalStorageState<Usuario>('focus_usuarios', INITIAL_USUARIOS);
+  const { data: usuarios, updateItem, deleteItem } = useLocalStorageState<Usuario>('focus_usuarios', INITIAL_USUARIOS);
 
   const filteredUsers = usuarios.filter(user => {
     const matchesSearch = 
@@ -192,6 +192,16 @@ export function UsuariosTable() {
                           toast.success(`O usuário ${user.nome} foi inativado`);
                         }}>
                           <UserX className="w-4 h-4 mr-2" /> Inativar Usuário
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-rose-600 font-semibold" onClick={() => {
+                          if (usuarios.length <= 1) {
+                            toast.error('Não é possível excluir o único usuário administrador do sistema.');
+                            return;
+                          }
+                          deleteItem(user.id);
+                          toast.success(`Usuário ${user.nome} excluído do diretório.`);
+                        }}>
+                          <Trash2 className="w-4 h-4 mr-2" /> Excluir Registro
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>

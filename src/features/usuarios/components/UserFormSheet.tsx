@@ -76,10 +76,32 @@ export function UserFormSheet({ isOpen, onClose, user }: UserFormSheetProps) {
     if (file) {
       const reader = new FileReader();
       reader.onload = (evt) => {
-        if (evt.target?.result) {
-          setFoto(evt.target.result as string);
-          toast.success("Foto de perfil carregada com sucesso!");
-        }
+        const src = evt.target?.result as string;
+        if (!src) return;
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const maxDim = 120;
+          let w = img.width;
+          let h = img.height;
+          if (w > h) {
+            h = Math.round((h * maxDim) / w);
+            w = maxDim;
+          } else {
+            w = Math.round((w * maxDim) / h);
+            h = maxDim;
+          }
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, w, h);
+            const compressed = canvas.toDataURL('image/jpeg', 0.8);
+            setFoto(compressed);
+            toast.success("Foto de perfil otimizada e carregada!");
+          }
+        };
+        img.src = src;
       };
       reader.readAsDataURL(file);
     }

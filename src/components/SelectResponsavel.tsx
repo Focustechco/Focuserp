@@ -3,73 +3,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useLocalStorageState } from '@/hooks/useDataStore';
 import { Usuario } from '@/features/usuarios/types';
 import { INITIAL_USUARIOS } from '@/features/usuarios/data/initialData';
-
-export const DEFAULT_SYSTEM_USERS: Usuario[] = [
-  {
-    id: 'usr-101',
-    nome: 'Adriano Leal',
-    nomeExibicao: 'Adriano Leal',
-    email: 'adriano.leal@focustecnologia.com.br',
-    cargo: 'CEO / Diretor Executivo',
-    departamento: 'Diretoria',
-    status: 'Ativo',
-    perfil: 'Super Administrador',
-    rolesComplementares: ['Financeiro', 'Projetos', 'Comercial'],
-    mfaHabilitado: true,
-    tentativasFalhas: 0,
-    sessoes: [],
-    permissoes: {} as any,
-    auditoria: []
-  },
-  {
-    id: 'usr-102',
-    nome: 'Mariana Costa',
-    nomeExibicao: 'Mariana Costa',
-    email: 'mariana.costa@focustecnologia.com.br',
-    cargo: 'Gerente de Projetos & Operações',
-    departamento: 'Engenharia',
-    status: 'Ativo',
-    perfil: 'Projetos',
-    rolesComplementares: ['Operações'],
-    mfaHabilitado: true,
-    tentativasFalhas: 0,
-    sessoes: [],
-    permissoes: {} as any,
-    auditoria: []
-  },
-  {
-    id: 'usr-103',
-    nome: 'Carlos Andrade',
-    nomeExibicao: 'Carlos Andrade',
-    email: 'carlos.andrade@focustecnologia.com.br',
-    cargo: 'Gerente Financeiro & Controller',
-    departamento: 'Financeiro',
-    status: 'Ativo',
-    perfil: 'Administrador Financeiro',
-    rolesComplementares: ['Fiscal', 'Tesouraria'],
-    mfaHabilitado: true,
-    tentativasFalhas: 0,
-    sessoes: [],
-    permissoes: {} as any,
-    auditoria: []
-  },
-  {
-    id: 'usr-104',
-    nome: 'Felipe Santos',
-    nomeExibicao: 'Felipe Santos',
-    email: 'felipe.santos@focustecnologia.com.br',
-    cargo: 'Head Comercial & Vendas SaaS',
-    departamento: 'Vendas',
-    status: 'Ativo',
-    perfil: 'Comercial',
-    rolesComplementares: ['CRM'],
-    mfaHabilitado: false,
-    tentativasFalhas: 0,
-    sessoes: [],
-    permissoes: {} as any,
-    auditoria: []
-  }
-];
+import { safeGetItem } from '@/lib/safeStorage';
 
 interface SelectResponsavelProps {
   value?: string;
@@ -94,16 +28,15 @@ export function SelectResponsavel({
   allowUnassigned = false,
   unassignedLabel = "Não Atribuído"
 }: SelectResponsavelProps) {
-  const { data: storedUsuarios } = useLocalStorageState<Usuario>('focus_usuarios', INITIAL_USUARIOS || DEFAULT_SYSTEM_USERS);
+  const { data: storedUsuarios } = useLocalStorageState<Usuario>('focus_usuarios', INITIAL_USUARIOS);
 
   const usersList = useMemo(() => {
-    // 1. Obter lista de usuários
     let list: Usuario[] = [];
     if (storedUsuarios && Array.isArray(storedUsuarios) && storedUsuarios.length > 0) {
       list = storedUsuarios;
-    } else if (typeof window !== 'undefined') {
+    } else {
       try {
-        const raw = window.localStorage.getItem('focus_app_focus_usuarios') || window.localStorage.getItem('focus_usuarios');
+        const raw = safeGetItem('focus_app_focus_usuarios') || safeGetItem('focus_usuarios');
         if (raw) {
           const parsed = JSON.parse(raw);
           if (Array.isArray(parsed) && parsed.length > 0) {
@@ -114,10 +47,10 @@ export function SelectResponsavel({
     }
 
     if (list.length === 0) {
-      list = INITIAL_USUARIOS && INITIAL_USUARIOS.length > 0 ? INITIAL_USUARIOS : DEFAULT_SYSTEM_USERS;
+      list = INITIAL_USUARIOS;
     }
 
-    // 2. Filtrar ativos
+    // Filtrar ativos
     const active = list.filter(u => !u.status || String(u.status).toLowerCase() === 'ativo');
     return active.length > 0 ? active : list;
   }, [storedUsuarios]);
@@ -127,7 +60,7 @@ export function SelectResponsavel({
       <SelectTrigger className={className}>
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
-      <SelectContent className="max-h-72">
+      <SelectContent className="max-h-72 z-[9999]">
         {includeAllOption && (
           <SelectItem value="todos">{allOptionLabel}</SelectItem>
         )}
