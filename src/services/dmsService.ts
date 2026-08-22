@@ -1,22 +1,25 @@
 import { supabase } from '@/lib/supabaseClient';
-import { PastaDMS, DocumentoDMS, AuditLogDocumento, ModuloOrigemDMS, FormatoArquivo } from '@/features/documentos/types';
+import { PastaDMS, DocumentoDMS, AuditLogDocumento, FormatoArquivo, ModuloOrigemDMS } from '@/features/documentos/types';
 import { INITIAL_PASTAS, INITIAL_DOCUMENTOS } from '@/features/documentos/data/initialData';
 import { safeGetItem, safeSetItem } from '@/lib/safeStorage';
 
-const PASTAS_STORAGE_KEYS = ['focus_app_focus_dms_pastas', 'focus_dms_pastas', 'focus_app_dms_pastas'];
-const DOCS_STORAGE_KEYS = ['focus_app_focus_dms_documentos', 'focus_dms_documentos', 'focus_app_dms_documentos'];
-const AUDIT_STORAGE_KEYS = ['focus_app_focus_dms_audit', 'focus_dms_audit', 'focus_app_dms_audit'];
+const DOCS_STORAGE_KEYS = ['focus_app_focus_dms_documentos', 'focus_dms_documentos'];
+const PASTAS_STORAGE_KEYS = ['focus_app_focus_dms_pastas', 'focus_dms_pastas'];
+const AUDIT_STORAGE_KEYS = ['focus_app_focus_dms_audit', 'focus_dms_audit'];
 
 function triggerSyncEvent() {
   if (typeof window !== 'undefined') {
-    window.dispatchEvent(new Event('focus_storage_update'));
-    window.dispatchEvent(new Event('storage'));
+    try {
+      window.dispatchEvent(new Event('focus_storage_update'));
+      window.dispatchEvent(new Event('focus_dms_updated'));
+      window.dispatchEvent(new Event('storage'));
+    } catch {}
   }
 }
 
 /**
- * Service Central de Gestão de Documentos (DMS / ECM) integrado com
- * Clientes, Projetos, RH, Produtos Focus e Relatórios.
+ * Service Central de Gestão Eletrônica de Documentos (DMS / ECM)
+ * Integração universal com Clientes, CRM, Projetos, RH, Produtos, Relatórios e Financeiro.
  */
 export const dmsService = {
   // ---------------------------------------------------------------------------
@@ -28,12 +31,7 @@ export const dmsService = {
         const raw = safeGetItem(key);
         if (raw) {
           const list: PastaDMS[] = JSON.parse(raw);
-          if (Array.isArray(list) && list.length > 0) {
-            const map = new Map<string, PastaDMS>();
-            INITIAL_PASTAS.forEach((p) => map.set(p.id, p));
-            list.forEach((p) => map.set(p.id, p));
-            return Array.from(map.values());
-          }
+          if (Array.isArray(list) && list.length > 0) return list;
         }
       }
     } catch {}
@@ -75,12 +73,14 @@ export const dmsService = {
     nome: string,
     parentId: string | null = null,
     moduloVinculado: ModuloOrigemDMS = 'Geral',
-    entidadeId?: string
+    entidadeId?: string,
+    customId?: string
   ): PastaDMS {
     const pastas = this.getPastas();
     
     // Verificar se a pasta já existe
     const existing = pastas.find((p) => {
+      if (customId && p.id === customId) return true;
       if (entidadeId && p.entidadeId === entidadeId) return true;
       if (p.parentId === parentId && p.nome.toLowerCase().trim() === nome.toLowerCase().trim()) return true;
       return false;
@@ -95,8 +95,10 @@ export const dmsService = {
     }
     const caminhoCompleto = `${parentPath}/${nome}`.replace('//', '/');
 
+    const folderId = customId || (entidadeId ? `p-${moduloVinculado.toLowerCase().replace(/\s+/g, '-')}-${entidadeId}` : `p-${Date.now()}-${Math.floor(Math.random() * 1000)}`);
+
     const newFolder: PastaDMS = {
-      id: entidadeId ? `p-${moduloVinculado.toLowerCase().replace(/\s+/g, '-')}-${entidadeId}` : `p-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      id: folderId,
       nome,
       parentId,
       caminhoCompleto,
@@ -113,37 +115,55 @@ export const dmsService = {
 
   // 1. Clientes: Cria automaticamente /Clientes e /Clientes/[Nome do Cliente]
   ensureClientFolder(cliente: { id: string; nome?: string; nomeFantasia?: string; razaoSocial?: string }): PastaDMS {
-    const rootFolder = this.ensureFolder('Clientes', null, 'Clientes');
+    const rootFolder = this.ensureFolder('Clientes', null, 'Clientes', undefined, 'p-cli');
     const nomeCliente = cliente.nomeFantasia || cliente.razaoSocial || cliente.nome || 'Cliente Sem Nome';
-    return this.ensureFolder(nomeCliente, rootFolder.id, 'Clientes', cliente.id);
+    const folderId = `p-cli-${cliente.id}`;
+    return this.ensureFolder(nomeCliente, rootFolder.id, 'Clientes', cliente.id, folderId);
   },
 
   // 2. Projetos: Cria automaticamente /Projetos e /Projetos/[Nome do Projeto]
   ensureProjectFolder(projeto: { id: string; nome?: string; codigo?: string }): PastaDMS {
-    const rootFolder = this.ensureFolder('Projetos', null, 'Projetos');
+    const rootFolder = this.ensureFolder('Projetos', null, 'Projetos', undefined, 'p-prj');
     const nomeProjeto = projeto.codigo ? `${projeto.codigo} - ${projeto.nome || 'Projeto'}` : projeto.nome || 'Projeto Sem Nome';
-    return this.ensureFolder(nomeProjeto, rootFolder.id, 'Projetos', projeto.id);
+    const folderId = `p-prj-${projeto.id}`;
+    return this.ensureFolder(nomeProjeto, rootFolder.id, 'Projetos', projeto.id, folderId);
   },
 
   // 3. RH: Cria automaticamente /RH e /RH/Colaboradores/[Nome do Colaborador]
   ensureRhFolder(colaborador: { id: string; nome?: string; nomeExibicao?: string }): PastaDMS {
-    const rootFolder = this.ensureFolder('RH', null, 'RH');
-    const colabRoot = this.ensureFolder('Colaboradores', rootFolder.id, 'RH');
+    const rootFolder = this.ensureFolder('RH', null, 'RH', undefined, 'p-rh');
+    const colabRoot = this.ensureFolder('Colaboradores', rootFolder.id, 'RH', undefined, 'p-rh-colab');
     const nomeColaborador = colaborador.nome || colaborador.nomeExibicao || 'Colaborador';
-    return this.ensureFolder(nomeColaborador, colabRoot.id, 'RH', colaborador.id);
+    const folderId = `p-rh-colab-${colaborador.id}`;
+    return this.ensureFolder(nomeColaborador, colabRoot.id, 'RH', colaborador.id, folderId);
   },
 
   // 4. Produtos Focus: Cria automaticamente /Produtos Focus e /Produtos Focus/[Nome do Produto]
   ensureProductFolder(produto: { id: string; nome?: string }): PastaDMS {
-    const rootFolder = this.ensureFolder('Produtos Focus', null, 'Produtos Focus');
+    const rootFolder = this.ensureFolder('Produtos Focus', null, 'Produtos Focus', undefined, 'p-prod');
     const nomeProduto = produto.nome || 'Produto Focus';
-    return this.ensureFolder(nomeProduto, rootFolder.id, 'Produtos Focus', produto.id);
+    const folderId = `p-prod-${produto.id}`;
+    return this.ensureFolder(nomeProduto, rootFolder.id, 'Produtos Focus', produto.id, folderId);
   },
 
   // 5. Relatórios: Cria automaticamente /Relatórios e subpastas temáticas
   ensureReportFolder(tipo: 'DRE Gerencial' | 'Fluxo de Caixa' | 'Faturamento e Vendas' | 'Auditoria e Compliance' | 'Geral' = 'Geral'): PastaDMS {
-    const rootFolder = this.ensureFolder('Relatórios', null, 'Relatórios');
-    return this.ensureFolder(tipo, rootFolder.id, 'Relatórios');
+    const rootFolder = this.ensureFolder('Relatórios', null, 'Relatórios', undefined, 'p-rel');
+    
+    if (tipo.includes('DRE')) {
+      return this.ensureFolder('DRE Gerencial', rootFolder.id, 'Relatórios', undefined, 'p-rel-dre');
+    }
+    if (tipo.includes('Fluxo')) {
+      return this.ensureFolder('Fluxo de Caixa', rootFolder.id, 'Relatórios', undefined, 'p-rel-fluxo');
+    }
+    if (tipo.includes('Vendas') || tipo.includes('Faturamento')) {
+      return this.ensureFolder('Faturamento e Vendas', rootFolder.id, 'Relatórios', undefined, 'p-rel-faturam');
+    }
+    if (tipo.includes('Auditoria') || tipo.includes('Compliance')) {
+      return this.ensureFolder('Auditoria e Compliance', rootFolder.id, 'Relatórios', undefined, 'p-rel-audit');
+    }
+    
+    return rootFolder;
   },
 
   // ---------------------------------------------------------------------------
