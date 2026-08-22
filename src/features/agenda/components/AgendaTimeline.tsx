@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Link } from '@tanstack/react-router';
 import { useAgendaEvents } from '../useAgendaEvents';
 import { NovoEventoAgendaSheet } from './NovoEventoAgendaSheet';
+import { parseDateSafe } from '@/lib/dateUtils';
 
 const formatCurrency = (value?: number) => {
   if (value === undefined) return '-';
@@ -36,7 +37,7 @@ const getStatusBadge = (status: string) => {
 };
 
 const getDateLabel = (dateIso: string) => {
-  const date = new Date(dateIso.includes('T') ? dateIso : `${dateIso}T12:00:00Z`);
+  const date = parseDateSafe(dateIso);
   if (isNaN(date.getTime())) return dateIso;
   if (isToday(date)) return 'Hoje';
   if (isTomorrow(date)) return 'Amanhã';
@@ -130,7 +131,7 @@ export function AgendaTimeline() {
 
                 <div className="space-y-4">
                   {evtList.map(evt => {
-                    const evtDate = new Date(evt.data);
+                    const evtDate = parseDateSafe(evt.data);
                     const isAtrasado = !isNaN(evtDate.getTime()) && isPast(evtDate) && !isToday(evtDate) && evt.status !== 'Pago' && evt.status !== 'Recebido' && evt.status !== 'Concluído';
                     
                     return (

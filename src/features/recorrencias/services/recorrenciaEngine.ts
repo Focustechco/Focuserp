@@ -1,6 +1,7 @@
 import { TituloReceber } from '@/features/contas-receber/types';
 import { RecorrenciaFinanceira, FrequenciaRecorrencia } from '../types';
 import { Contrato } from '@/features/contratos/types';
+import { getBrasiliaTodayIso, parseDateSafe } from '@/lib/dateUtils';
 
 export interface ResumoFinanceiroCliente {
   valorEmAberto: number;
@@ -140,11 +141,11 @@ export function generateRecorrenciaDates(
 ): string[] {
   const dates: string[] = [];
   const diaVenc = Math.min(31, Math.max(1, recorrencia.diaVencimento || 10));
-  const dataBase = recorrencia.dataInicio ? new Date(recorrencia.dataInicio + 'T12:00:00Z') : new Date();
+  const dataBase = recorrencia.dataInicio ? parseDateSafe(recorrencia.dataInicio) : new Date();
   const totalCiclos = recorrencia.quantidade && recorrencia.quantidade > 0 ? Math.min(recorrencia.quantidade, maxCiclos) : maxCiclos;
 
-  let currentYear = dataBase.getUTCFullYear();
-  let currentMonth = dataBase.getUTCMonth(); // 0-11
+  let currentYear = dataBase.getFullYear();
+  let currentMonth = dataBase.getMonth(); // 0-11
 
   for (let i = 0; i < totalCiclos; i++) {
     let targetYear = currentYear;
@@ -154,12 +155,12 @@ export function generateRecorrenciaDates(
     switch (recorrencia.frequencia) {
       case 'Semanal': {
         const d = new Date(dataBase.getTime() + i * 7 * 24 * 60 * 60 * 1000);
-        dates.push(d.toISOString().split('T')[0]);
+        dates.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
         continue;
       }
       case 'Quinzenal': {
         const d = new Date(dataBase.getTime() + i * 15 * 24 * 60 * 60 * 1000);
-        dates.push(d.toISOString().split('T')[0]);
+        dates.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
         continue;
       }
       case 'Mensal': {
@@ -184,11 +185,11 @@ export function generateRecorrenciaDates(
       }
     }
 
-    const calculatedDate = new Date(Date.UTC(targetYear, targetMonth, 1));
-    const finalYear = calculatedDate.getUTCFullYear();
-    const finalMonth = calculatedDate.getUTCMonth();
+    const calculatedDate = new Date(targetYear, targetMonth, 1);
+    const finalYear = calculatedDate.getFullYear();
+    const finalMonth = calculatedDate.getMonth();
     // Último dia do mês para não estourar fevereiro ou meses de 30 dias
-    const lastDayOfMonth = new Date(Date.UTC(finalYear, finalMonth + 1, 0)).getUTCDate();
+    const lastDayOfMonth = new Date(finalYear, finalMonth + 1, 0).getDate();
     const safeDay = Math.min(targetDay, lastDayOfMonth);
 
     const dateStr = `${finalYear}-${String(finalMonth + 1).padStart(2, '0')}-${String(safeDay).padStart(2, '0')}`;
@@ -215,7 +216,7 @@ export function syncRecorrenciaTitulos(
     return titulosAtuais;
   }
 
-  const hoje = new Date().toISOString().split('T')[0];
+  const hoje = getBrasiliaTodayIso();
   const scheduledDates = generateRecorrenciaDates(recorrencia, 12);
   let updatedList = [...titulosAtuais];
 

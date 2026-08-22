@@ -29,33 +29,19 @@ interface ClientePerfilSheetProps {
   onEdit?: (cliente: Cliente) => void;
 }
 
+import { formatDateBrasilia, formatDateTimeBrasilia } from '@/lib/dateUtils';
+
 function formatCurrency(val: any): string {
   const num = typeof val === 'number' ? val : parseFloat(String(val || 0)) || 0;
   return num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function formatDateSafe(dateVal: any): string {
-  if (!dateVal) return 'Não informada';
-  try {
-    const str = String(dateVal);
-    const d = new Date(str.includes('T') ? str : `${str}T12:00:00Z`);
-    if (isNaN(d.getTime())) return str;
-    return d.toLocaleDateString('pt-BR');
-  } catch {
-    return String(dateVal);
-  }
+  return formatDateBrasilia(dateVal);
 }
 
 function formatDateTimeSafe(dateVal: any): string {
-  if (!dateVal) return 'Não informada';
-  try {
-    const str = String(dateVal);
-    const d = new Date(str);
-    if (isNaN(d.getTime())) return str;
-    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-  } catch {
-    return String(dateVal);
-  }
+  return formatDateTimeBrasilia(dateVal);
 }
 
 export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: ClientePerfilSheetProps) {

@@ -4,6 +4,7 @@ import { CalendarDays, AlertCircle, ArrowUpRight, ArrowDownRight } from 'lucide-
 import { isToday, isSameMonth } from 'date-fns';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { useAgendaEvents } from '../useAgendaEvents';
+import { parseDateSafe, isSameDayBrasilia } from '@/lib/dateUtils';
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -11,22 +12,22 @@ const formatCurrency = (value: number) => {
 
 export function Dashboard() {
   const { eventos } = useAgendaEvents();
+  const today = new Date();
 
   const eventosHoje = eventos.filter(e => {
-    const d = new Date(e.data);
-    return !isNaN(d.getTime()) && isToday(d);
+    return isSameDayBrasilia(e.data, today);
   });
 
   const eventosMes = eventos.filter(e => {
-    const d = new Date(e.data);
-    return !isNaN(d.getTime()) && isSameMonth(d, new Date());
+    const d = parseDateSafe(e.data);
+    return !isNaN(d.getTime()) && isSameMonth(d, today);
   });
 
-  const recebimentosHoje = eventosHoje.filter(e => e.categoria === 'Recebimento').length;
+  const recebimentosHoje = eventosHoje.filter(e => e.categoria === 'Recebimento' || e.categoria === 'Recorrência').length;
   const pagamentosHoje = eventosHoje.filter(e => e.categoria === 'Pagamento').length;
 
   const receitasMes = eventosMes
-    .filter(e => e.categoria === 'Recebimento' && e.valor)
+    .filter(e => (e.categoria === 'Recebimento' || e.categoria === 'Recorrência') && e.valor)
     .reduce((acc, e) => acc + (e.valor || 0), 0);
     
   const despesasMes = eventosMes

@@ -12,6 +12,7 @@ import { format } from 'date-fns';
 import { ArrowUpRight, ArrowDownRight, FileWarning, FileText, Briefcase, CalendarIcon, ExternalLink, Clock, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from '@tanstack/react-router';
+import { formatDateBrasilia } from '@/lib/dateUtils';
 
 interface DetalheEventoSheetProps {
   evento: EventoFinanceiro | null;
@@ -84,7 +85,7 @@ export function DetalheEventoSheet({ evento, isOpen, onClose }: DetalheEventoShe
                 <p className="text-muted-foreground mb-1">Data</p>
                 <p className="font-medium flex items-center gap-1.5">
                   <CalendarIcon className="w-3.5 h-3.5 opacity-70" />
-                  {format(new Date(evento.data), "dd/MM/yyyy")}
+                  {formatDateBrasilia(evento.data)}
                 </p>
               </div>
               <div>

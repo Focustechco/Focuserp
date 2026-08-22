@@ -17,6 +17,7 @@ import { ChevronLeft, ChevronRight, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EventoFinanceiro, CategoriaAgenda } from '../types';
 import { useAgendaEvents } from '../useAgendaEvents';
+import { isSameDayBrasilia } from '@/lib/dateUtils';
 
 interface CalendarioGridProps {
   onEventClick: (evento: EventoFinanceiro) => void;
@@ -50,7 +51,7 @@ export function CalendarioGrid({ onEventClick }: CalendarioGridProps) {
   const goToToday = () => setCurrentDate(new Date());
 
   const getEventsForDay = (day: Date) => {
-    return eventos.filter(evento => isSameDay(new Date(evento.data), day));
+    return eventos.filter(evento => isSameDayBrasilia(evento.data, day));
   };
 
   const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];

@@ -3,6 +3,7 @@ import { EventoFinanceiro, StatusAgenda } from "./types";
 import { TituloReceber } from "../contas-receber/types";
 import { ContaPagar } from "../contas-pagar/types";
 import { RecorrenciaFinanceira } from "../recorrencias/types";
+import { getBrasiliaTodayIso, parseDateSafe } from "@/lib/dateUtils";
 
 export interface ContratoItem {
   id: string;
@@ -41,7 +42,7 @@ export function useAgendaEvents() {
       id: `rec-${c.id}`,
       titulo: c.descricao ? `${c.cliente} - ${c.descricao}` : `Recebimento de ${c.cliente}`,
       categoria: 'Recebimento',
-      data: c.dataVencimento || new Date().toISOString(),
+      data: c.dataVencimento || getBrasiliaTodayIso(),
       valor: c.valorOriginal || 0,
       entidadeVinculo: c.cliente,
       clienteId: c.clienteId,
@@ -60,13 +61,13 @@ export function useAgendaEvents() {
   const currentYear = currentDate.getFullYear();
   const yearsToProject = [currentYear - 1, currentYear, currentYear + 1, currentYear + 2];
 
-  const todayIso = new Date().toISOString().split('T')[0];
+  const todayIso = getBrasiliaTodayIso();
 
   recorrencias.forEach(r => {
     if (!r || r.status === 'Encerrada') return;
 
     const dataInicioStr = r.dataInicio || `${currentYear}-01-01`;
-    const dataInicio = new Date(dataInicioStr.includes('T') ? dataInicioStr : `${dataInicioStr}T12:00:00Z`);
+    const dataInicio = parseDateSafe(dataInicioStr);
     const startYear = isNaN(dataInicio.getFullYear()) ? currentYear : dataInicio.getFullYear();
     const startMonth = isNaN(dataInicio.getMonth()) ? 0 : dataInicio.getMonth();
     const diaVenc = r.diaVencimento || 10;

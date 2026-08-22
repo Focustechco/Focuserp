@@ -27,6 +27,7 @@ import { useNotificacoesStore } from '@/features/notificacoes/useNotificacoesSto
 import { dmsService } from '@/services/dmsService';
 import { DocumentoDMS } from '@/features/documentos/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { getBrasiliaTodayIso, formatDateBrasilia } from '@/lib/dateUtils';
 
 interface DocumentoAnexoLocal {
   id: string;
@@ -195,7 +196,7 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
   }, [open, clienteToEdit, recorrencias]);
 
   const resetRecorrenciaFields = (nome: string) => {
-    const hoje = new Date().toISOString().split('T')[0];
+    const hoje = getBrasiliaTodayIso();
     setRecorrenciaHabilitada(false);
     setRecorrenciaId('');
     setRecorrenciaDescricao(nome ? `Mensalidade - ${nome}` : '');
