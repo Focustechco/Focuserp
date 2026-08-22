@@ -1,13 +1,28 @@
 import { supabase } from '@/lib/supabaseClient';
 import { clienteSchema, ClienteDTO } from '@/schemas/clienteSchema';
+import { safeGetItem, safeSetItem } from '@/lib/safeStorage';
 
-const LOCAL_STORAGE_KEYS = ['focus_app_focus_clientes', 'focus_app_clientes', 'focus_app_clients'];
+const LOCAL_STORAGE_KEYS = [
+  'focus_clientes',
+  'focus_app_focus_clientes',
+  'focus_app_clientes',
+  'focus_app_clients',
+];
 const DELETED_IDS_KEY = 'focus_app_deleted_client_ids';
+
+function triggerClientSync() {
+  if (typeof window !== 'undefined') {
+    try {
+      window.dispatchEvent(new Event('focus_storage_update'));
+      window.dispatchEvent(new Event('storage'));
+    } catch {}
+  }
+}
 
 function getDeletedClientIds(): Set<string> {
   if (typeof window === 'undefined') return new Set();
   try {
-    const raw = window.localStorage.getItem(DELETED_IDS_KEY);
+    const raw = safeGetItem(DELETED_IDS_KEY);
     return new Set<string>(raw ? JSON.parse(raw) : []);
   } catch {
     return new Set();
@@ -19,158 +34,236 @@ function markClientAsDeletedLocally(id: string) {
   try {
     const deletedSet = getDeletedClientIds();
     deletedSet.add(id);
-    window.localStorage.setItem(DELETED_IDS_KEY, JSON.stringify(Array.from(deletedSet)));
+    safeSetItem(DELETED_IDS_KEY, JSON.stringify(Array.from(deletedSet)));
   } catch {}
+}
+
+function getLocalClients(): Map<string, ClienteDTO> {
+  const map = new Map<string, ClienteDTO>();
+  if (typeof window === 'undefined') return map;
+
+  const deletedIds = getDeletedClientIds();
+
+  for (const key of LOCAL_STORAGE_KEYS) {
+    try {
+      const raw = safeGetItem(key);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          for (const item of parsed) {
+            if (item && item.id && !deletedIds.has(String(item.id))) {
+              const current = map.get(String(item.id));
+              // Manter o mais completo (com endereço e contatos preenchidos)
+              if (!current || (item.endereco?.logradouro && !current.endereco?.logradouro) || (item.contatos?.length && !current.contatos?.length)) {
+                map.set(String(item.id), item);
+              }
+            }
+          }
+        }
+      }
+    } catch {}
+  }
+
+  return map;
+}
+
+function persistClientsToAllStores(clientes: ClienteDTO[]) {
+  if (typeof window === 'undefined') return;
+  const serialized = JSON.stringify(clientes);
+  for (const key of LOCAL_STORAGE_KEYS) {
+    safeSetItem(key, serialized);
+  }
+  triggerClientSync();
 }
 
 /**
  * Service de dados para o módulo de Clientes.
- * Responsável pela integração com a API do Supabase e validação via Zod.
+ * Responsável pela persistência local-first confiável e sincronização com Supabase.
  */
 export const clienteService = {
   /**
-   * Buscar todos os clientes da organização
+   * Buscar todos os clientes da organização com fusão inteligente de dados cadastrais e endereço
    */
   async getClientes(): Promise<ClienteDTO[]> {
     try {
       const deletedIds = getDeletedClientIds();
+      const localMap = getLocalClients();
       let dbItems: any[] = [];
 
       // 1. Tentar buscar na tabela relacional 'clientes'
-      const { data: clientesData, error: clientesErr } = await supabase
-        .from('clientes')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (!clientesErr && Array.isArray(clientesData) && clientesData.length > 0) {
-        dbItems = clientesData;
-      } else {
-        // Fallback: Tentar buscar na tabela 'clients'
-        const { data: clientsData, error: clientsErr } = await supabase
-          .from('clients')
+      try {
+        const { data: clientesData, error: clientesErr } = await supabase
+          .from('clientes')
           .select('*')
-          .not('name', 'like', '__FOCUS_STATE__%')
-          .not('name', 'like', '__DELETED__%')
-          .neq('status', 'deleted')
           .order('created_at', { ascending: false });
 
-        if (!clientsErr && Array.isArray(clientsData) && clientsData.length > 0) {
-          dbItems = clientsData;
+        if (!clientesErr && Array.isArray(clientesData) && clientesData.length > 0) {
+          dbItems = clientesData;
         }
+      } catch {}
+
+      // Fallback: Tentar buscar na tabela 'clients' se clientes estiver vazio
+      if (dbItems.length === 0) {
+        try {
+          const { data: clientsData, error: clientsErr } = await supabase
+            .from('clients')
+            .select('*')
+            .not('name', 'like', '__FOCUS_STATE__%')
+            .not('name', 'like', '__DELETED__%')
+            .neq('status', 'deleted')
+            .order('created_at', { ascending: false });
+
+          if (!clientsErr && Array.isArray(clientsData) && clientsData.length > 0) {
+            dbItems = clientsData;
+          }
+        } catch {}
       }
 
+      const mergedMap = new Map<string, ClienteDTO>(localMap);
+
       if (dbItems.length > 0) {
-        const result: ClienteDTO[] = [];
         for (const item of dbItems) {
           const itemId = String(item.id);
           if (deletedIds.has(itemId)) continue;
           if (item.status === 'deleted' || item.status === 'deletado' || item.deleted === true) continue;
           if (typeof item.name === 'string' && item.name.startsWith('__DELETED__')) continue;
 
-          const mapped = {
-            id: itemId,
-            tenantId: item.tenant_id,
-            codigo: item.codigo || `CLI-${itemId.slice(0, 4).toUpperCase()}`,
-            tipo: item.tipo === 'Pessoa Física' ? 'Pessoa Física' : ('Pessoa Jurídica' as const),
-            razaoSocial: item.razao_social || item.name || 'Cliente sem nome',
-            nomeFantasia: item.nome_fantasia || item.name || 'Cliente sem nome',
-            documento: item.documento || '00.000.000/0001-00',
-            inscricaoEstadual: item.inscricao_estadual,
-            inscricaoMunicipal: item.inscricao_municipal,
-            dataFundacaoNascimento: item.data_fundacao_nascimento,
-            status: item.status === 'inativo' || item.status === 'Inativo' ? 'Inativo' : ('Ativo' as const),
-            segmento: item.segmento || 'Geral',
-            porteEmpresa: item.porte_empresa,
-            site: item.site,
-            observacoes: item.observacoes,
-            endereco: {
-              cep: item.cep || '',
-              logradouro: item.logradouro || '',
-              numero: item.numero || '',
-              complemento: item.complemento,
-              bairro: item.bairro || '',
-              cidade: item.cidade || 'São Paulo',
-              estado: item.estado || 'SP',
-              pais: item.pais || 'Brasil'
-            },
-            contatos: [],
-            dataCadastro: item.created_at || new Date().toISOString(),
-            ultimaAtualizacao: item.updated_at || new Date().toISOString()
+          const localItem = localMap.get(itemId);
+
+          const enderecoFinal = {
+            cep: item.cep || localItem?.endereco?.cep || '',
+            logradouro: item.logradouro || localItem?.endereco?.logradouro || '',
+            numero: item.numero || localItem?.endereco?.numero || '',
+            complemento: item.complemento || localItem?.endereco?.complemento || '',
+            bairro: item.bairro || localItem?.endereco?.bairro || '',
+            cidade: item.cidade || localItem?.endereco?.cidade || 'São Paulo',
+            estado: item.estado || localItem?.endereco?.estado || 'SP',
+            pais: item.pais || localItem?.endereco?.pais || 'Brasil',
           };
-          const parsed = clienteSchema.safeParse(mapped);
-          if (parsed.success) {
-            result.push(parsed.data);
-          }
+
+          const contatosFinal = (localItem?.contatos && localItem.contatos.length > 0)
+            ? localItem.contatos
+            : (item.contact_email || item.contact_phone)
+            ? [
+                {
+                  id: `cont-${itemId}`,
+                  nome: 'Contato Principal',
+                  cargo: 'Responsável',
+                  departamento: 'Geral',
+                  email: item.contact_email || '',
+                  celular: item.contact_phone || '',
+                  whatsapp: true,
+                  principal: true,
+                },
+              ]
+            : [];
+
+          const mapped: ClienteDTO = {
+            id: itemId,
+            tenantId: item.tenant_id || localItem?.tenantId,
+            codigo: item.codigo || localItem?.codigo || `CLI-${itemId.slice(0, 4).toUpperCase()}`,
+            tipo: item.tipo === 'Pessoa Física' ? 'Pessoa Física' : (localItem?.tipo || 'Pessoa Jurídica'),
+            razaoSocial: item.razao_social || item.name || localItem?.razaoSocial || 'Cliente sem nome',
+            nomeFantasia: item.nome_fantasia || item.name || localItem?.nomeFantasia || 'Cliente sem nome',
+            documento: item.documento || localItem?.documento || '00.000.000/0001-00',
+            inscricaoEstadual: item.inscricao_estadual || localItem?.inscricaoEstadual || 'Isento',
+            inscricaoMunicipal: item.inscricao_municipal || localItem?.inscricaoMunicipal || '',
+            dataFundacaoNascimento: item.data_fundacao_nascimento || localItem?.dataFundacaoNascimento,
+            status: item.status === 'inativo' || item.status === 'Inativo' ? 'Inativo' : ('Ativo' as const),
+            segmento: item.segmento || localItem?.segmento || 'Geral',
+            porteEmpresa: item.porte_empresa || localItem?.porteEmpresa || 'Médio',
+            site: item.site || localItem?.site || '',
+            observacoes: item.observacoes || localItem?.observacoes || '',
+            endereco: enderecoFinal,
+            contatos: contatosFinal,
+            dataCadastro: item.created_at || localItem?.dataCadastro || new Date().toISOString(),
+            ultimaAtualizacao: item.updated_at || localItem?.ultimaAtualizacao || new Date().toISOString(),
+          };
+
+          mergedMap.set(itemId, mapped);
         }
-        return result;
       }
 
-      // 2. Fallback de LocalStorage
-      if (typeof window !== 'undefined') {
-        for (const key of LOCAL_STORAGE_KEYS) {
-          const raw = window.localStorage.getItem(key);
-          if (raw) {
-            try {
-              const parsed = JSON.parse(raw);
-              if (Array.isArray(parsed) && parsed.length > 0) {
-                return parsed.filter((c: any) => !deletedIds.has(String(c.id)));
-              }
-            } catch {}
-          }
-        }
-      }
+      const finalList = Array.from(mergedMap.values()).filter((c) => !deletedIds.has(String(c.id)));
+      
+      // Manter todos os caches sincronizados
+      persistClientsToAllStores(finalList);
 
-      return [];
+      return finalList;
     } catch (err) {
       console.error('[clienteService.getClientes] Erro ao buscar clientes:', err);
-      return [];
+      return Array.from(getLocalClients().values());
     }
   },
 
   /**
-   * Salvar ou atualizar um cliente
+   * Salvar ou atualizar um cliente com preservação completa do endereço e contatos
    */
   async saveCliente(cliente: ClienteDTO): Promise<ClienteDTO> {
-    const validated = clienteSchema.parse(cliente);
-    const id = validated.id || crypto.randomUUID();
-    const validatedWithId = { ...validated, id };
+    const id = cliente.id || crypto.randomUUID();
+    
+    // Normalizar e assegurar objeto completo
+    const validatedWithId: ClienteDTO = {
+      ...cliente,
+      id,
+      codigo: cliente.codigo || `CLI-${Math.floor(1000 + Math.random() * 9000)}`,
+      tipo: cliente.tipo || 'Pessoa Jurídica',
+      razaoSocial: cliente.razaoSocial || cliente.nomeFantasia || 'Cliente Sem Nome',
+      nomeFantasia: cliente.nomeFantasia || cliente.razaoSocial || 'Cliente Sem Nome',
+      documento: cliente.documento || '',
+      inscricaoEstadual: cliente.inscricaoEstadual || 'Isento',
+      inscricaoMunicipal: cliente.inscricaoMunicipal || '',
+      dataFundacaoNascimento: cliente.dataFundacaoNascimento || '',
+      status: cliente.status || 'Ativo',
+      segmento: cliente.segmento || 'Geral',
+      porteEmpresa: cliente.porteEmpresa || 'Médio',
+      site: cliente.site || '',
+      observacoes: cliente.observacoes || '',
+      endereco: {
+        cep: cliente.endereco?.cep || '',
+        logradouro: cliente.endereco?.logradouro || '',
+        numero: cliente.endereco?.numero || '',
+        complemento: cliente.endereco?.complemento || '',
+        bairro: cliente.endereco?.bairro || '',
+        cidade: cliente.endereco?.cidade || 'São Paulo',
+        estado: cliente.endereco?.estado || 'SP',
+        pais: cliente.endereco?.pais || 'Brasil',
+      },
+      contatos: Array.isArray(cliente.contatos) ? cliente.contatos : [],
+      dataCadastro: cliente.dataCadastro || new Date().toISOString(),
+      ultimaAtualizacao: new Date().toISOString(),
+    };
 
-    // 1. Salvar no LocalStorage para resposta instantânea
-    if (typeof window !== 'undefined') {
-      for (const key of LOCAL_STORAGE_KEYS) {
-        try {
-          const raw = window.localStorage.getItem(key);
-          const current: ClienteDTO[] = raw ? JSON.parse(raw) : [];
-          const updated = [validatedWithId, ...current.filter((c) => c.id !== id)];
-          window.localStorage.setItem(key, JSON.stringify(updated));
-        } catch {}
-      }
-    }
+    // 1. Salvar no LocalStorage para resposta e persistência instantânea em todas as chaves
+    const localMap = getLocalClients();
+    localMap.set(id, validatedWithId);
+    const updatedList = Array.from(localMap.values());
+    persistClientsToAllStores(updatedList);
 
-    // 2. Persistir no Supabase
+    // 2. Persistir no Supabase de forma resiliente
     try {
       const payload = {
         id,
-        tipo: validated.tipo,
-        razao_social: validated.razaoSocial,
-        nome_fantasia: validated.nomeFantasia,
-        documento: validated.documento,
-        inscricao_estadual: validated.inscricaoEstadual,
-        inscricao_municipal: validated.inscricaoMunicipal,
-        status: validated.status,
-        segmento: validated.segmento,
-        porte_empresa: validated.porteEmpresa,
-        site: validated.site,
-        observacoes: validated.observacoes,
-        cep: validated.endereco?.cep || '',
-        logradouro: validated.endereco?.logradouro || '',
-        numero: validated.endereco?.numero || '',
-        complemento: validated.endereco?.complemento || '',
-        bairro: validated.endereco?.bairro || '',
-        cidade: validated.endereco?.cidade || 'São Paulo',
-        estado: validated.endereco?.estado || 'SP',
-        pais: validated.endereco?.pais || 'Brasil',
-        updated_at: new Date().toISOString()
+        tipo: validatedWithId.tipo,
+        razao_social: validatedWithId.razaoSocial,
+        nome_fantasia: validatedWithId.nomeFantasia,
+        documento: validatedWithId.documento,
+        inscricao_estadual: validatedWithId.inscricaoEstadual,
+        inscricao_municipal: validatedWithId.inscricaoMunicipal,
+        status: validatedWithId.status,
+        segmento: validatedWithId.segmento,
+        porte_empresa: validatedWithId.porteEmpresa,
+        site: validatedWithId.site,
+        observacoes: validatedWithId.observacoes,
+        cep: validatedWithId.endereco?.cep || '',
+        logradouro: validatedWithId.endereco?.logradouro || '',
+        numero: validatedWithId.endereco?.numero || '',
+        complemento: validatedWithId.endereco?.complemento || '',
+        bairro: validatedWithId.endereco?.bairro || '',
+        cidade: validatedWithId.endereco?.cidade || 'São Paulo',
+        estado: validatedWithId.endereco?.estado || 'SP',
+        pais: validatedWithId.endereco?.pais || 'Brasil',
+        updated_at: new Date().toISOString(),
       };
       await supabase.from('clientes').upsert(payload);
     } catch (e) {
@@ -180,11 +273,11 @@ export const clienteService = {
     try {
       await supabase.from('clients').upsert({
         id,
-        name: validated.nomeFantasia || validated.razaoSocial,
-        status: validated.status.toLowerCase(),
-        contact_email: validated.contatos?.[0]?.email || null,
-        contact_phone: validated.contatos?.[0]?.celular || null,
-        updated_at: new Date().toISOString()
+        name: validatedWithId.nomeFantasia || validatedWithId.razaoSocial,
+        status: validatedWithId.status.toLowerCase(),
+        contact_email: validatedWithId.contatos?.[0]?.email || null,
+        contact_phone: validatedWithId.contatos?.[0]?.celular || null,
+        updated_at: new Date().toISOString(),
       });
     } catch (e) {
       console.warn('[clienteService.saveCliente] Warning upserting to clients:', e);
@@ -194,53 +287,31 @@ export const clienteService = {
   },
 
   /**
-   * Excluir um cliente pelo ID (suporta exclusão em cascata e fallback de 409 FK Constraint)
+   * Excluir um cliente pelo ID
    */
   async deleteCliente(id: string): Promise<void> {
-    // 1. Marcar como excluído localmente de forma instantânea e persistente
     markClientAsDeletedLocally(id);
 
-    // 2. Remover de todos os caches do LocalStorage
-    if (typeof window !== 'undefined') {
-      for (const key of LOCAL_STORAGE_KEYS) {
-        try {
-          const raw = window.localStorage.getItem(key);
-          if (raw) {
-            const parsed = JSON.parse(raw);
-            if (Array.isArray(parsed)) {
-              const filtered = parsed.filter((c: any) => c.id !== id);
-              window.localStorage.setItem(key, JSON.stringify(filtered));
-            }
-          }
-        } catch (e) {
-          console.warn(`[clienteService.deleteCliente] LocalStorage error for key ${key}:`, e);
-        }
-      }
-    }
+    const localMap = getLocalClients();
+    localMap.delete(id);
+    persistClientsToAllStores(Array.from(localMap.values()));
 
-    // 3. Tentar remover referências filhas se existirem
     try { await supabase.from('contas_receber').delete().eq('cliente_id', id); } catch {}
     try { await supabase.from('contratos').delete().eq('cliente_id', id); } catch {}
     try { await supabase.from('projetos').delete().eq('cliente_id', id); } catch {}
 
-    // 4. Executar DELETE no Supabase na tabela 'clientes' (com fallback para soft-delete em caso de 409 FK)
     try {
       const { error: err1 } = await supabase.from('clientes').delete().eq('id', id);
       if (err1 && (err1.code === '23503' || err1.message?.includes('foreign key') || err1.message?.includes('Conflict'))) {
         await supabase.from('clientes').update({ status: 'Inativo', updated_at: new Date().toISOString() }).eq('id', id);
       }
-    } catch (err) {
-      console.warn('[clienteService.deleteCliente] Warning deleting from clientes:', err);
-    }
+    } catch {}
 
-    // 5. Executar DELETE no Supabase na tabela 'clients' (com fallback para soft-delete em caso de 409 FK)
     try {
       const { error: err2 } = await supabase.from('clients').delete().eq('id', id);
       if (err2 && (err2.code === '23503' || err2.message?.includes('foreign key') || err2.message?.includes('Conflict'))) {
         await supabase.from('clients').update({ status: 'inativo', name: `__DELETED__${id}`, updated_at: new Date().toISOString() }).eq('id', id);
       }
-    } catch (err) {
-      console.warn('[clienteService.deleteCliente] Warning deleting from clients:', err);
-    }
-  }
+    } catch {}
+  },
 };
