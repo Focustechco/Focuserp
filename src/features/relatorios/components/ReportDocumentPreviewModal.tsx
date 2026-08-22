@@ -1,15 +1,15 @@
-import React from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import React, { useState } from 'react';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Download, Printer, FileText, FileSpreadsheet, ShieldCheck, QrCode, Lock } from 'lucide-react';
+import { Download, Printer, FileText, FileSpreadsheet, ShieldCheck, QrCode, Lock, X, CheckCircle2, Loader2 } from 'lucide-react';
 import { GeneratedReportData, ReportFormat } from '../types';
 import { toast } from 'sonner';
 import { jsPDF } from 'jspdf';
 import { toJpeg } from 'html-to-image';
 import { useRelatoriosStore } from '../hooks/useRelatoriosStore';
 import { dmsService } from '@/services/dmsService';
-import focusLogoHorizontal from '@/assets/focus-logo-horizontal.png';
+import focusLogoHq from '@/assets/focus-erp-logo-hq.png';
 
 interface PreviewProps {
   data: GeneratedReportData | null;
@@ -19,42 +19,39 @@ interface PreviewProps {
 
 export function ReportDocumentPreviewModal({ data, isOpen, onClose }: PreviewProps) {
   const { registerExecution } = useRelatoriosStore();
+  const [isExporting, setIsExporting] = useState(false);
 
   if (!data) return null;
 
   const handleExport = async (fmt: ReportFormat) => {
+    setIsExporting(true);
+
     if (fmt === 'PDF') {
       const element = document.getElementById('report-printable-area');
       if (element) {
-        toast.loading('Gerando PDF... Aguarde.', { id: 'pdf-toast' });
+        toast.loading('Gerando PDF homologado... Aguarde.', { id: 'pdf-toast' });
         
         try {
-          // Renderiza o elemento HTML garantindo alta resolução e fundo branco puro
+          // Renderiza o elemento garantindo resolução cristalina e fundo branco
           const imgData = await toJpeg(element, { 
-            quality: 1, 
+            quality: 0.98, 
             backgroundColor: '#ffffff',
-            pixelRatio: 2 // Alta resolução
+            pixelRatio: 2.5
           });
           
-          // Obtém as dimensões reais renderizadas do elemento
           const elWidth = element.offsetWidth;
           const elHeight = element.offsetHeight;
           
-          // Cria o documento PDF no padrão A4 (orientação retrato)
           const pdf = new jsPDF('p', 'mm', 'a4');
-          
-          // Calcula as dimensões preservando a proporção original do documento
           const pdfWidth = pdf.internal.pageSize.getWidth();
           const margin = 10;
           const finalWidth = pdfWidth - (margin * 2);
-          
-          // Calcula a altura final proporcionalmente ao elemento capturado
           const finalHeight = (elHeight * finalWidth) / elWidth;
           
           pdf.addImage(imgData, 'JPEG', margin, margin, finalWidth, finalHeight);
           pdf.save(`Relatorio-Focus-${data.reportNumber}.pdf`);
           
-          // Indexar automaticamente no Módulo de Gestão de Documentos (DMS)
+          // Indexar automaticamente no DMS
           dmsService.uploadFileFromModule({
             nome: `Relatorio-Focus-${data.definition.title.replace(/\s+/g, '_')}-${data.reportNumber}.pdf`,
             moduloOrigem: 'Relatórios',
@@ -64,17 +61,19 @@ export function ReportDocumentPreviewModal({ data, isOpen, onClose }: PreviewPro
             urlConteudo: imgData,
           });
 
-          toast.success(`Relatório exportado em PDF e salvo no Módulo de Documentos (DMS)!`, { id: 'pdf-toast' });
+          toast.success(`Relatório exportado em PDF e arquivado no módulo Gestão de Documentos (DMS)!`, { id: 'pdf-toast' });
           registerExecution(data.definition.id, fmt, data.filters, data, imgData);
         } catch (err: any) {
           console.error('Erro na exportação PDF:', err);
           toast.error(`Erro ao gerar PDF: ${err.message || 'Falha de processamento'}`, { id: 'pdf-toast' });
+        } finally {
+          setIsExporting(false);
         }
       }
       return;
     }
 
-    // Exportação em formatos tabulares (CSV/Excel)
+    // Exportação em formatos tabulares (CSV/Excel/Word)
     dmsService.uploadFileFromModule({
       nome: `Relatorio-Focus-${data.definition.title.replace(/\s+/g, '_')}-${data.reportNumber}.${fmt.toLowerCase()}`,
       moduloOrigem: 'Relatórios',
@@ -84,7 +83,8 @@ export function ReportDocumentPreviewModal({ data, isOpen, onClose }: PreviewPro
     });
 
     registerExecution(data.definition.id, fmt, data.filters, data);
-    toast.success(`Relatório exportado em ${fmt} e indexado no Módulo de Documentos (DMS)!`);
+    toast.success(`Relatório exportado em ${fmt} e salvo no Módulo de Documentos (DMS)!`);
+    setIsExporting(false);
   };
 
   const handlePrint = () => {
@@ -93,84 +93,158 @@ export function ReportDocumentPreviewModal({ data, isOpen, onClose }: PreviewPro
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-full sm:max-w-5xl h-[100dvh] sm:h-[94vh] max-h-[100dvh] sm:max-h-[94vh] p-0 border-none shadow-2xl bg-slate-900/90 backdrop-blur-md flex flex-col overflow-hidden">
-        {/* Barra de Ações Superior Limpa */}
-        <div className="sticky top-0 z-20 bg-background/95 backdrop-blur border-b p-2.5 sm:p-4 flex flex-wrap items-center justify-between gap-2 shadow-xs shrink-0">
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="gap-1 border-primary/40 text-primary bg-primary/5 text-[11px] sm:text-xs">
-              <ShieldCheck className="w-3.5 h-3.5" /> Modelo Corporativo Homologado
-            </Badge>
-            <span className="text-xs text-muted-foreground hidden sm:inline">• ID: {data.reportNumber}</span>
+      <DialogContent className="w-full sm:max-w-5xl h-[100dvh] sm:h-[94vh] max-h-[100dvh] sm:max-h-[94vh] p-0 border-none shadow-2xl bg-slate-950/95 backdrop-blur-md flex flex-col overflow-hidden">
+        
+        {/* Acessibilidade DialogHeader oculto */}
+        <div className="sr-only">
+          <DialogTitle>Visualização do Relatório {data.definition.title}</DialogTitle>
+          <DialogDescription>Relatório Corporativo Homologado Focus Finance</DialogDescription>
+        </div>
+
+        {/* BARRA DE FERRAMENTAS SUPERIOR (100% RESPONSIVA EM MOBILE / TABLET / DESKTOP) */}
+        <div className="sticky top-0 z-30 bg-background/95 backdrop-blur border-b px-3 py-2.5 sm:px-4 sm:py-3 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 shadow-xs shrink-0">
+          
+          {/* Badge & Info */}
+          <div className="flex items-center justify-between sm:justify-start gap-2">
+            <div className="flex items-center gap-1.5">
+              <Badge variant="outline" className="gap-1 border-orange-500/40 text-orange-600 dark:text-orange-400 bg-orange-50/50 dark:bg-orange-950/30 text-[10px] sm:text-xs font-semibold">
+                <ShieldCheck className="w-3.5 h-3.5 text-orange-600" />
+                <span>Homologado</span>
+              </Badge>
+              <span className="text-[11px] text-muted-foreground font-mono font-medium truncate">
+                #{data.reportNumber}
+              </span>
+            </div>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              className="sm:hidden h-8 w-8 text-muted-foreground hover:text-foreground"
+            >
+              <X className="w-4 h-4" />
+            </Button>
           </div>
 
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <Button size="sm" variant="outline" onClick={handlePrint} className="gap-1.5 text-xs h-8 px-2.5 sm:px-3">
-              <Printer className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Imprimir</span>
+          {/* Botões de Ação com Scroll Horizontal Suave no Mobile */}
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-0.5 justify-start sm:justify-end">
+            <Button 
+              size="sm" 
+              variant="outline" 
+              onClick={handlePrint} 
+              className="gap-1 text-[11px] sm:text-xs h-8 px-2.5 shrink-0"
+            >
+              <Printer className="w-3.5 h-3.5" /> 
+              <span className="hidden sm:inline">Imprimir</span>
             </Button>
-            <Button size="sm" variant="outline" onClick={() => handleExport('CSV')} className="gap-1 text-xs h-8 px-2 sm:px-3">
+
+            <Button 
+              size="sm" 
+              variant="outline" 
+              onClick={() => handleExport('CSV')} 
+              disabled={isExporting}
+              className="text-[11px] sm:text-xs h-8 px-2.5 shrink-0"
+            >
               CSV
             </Button>
-            <Button size="sm" variant="outline" onClick={() => handleExport('XLSX')} className="gap-1 text-xs h-8 text-emerald-600 border-emerald-200 hover:bg-emerald-50 px-2 sm:px-3">
-              <FileSpreadsheet className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Excel</span>
+
+            <Button 
+              size="sm" 
+              variant="outline" 
+              onClick={() => handleExport('XLSX')} 
+              disabled={isExporting}
+              className="gap-1 text-[11px] sm:text-xs h-8 text-emerald-600 border-emerald-200 dark:border-emerald-900 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 px-2.5 shrink-0"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" /> 
+              <span>Excel</span>
             </Button>
-            <Button size="sm" variant="outline" onClick={() => handleExport('DOCX')} className="gap-1 text-xs h-8 text-blue-600 border-blue-200 hover:bg-blue-50 px-2 sm:px-3">
-              <FileText className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Word</span>
+
+            <Button 
+              size="sm" 
+              variant="outline" 
+              onClick={() => handleExport('DOCX')} 
+              disabled={isExporting}
+              className="gap-1 text-[11px] sm:text-xs h-8 text-blue-600 border-blue-200 dark:border-blue-900 hover:bg-blue-50 dark:hover:bg-blue-950/40 px-2.5 shrink-0"
+            >
+              <FileText className="w-3.5 h-3.5" /> 
+              <span>Word</span>
             </Button>
-            <Button size="sm" onClick={() => handleExport('PDF')} className="gap-1.5 text-xs h-8 bg-rose-600 hover:bg-rose-700 text-white font-semibold px-3 sm:px-4">
-              <Download className="w-3.5 h-3.5" /> PDF
+
+            <Button 
+              size="sm" 
+              onClick={() => handleExport('PDF')} 
+              disabled={isExporting}
+              className="gap-1.5 text-[11px] sm:text-xs h-8 bg-orange-600 hover:bg-orange-700 text-white font-semibold px-3 sm:px-4 shadow-sm shrink-0"
+            >
+              {isExporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+              <span>Exportar PDF</span>
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              className="hidden sm:inline-flex h-8 w-8 text-muted-foreground hover:text-foreground shrink-0 ml-1"
+            >
+              <X className="w-4 h-4" />
             </Button>
           </div>
         </div>
 
-        {/* CANVAS DE VISUALIZAÇÃO DO DOCUMENTO */}
-        <div className="bg-slate-100/90 p-2 sm:p-8 flex justify-center items-start flex-1 overflow-y-auto min-h-0 w-full">
+        {/* CANVAS DE VISUALIZAÇÃO DO DOCUMENTO (ROBUSTO EM MOBILE / TABLET / DESKTOP) */}
+        <div className="bg-slate-200/90 dark:bg-slate-950 p-2 sm:p-6 lg:p-8 flex justify-center items-start flex-1 overflow-y-auto min-h-0 w-full">
           
-          {/* DOCUMENTO INSTITUCIONAL FOCUS (SEMPRE BRANCO / LIGHT THEME) */}
+          {/* DOCUMENTO INSTITUCIONAL FOCUS (FOLHA A4 RESPONSIVA) */}
           <div 
-            className="w-full max-w-4xl bg-white text-slate-900 rounded-xl shadow-2xl border border-slate-200 p-4 sm:p-12 min-h-0 sm:min-h-[850px] flex flex-col justify-between transition-all duration-300" 
+            className="w-full max-w-4xl bg-white text-slate-900 rounded-xl shadow-2xl border border-slate-200 p-4 sm:p-8 md:p-10 flex flex-col justify-between transition-all duration-200 overflow-hidden" 
             id="report-printable-area"
             style={{ backgroundColor: '#ffffff', color: '#0f172a' }}
           >
             
-            {/* CABEÇALHO INSTITUCIONAL */}
-            <div>
-              <div className="flex justify-between items-start border-b-2 border-slate-900 pb-6 mb-6">
-                <div className="flex items-center gap-4">
-                  <img src={focusLogoHorizontal} alt="Focus ERP" className="h-12 sm:h-16 w-auto max-w-[220px] object-contain" />
+            {/* CORPO DO DOCUMENTO */}
+            <div className="space-y-4 sm:space-y-6">
+              
+              {/* 1. CABEÇALHO INSTITUCIONAL */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 border-b-2 border-slate-900 pb-4 sm:pb-5">
+                <div className="flex items-center">
+                  <img 
+                    src={focusLogoHq} 
+                    alt="Focus ERP" 
+                    className="h-8 sm:h-10 w-auto object-contain max-w-[180px] sm:max-w-[220px]" 
+                  />
                 </div>
 
-                <div className="text-right text-xs text-slate-600 space-y-0.5">
+                <div className="text-left sm:text-right text-[11px] sm:text-xs text-slate-600 space-y-0.5 w-full sm:w-auto border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-100">
                   <p className="font-bold text-slate-900">Relatório nº {data.reportNumber}</p>
-                  <p>Emissão: {new Date(data.generatedAt).toLocaleString('pt-BR')}</p>
-                  <p>Usuário: Administrador Corporativo</p>
-                  <p>Empresa: Focus Tecnologia Ltda</p>
+                  <p className="text-slate-500">Emissão: {new Date(data.generatedAt).toLocaleString('pt-BR')}</p>
+                  <p className="text-slate-500">Empresa: Focus Tecnologia Ltda</p>
                 </div>
               </div>
 
-              {/* TÍTULO DO RELATÓRIO & SUBTÍTULO */}
-              <div className="mb-6 bg-slate-50 p-4 rounded-lg border border-slate-200">
-                <div className="flex justify-between items-center">
+              {/* 2. TÍTULO DO RELATÓRIO & SUBTÍTULO */}
+              <div className="bg-slate-50 p-3.5 sm:p-4 rounded-lg border border-slate-200">
+                <div className="flex flex-col gap-1">
                   <div>
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-orange-600 bg-orange-100 px-2 py-0.5 rounded">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-orange-600 bg-orange-100 px-2 py-0.5 rounded inline-block mb-1">
                       Módulo {data.definition.category}
                     </span>
-                    <h2 className="text-xl font-bold text-slate-900 mt-1">
+                    <h2 className="text-lg sm:text-xl font-bold text-slate-900 leading-tight">
                       {data.definition.title}
                     </h2>
-                    <p className="text-xs text-slate-600 mt-0.5">
-                      {data.definition.description}
-                    </p>
                   </div>
+                  <p className="text-xs text-slate-600 leading-relaxed mt-0.5">
+                    {data.definition.description}
+                  </p>
                 </div>
               </div>
 
-              {/* CARDS DE RESUMO EXECUTIVO */}
-              {data.metricsSummary.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+              {/* 3. CARDS DE RESUMO EXECUTIVO (100% RESPONSIVO) */}
+              {data.metricsSummary && data.metricsSummary.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-4">
                   {data.metricsSummary.map((m, i) => (
-                    <div key={i} className="border border-slate-200 rounded-lg p-3.5 bg-slate-50">
-                      <p className="text-xs text-slate-500 font-medium">{m.label}</p>
-                      <p className={`text-lg font-bold mt-1 ${m.color || 'text-slate-900'}`}>
+                    <div key={i} className="border border-slate-200 rounded-lg p-3 sm:p-3.5 bg-slate-50">
+                      <p className="text-[11px] sm:text-xs text-slate-500 font-medium truncate">{m.label}</p>
+                      <p className={`text-base sm:text-lg font-bold mt-0.5 truncate ${m.color || 'text-slate-900'}`}>
                         {m.value}
                       </p>
                     </div>
@@ -178,65 +252,66 @@ export function ReportDocumentPreviewModal({ data, isOpen, onClose }: PreviewPro
                 </div>
               )}
 
-              {/* TABELA DE DADOS CORPORATIVA */}
-              <div className="border border-slate-200 rounded-lg overflow-x-auto mb-6">
-                <table className="w-full text-xs text-left">
-                  <thead className="bg-slate-100 border-b border-slate-200 text-slate-700 font-semibold uppercase">
-                    <tr>
-                      {data.definition.columns.map(col => (
-                        <th key={col.key} className="p-3">
-                          {col.label}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200">
-                    {data.rows.length === 0 ? (
+              {/* 4. TABELA DE DADOS CORPORATIVA (COM OVERFLOW HORIZONTAL CONTROLADO) */}
+              <div className="border border-slate-200 rounded-lg overflow-hidden w-full max-w-full">
+                <div className="overflow-x-auto w-full max-w-full scrollbar-thin">
+                  <table className="w-full text-xs text-left min-w-[500px] sm:min-w-full border-collapse">
+                    <thead className="bg-slate-100 border-b border-slate-200 text-slate-700 font-semibold uppercase text-[10px] sm:text-xs">
                       <tr>
-                        <td colSpan={data.definition.columns.length} className="p-6 text-center text-slate-500">
-                          Nenhum registro encontrado para os filtros selecionados.
-                        </td>
+                        {data.definition.columns.map(col => (
+                          <th key={col.key} className="p-2.5 sm:p-3 whitespace-nowrap">
+                            {col.label}
+                          </th>
+                        ))}
                       </tr>
-                    ) : (
-                      data.rows.map((row, idx) => (
-                        <tr key={idx} className="hover:bg-slate-50">
-                          {data.definition.columns.map(col => (
-                            <td key={col.key} className="p-3 font-medium">
-                              {row[col.key] || '-'}
-                            </td>
-                          ))}
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {data.rows.length === 0 ? (
+                        <tr>
+                          <td colSpan={data.definition.columns.length} className="p-6 text-center text-slate-500">
+                            Nenhum registro encontrado para os filtros selecionados.
+                          </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+                      ) : (
+                        data.rows.map((row, idx) => (
+                          <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
+                            {data.definition.columns.map(col => (
+                              <td key={col.key} className="p-2.5 sm:p-3 font-medium text-slate-800 text-[11px] sm:text-xs whitespace-nowrap sm:whitespace-normal">
+                                {row[col.key] || '-'}
+                              </td>
+                            ))}
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
 
-              {/* OBSERVAÇÕES CUSTOMIZADAS */}
+              {/* 5. OBSERVAÇÕES CUSTOMIZADAS */}
               {data.filters.observacoesPersonalizadas && (
-                <div className="p-4 rounded-lg bg-orange-50 border border-orange-200 mb-6 text-xs text-orange-900">
-                  <p className="font-bold mb-1">Observações do Emissor:</p>
+                <div className="p-3 sm:p-4 rounded-lg bg-orange-50/80 border border-orange-200/80 text-xs text-orange-950 leading-relaxed">
+                  <p className="font-bold mb-0.5 text-orange-900">Observações do Emissor:</p>
                   <p>{data.filters.observacoesPersonalizadas}</p>
                 </div>
               )}
             </div>
 
-            {/* RODAPÉ INSTITUCIONAL COM QR CODE E AUTENTICIDADE */}
-            <div className="border-t-2 border-slate-900 pt-4 mt-8 flex flex-col sm:flex-row justify-between items-center gap-4 text-[10px] text-slate-500">
-              <div className="flex items-center gap-3">
-                <QrCode className="w-10 h-10 text-slate-800 p-1 border rounded" />
-                <div>
+            {/* 6. RODAPÉ INSTITUCIONAL COM QR CODE E AUTENTICIDADE */}
+            <div className="border-t-2 border-slate-900 pt-3.5 sm:pt-4 mt-6 sm:mt-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-[10px] sm:text-[11px] text-slate-500">
+              <div className="flex items-center gap-2.5">
+                <QrCode className="w-8 h-8 sm:w-9 sm:h-9 text-slate-800 p-0.5 border rounded bg-white shrink-0" />
+                <div className="space-y-0.5">
                   <p className="font-bold text-slate-800 flex items-center gap-1">
                     <Lock className="w-3 h-3 text-orange-500" /> Autenticidade Digital Verificada
                   </p>
-                  <p>Hash: SHA256-FF-{data.reportNumber}-FOCUS</p>
-                  <p>Documento Corporativo Gerado por Focus Finance Enterprise</p>
+                  <p className="text-[10px] text-slate-400">Hash: SHA256-FF-{data.reportNumber}-FOCUS</p>
                 </div>
               </div>
 
-              <div className="text-right">
+              <div className="text-left sm:text-right text-[10px] text-slate-500 w-full sm:w-auto border-t sm:border-t-0 pt-2 sm:pt-0">
                 <p className="font-semibold text-slate-700">CONFIDENCIAL • Uso Interno Autorizado</p>
-                <p>Página 1 de 1 • www.focustecnologia.com.br</p>
+                <p>Focus ERP — www.focustecnologia.com.br</p>
               </div>
             </div>
 

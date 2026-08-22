@@ -51,60 +51,60 @@ export function ReportGeneratorWizard() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in max-w-5xl mx-auto pt-2">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in max-w-5xl mx-auto pt-2">
       {/* Steps Progress Header */}
-      <div className="flex items-center justify-between border-b pb-4 mb-6">
-        <div className="flex items-center gap-2">
-          <div className="p-2 rounded-lg bg-orange-500/10 text-orange-600">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b pb-4 mb-4 sm:mb-6">
+        <div className="flex items-center gap-2.5">
+          <div className="p-2 rounded-lg bg-orange-500/10 text-orange-600 shrink-0">
             <Wand2 className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-lg font-bold">Assistente de Geração de Relatórios</h2>
+            <h2 className="text-base sm:text-lg font-bold text-foreground">Assistente de Geração de Relatórios</h2>
             <p className="text-xs text-muted-foreground">Configure e personalize os parâmetros do seu documento corporativo.</p>
           </div>
         </div>
 
-        {/* Step Indicator Badges */}
-        <div className="flex items-center gap-3 text-xs">
-          <Badge variant={step === 1 ? 'default' : 'outline'} className={step === 1 ? 'bg-orange-500' : ''}>1. Relatório</Badge>
-          <span>→</span>
-          <Badge variant={step === 2 ? 'default' : 'outline'} className={step === 2 ? 'bg-orange-500' : ''}>2. Filtros</Badge>
-          <span>→</span>
-          <Badge variant={step === 3 ? 'default' : 'outline'} className={step === 3 ? 'bg-orange-500' : ''}>3. Personalização</Badge>
+        {/* Step Indicator Badges (Horizontal scroll no mobile) */}
+        <div className="flex items-center gap-2 text-xs overflow-x-auto scrollbar-hide w-full sm:w-auto py-1">
+          <Badge variant={step === 1 ? 'default' : 'outline'} className={`shrink-0 ${step === 1 ? 'bg-orange-600' : ''}`}>1. Relatório</Badge>
+          <span className="text-muted-foreground">→</span>
+          <Badge variant={step === 2 ? 'default' : 'outline'} className={`shrink-0 ${step === 2 ? 'bg-orange-600' : ''}`}>2. Filtros</Badge>
+          <span className="text-muted-foreground">→</span>
+          <Badge variant={step === 3 ? 'default' : 'outline'} className={`shrink-0 ${step === 3 ? 'bg-orange-600' : ''}`}>3. Emissão</Badge>
         </div>
       </div>
 
       {/* STEP 1: Seleção do Relatório */}
       {step === 1 && (
         <Card className="border shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <FileText className="w-4 h-4 text-primary" />
+          <CardHeader className="p-4 sm:p-6 pb-2">
+            <CardTitle className="text-sm sm:text-base flex items-center gap-2">
+              <FileText className="w-4 h-4 text-orange-600" />
               Etapa 1 de 3: Selecionar Tipo de Relatório
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <CardContent className="p-4 sm:p-6 space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               {catalog.map(item => (
                 <div 
                   key={item.id}
                   onClick={() => setSelectedReportId(item.id)}
-                  className={`p-4 rounded-lg border cursor-pointer transition-all flex flex-col justify-between ${selectedReportId === item.id ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'hover:border-muted-foreground/40 bg-card'}`}
+                  className={`p-3.5 sm:p-4 rounded-lg border cursor-pointer transition-all flex flex-col justify-between ${selectedReportId === item.id ? 'border-orange-500 bg-orange-50/20 dark:bg-orange-950/20 ring-2 ring-orange-500/20' : 'hover:border-muted-foreground/40 bg-card'}`}
                 >
                   <div>
                     <div className="flex justify-between items-start mb-2">
                       <Badge variant="secondary" className="text-[10px]">{item.category}</Badge>
-                      {selectedReportId === item.id && <CheckCircle2 className="w-5 h-5 text-primary" />}
+                      {selectedReportId === item.id && <CheckCircle2 className="w-4 h-4 text-orange-600" />}
                     </div>
-                    <h4 className="font-semibold text-sm leading-tight mb-1">{item.title}</h4>
-                    <p className="text-xs text-muted-foreground line-clamp-2">{item.description}</p>
+                    <h4 className="font-semibold text-xs sm:text-sm leading-tight mb-1">{item.title}</h4>
+                    <p className="text-[11px] sm:text-xs text-muted-foreground line-clamp-2">{item.description}</p>
                   </div>
                 </div>
               ))}
             </div>
           </CardContent>
-          <CardFooter className="flex justify-end border-t p-4">
-            <Button onClick={() => setStep(2)} className="gap-2">
+          <CardFooter className="flex justify-end border-t p-3 sm:p-4">
+            <Button onClick={() => setStep(2)} className="gap-2 text-xs sm:text-sm bg-orange-600 hover:bg-orange-700 text-white">
               Avançar para Filtros <ArrowRight className="w-4 h-4" />
             </Button>
           </CardFooter>
@@ -114,29 +114,29 @@ export function ReportGeneratorWizard() {
       {/* STEP 2: Filtros */}
       {step === 2 && (
         <Card className="border shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Filter className="w-4 h-4 text-primary" />
+          <CardHeader className="p-4 sm:p-6 pb-2">
+            <CardTitle className="text-sm sm:text-base flex items-center gap-2">
+              <Filter className="w-4 h-4 text-orange-600" />
               Etapa 2 de 3: Filtros de Dados ({selectedDef.title})
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Data Inicial</Label>
-                <Input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} />
+          <CardContent className="p-4 sm:p-6 space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Data Inicial</Label>
+                <Input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} className="text-xs h-9" />
               </div>
-              <div className="space-y-2">
-                <Label>Data Final</Label>
-                <Input type="date" value={dataFim} onChange={e => setDataFim(e.target.value)} />
+              <div className="space-y-1.5">
+                <Label className="text-xs">Data Final</Label>
+                <Input type="date" value={dataFim} onChange={e => setDataFim(e.target.value)} className="text-xs h-9" />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Empresa / Filial</Label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Empresa / Filial</Label>
                 <Select value={empresa} onValueChange={setEmpresa}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="text-xs h-9"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Focus Tecnologia Ltda">Focus Tecnologia Ltda (Matriz)</SelectItem>
                     <SelectItem value="Focus Finance Filial SP">Focus Finance Filial SP</SelectItem>
@@ -144,10 +144,10 @@ export function ReportGeneratorWizard() {
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label>Status dos Registros</Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Status dos Registros</Label>
                 <Select value={status} onValueChange={setStatus}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="text-xs h-9"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Todos">Todos os Status</SelectItem>
                     <SelectItem value="Ativos">Apenas Ativos / Concluídos</SelectItem>
@@ -157,61 +157,62 @@ export function ReportGeneratorWizard() {
               </div>
             </div>
           </CardContent>
-          <CardFooter className="flex justify-between border-t p-4">
-            <Button variant="outline" onClick={() => setStep(1)} className="gap-2">
+          <CardFooter className="flex justify-between border-t p-3 sm:p-4">
+            <Button variant="outline" onClick={() => setStep(1)} className="gap-1.5 text-xs sm:text-sm">
               <ArrowLeft className="w-4 h-4" /> Voltar
             </Button>
-            <Button onClick={() => setStep(3)} className="gap-2">
+            <Button onClick={() => setStep(3)} className="gap-1.5 text-xs sm:text-sm bg-orange-600 hover:bg-orange-700 text-white">
               Avançar para Personalização <ArrowRight className="w-4 h-4" />
             </Button>
           </CardFooter>
         </Card>
       )}
 
-      {/* STEP 3: Personalização e Pré-Visualização */}
+      {/* STEP 3: Personalização e Emissão */}
       {step === 3 && (
         <Card className="border shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Settings className="w-4 h-4 text-primary" />
+          <CardHeader className="p-4 sm:p-6 pb-2">
+            <CardTitle className="text-sm sm:text-base flex items-center gap-2">
+              <Settings className="w-4 h-4 text-orange-600" />
               Etapa 3 de 3: Layout & Emissão do Documento
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-3 border p-4 rounded-lg bg-muted/20">
-              <h4 className="font-semibold text-sm">Opções de Exibição Corporativa</h4>
+          <CardContent className="p-4 sm:p-6 space-y-4">
+            <div className="space-y-3 border p-3.5 sm:p-4 rounded-lg bg-muted/20">
+              <h4 className="font-semibold text-xs sm:text-sm">Opções de Exibição Corporativa</h4>
               <div className="flex items-center space-x-2">
                 <Checkbox id="inc-res" checked={incluirResumoExecutivo} onCheckedChange={(v: any) => setIncluirResumoExecutivo(v)} />
-                <Label htmlFor="inc-res" className="text-xs">Incluir Cards de Resumo Executivo no Cabeçalho</Label>
+                <Label htmlFor="inc-res" className="text-xs cursor-pointer">Incluir Cards de Resumo Executivo no Cabeçalho</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <Checkbox id="inc-graf" checked={incluirGraficos} onCheckedChange={(v: any) => setIncluirGraficos(v)} />
-                <Label htmlFor="inc-graf" className="text-xs">Incluir Gráficos Analíticos no Relatório</Label>
+                <Label htmlFor="inc-graf" className="text-xs cursor-pointer">Incluir Gráficos Analíticos no Relatório</Label>
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Observações Customizadas (Visíveis no Rodapé do Relatório)</Label>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Observações Adicionais no Rodapé (Opcional)</Label>
               <Textarea 
-                placeholder="Ex: Documento para apreciação da auditoria interna do Q3..." 
+                placeholder="Ex: Documento para prestação de contas à diretoria executiva." 
                 value={observacoesPersonalizadas}
                 onChange={e => setObservacoesPersonalizadas(e.target.value)}
+                className="text-xs"
                 rows={3}
               />
             </div>
           </CardContent>
-          <CardFooter className="flex justify-between border-t p-4">
-            <Button variant="outline" onClick={() => setStep(2)} className="gap-2">
+          <CardFooter className="flex justify-between border-t p-3 sm:p-4">
+            <Button variant="outline" onClick={() => setStep(2)} className="gap-1.5 text-xs sm:text-sm">
               <ArrowLeft className="w-4 h-4" /> Voltar
             </Button>
-            <Button onClick={handleGeneratePreview} className="gap-2 bg-orange-600 hover:bg-orange-700 text-white">
-              <Eye className="w-4 h-4" /> Visualizar & Exportar Documento
+            <Button onClick={handleGeneratePreview} className="gap-2 text-xs sm:text-sm bg-orange-600 hover:bg-orange-700 text-white font-semibold">
+              <Eye className="w-4 h-4" /> Gerar & Visualizar Relatório
             </Button>
           </CardFooter>
         </Card>
       )}
 
-      {/* Modal de Pré-Visualização Corporativa */}
+      {/* MODAL DE PREVIEW HOMOLOGADO */}
       <ReportDocumentPreviewModal 
         data={previewData}
         isOpen={showPreview}
