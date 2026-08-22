@@ -1,11 +1,13 @@
 export type ModuloOrigemDMS = 
   | 'Clientes' 
-  | 'Fornecedores' 
-  | 'Contratos' 
   | 'Projetos' 
+  | 'RH' 
+  | 'Produtos Focus' 
+  | 'Relatórios' 
   | 'Financeiro' 
   | 'Fiscal' 
-  | 'RH' 
+  | 'Contratos' 
+  | 'Fornecedores' 
   | 'Marketing' 
   | 'Comercial' 
   | 'CRM'
@@ -29,8 +31,9 @@ export interface PastaDMS {
   id: string;
   nome: string;
   parentId: string | null; // null se for raiz
-  caminhoCompleto: string; // Ex: /Financeiro/Boletos
+  caminhoCompleto: string; // Ex: /Clientes/Focus Tecnologia
   moduloVinculado?: ModuloOrigemDMS;
+  entidadeId?: string; // ID do Cliente, Projeto, Produto, etc.
   dataCriacao: string;
   criadoPor: string;
   corIcone?: string;
@@ -47,13 +50,19 @@ export interface DocumentoDMS {
   caminhoPasta: string;
   moduloOrigem: ModuloOrigemDMS;
   
-  // Vinculações MDM
+  // Vinculações MDM Multi-módulo
   clienteId?: string;
   clienteNome?: string;
   projetoId?: string;
   projetoNome?: string;
   contratoId?: string;
   contratoNumero?: string;
+  colaboradorId?: string;
+  colaboradorNome?: string;
+  produtoId?: string;
+  produtoNome?: string;
+  relatorioTipo?: string;
+  entidadeTipo?: 'cliente' | 'projeto' | 'colaborador' | 'produto' | 'relatorio' | 'contrato' | 'geral';
   
   tags: string[];
   categoria: string;
@@ -67,7 +76,7 @@ export interface DocumentoDMS {
   // Versionamento
   historicoVersoes: VersaoDocumento[];
   
-  // URL de conteúdo ou simulado
+  // URL de conteúdo Base64 ou Cloud Storage
   urlConteudo?: string;
 }
 
@@ -80,4 +89,13 @@ export interface AuditLogDocumento {
   dataHora: string;
   ip: string;
   detalhes?: string;
+}
+
+export interface DMSMetricas {
+  totalDocumentos: number;
+  totalPastas: number;
+  espacoUtilizadoBytes: number;
+  espacoUtilizadoFormatado: string;
+  documentosPorModulo: Record<ModuloOrigemDMS, number>;
+  documentosRecentes: DocumentoDMS[];
 }

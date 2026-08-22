@@ -23,6 +23,8 @@ export interface ContratoItem {
   status?: string;
 }
 
+import { dmsService } from '@/services/dmsService';
+
 export function useProdutos() {
   const {
     data: rawProdutos,
@@ -58,6 +60,10 @@ export function useProdutos() {
       updatedAt: new Date().toISOString(),
     };
     addProduto(novo);
+    
+    // Criar pasta automática no DMS
+    dmsService.ensureProductFolder({ id, nome: novo.nome });
+
     return id;
   };
 

@@ -19,6 +19,7 @@ import { Contrato } from '@/features/contratos/types';
 import { RecorrenciaFinanceira, FrequenciaRecorrencia, StatusRecorrencia } from '@/features/recorrencias/types';
 import { calculateClienteFinanceiro, syncRecorrenciaTitulos } from '@/features/recorrencias/services/recorrenciaEngine';
 import { useNotificacoesStore } from '@/features/notificacoes/useNotificacoesStore';
+import { dmsService } from '@/services/dmsService';
 
 export function NovoClienteSheet({ children, clienteToEdit }: { children: React.ReactNode, clienteToEdit?: Cliente }) {
   const [open, setOpen] = useState(false);
@@ -214,6 +215,13 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
       };
       saveCliente(novoCliente as any);
       
+      // Auto-gerar pasta específica do cliente no módulo Gestão de Documentação (DMS)
+      dmsService.ensureClientFolder({
+        id: clienteId,
+        nomeFantasia: novoCliente.nomeFantasia,
+        razaoSocial: novoCliente.razaoSocial,
+      });
+
       notificar({
         titulo: `Novo Cliente Cadastrado (${novoCliente.nomeFantasia || novoCliente.razaoSocial})`,
         descricao: `Cliente ${novoCliente.tipo} registrado na base com documento ${novoCliente.documento}.`,
@@ -221,6 +229,15 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
         tipo: 'Sucesso',
         prioridade: 'Normal',
         targetUrl: '/clientes'
+      });
+    }
+
+    // Garantir pasta no DMS também na edição
+    if (clienteToEdit) {
+      dmsService.ensureClientFolder({
+        id: clienteId,
+        nomeFantasia: clienteNomeOficial,
+        razaoSocial: razaoSocial || clienteNomeOficial,
       });
     }
 

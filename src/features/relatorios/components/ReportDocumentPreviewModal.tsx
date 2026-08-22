@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { jsPDF } from 'jspdf';
 import { toJpeg } from 'html-to-image';
 import { useRelatoriosStore } from '../hooks/useRelatoriosStore';
+import { dmsService } from '@/services/dmsService';
 import focusLogoHorizontal from '@/assets/focus-logo-horizontal.png';
 
 interface PreviewProps {
@@ -53,6 +54,16 @@ export function ReportDocumentPreviewModal({ data, isOpen, onClose }: PreviewPro
           pdf.addImage(imgData, 'JPEG', margin, margin, finalWidth, finalHeight);
           pdf.save(`Relatorio-Focus-${data.reportNumber}.pdf`);
           
+          // Indexar automaticamente no Módulo de Gestão de Documentos (DMS)
+          dmsService.uploadFileFromModule({
+            nome: `Relatorio-Focus-${data.definition.title.replace(/\s+/g, '_')}-${data.reportNumber}.pdf`,
+            moduloOrigem: 'Relatórios',
+            relatorioTipo: data.definition.category === 'Financeiro' ? 'DRE Gerencial' : 'Geral',
+            categoria: 'Relatórios Executivos',
+            tags: ['Relatórios', data.definition.category, data.reportNumber],
+            urlConteudo: imgData,
+          });
+
           toast.success(`Relatório exportado em PDF e salvo no Módulo de Documentos (DMS)!`, { id: 'pdf-toast' });
           registerExecution(data.definition.id, fmt, data.filters, data, imgData);
         } catch (err: any) {
@@ -62,6 +73,15 @@ export function ReportDocumentPreviewModal({ data, isOpen, onClose }: PreviewPro
       }
       return;
     }
+
+    // Exportação em formatos tabulares (CSV/Excel)
+    dmsService.uploadFileFromModule({
+      nome: `Relatorio-Focus-${data.definition.title.replace(/\s+/g, '_')}-${data.reportNumber}.${fmt.toLowerCase()}`,
+      moduloOrigem: 'Relatórios',
+      relatorioTipo: data.definition.category === 'Financeiro' ? 'DRE Gerencial' : 'Geral',
+      categoria: 'Planilhas Exportadas',
+      tags: ['Relatórios', fmt, data.reportNumber],
+    });
 
     registerExecution(data.definition.id, fmt, data.filters, data);
     toast.success(`Relatório exportado em ${fmt} e indexado no Módulo de Documentos (DMS)!`);

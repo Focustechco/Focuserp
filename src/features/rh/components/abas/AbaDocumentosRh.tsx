@@ -1,8 +1,9 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { UploadCloud, FileText, Download, Eye, Trash2 } from 'lucide-react';
+import { UploadCloud, FileText, Download, Trash2, FolderOpen } from 'lucide-react';
 import { DocumentoAnexoRh } from '../../types';
+import { dmsService } from '@/services/dmsService';
 import { toast } from 'sonner';
 
 interface AbaDocumentosRhProps {
@@ -34,7 +35,20 @@ export function AbaDocumentosRh({ documentos, setDocumentos, nomeColaborador }: 
       };
 
       setDocumentos(prev => [...prev, newDoc]);
-      toast.success(`Documento "${file.name}" anexado ao perfil de ${nomeColaborador || 'Colaborador'}!`);
+
+      // Sincronizar automaticamente com o módulo Gestão de Documentos (DMS)
+      dmsService.uploadFileFromModule({
+        nome: file.name,
+        tamanho: `${sizeInMb} MB`,
+        tamanhoBytes: file.size,
+        moduloOrigem: 'RH',
+        colaboradorNome: nomeColaborador || 'Colaborador',
+        categoria: newDoc.categoria,
+        tags: ['RH', 'Colaborador', nomeColaborador || 'Geral'],
+        urlConteudo: dataUrl,
+      });
+
+      toast.success(`Documento "${file.name}" anexado e salvo na pasta /RH/Colaboradores/${nomeColaborador || 'Colaborador'} do DMS!`);
     };
     reader.readAsDataURL(file);
   };
@@ -58,14 +72,17 @@ export function AbaDocumentosRh({ documentos, setDocumentos, nomeColaborador }: 
         </div>
         <h3 className="text-base font-bold">Anexar Documentos do Colaborador</h3>
         <p className="text-xs text-muted-foreground mt-1 mb-3 text-center">
-          Os arquivos serão salvos automaticamente na pasta <strong className="text-primary">/RH/{nomeColaborador || 'NomeColaborador'}</strong> do módulo DMS.
+          Os arquivos serão salvos automaticamente na pasta <strong className="text-primary">/RH/Colaboradores/{nomeColaborador || 'Colaborador'}</strong> do módulo DMS.
         </p>
         <Button variant="outline" size="sm" className="pointer-events-none">Selecionar Arquivos</Button>
       </div>
 
       <div className="space-y-4">
         <h4 className="font-bold text-xs flex items-center justify-between border-b pb-2">
-          <span>Documentos Anexados ao Perfil</span>
+          <span className="flex items-center gap-1.5">
+            <FolderOpen className="w-4 h-4 text-primary" />
+            Documentos Anexados ao Perfil & DMS
+          </span>
           <Badge variant="secondary">{documentos.length} arquivo(s)</Badge>
         </h4>
         
@@ -91,6 +108,18 @@ export function AbaDocumentosRh({ documentos, setDocumentos, nomeColaborador }: 
                   </div>
                 </div>
                 <div className="flex gap-1 shrink-0">
+                  {doc.urlConteudo && (
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-7 w-7 text-primary hover:bg-primary/10"
+                      asChild
+                    >
+                      <a href={doc.urlConteudo} download={doc.nome}>
+                        <Download className="w-3.5 h-3.5" />
+                      </a>
+                    </Button>
+                  )}
                   <Button 
                     variant="ghost" 
                     size="icon" 

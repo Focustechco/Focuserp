@@ -19,6 +19,7 @@ import { INITIAL_USUARIOS } from '@/features/usuarios/data/initialData';
 import { SelectResponsavel } from '@/components/SelectResponsavel';
 
 import { useNotificacoesStore } from "@/features/notificacoes/useNotificacoesStore";
+import { dmsService } from "@/services/dmsService";
 
 export function NovoProjetoSheet({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
@@ -148,6 +149,13 @@ export function NovoProjetoSheet({ children }: { children: React.ReactNode }) {
     };
 
     saveProjeto(novoProjeto as any);
+    
+    // Auto-gerar pasta específica do projeto no módulo Gestão de Documentação (DMS)
+    dmsService.ensureProjectFolder({
+      id: novoProjeto.id,
+      nome: novoProjeto.nome,
+      codigo: novoProjeto.codigo,
+    });
     
     // Disparar Notificao Automtica no Sistema de Notificaes ERP com usuarioDestino
     notificar({
