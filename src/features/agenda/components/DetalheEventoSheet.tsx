@@ -26,12 +26,13 @@ const formatCurrency = (value?: number) => {
 
 const getCategoryIcon = (categoria: CategoriaAgenda) => {
   switch(categoria) {
-    case 'Recebimento': return <ArrowUpRight className="w-5 h-5 text-emerald-500" />;
-    case 'Pagamento': return <ArrowDownRight className="w-5 h-5 text-rose-500" />;
-    case 'Imposto': return <FileWarning className="w-5 h-5 text-amber-500" />;
-    case 'Contrato': return <FileText className="w-5 h-5 text-indigo-500" />;
-    case 'Projeto': return <Briefcase className="w-5 h-5 text-violet-500" />;
-    default: return <CalendarIcon className="w-5 h-5 text-slate-500" />;
+    case 'Recebimento': return <ArrowUpRight className="w-4 h-4 text-emerald-500" />;
+    case 'Recorrência': return <RefreshCw className="w-4 h-4 text-orange-500" />;
+    case 'Pagamento': return <ArrowDownRight className="w-4 h-4 text-rose-500" />;
+    case 'Imposto': return <FileWarning className="w-4 h-4 text-amber-500" />;
+    case 'Contrato': return <FileText className="w-4 h-4 text-indigo-500" />;
+    case 'Projeto': return <Briefcase className="w-4 h-4 text-violet-500" />;
+    default: return <CalendarIcon className="w-4 h-4 text-slate-500" />;
   }
 };
 

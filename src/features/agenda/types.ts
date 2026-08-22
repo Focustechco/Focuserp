@@ -1,5 +1,6 @@
 export type CategoriaAgenda = 
   | 'Recebimento' 
+  | 'Recorrência'
   | 'Pagamento' 
   | 'Imposto' 
   | 'Contrato' 
@@ -19,11 +20,20 @@ export type StatusAgenda =
 
 export type PrioridadeAgenda = 'Alta' | 'Média' | 'Baixa';
 
+export type ModuloOrigemAgenda = 
+  | 'Contas a Receber' 
+  | 'Contas a Pagar' 
+  | 'Contratos' 
+  | 'Projetos' 
+  | 'Fiscal' 
+  | 'Clientes' 
+  | 'Recorrência';
+
 export interface EventoFinanceiro {
   id: string;
   titulo: string;
   categoria: CategoriaAgenda;
-  data: string; // ISO Date String
+  data: string; // ISO Date String (YYYY-MM-DD)
   hora?: string; // HH:mm format (para timeline)
   valor?: number; 
   
@@ -40,6 +50,6 @@ export interface EventoFinanceiro {
   observacoes?: string;
 
   // Metadados do Módulo de Origem (Para o comportamento Read-Only e Redirecionamento)
-  moduloOrigem: 'Contas a Receber' | 'Contas a Pagar' | 'Contratos' | 'Projetos' | 'Fiscal';
-  linkOrigem: string; // Ex: /contratos/123
+  moduloOrigem: ModuloOrigemAgenda;
+  linkOrigem: string; // Ex: /clientes ou /contas-a-receber
 }

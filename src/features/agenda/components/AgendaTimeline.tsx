@@ -19,6 +19,7 @@ const formatCurrency = (value?: number) => {
 const getCategoryIcon = (categoria: CategoriaAgenda) => {
   switch(categoria) {
     case 'Recebimento': return <ArrowUpRight className="w-4 h-4 text-emerald-500" />;
+    case 'Recorrência': return <RefreshCw className="w-4 h-4 text-orange-500" />;
     case 'Pagamento': return <ArrowDownRight className="w-4 h-4 text-rose-500" />;
     case 'Imposto': return <FileWarning className="w-4 h-4 text-amber-500" />;
     case 'Contrato': return <FileText className="w-4 h-4 text-indigo-500" />;
@@ -30,12 +31,12 @@ const getCategoryIcon = (categoria: CategoriaAgenda) => {
 const getStatusBadge = (status: string) => {
   if (status === 'Pago' || status === 'Recebido' || status === 'Concluído') return <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border-emerald-200">{status}</Badge>;
   if (status === 'Vencido') return <Badge className="bg-rose-100 text-rose-800 hover:bg-rose-200 border-rose-200">{status}</Badge>;
-  if (status === 'Em Aberto') return <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-200 border-amber-200">{status}</Badge>;
+  if (status === 'Em Aberto' || status === 'Previsto') return <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-200 border-amber-200">{status}</Badge>;
   return <Badge className="bg-slate-100 text-slate-800 hover:bg-slate-200 border-slate-200 dark:bg-slate-800 dark:text-slate-300">{status}</Badge>;
 };
 
 const getDateLabel = (dateIso: string) => {
-  const date = new Date(dateIso);
+  const date = new Date(dateIso.includes('T') ? dateIso : `${dateIso}T12:00:00Z`);
   if (isNaN(date.getTime())) return dateIso;
   if (isToday(date)) return 'Hoje';
   if (isTomorrow(date)) return 'Amanhã';
@@ -53,7 +54,7 @@ export function AgendaTimeline() {
       (evt?.entidadeVinculo && evt.entidadeVinculo.toLowerCase().includes((searchTerm || '').toLowerCase()));
     
     let matchesCat = true;
-    if (catFilter === 'rec') matchesCat = evt.categoria === 'Recebimento';
+    if (catFilter === 'rec') matchesCat = evt.categoria === 'Recebimento' || evt.categoria === 'Recorrência';
     if (catFilter === 'pag') matchesCat = evt.categoria === 'Pagamento';
     if (catFilter === 'imp') matchesCat = evt.categoria === 'Imposto' || evt.categoria === 'Obrigação Fiscal';
 
