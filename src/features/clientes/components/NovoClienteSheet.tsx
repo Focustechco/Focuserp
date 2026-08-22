@@ -11,7 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { 
   Plus, Trash2, FileText, Upload, RefreshCw, Calendar, DollarSign, 
   CheckCircle2, PauseCircle, XCircle, FolderOpen, UploadCloud, Download, 
-  ExternalLink, Eye, ShieldCheck, Briefcase 
+  ExternalLink, Eye, ShieldCheck, Briefcase, Search, MapPin, Building, Globe, User
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
@@ -47,16 +47,34 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
   const [razaoSocial, setRazaoSocial] = useState(clienteToEdit?.razaoSocial || '');
   const [nomeFantasia, setNomeFantasia] = useState(clienteToEdit?.nomeFantasia || '');
   const [ie, setIe] = useState(clienteToEdit?.inscricaoEstadual || '');
-  const [segmento, setSegmento] = useState(clienteToEdit?.segmento || '');
-  const [porte, setPorte] = useState(clienteToEdit?.porteEmpresa || '');
+  const [im, setIm] = useState(clienteToEdit?.inscricaoMunicipal || '');
+  const [dataFundacao, setDataFundacao] = useState(clienteToEdit?.dataFundacaoNascimento || '');
+  const [segmento, setSegmento] = useState(clienteToEdit?.segmento || 'Tecnologia');
+  const [porte, setPorte] = useState(clienteToEdit?.porteEmpresa || 'Médio');
+  const [site, setSite] = useState(clienteToEdit?.site || '');
+  const [observacoes, setObservacoes] = useState(clienteToEdit?.observacoes || '');
+  const [statusCliente, setStatusCliente] = useState(clienteToEdit?.status || 'Ativo');
+  
+  // Endereço Completo
+  const [cep, setCep] = useState(clienteToEdit?.endereco?.cep || '');
+  const [logradouro, setLogradouro] = useState(clienteToEdit?.endereco?.logradouro || '');
+  const [numero, setNumero] = useState(clienteToEdit?.endereco?.numero || '');
+  const [complemento, setComplemento] = useState(clienteToEdit?.endereco?.complemento || '');
+  const [bairro, setBairro] = useState(clienteToEdit?.endereco?.bairro || '');
   const [cidade, setCidade] = useState(clienteToEdit?.endereco?.cidade || '');
   const [estado, setEstado] = useState(clienteToEdit?.endereco?.estado || '');
-  
+  const [pais, setPais] = useState(clienteToEdit?.endereco?.pais || 'Brasil');
+  const [isBuscandoCep, setIsBuscandoCep] = useState(false);
+
   // Contatos
   const contatoPrincipal = clienteToEdit?.contatos?.find(c => c.principal) || clienteToEdit?.contatos?.[0];
   const [contatoNome, setContatoNome] = useState(contatoPrincipal?.nome || '');
+  const [contatoCargo, setContatoCargo] = useState(contatoPrincipal?.cargo || 'Responsável Comercial');
+  const [contatoDepartamento, setContatoDepartamento] = useState(contatoPrincipal?.departamento || 'Diretoria');
   const [contatoEmail, setContatoEmail] = useState(contatoPrincipal?.email || '');
   const [contatoCelular, setContatoCelular] = useState(contatoPrincipal?.celular || '');
+  const [contatoTelefone, setContatoTelefone] = useState(contatoPrincipal?.telefone || '');
+  const [contatoWhatsapp, setContatoWhatsapp] = useState(contatoPrincipal?.whatsapp ?? true);
 
   // Dados da Recorrência Financeira
   const [recorrenciaHabilitada, setRecorrenciaHabilitada] = useState(false);
@@ -102,15 +120,33 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
       setRazaoSocial(clienteToEdit?.razaoSocial || '');
       setNomeFantasia(clienteToEdit?.nomeFantasia || '');
       setIe(clienteToEdit?.inscricaoEstadual || '');
-      setSegmento(clienteToEdit?.segmento || '');
-      setPorte(clienteToEdit?.porteEmpresa || '');
+      setIm(clienteToEdit?.inscricaoMunicipal || '');
+      setDataFundacao(clienteToEdit?.dataFundacaoNascimento || '');
+      setSegmento(clienteToEdit?.segmento || 'Tecnologia');
+      setPorte(clienteToEdit?.porteEmpresa || 'Médio');
+      setSite(clienteToEdit?.site || '');
+      setObservacoes(clienteToEdit?.observacoes || '');
+      setStatusCliente(clienteToEdit?.status || 'Ativo');
+
+      // Endereço
+      setCep(clienteToEdit?.endereco?.cep || '');
+      setLogradouro(clienteToEdit?.endereco?.logradouro || '');
+      setNumero(clienteToEdit?.endereco?.numero || '');
+      setComplemento(clienteToEdit?.endereco?.complemento || '');
+      setBairro(clienteToEdit?.endereco?.bairro || '');
       setCidade(clienteToEdit?.endereco?.cidade || '');
       setEstado(clienteToEdit?.endereco?.estado || '');
+      setPais(clienteToEdit?.endereco?.pais || 'Brasil');
       
+      // Contatos
       const principal = clienteToEdit?.contatos?.find(c => c.principal) || clienteToEdit?.contatos?.[0];
       setContatoNome(principal?.nome || '');
+      setContatoCargo(principal?.cargo || 'Responsável Comercial');
+      setContatoDepartamento(principal?.departamento || 'Diretoria');
       setContatoEmail(principal?.email || '');
       setContatoCelular(principal?.celular || '');
+      setContatoTelefone(principal?.telefone || '');
+      setContatoWhatsapp(principal?.whatsapp ?? true);
 
       // Carregar documentos do DMS vinculados a este cliente
       if (clienteToEdit?.id) {
@@ -171,6 +207,36 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
     setRecorrenciaQuantidade('');
     setRecorrenciaStatus('Ativa');
     setRecorrenciaObservacoes('');
+  };
+
+  // Busca Inteligente de CEP (ViaCEP)
+  const handleBuscarCep = async () => {
+    const cleanCep = cep.replace(/\D/g, '');
+    if (cleanCep.length !== 8) {
+      toast.error('Informe um CEP válido com 8 dígitos.');
+      return;
+    }
+
+    setIsBuscandoCep(true);
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+      const data = await res.json();
+
+      if (data.erro) {
+        toast.error('CEP não localizado na base dos Correios.');
+      } else {
+        setLogradouro(data.logradouro || '');
+        setBairro(data.bairro || '');
+        setCidade(data.localidade || '');
+        setEstado(data.uf || '');
+        setPais('Brasil');
+        toast.success(`Endereço localizado: ${data.localidade} - ${data.uf}`);
+      }
+    } catch {
+      toast.error('Erro ao consultar CEP.');
+    } finally {
+      setIsBuscandoCep(false);
+    }
   };
 
   // Upload de Documentos com Salvamento Direto no DMS
@@ -248,35 +314,20 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
       tipoServico: contratoTipo as any,
       entidadeVinculo: 'Cliente',
       clienteId: targetCliId,
-      responsavelInterno: 'Administrador Focus',
-      departamento: 'Comercial',
-      status: 'Vigente',
-      descricao: `Contrato de prestação de serviços para ${targetCliNome}.`,
-      dataInicial: contratoDataInicio,
-      dataFinal: contratoDataFim,
-      renovacaoAutomatica: true,
-      valorTotal: valTotal || (valMensal * 12),
-      valorImplantacao: 0,
-      valorMensalidade: valMensal,
-      multaPercentual: 2,
-      jurosAoMes: 1,
-      aditivos: [],
-      assinaturas: [
-        {
-          id: `ass-${Date.now()}`,
-          parte: 'Contratante',
-          representante: contatoNome || targetCliNome,
-          cargo: 'Representante Legal',
-          documento: documento || '000.000.000-00',
-          status: 'Assinado',
-          dataAssinatura: new Date().toISOString()
-        }
-      ]
+      clienteNome: targetCliNome,
+      valorTotal: valTotal,
+      valorMensal: valMensal,
+      dataInicio: contratoDataInicio,
+      dataFim: contratoDataFim,
+      status: 'Ativo',
+      objetoContrato: `Prestação de serviços contínuos para ${targetCliNome}.`,
+      criadoEm: new Date().toISOString(),
+      atualizadoEm: new Date().toISOString(),
     };
 
     addContrato(novoContrato);
 
-    // Salvar também uma cópia digitalizada no DMS na pasta do cliente
+    // Integrar e espelhar cópia no DMS
     dmsService.uploadFileFromModule({
       nome: `Contrato_${novoContrato.numeroContrato.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`,
       moduloOrigem: 'Clientes',
@@ -299,13 +350,8 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
       return;
     }
 
-    if (!cidade || !estado) {
-      toast.error("A Cidade e o Estado são obrigatórios!");
-      return;
-    }
-
-    if (!contatoNome || !contatoCelular || !contatoEmail) {
-      toast.error("Nome, E-mail e Celular do contato principal são obrigatórios!");
+    if (!razaoSocial && !nomeFantasia) {
+      toast.error("Informe a Razão Social ou Nome do Cliente.");
       return;
     }
 
@@ -331,36 +377,47 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
     }
 
     const clienteId = clienteToEdit?.id || crypto.randomUUID();
-    const nomeFinal = nomeFantasia || razaoSocial;
+    const nomeFinal = (nomeFantasia.trim() || razaoSocial.trim() || 'Cliente Sem Nome');
+    const razaoFinal = (razaoSocial.trim() || nomeFantasia.trim() || 'Cliente Sem Nome');
+
+    const cleanEmail = (contatoEmail || '').trim();
 
     const clienteData = {
-      tipo: tipoPessoa === 'pj' ? 'Pessoa Jurídica' : 'Pessoa Física',
-      razaoSocial: razaoSocial || nomeFantasia,
+      id: clienteId,
+      codigo: clienteToEdit?.codigo || `CLI-${Math.floor(1000 + Math.random() * 9000)}`,
+      tipo: tipoPessoa === 'pj' ? ('Pessoa Jurídica' as const) : ('Pessoa Física' as const),
+      razaoSocial: razaoFinal,
       nomeFantasia: nomeFinal,
-      documento: documento,
-      inscricaoEstadual: ie || 'Isento',
-      status: clienteToEdit?.status || 'Ativo',
-      segmento: segmento || 'Geral',
+      documento: documento.trim(),
+      inscricaoEstadual: ie.trim() || 'Isento',
+      inscricaoMunicipal: im.trim() || undefined,
+      dataFundacaoNascimento: dataFundacao || undefined,
+      status: (statusCliente === 'Inativo' ? 'Inativo' : 'Ativo') as 'Ativo' | 'Inativo',
+      segmento: segmento.trim() || 'Geral',
       porteEmpresa: porte || 'Médio',
+      site: site.trim() || undefined,
+      observacoes: observacoes.trim() || undefined,
       ultimaAtualizacao: new Date().toISOString(),
       endereco: {
-        cep: clienteToEdit?.endereco?.cep || '',
-        logradouro: clienteToEdit?.endereco?.logradouro || '',
-        numero: clienteToEdit?.endereco?.numero || '',
-        bairro: clienteToEdit?.endereco?.bairro || '',
-        cidade: cidade,
-        estado: estado,
-        pais: 'Brasil'
+        cep: cep.trim(),
+        logradouro: logradouro.trim(),
+        numero: numero.trim(),
+        complemento: complemento.trim() || undefined,
+        bairro: bairro.trim(),
+        cidade: cidade.trim() || 'São Paulo',
+        estado: estado.trim() || 'SP',
+        pais: pais.trim() || 'Brasil'
       },
       contatos: [
         {
           id: contatoPrincipal?.id || crypto.randomUUID(),
-          nome: contatoNome,
-          cargo: contatoPrincipal?.cargo || 'Responsável',
-          departamento: contatoPrincipal?.departamento || 'Geral',
-          celular: contatoCelular,
-          whatsapp: true,
-          email: contatoEmail,
+          nome: contatoNome.trim() || 'Contato Principal',
+          cargo: contatoCargo.trim() || 'Responsável',
+          departamento: contatoDepartamento.trim() || 'Geral',
+          celular: contatoCelular.trim() || '',
+          telefone: contatoTelefone.trim() || undefined,
+          whatsapp: contatoWhatsapp,
+          email: cleanEmail,
           principal: true
         }
       ]
@@ -371,15 +428,12 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
       saveCliente({
         ...clienteToEdit,
         ...clienteData,
-        id: clienteId,
       } as any);
     } else {
       const novoCliente: Cliente = {
-        id: clienteId,
-        codigo: `CLI-${Math.floor(100 + Math.random() * 900)}`,
+        ...clienteData,
         dataCadastro: new Date().toISOString(),
-        ...(clienteData as any)
-      };
+      } as any;
       saveCliente(novoCliente as any);
       
       notificar({
@@ -396,7 +450,7 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
     dmsService.ensureClientFolder({
       id: clienteId,
       nomeFantasia: nomeFinal,
-      razaoSocial: razaoSocial || nomeFinal,
+      razaoSocial: razaoFinal,
     });
 
     // 2. Salvar/Atualizar Recorrência e Sincronizar Títulos Financeiros
@@ -448,21 +502,21 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
       <SheetTrigger asChild>
         {children}
       </SheetTrigger>
-      <SheetContent side="right" className="w-full sm:max-w-3xl overflow-y-auto">
+      <SheetContent side="right" className="w-full sm:max-w-4xl overflow-y-auto">
         <SheetHeader className="pb-4">
           <SheetTitle>{clienteToEdit ? 'Editar Cliente' : 'Cadastro de Cliente'}</SheetTitle>
           <SheetDescription>
             {clienteToEdit 
-              ? 'Atualize os dados mestres, recorrência, documentos anexados e contratos vinculados.' 
+              ? 'Atualize os dados mestres, endereço completo, contatos, recorrência e documentos.' 
               : 'Este é o cadastro mestre. As informações salvas aqui refletirão em todo o sistema.'}
           </SheetDescription>
         </SheetHeader>
 
         <Tabs defaultValue="gerais" className="mt-4">
-          <TabsList className="grid grid-cols-4 sm:grid-cols-7 mb-4 h-auto p-1 gap-1">
+          <TabsList className="grid grid-cols-3 sm:grid-cols-7 mb-4 h-auto p-1 gap-1">
             <TabsTrigger value="gerais" className="text-xs">Dados Gerais</TabsTrigger>
-            <TabsTrigger value="contatos" className="text-xs">Contatos</TabsTrigger>
             <TabsTrigger value="endereco" className="text-xs">Endereço</TabsTrigger>
+            <TabsTrigger value="contatos" className="text-xs">Contatos</TabsTrigger>
             <TabsTrigger value="financeiro" className="text-xs">Financeiro</TabsTrigger>
             <TabsTrigger value="contratos" className="text-xs font-semibold text-primary">
               Contratos ({contratosDoCliente.length})
@@ -475,14 +529,14 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
 
           {/* 1. DADOS GERAIS */}
           <TabsContent value="gerais" className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label>Tipo de Pessoa</Label>
                 <Select value={tipoPessoa} onValueChange={setTipoPessoa}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="pj">Pessoa Jurídica</SelectItem>
-                    <SelectItem value="pf">Pessoa Física</SelectItem>
+                    <SelectItem value="pj">Pessoa Jurídica (PJ)</SelectItem>
+                    <SelectItem value="pf">Pessoa Física (PF)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -496,21 +550,32 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
                   onChange={e => setDocumento(e.target.value)}
                 />
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="razao">{tipoPessoa === 'pj' ? 'Razão Social *' : 'Nome Completo *'}</Label>
-              <Input 
-                id="razao" 
-                placeholder="Ex: Focus Tecnologia Ltda" 
-                value={razaoSocial}
-                onChange={e => setRazaoSocial(e.target.value)}
-              />
-            </div>
-
-            {tipoPessoa === 'pj' && (
               <div className="space-y-2">
-                <Label htmlFor="fantasia">Nome Fantasia</Label>
+                <Label>Status do Cliente</Label>
+                <Select value={statusCliente} onValueChange={(v: any) => setStatusCliente(v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Ativo">Ativo</SelectItem>
+                    <SelectItem value="Inativo">Inativo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="razao">{tipoPessoa === 'pj' ? 'Razão Social *' : 'Nome Completo *'}</Label>
+                <Input 
+                  id="razao" 
+                  placeholder="Ex: Focus Tecnologia Ltda" 
+                  value={razaoSocial}
+                  onChange={e => setRazaoSocial(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="fantasia">Nome Fantasia / Apelido</Label>
                 <Input 
                   id="fantasia" 
                   placeholder="Ex: Focus ERP" 
@@ -518,61 +583,250 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
                   onChange={e => setNomeFantasia(e.target.value)}
                 />
               </div>
-            )}
+            </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="ie">Inscrição Estadual</Label>
                 <Input 
                   id="ie" 
-                  placeholder="Isento" 
+                  placeholder="Isento ou Nº" 
                   value={ie}
                   onChange={e => setIe(e.target.value)}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="segmento">Segmento</Label>
+                <Label htmlFor="im">Inscrição Municipal</Label>
+                <Input 
+                  id="im" 
+                  placeholder="Nº Inscrição Municipal" 
+                  value={im}
+                  onChange={e => setIm(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="dataFundacao">{tipoPessoa === 'pj' ? 'Data de Fundação' : 'Data de Nascimento'}</Label>
+                <Input 
+                  id="dataFundacao" 
+                  type="date"
+                  value={dataFundacao}
+                  onChange={e => setDataFundacao(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="segmento">Segmento / Ramo de Atividade</Label>
                 <Input 
                   id="segmento" 
-                  placeholder="Ex: Tecnologia" 
+                  placeholder="Ex: Tecnologia, Varejo, Serviços" 
                   value={segmento}
                   onChange={e => setSegmento(e.target.value)}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="porte">Porte</Label>
+                <Label htmlFor="porte">Porte da Empresa</Label>
                 <Select value={porte} onValueChange={setPorte}>
                   <SelectTrigger id="porte"><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="MEI">MEI</SelectItem>
-                    <SelectItem value="Micro">Microempresa</SelectItem>
-                    <SelectItem value="Pequeno">Pequeno Porte</SelectItem>
+                    <SelectItem value="Micro">Microempresa (ME)</SelectItem>
+                    <SelectItem value="Pequeno">Pequeno Porte (EPP)</SelectItem>
                     <SelectItem value="Médio">Médio Porte</SelectItem>
                     <SelectItem value="Grande">Grande Porte</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="site">Website / Domínio</Label>
+                <Input 
+                  id="site" 
+                  placeholder="https://suaempresa.com.br" 
+                  value={site}
+                  onChange={e => setSite(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="obs">Observações Internas / Comerciais</Label>
+              <Textarea 
+                id="obs"
+                placeholder="Observações importantes, particularidades contratuais, canais de atendimento..."
+                value={observacoes}
+                onChange={e => setObservacoes(e.target.value)}
+                className="min-h-[80px] text-xs"
+              />
             </div>
           </TabsContent>
 
-          {/* 2. CONTATOS */}
-          <TabsContent value="contatos" className="space-y-4">
-            <div className="border p-4 rounded-md space-y-3 bg-muted/20">
-              <h4 className="font-semibold text-sm">Contato Principal *</h4>
+          {/* 2. ENDEREÇO COMPLETO */}
+          <TabsContent value="endereco" className="space-y-4">
+            <div className="p-4 border rounded-lg bg-card space-y-4">
+              <div className="flex items-center justify-between">
+                <h4 className="font-semibold text-sm flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-orange-600" />
+                  Localização e Endereço Corporativo
+                </h4>
+                <Badge variant="outline" className="text-xs">Busca Automática via CEP</Badge>
+              </div>
+
+              {/* Linha 1: CEP + Busca */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+                <div className="space-y-2">
+                  <Label htmlFor="cep">CEP *</Label>
+                  <div className="flex gap-2">
+                    <Input 
+                      id="cep" 
+                      placeholder="00000-000" 
+                      value={cep}
+                      onChange={e => setCep(e.target.value)}
+                    />
+                    <Button 
+                      type="button" 
+                      variant="secondary" 
+                      size="sm" 
+                      onClick={handleBuscarCep}
+                      disabled={isBuscandoCep}
+                      className="gap-1 px-3 text-xs"
+                    >
+                      <Search className="w-3.5 h-3.5" />
+                      {isBuscandoCep ? 'Buscando...' : 'Buscar'}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="logradouro">Logradouro (Rua, Avenida, Alameda) *</Label>
+                  <Input 
+                    id="logradouro" 
+                    placeholder="Ex: Av. Paulista" 
+                    value={logradouro}
+                    onChange={e => setLogradouro(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Linha 2: Número, Complemento, Bairro */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="c-nome">Nome do Responsável *</Label>
+                  <Label htmlFor="num">Número *</Label>
+                  <Input 
+                    id="num" 
+                    placeholder="Ex: 1000 ou S/N" 
+                    value={numero}
+                    onChange={e => setNumero(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="comp">Complemento</Label>
+                  <Input 
+                    id="comp" 
+                    placeholder="Ex: Sala 402, Bloco B" 
+                    value={complemento}
+                    onChange={e => setComplemento(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="bairro">Bairro *</Label>
+                  <Input 
+                    id="bairro" 
+                    placeholder="Ex: Bela Vista" 
+                    value={bairro}
+                    onChange={e => setBairro(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Linha 3: Cidade, UF, País */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="cidade">Cidade *</Label>
+                  <Input 
+                    id="cidade" 
+                    placeholder="Ex: São Paulo" 
+                    value={cidade}
+                    onChange={e => setCidade(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="uf">Estado (UF) *</Label>
+                  <Input 
+                    id="uf" 
+                    placeholder="Ex: SP" 
+                    maxLength={2}
+                    value={estado}
+                    onChange={e => setEstado(e.target.value.toUpperCase())}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="pais">País</Label>
+                  <Input 
+                    id="pais" 
+                    placeholder="Brasil" 
+                    value={pais}
+                    onChange={e => setPais(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* 3. CONTATOS */}
+          <TabsContent value="contatos" className="space-y-4">
+            <div className="p-4 border rounded-lg bg-card space-y-4">
+              <div className="flex items-center justify-between">
+                <h4 className="font-semibold text-sm flex items-center gap-2">
+                  <User className="w-4 h-4 text-orange-600" />
+                  Contato Principal & Interlocutores
+                </h4>
+                <Badge variant="outline" className="text-xs">Responsável</Badge>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="c-nome">Nome Completo *</Label>
                   <Input 
                     id="c-nome" 
-                    placeholder="Nome completo" 
+                    placeholder="Ex: João da Silva" 
                     value={contatoNome}
                     onChange={e => setContatoNome(e.target.value)}
                   />
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="c-email">E-mail *</Label>
+                  <Label htmlFor="c-cargo">Cargo / Função</Label>
+                  <Input 
+                    id="c-cargo" 
+                    placeholder="Ex: Gerente de TI / Diretor" 
+                    value={contatoCargo}
+                    onChange={e => setContatoCargo(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="c-depto">Departamento</Label>
+                  <Input 
+                    id="c-depto" 
+                    placeholder="Ex: Tecnologia, Financeiro" 
+                    value={contatoDepartamento}
+                    onChange={e => setContatoDepartamento(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="c-email">E-mail Corporativo</Label>
                   <Input 
                     id="c-email" 
                     type="email" 
@@ -581,40 +835,26 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
                     onChange={e => setContatoEmail(e.target.value)}
                   />
                 </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="c-celular">Celular / WhatsApp *</Label>
                   <Input 
                     id="c-celular" 
-                    placeholder="(11) 90000-0000" 
+                    placeholder="(11) 99999-9999" 
                     value={contatoCelular}
                     onChange={e => setContatoCelular(e.target.value)}
                   />
                 </div>
-              </div>
-            </div>
-          </TabsContent>
 
-          {/* 3. ENDEREÇO */}
-          <TabsContent value="endereco" className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="cidade">Cidade *</Label>
-                <Input 
-                  id="cidade" 
-                  placeholder="Ex: São Paulo" 
-                  value={cidade}
-                  onChange={e => setCidade(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="uf">Estado (UF) *</Label>
-                <Input 
-                  id="uf" 
-                  placeholder="Ex: SP" 
-                  maxLength={2}
-                  value={estado}
-                  onChange={e => setEstado(e.target.value.toUpperCase())}
-                />
+                <div className="space-y-2">
+                  <Label htmlFor="c-tel">Telefone Fixo</Label>
+                  <Input 
+                    id="c-tel" 
+                    placeholder="(11) 3000-0000" 
+                    value={contatoTelefone}
+                    onChange={e => setContatoTelefone(e.target.value)}
+                  />
+                </div>
               </div>
             </div>
           </TabsContent>
@@ -751,61 +991,43 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
             </div>
           </TabsContent>
 
-          {/* 5. CONTRATOS (INTEGRADO AO MÓDULO CONTRATOS) */}
+          {/* 5. CONTRATOS INTEGRADOS */}
           <TabsContent value="contratos" className="space-y-4">
-            <div className="flex items-center justify-between border-b pb-3">
+            <div className="flex items-center justify-between">
               <div>
-                <h4 className="font-semibold text-sm flex items-center gap-2">
-                  <Briefcase className="w-4 h-4 text-primary" />
-                  Contratos Registrados
-                </h4>
-                <p className="text-xs text-muted-foreground">
-                  Integrado em tempo real com o módulo Gestão de Contratos (CLM).
-                </p>
+                <h4 className="font-semibold text-sm">Contratos Vinculados</h4>
+                <p className="text-xs text-muted-foreground">Espelhamento em tempo real com o módulo Contratos & DMS</p>
               </div>
               <Button 
+                type="button" 
                 size="sm" 
-                variant="outline" 
-                className="gap-1.5 text-xs text-primary border-primary/30 hover:bg-primary/5"
-                onClick={() => {
-                  setContratoNome(`Contrato Prestação de Serviços - ${clienteNomeOficial}`);
-                  setModalNovoContratoOpen(true);
-                }}
+                onClick={() => setModalNovoContratoOpen(true)}
+                className="gap-1.5 text-xs bg-primary text-primary-foreground"
               >
-                <Plus className="w-3.5 h-3.5" /> Vincular Novo Contrato
+                <Plus className="w-3.5 h-3.5" /> Novo Contrato
               </Button>
             </div>
 
             {contratosDoCliente.length === 0 ? (
-              <div className="border border-dashed rounded-lg p-8 text-center space-y-3 bg-muted/5">
-                <FileText className="w-8 h-8 mx-auto text-muted-foreground opacity-50" />
-                <p className="text-sm font-medium">Nenhum contrato formal vinculado ainda.</p>
-                <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                  Você pode gerar um contrato formal com valores, vigência e assinaturas clicando no botão acima.
-                </p>
+              <div className="p-8 text-center border border-dashed rounded-lg text-muted-foreground text-xs">
+                <FileText className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                Nenhum contrato ativo vinculado a este cliente.
               </div>
             ) : (
-              <div className="space-y-2.5">
+              <div className="space-y-2">
                 {contratosDoCliente.map(c => (
-                  <div key={c.id} className="border rounded-lg p-3.5 flex items-center justify-between bg-card hover:border-primary/40 transition-colors">
-                    <div className="space-y-1">
+                  <div key={c.id} className="p-3 border rounded-lg bg-card flex items-center justify-between text-xs">
+                    <div className="space-y-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold text-xs text-foreground">{c.nome}</span>
-                        <Badge variant="outline" className="text-[10px] bg-primary/5 text-primary border-primary/20">
-                          {c.numeroContrato || c.codigo}
-                        </Badge>
-                        <Badge variant="secondary" className="text-[10px]">
-                          {c.status}
-                        </Badge>
+                        <span className="font-semibold text-foreground truncate">{c.nome}</span>
+                        <Badge variant="outline" className="text-[10px]">{c.numeroContrato}</Badge>
                       </div>
-                      <div className="text-[11px] text-muted-foreground flex items-center gap-3">
-                        <span>Serviço: <strong>{c.tipoServico}</strong></span>
-                        <span>• Mensal: <strong>R$ {(c.valorMensalidade || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></span>
-                        <span>• Total: <strong>R$ {(c.valorTotal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></span>
-                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        {c.tipoServico} • R$ {c.valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </p>
                     </div>
-                    <Badge variant="outline" className="text-[11px] font-medium">
-                      {c.dataInicial ? new Date(c.dataInicial).toLocaleDateString('pt-BR') : 'Sem data'}
+                    <Badge className={c.status === 'Ativo' ? 'bg-emerald-600' : 'bg-slate-500'}>
+                      {c.status}
                     </Badge>
                   </div>
                 ))}
@@ -813,214 +1035,170 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
             )}
           </TabsContent>
 
-          {/* 6. DOCUMENTOS (INTEGRADO AO MÓDULO GESTÃO DE DOCUMENTOS - DMS) */}
+          {/* 6. DOCUMENTOS ANEXADOS INTEGRADOS AO DMS */}
           <TabsContent value="documentos" className="space-y-4">
-            {/* Dropzone de Upload Real */}
-            <div className="border-2 border-dashed border-primary/30 hover:border-primary/60 rounded-xl p-6 flex flex-col items-center justify-center bg-primary/5 hover:bg-primary/10 transition-colors cursor-pointer relative group text-center">
-              <input 
-                type="file" 
-                multiple
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
-                onChange={handleFileUpload}
-                disabled={isUploadingDoc}
-              />
-              <div className="bg-primary/10 p-3 rounded-full mb-2 group-hover:scale-110 transition-transform">
-                <UploadCloud className="w-6 h-6 text-primary" />
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-semibold text-sm">Documentos & Anexos</h4>
+                <p className="text-xs text-muted-foreground">Salvos automaticamente na pasta <code className="text-primary">/Clientes/{clienteNomeOficial}</code> do DMS</p>
               </div>
-              <h4 className="font-semibold text-sm text-foreground">
-                {isUploadingDoc ? 'Enviando e indexando documento no DMS...' : 'Anexar Documentos do Cliente'}
-              </h4>
-              <p className="text-xs text-muted-foreground mt-1 max-w-md">
-                Arraste Contratos Sociais, CNH, Procurações, Notas, Comprovantes ou PDFs.
-              </p>
-              <p className="text-[11px] text-primary/80 mt-1 font-medium">
-                📁 Os arquivos são salvos automaticamente na pasta <strong>/Clientes/{clienteNomeOficial}</strong> do DMS.
-              </p>
+              <div className="relative">
+                <Button 
+                  type="button" 
+                  size="sm" 
+                  disabled={isUploadingDoc}
+                  className="gap-1.5 text-xs bg-orange-600 hover:bg-orange-700 text-white"
+                >
+                  <UploadCloud className="w-3.5 h-3.5" /> 
+                  {isUploadingDoc ? 'Enviando...' : 'Anexar Documento'}
+                </Button>
+                <input 
+                  type="file" 
+                  multiple
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                  onChange={handleFileUpload}
+                />
+              </div>
             </div>
 
-            {/* Lista de Documentos Anexados */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between border-b pb-2">
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Arquivos na Pasta deste Cliente ({documentosAnexados.length})
-                </span>
+            {documentosAnexados.length === 0 ? (
+              <div className="p-8 text-center border border-dashed rounded-lg text-muted-foreground text-xs">
+                <FolderOpen className="w-8 h-8 mx-auto mb-2 opacity-40 text-orange-500" />
+                Nenhum documento anexado ainda. Anexe propostas, contratos assinados, documentos cadastrais ou fotos.
               </div>
-
-              {documentosAnexados.length === 0 ? (
-                <div className="py-6 text-center text-muted-foreground text-xs">
-                  Nenhum documento anexado ainda. Clique no campo acima para selecionar arquivos.
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {documentosAnexados.map((doc) => (
-                    <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg hover:border-primary/40 bg-card transition-all">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="p-2 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
-                          <FileText className="w-4 h-4" />
-                        </div>
-                        <div className="min-w-0 truncate">
-                          <p className="font-semibold text-xs truncate">{doc.nome}</p>
-                          <p className="text-[11px] text-muted-foreground flex items-center gap-2 mt-0.5">
-                            <span className="bg-secondary px-1.5 py-0.5 rounded text-[10px]">{doc.categoria || 'Documentos do Cliente'}</span>
-                            <span>{doc.tamanho}</span>
-                            <span>• {new Date(doc.dataUpload).toLocaleDateString('pt-BR')}</span>
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-1 shrink-0">
-                        {doc.urlConteudo && (
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            asChild
-                            className="h-8 text-xs gap-1"
-                          >
-                            <a href={doc.urlConteudo} download={doc.nome}>
-                              <Download className="w-3.5 h-3.5" /> Baixar
-                            </a>
-                          </Button>
-                        )}
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30"
-                          onClick={() => handleRemoveDoc(doc.id)}
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
+            ) : (
+              <div className="space-y-2">
+                {documentosAnexados.map(d => (
+                  <div key={d.id} className="p-3 border rounded-lg bg-card flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <FileText className="w-5 h-5 text-orange-600 shrink-0" />
+                      <div className="min-w-0">
+                        <p className="font-semibold truncate">{d.nome}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {d.tamanho} • {new Date(d.dataUpload).toLocaleDateString('pt-BR')} • {d.categoria || 'Geral'}
+                        </p>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                    <div className="flex items-center gap-1">
+                      {d.urlConteudo && (
+                        <Button size="icon" variant="ghost" className="h-7 w-7 text-primary" asChild>
+                          <a href={d.urlConteudo} download={d.nome}>
+                            <Download className="w-3.5 h-3.5" />
+                          </a>
+                        </Button>
+                      )}
+                      <Button size="icon" variant="ghost" className="h-7 w-7 text-rose-500" onClick={() => handleRemoveDoc(d.id)}>
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </TabsContent>
 
           {/* 7. HISTÓRICO */}
-          <TabsContent value="historico" className="space-y-4">
-            <div className="relative border-l border-muted ml-4 pl-6 space-y-6">
-              <div className="relative">
-                <div className="absolute -left-[31px] bg-emerald-500 rounded-full w-4 h-4 border-4 border-background" />
-                <div className="text-sm font-medium">Cadastro Atualizado</div>
-                <div className="text-xs text-muted-foreground">Sistema • Hoje</div>
-                <div className="text-xs mt-1 text-muted-foreground">Módulo de Clientes e CRM sincronizados.</div>
+          <TabsContent value="historico" className="space-y-4 text-xs">
+            <div className="border rounded-lg p-4 bg-muted/10 space-y-2">
+              <h4 className="font-semibold text-sm">Trilha de Auditoria</h4>
+              <p className="text-muted-foreground">Registro automático de alterações e conformidade do cliente.</p>
+              <div className="pt-2 text-muted-foreground space-y-1 font-mono text-[11px]">
+                <div>• Cadastro Inicial: {clienteToEdit ? new Date(clienteToEdit.dataCadastro || '').toLocaleDateString('pt-BR') : 'Será gerado agora'}</div>
+                <div>• Última Atualização: {clienteToEdit ? new Date(clienteToEdit.ultimaAtualizacao || '').toLocaleDateString('pt-BR') : 'Novo registro'}</div>
+                <div>• Status Atual: <Badge variant="outline" className="text-[10px]">{statusCliente}</Badge></div>
               </div>
-              {clienteToEdit && (
-                <div className="relative">
-                  <div className="absolute -left-[31px] bg-blue-500 rounded-full w-4 h-4 border-4 border-background" />
-                  <div className="text-sm font-medium">Cliente Criado na Base</div>
-                  <div className="text-xs text-muted-foreground">Sistema • {new Date(clienteToEdit.dataCadastro).toLocaleDateString('pt-BR')}</div>
-                </div>
-              )}
             </div>
           </TabsContent>
-
         </Tabs>
 
-        <SheetFooter className="mt-8">
-          <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-          <Button onClick={handleSave} className="bg-orange-600 hover:bg-orange-700 text-white font-semibold">
-            {clienteToEdit ? 'Salvar Alterações' : 'Salvar Cliente'}
+        <SheetFooter className="mt-6 flex flex-row items-center justify-end gap-2 border-t pt-4">
+          <Button variant="outline" onClick={() => setOpen(false)} className="text-xs">
+            Cancelar
+          </Button>
+          <Button onClick={handleSave} className="text-xs bg-orange-600 hover:bg-orange-700 text-white">
+            {clienteToEdit ? 'Atualizar Cliente' : 'Salvar Cliente'}
           </Button>
         </SheetFooter>
+
+        {/* Modal Rápido de Novo Contrato Vinculado */}
+        <Dialog open={modalNovoContratoOpen} onOpenChange={setModalNovoContratoOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-base">Novo Contrato para {clienteNomeOficial}</DialogTitle>
+              <DialogDescription className="text-xs">
+                O contrato será gerado e espelhado automaticamente no módulo DMS.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 py-2 text-xs">
+              <div className="space-y-1">
+                <Label>Título / Objeto do Contrato *</Label>
+                <Input 
+                  placeholder="Ex: Contrato de Manutenção e Suporte 2026"
+                  value={contratoNome}
+                  onChange={e => setContratoNome(e.target.value)}
+                  className="text-xs h-8"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label>Tipo de Serviço</Label>
+                  <Select value={contratoTipo} onValueChange={setContratoTipo}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Desenvolvimento de Software">Software</SelectItem>
+                      <SelectItem value="Consultoria">Consultoria</SelectItem>
+                      <SelectItem value="Infraestrutura">Infraestrutura</SelectItem>
+                      <SelectItem value="Licenciamento SaaS">SaaS</SelectItem>
+                      <SelectItem value="Manutenção">Manutenção</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1">
+                  <Label>Valor Total (R$)</Label>
+                  <Input 
+                    type="number"
+                    placeholder="0,00"
+                    value={contratoValorTotal}
+                    onChange={e => setContratoValorTotal(e.target.value)}
+                    className="text-xs h-8"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label>Data Início</Label>
+                  <Input 
+                    type="date"
+                    value={contratoDataInicio}
+                    onChange={e => setContratoDataInicio(e.target.value)}
+                    className="text-xs h-8"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>Data Fim</Label>
+                  <Input 
+                    type="date"
+                    value={contratoDataFim}
+                    onChange={e => setContratoDataFim(e.target.value)}
+                    className="text-xs h-8"
+                  />
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" size="sm" onClick={() => setModalNovoContratoOpen(false)} className="text-xs">
+                Cancelar
+              </Button>
+              <Button size="sm" onClick={handleCriarContratoRapido} className="text-xs bg-orange-600 hover:bg-orange-700 text-white">
+                Vincular Contrato
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </SheetContent>
-
-      {/* MODAL PARA CRIAR CONTRATO RAPIDO VINCULADO AO CLIENTE */}
-      <Dialog open={modalNovoContratoOpen} onOpenChange={setModalNovoContratoOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base">
-              <Briefcase className="w-4 h-4 text-primary" /> Novo Contrato para {clienteNomeOficial}
-            </DialogTitle>
-            <DialogDescription className="text-xs">
-              Gera o contrato comercial e salva automaticamente no módulo de Contratos e no DMS.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-3.5 py-2 text-xs">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Título / Objeto do Contrato *</Label>
-              <Input 
-                value={contratoNome} 
-                onChange={e => setContratoNome(e.target.value)} 
-                placeholder="Ex: Contrato de Prestação de Serviços de TI"
-                className="text-xs h-9"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs">Tipo de Serviço</Label>
-              <Select value={contratoTipo} onValueChange={setContratoTipo}>
-                <SelectTrigger className="text-xs h-9"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Desenvolvimento de Software">Desenvolvimento de Software</SelectItem>
-                  <SelectItem value="Sistema Web">Sistema Web</SelectItem>
-                  <SelectItem value="Licenciamento">Licenciamento de Software</SelectItem>
-                  <SelectItem value="Suporte Técnico">Suporte Técnico & Manutenção</SelectItem>
-                  <SelectItem value="Consultoria">Consultoria</SelectItem>
-                  <SelectItem value="Prestação de Serviço">Prestação de Serviço Geral</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Mensalidade (R$)</Label>
-                <Input 
-                  type="number" 
-                  placeholder="Ex: 2500.00" 
-                  value={contratoMensalidade}
-                  onChange={e => setContratoMensalidade(e.target.value)}
-                  className="text-xs h-9"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs">Valor Total (R$)</Label>
-                <Input 
-                  type="number" 
-                  placeholder="Ex: 30000.00" 
-                  value={contratoValorTotal}
-                  onChange={e => setContratoValorTotal(e.target.value)}
-                  className="text-xs h-9"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Data de Início</Label>
-                <Input 
-                  type="date" 
-                  value={contratoDataInicio}
-                  onChange={e => setContratoDataInicio(e.target.value)}
-                  className="text-xs h-9"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs">Data de Término</Label>
-                <Input 
-                  type="date" 
-                  value={contratoDataFim}
-                  onChange={e => setContratoDataFim(e.target.value)}
-                  className="text-xs h-9"
-                />
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter className="pt-2">
-            <Button variant="outline" size="sm" onClick={() => setModalNovoContratoOpen(false)} className="text-xs">
-              Cancelar
-            </Button>
-            <Button size="sm" onClick={handleCriarContratoRapido} className="text-xs bg-orange-600 hover:bg-orange-700 text-white font-semibold">
-              Gerar & Vincular Contrato
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </Sheet>
   );
 }

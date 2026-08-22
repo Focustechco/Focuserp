@@ -297,6 +297,14 @@ export function useDocumentosStore() {
     logAction(docId, doc.nome, 'Renomeação', `Documento movido para ${targetFolder.caminhoCompleto}`);
   };
 
+  const updateDocument = (docId: string, patch: Partial<DocumentoDMS>) => {
+    updateDocItem(docId, patch);
+    const current = documentos.find(d => d.id === docId);
+    if (current) {
+      dmsService.saveDocumento({ ...current, ...patch });
+    }
+  };
+
   return {
     pastas,
     documentos,
@@ -311,6 +319,7 @@ export function useDocumentosStore() {
     deletePermanently,
     toggleFavorite,
     moveDocument,
+    updateDocument,
     logAction,
   };
 }
