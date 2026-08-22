@@ -94,55 +94,41 @@ function LoginPage() {
       <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-gradient-to-b from-orange-500/10 via-orange-500/5 to-transparent blur-3xl pointer-events-none rounded-full" />
 
       {/* Top Header */}
-      <header className="w-full max-w-6xl mx-auto px-6 py-6 sm:py-8 flex items-center justify-between z-10">
-        <div className="flex items-center gap-2">
-          <img
-            src={focusLogoHq}
-            alt="Focus ERP"
-            className="h-7 sm:h-8 w-auto object-contain dark:hidden"
-          />
-          <img
-            src={focusLogoHqDark}
-            alt="Focus ERP"
-            className="h-7 sm:h-8 w-auto object-contain hidden dark:block"
-          />
-        </div>
-
+      <header className="w-full max-w-6xl mx-auto px-6 py-6 sm:py-8 flex items-center justify-end z-10">
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[11px] font-medium text-slate-600 dark:text-slate-400">
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-          <span className="hidden sm:inline">Ambiente Seguro</span>
-          <span className="inline sm:hidden">Seguro</span>
+          <span className="font-medium">Ambiente Corporativo Seguro</span>
         </div>
       </header>
 
       {/* Card Central de Login */}
       <main className="flex-1 flex items-center justify-center px-4 py-6 sm:px-6 z-10">
-        <div className="w-full max-w-[430px] animate-fade-in">
+        <div className="w-full max-w-[420px] animate-fade-in">
           
           <Card className="border border-slate-200/90 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none bg-white dark:bg-slate-900/95 backdrop-blur-md rounded-2xl overflow-hidden">
             {/* Linha de acento superior laranja Focus */}
             <div className="h-1.5 w-full bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500" />
 
-            <CardHeader className="space-y-0 text-center pt-8 pb-6 px-6 sm:px-8">
-              {/* Logo Oficial Centralizada */}
-              <div className="flex items-center justify-center mb-6">
+            <CardHeader className="space-y-0 text-center pt-8 pb-5 px-6 sm:px-8">
+              {/* Logo Oficial Centralizada com Tamanho Reduzido Perfeito */}
+              <div className="flex items-center justify-center mb-5">
                 <img
                   src={focusLogoHq}
                   alt="Focus ERP"
-                  className="h-11 sm:h-12 w-auto object-contain dark:hidden transition-transform duration-200 hover:scale-105"
+                  className="h-8 sm:h-9 w-auto object-contain dark:hidden transition-transform duration-200 hover:scale-105"
                 />
                 <img
                   src={focusLogoHqDark}
                   alt="Focus ERP"
-                  className="h-11 sm:h-12 w-auto object-contain hidden dark:block transition-transform duration-200 hover:scale-105"
+                  className="h-8 sm:h-9 w-auto object-contain hidden dark:block transition-transform duration-200 hover:scale-105"
                 />
               </div>
 
               {/* Título e Subtítulo com Hierarquia Visual Perfeita */}
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
                 Acesse sua Conta
               </h1>
-              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1.5 font-normal">
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-normal">
                 Gestão inteligente para sua empresa
               </p>
             </CardHeader>
