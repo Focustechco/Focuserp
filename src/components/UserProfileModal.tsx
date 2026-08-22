@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Camera, User, Briefcase, Mail, Save, Shield } from 'lucide-react';
+import { Camera, User, Briefcase, Mail, Save, Shield, Loader2, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/features/auth/AuthContext';
 import { Badge } from './ui/badge';
@@ -21,6 +21,7 @@ export function UserProfileModal({ open, onOpenChange }: UserProfileModalProps) 
   const [cargo, setCargo] = useState(currentUser?.cargo || '');
   const [email, setEmail] = useState(currentUser?.email || '');
   const [avatarUrl, setAvatarUrl] = useState(currentUser?.foto || '');
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (currentUser) {
@@ -35,14 +36,16 @@ export function UserProfileModal({ open, onOpenChange }: UserProfileModalProps) 
     const files = e.target.files;
     if (!files || files.length === 0) return;
     const file = files[0];
+    
     const reader = new FileReader();
     reader.onload = (evt) => {
       const src = evt.target?.result as string;
       if (!src) return;
+      
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        const maxDim = 120;
+        const maxDim = 256; // Alta resolução otimizada para telas Retina / Mobile
         let w = img.width;
         let h = img.height;
         if (w > h) {
@@ -57,9 +60,9 @@ export function UserProfileModal({ open, onOpenChange }: UserProfileModalProps) 
         const ctx = canvas.getContext('2d');
         if (ctx) {
           ctx.drawImage(img, 0, 0, w, h);
-          const compressed = canvas.toDataURL('image/jpeg', 0.8);
+          const compressed = canvas.toDataURL('image/jpeg', 0.88);
           setAvatarUrl(compressed);
-          toast.success("Foto de perfil otimizada e carregada!");
+          toast.success("Foto de perfil carregada e pronta para salvar!");
         }
       };
       img.src = src;
@@ -67,21 +70,28 @@ export function UserProfileModal({ open, onOpenChange }: UserProfileModalProps) 
     reader.readAsDataURL(file);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!nome.trim()) {
       toast.error("Informe seu Nome de Exibição.");
       return;
     }
 
-    updateCurrentUserProfile({
-      nome: nome.trim(),
-      nomeExibicao: nome.trim(),
-      cargo: cargo.trim() || 'Colaborador Focus',
-      email: email.trim(),
-      foto: avatarUrl,
-    });
+    setIsSaving(true);
+    try {
+      await updateCurrentUserProfile({
+        nome: nome.trim(),
+        nomeExibicao: nome.trim(),
+        cargo: cargo.trim() || 'Colaborador Focus',
+        email: email.trim(),
+        foto: avatarUrl,
+      });
 
-    onOpenChange(false);
+      onOpenChange(false);
+    } catch (err: any) {
+      toast.error("Erro ao salvar perfil no banco de dados.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const getInitials = (nameStr: string) => {
@@ -99,7 +109,7 @@ export function UserProfileModal({ open, onOpenChange }: UserProfileModalProps) 
             </Badge>
           </DialogTitle>
           <DialogDescription className="text-xs">
-            Altere seu nome, cargo e foto de exibição corporativa.
+            Altere seu nome, cargo e foto corporativa sincronizada em nuvem (Web & Mobile).
           </DialogDescription>
         </DialogHeader>
 
@@ -107,13 +117,13 @@ export function UserProfileModal({ open, onOpenChange }: UserProfileModalProps) 
           {/* Avatar com upload de Foto Real */}
           <div className="flex flex-col items-center justify-center space-y-2 pb-2">
             <div className="relative group cursor-pointer">
-              <Avatar className="w-24 h-24 border-4 border-primary/20 shadow-lg overflow-hidden">
-                <AvatarImage src={avatarUrl} className="object-cover" />
+              <Avatar className="w-24 h-24 border-4 border-orange-500/20 shadow-lg overflow-hidden ring-2 ring-orange-500/30">
+                <AvatarImage src={avatarUrl} className="object-cover w-full h-full" />
                 <AvatarFallback className="text-2xl font-bold bg-orange-500/10 text-orange-600">
                   {getInitials(nome)}
                 </AvatarFallback>
               </Avatar>
-              <div className="absolute -bottom-1 -right-1 rounded-full w-8 h-8 bg-orange-600 text-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform">
+              <div className="absolute -bottom-1 -right-1 rounded-full w-8 h-8 bg-orange-600 hover:bg-orange-700 text-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform">
                 <Camera className="w-4 h-4" />
               </div>
               <input 
@@ -121,10 +131,10 @@ export function UserProfileModal({ open, onOpenChange }: UserProfileModalProps) 
                 accept="image/*" 
                 className="absolute inset-0 opacity-0 cursor-pointer rounded-full z-20"
                 onChange={handleFotoChange}
-                title="Clique para alterar a foto de perfil"
+                title="Clique para escolher uma foto"
               />
             </div>
-            <span className="text-[11px] text-muted-foreground font-medium">Clique no ícone da câmera para enviar a foto</span>
+            <span className="text-[11px] text-muted-foreground font-medium">Toque ou clique na foto para trocar</span>
           </div>
 
           <div className="space-y-3">
@@ -166,13 +176,13 @@ export function UserProfileModal({ open, onOpenChange }: UserProfileModalProps) 
 
             <div className="p-3 bg-muted/40 rounded-lg flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Shield className="w-4 h-4 text-primary" />
+                <Shield className="w-4 h-4 text-orange-600" />
                 <div>
                   <div className="font-semibold text-xs text-foreground">Perfil de Acesso IAM</div>
                   <div className="text-[11px] text-muted-foreground">{currentUser?.departamento || 'Geral'}</div>
                 </div>
               </div>
-              <Badge variant="outline" className="text-xs font-medium bg-background">
+              <Badge variant="outline" className="text-xs font-medium bg-background border-orange-500/30 text-orange-600">
                 {currentUser?.perfil || 'Usuário'}
               </Badge>
             </div>
@@ -180,11 +190,24 @@ export function UserProfileModal({ open, onOpenChange }: UserProfileModalProps) 
         </div>
 
         <DialogFooter className="pt-2 gap-2 sm:gap-0">
-          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} className="text-xs">
+          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={isSaving} className="text-xs">
             Cancelar
           </Button>
-          <Button size="sm" onClick={handleSave} className="text-xs gap-1.5 bg-orange-600 hover:bg-orange-700 text-white">
-            <Save className="w-3.5 h-3.5" /> Salvar Alterações
+          <Button 
+            size="sm" 
+            onClick={handleSave} 
+            disabled={isSaving}
+            className="text-xs gap-1.5 bg-orange-600 hover:bg-orange-700 text-white font-semibold"
+          >
+            {isSaving ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Salvando...
+              </>
+            ) : (
+              <>
+                <Save className="w-3.5 h-3.5" /> Salvar no Banco de Dados
+              </>
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

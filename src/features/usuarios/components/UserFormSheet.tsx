@@ -21,6 +21,7 @@ import { Usuario, UserProfile, UserStatus } from '../types';
 import { INITIAL_USUARIOS } from '../data/initialData';
 import { toast } from 'sonner';
 import { useAuth } from '@/features/auth/AuthContext';
+import { userService } from '@/services/userService';
 
 interface UserFormSheetProps {
   isOpen: boolean;
@@ -85,7 +86,7 @@ export function UserFormSheet({ isOpen, onClose, user }: UserFormSheetProps) {
         const img = new Image();
         img.onload = () => {
           const canvas = document.createElement('canvas');
-          const maxDim = 120;
+          const maxDim = 256;
           let w = img.width;
           let h = img.height;
           if (w > h) {
@@ -100,9 +101,9 @@ export function UserFormSheet({ isOpen, onClose, user }: UserFormSheetProps) {
           const ctx = canvas.getContext('2d');
           if (ctx) {
             ctx.drawImage(img, 0, 0, w, h);
-            const compressed = canvas.toDataURL('image/jpeg', 0.8);
+            const compressed = canvas.toDataURL('image/jpeg', 0.88);
             setFoto(compressed);
-            toast.success("Foto de perfil otimizada e carregada!");
+            toast.success("Foto de perfil carregada e pronta para salvar!");
           }
         };
         img.src = src;
@@ -128,7 +129,7 @@ export function UserFormSheet({ isOpen, onClose, user }: UserFormSheetProps) {
     toast.success('Senha copiada para a área de transferência!');
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!isSuperAdmin && !isEditing) {
       toast.error('Permissão Negada', { description: 'Apenas o Super Administrador pode cadastrar novos usuários.' });
       return;
@@ -163,7 +164,8 @@ export function UserFormSheet({ isOpen, onClose, user }: UserFormSheetProps) {
         foto,
       };
       updateItem(user.id, updatedUser);
-      toast.success('Usuário atualizado com sucesso!');
+      await userService.saveUser(updatedUser);
+      toast.success('Usuário e foto atualizados e sincronizados no Banco de Dados!');
     } else {
       const novoUsuario: Usuario = {
         id: crypto.randomUUID(),
@@ -215,7 +217,8 @@ export function UserFormSheet({ isOpen, onClose, user }: UserFormSheetProps) {
         ]
       };
       addItem(novoUsuario);
-      toast.success('Novo usuário cadastrado com sucesso!');
+      await userService.saveUser(novoUsuario);
+      toast.success('Novo usuário cadastrado e sincronizado com o Banco de Dados!');
     }
 
     onClose();

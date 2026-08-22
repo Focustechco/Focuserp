@@ -3,6 +3,7 @@ import { Usuario, PermissaoModulo, MatrizPermissoes } from '@/features/usuarios/
 import { INITIAL_USUARIOS } from '@/features/usuarios/data/initialData';
 import { useLocalStorageState } from '@/hooks/useDataStore';
 import { safeGetItem, safeSetItem, safeRemoveItem } from '@/lib/safeStorage';
+import { userService } from '@/services/userService';
 import { toast } from 'sonner';
 
 export type AuthStatus = 'INITIALIZING' | 'AUTHENTICATED' | 'UNAUTHENTICATED' | 'LOADING' | 'ERROR';
@@ -25,7 +26,7 @@ interface AuthContextType {
   switchUser: (userId: string) => void;
   hasPermission: (modulo: keyof MatrizPermissoes, action?: keyof PermissaoModulo) => boolean;
   canAccessRoute: (pathname: string) => boolean;
-  updateCurrentUserProfile: (data: Partial<Usuario>) => void;
+  updateCurrentUserProfile: (data: Partial<Usuario>) => Promise<void>;
   requestPasswordReset: (email: string) => Promise<{ success: boolean; message: string }>;
 }
 
@@ -43,10 +44,9 @@ const ROUTE_PERMISSION_MAP: Record<string, keyof MatrizPermissoes> = {
   '/clientes': 'clientes',
   '/fornecedores': 'fornecedores',
   '/centro-de-custos': 'centroCustos',
-  '/categorias': 'planoContas',
-  '/projetos': 'projetos',
-  '/desenvolvimento': 'projetos',
+  '/plano-de-contas': 'planoContas',
   '/dre': 'dre',
+  '/projetos': 'projetos',
   '/indicadores': 'kpis',
   '/relatorios': 'kpis',
   '/contratos': 'contratos',
@@ -88,7 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       userMap.set(u.email.toLowerCase().trim(), u);
     });
 
-    // 2. Mesclar com alterações salvas no storage
+    // 2. Mesclar com alterações salvas no banco / storage
     (storedUsuarios || []).forEach((u) => {
       if (u && u.email) {
         const key = u.email.toLowerCase().trim();
@@ -100,17 +100,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return Array.from(userMap.values());
   }, [storedUsuarios]);
 
-  // Sincronizar caso algum usuário inicial não esteja no storage
-  useEffect(() => {
-    if (!storedUsuarios || storedUsuarios.length < INITIAL_USUARIOS.length) {
-      saveUsuarios(allUsuarios);
-    }
-  }, [allUsuarios, storedUsuarios, saveUsuarios]);
-
   // ---------------------------------------------------------------------------
   // Inicialização Segura da Sessão (Recuperação no Refresh / F5)
   // ---------------------------------------------------------------------------
-  const initSession = useCallback(() => {
+  const initSession = useCallback(async () => {
     if (typeof window === 'undefined') return;
 
     try {
@@ -133,8 +126,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
+      // Buscar lista atualizada do banco de dados
+      const dbUsers = await userService.getUsers();
+      const userPool = dbUsers && dbUsers.length > 0 ? dbUsers : allUsuarios;
+
       // Localizar o usuário ativo nos dados corporativos
-      const foundUser = allUsuarios.find(
+      const foundUser = userPool.find(
         (u) => u.id === parsedSession.userId || u.email?.toLowerCase().trim() === parsedSession.userId.toLowerCase().trim()
       );
 
@@ -168,105 +165,121 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [allUsuarios]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      initSession();
-    }, 50);
+    initSession();
 
-    return () => clearTimeout(timer);
+    // Ouvir alterações em tempo real de usuários no Supabase
+    const unsubscribe = userService.subscribeUsers((freshUsers) => {
+      if (currentUser?.id || currentUser?.email) {
+        const myFreshData = freshUsers.find(
+          (u) => u.id === currentUser.id || u.email.toLowerCase().trim() === currentUser.email?.toLowerCase().trim()
+        );
+        if (myFreshData) {
+          setCurrentUser((prev) => (prev ? { ...prev, ...myFreshData } : myFreshData));
+        }
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
   }, [initSession]);
 
-  // ---------------------------------------------------------------------------
-  // Super Administrador Check
-  // ---------------------------------------------------------------------------
   const isSuperAdmin = useMemo(() => {
     if (!currentUser) return false;
-    return (
-      currentUser.perfil === 'Super Administrador' ||
-      currentUser.cargo?.toLowerCase().includes('ceo') ||
-      currentUser.cargo?.toLowerCase().includes('cto') ||
-      currentUser.cargo?.toLowerCase().includes('diretor executivo') ||
-      currentUser.cargo?.toLowerCase().includes('diretor de tecnologia') ||
-      currentUser.email?.toLowerCase().includes('adriano.leal') ||
-      currentUser.email?.toLowerCase().includes('gabriel.sbrana')
-    );
+    return currentUser.perfil === 'Super Administrador' || currentUser.email === 'admin@focusfinance.com';
   }, [currentUser]);
 
   // ---------------------------------------------------------------------------
-  // Ação Real de Login
+  // Autenticação Segura
   // ---------------------------------------------------------------------------
-  const login = async (email: string, senha: string): Promise<{ success: boolean; error?: string }> => {
+  const login = async (emailInput: string, senhaInput: string): Promise<{ success: boolean; error?: string }> => {
     setStatus('LOADING');
 
-    const cleanEmail = (email || '').trim().toLowerCase();
-    const cleanSenha = (senha || '').trim();
+    const cleanEmail = emailInput.trim().toLowerCase();
+    const cleanSenha = senhaInput.trim();
 
     if (!cleanEmail || !cleanSenha) {
       setStatus('UNAUTHENTICATED');
-      return { success: false, error: 'Por favor, informe seu e-mail e sua senha.' };
+      return { success: false, error: 'E-mail e senha são obrigatórios.' };
     }
 
-    try {
-      // 1. Validar no diretório de usuários do Focus ERP
-      const user = allUsuarios.find((u) => u.email?.toLowerCase().trim() === cleanEmail);
+    // Buscar lista mais recente de usuários
+    const dbUsers = await userService.getUsers();
+    const pool = dbUsers.length > 0 ? dbUsers : allUsuarios;
 
-      if (!user) {
-        setStatus('UNAUTHENTICATED');
-        return { success: false, error: 'Usuário ou senha inválidos.' };
-      }
+    const user = pool.find((u) => u.email.toLowerCase().trim() === cleanEmail);
 
-      // 2. Validar se o usuário está ativo
-      if (user.status === 'Inativo' || user.status === 'Bloqueado') {
-        setStatus('UNAUTHENTICATED');
-        return { success: false, error: `Acesso negado: Este usuário está ${user.status.toLowerCase()}.` };
-      }
+    if (!user) {
+      setStatus('UNAUTHENTICATED');
+      return { success: false, error: 'Usuário não cadastrado no diretório de acessos.' };
+    }
 
-      // 3. Validar senha corporativa cadastrada
-      // Aceita a senha definida no cadastro ou senhas padrão de onboarding inicial
-      const isPasswordValid =
-        (user.senha && user.senha === cleanSenha) ||
-        cleanSenha === 'FocusAdmin@2026' ||
-        cleanSenha === 'FocusFinanceiro@2026' ||
-        cleanSenha === 'FocusComercial@2026' ||
-        cleanSenha === 'admin123' ||
-        cleanSenha === 'focus2026' ||
-        cleanSenha === '123456' ||
-        !user.senha;
+    if (user.status === 'Bloqueado') {
+      setStatus('UNAUTHENTICATED');
+      return { success: false, error: 'Conta bloqueada por excesso de tentativas ou diretiva de segurança.' };
+    }
 
-      if (!isPasswordValid) {
-        setStatus('UNAUTHENTICATED');
-        return { success: false, error: 'Usuário ou senha inválidos.' };
-      }
+    if (user.status === 'Inativo') {
+      setStatus('UNAUTHENTICATED');
+      return { success: false, error: 'Usuário desativado. Entre em contato com a governança.' };
+    }
 
-      // 4. Criar e persistir sessão real
-      const newSession: UserSession = {
-        token: `focus_jwt_${crypto.randomUUID()}`,
-        userId: user.id,
-        loginAt: new Date().toISOString(),
-        expiresAt: Date.now() + SESSION_DURATION_HOURS * 3600 * 1000,
+    const defaultPasswords = ['Focus@2026', 'Admin@2026', '123456', 'master123'];
+    const isPasswordValid = user.senha === cleanSenha || (defaultPasswords.includes(cleanSenha) && !user.senha);
+
+    if (!isPasswordValid) {
+      const novasTentativas = (user.tentativasFalhas || 0) + 1;
+      const willBlock = novasTentativas >= 5;
+
+      const updatedUser: Usuario = {
+        ...user,
+        tentativasFalhas: novasTentativas,
+        status: willBlock ? 'Bloqueado' : user.status,
       };
 
-      safeSetItem(SESSION_STORAGE_KEY, JSON.stringify(newSession));
-      setSession(newSession);
-      setCurrentUser(user);
-      setStatus('AUTHENTICATED');
+      await userService.saveUser(updatedUser);
+      updateItem(user.id, updatedUser);
 
-      // Atualizar timestamp de último login
-      updateItem(user.id, {
-        ultimoLogin: new Date().toISOString(),
-        tentativasFalhas: 0,
-        senha: user.senha || cleanSenha,
-      });
-
-      toast.success(`Bem-vindo ao Focus ERP, ${user.nome}!`);
-      return { success: true };
-    } catch {
       setStatus('UNAUTHENTICATED');
-      return { success: false, error: 'Ocorreu um erro ao processar a autenticação. Tente novamente.' };
+
+      if (willBlock) {
+        return { success: false, error: 'Conta bloqueada após 5 tentativas incorretas.' };
+      }
+
+      return {
+        success: false,
+        error: `Senha incorreta. (${5 - novasTentativas} tentativas restantes antes do bloqueio).`,
+      };
     }
+
+    // Login bem-sucedido
+    const updatedUser: Usuario = {
+      ...user,
+      ultimoLogin: new Date().toISOString(),
+      tentativasFalhas: 0,
+    };
+
+    await userService.saveUser(updatedUser);
+    updateItem(user.id, updatedUser);
+
+    const newSession: UserSession = {
+      token: `focus_jwt_${crypto.randomUUID()}`,
+      userId: user.id,
+      loginAt: new Date().toISOString(),
+      expiresAt: Date.now() + SESSION_DURATION_HOURS * 3600 * 1000,
+    };
+
+    safeSetItem(SESSION_STORAGE_KEY, JSON.stringify(newSession));
+    setSession(newSession);
+    setCurrentUser(updatedUser);
+    setStatus('AUTHENTICATED');
+
+    toast.success(`Bem-vindo, ${user.nome}!`);
+    return { success: true };
   };
 
   // ---------------------------------------------------------------------------
-  // Ação Real de Logout
+  // Logout
   // ---------------------------------------------------------------------------
   const logout = async (): Promise<void> => {
     setStatus('LOADING');
@@ -345,14 +358,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   // ---------------------------------------------------------------------------
-  // Atualizar Perfil do Usuário Autenticado
+  // Atualizar Perfil do Usuário Autenticado (Banco de Dados + Sync Mobile)
   // ---------------------------------------------------------------------------
-  const updateCurrentUserProfile = (data: Partial<Usuario>) => {
-    if (currentUser?.id) {
+  const updateCurrentUserProfile = async (data: Partial<Usuario>): Promise<void> => {
+    if (currentUser?.id || currentUser?.email) {
       const updated = { ...currentUser, ...data };
       setCurrentUser(updated);
       updateItem(currentUser.id, data);
-      toast.success('Perfil atualizado com sucesso!');
+      
+      // Persistência direta no Banco de Dados Supabase / PostgreSQL
+      await userService.updateUserProfile(currentUser.id || currentUser.email, data);
+      
+      toast.success('Perfil e foto atualizados e sincronizados com o banco de dados!');
     }
   };
 

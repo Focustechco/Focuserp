@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { safeSetItem, safeGetItem, safeRemoveItem } from '@/lib/safeStorage';
+import { userService } from '@/services/userService';
 
 /**
  * Helper to generate a valid, deterministic UUID for state storage keys.
@@ -54,7 +55,7 @@ function writeLocalCache<T>(table: string, items: T[]) {
 }
 
 /**
- * Bulletproof Multi-Device Storage Hook (Real-Time Cloud Persistence for ALL Modules & Notifications)
+ * Bulletproof Multi-Device Storage Hook (Real-Time Cloud Persistence for ALL Modules, Users & Notifications)
  * Seamless cross-device sync between Desktop, Mobile iOS & Android.
  */
 export function useLocalStorageState<T extends { id: string }>(
@@ -66,6 +67,7 @@ export function useLocalStorageState<T extends { id: string }>(
   const [error, setError] = useState<string | null>(null);
 
   const isClientsTable = table === 'clients' || table === 'clientes' || table === 'focus_clientes';
+  const isUsersTable = table === 'focus_usuarios' || table === 'users' || table === 'usuarios';
 
   // ---------------------------------------------------------------------------
   // Sync Data on Client Mount & Cloud
@@ -81,12 +83,21 @@ export function useLocalStorageState<T extends { id: string }>(
 
     const fetchData = async () => {
       try {
-        if (isClientsTable) {
+        if (isUsersTable) {
+          // Carregar diretamente do Banco de Dados Supabase (Users / State)
+          const dbUsers = await userService.getUsers();
+          if (isMounted && Array.isArray(dbUsers) && dbUsers.length > 0) {
+            setData(dbUsers as unknown as T[]);
+            writeLocalCache(table, dbUsers);
+            setError(null);
+          }
+        } else if (isClientsTable) {
           // Fetch real client rows from Supabase
           const { data: dbClients, error: dbErr } = await supabase
             .from('clients')
             .select('*')
             .not('name', 'like', '__FOCUS_STATE__%')
+            .not('name', 'like', '__FOCUS_USERS_STATE__%')
             .order('created_at', { ascending: false });
 
           if (!isMounted) return;
@@ -99,7 +110,7 @@ export function useLocalStorageState<T extends { id: string }>(
               .filter((c: any) => {
                 if (deletedSet.has(String(c.id))) return false;
                 if (c.status === 'deleted' || c.status === 'deletado' || c.deleted === true) return false;
-                if (typeof c.name === 'string' && c.name.startsWith('__DELETED__')) return false;
+                if (typeof c.name === 'string' && (c.name.startsWith('__DELETED__') || c.name.startsWith('__FOCUS_'))) return false;
                 return true;
               })
               .map((c: any) => ({
@@ -152,7 +163,7 @@ export function useLocalStorageState<T extends { id: string }>(
 
     fetchData();
 
-    // Event listener for cross-tab updates
+    // Event listener for cross-tab / cross-window updates
     const handleStorageUpdate = (e: StorageEvent) => {
       if (e.key === `focus_app_${table}` || e.key === table) {
         const updated = readLocalCache(table, initialValue);
@@ -160,12 +171,26 @@ export function useLocalStorageState<T extends { id: string }>(
       }
     };
 
+    let unsubscribeUsers: (() => void) | null = null;
+    if (isUsersTable) {
+      unsubscribeUsers = userService.subscribeUsers((freshUsers) => {
+        if (isMounted && Array.isArray(freshUsers)) {
+          setData(freshUsers as unknown as T[]);
+        }
+      });
+    }
+
     if (typeof window !== 'undefined') {
       window.addEventListener('storage', handleStorageUpdate);
+      window.addEventListener('focus_storage_update', () => {
+        const updated = readLocalCache(table, initialValue);
+        if (isMounted) setData(updated);
+      });
     }
 
     return () => {
       isMounted = false;
+      if (unsubscribeUsers) unsubscribeUsers();
       if (typeof window !== 'undefined') {
         window.removeEventListener('storage', handleStorageUpdate);
       }
@@ -189,7 +214,13 @@ export function useLocalStorageState<T extends { id: string }>(
       setData(cleanedData);
       writeLocalCache(table, cleanedData);
 
-      // 2. Cross-Device Supabase persistence for relational tables
+      // 2. Sincronização direta de Usuários com Supabase
+      if (isUsersTable) {
+        await userService.saveAllUsers(cleanedData as any);
+        return;
+      }
+
+      // 3. Cross-Device Supabase persistence for relational tables
       try {
         if (isClientsTable) {
           const payload = cleanedData.map((item: any) => {
@@ -218,14 +249,14 @@ export function useLocalStorageState<T extends { id: string }>(
         console.warn(`[Supabase] Save note for '${table}':`, err?.message);
       }
     },
-    [isClientsTable, table]
+    [isClientsTable, isUsersTable, table]
   );
 
   const addItem = useCallback(
     async (item: T) => {
       const itemWithUuid = {
         ...item,
-        id: toValidUuid(item.id),
+        id: item.id ? item.id : crypto.randomUUID(),
       };
       const newData = [itemWithUuid, ...data.filter((i) => i.id !== itemWithUuid.id)];
       await save(newData);
@@ -236,7 +267,7 @@ export function useLocalStorageState<T extends { id: string }>(
   const updateItem = useCallback(
     async (id: string, patch: Partial<T>) => {
       const updatedData = data.map((it) => {
-        if (it.id === id) {
+        if (it.id === id || (it as any).email?.toLowerCase().trim() === (patch as any).email?.toLowerCase().trim()) {
           return { ...it, ...patch };
         }
         return it;
