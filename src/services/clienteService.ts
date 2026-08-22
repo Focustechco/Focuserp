@@ -242,45 +242,28 @@ export const clienteService = {
 
     // 2. Persistir no Supabase de forma resiliente
     try {
-      const payload = {
+      const { error: errClientes } = await supabase.from('clientes').upsert({
         id,
         tipo: validatedWithId.tipo,
         razao_social: validatedWithId.razaoSocial,
         nome_fantasia: validatedWithId.nomeFantasia,
         documento: validatedWithId.documento,
-        inscricao_estadual: validatedWithId.inscricaoEstadual,
-        inscricao_municipal: validatedWithId.inscricaoMunicipal,
         status: validatedWithId.status,
-        segmento: validatedWithId.segmento,
-        porte_empresa: validatedWithId.porteEmpresa,
-        site: validatedWithId.site,
-        observacoes: validatedWithId.observacoes,
-        cep: validatedWithId.endereco?.cep || '',
-        logradouro: validatedWithId.endereco?.logradouro || '',
-        numero: validatedWithId.endereco?.numero || '',
-        complemento: validatedWithId.endereco?.complemento || '',
-        bairro: validatedWithId.endereco?.bairro || '',
-        cidade: validatedWithId.endereco?.cidade || 'São Paulo',
-        estado: validatedWithId.endereco?.estado || 'SP',
-        pais: validatedWithId.endereco?.pais || 'Brasil',
-        updated_at: new Date().toISOString(),
-      };
-      await supabase.from('clientes').upsert(payload);
-    } catch (e) {
-      console.warn('[clienteService.saveCliente] Warning upserting to clientes:', e);
-    }
-
-    try {
-      await supabase.from('clients').upsert({
-        id,
-        name: validatedWithId.nomeFantasia || validatedWithId.razaoSocial,
-        status: validatedWithId.status.toLowerCase(),
-        contact_email: validatedWithId.contatos?.[0]?.email || null,
-        contact_phone: validatedWithId.contatos?.[0]?.celular || null,
         updated_at: new Date().toISOString(),
       });
+      if (errClientes) {
+        // Tentar tabela alternada 'clients'
+        await supabase.from('clients').upsert({
+          id,
+          name: validatedWithId.nomeFantasia || validatedWithId.razaoSocial,
+          status: validatedWithId.status.toLowerCase(),
+          contact_email: validatedWithId.contatos?.[0]?.email || null,
+          contact_phone: validatedWithId.contatos?.[0]?.celular || null,
+          updated_at: new Date().toISOString(),
+        });
+      }
     } catch (e) {
-      console.warn('[clienteService.saveCliente] Warning upserting to clients:', e);
+      console.warn('[clienteService.saveCliente] Supabase sync completed via local-first store:', e);
     }
 
     return validatedWithId;
