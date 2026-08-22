@@ -14,8 +14,11 @@ export const consolidateFluxoFromStores = (
   titulos.forEach((titulo) => {
     let statusFx: StatusMovimentacao = "Prevista";
     if (titulo.status === "Recebido") statusFx = "Confirmada";
-    if (titulo.status === "Recebido Parcialmente") statusFx = "Parcial";
-    if (titulo.status === "Cancelado") statusFx = "Cancelada";
+    else if (titulo.status === "Recebido Parcialmente") statusFx = "Parcial";
+    else if (titulo.status === "Cancelado") statusFx = "Cancelada";
+
+    const isRecebido = statusFx === "Confirmada";
+    const isParcial = statusFx === "Parcial";
 
     fluxo.push({
       id: `fluxo-rec-${titulo.id}`,
@@ -28,7 +31,7 @@ export const consolidateFluxoFromStores = (
       descricao: titulo.descricao || "Recebimento",
       categoria: titulo.categoria || "Geral",
       valorOriginal: titulo.valorOriginal || 0,
-      valorRealizado: titulo.status === "Recebido" ? (titulo.valorRecebido || titulo.valorOriginal || 0) : (titulo.valorRecebido || 0),
+      valorRealizado: isRecebido ? (titulo.valorRecebido || titulo.valorOriginal || 0) : isParcial ? (titulo.valorRecebido || 0) : 0,
       status: statusFx,
       saldoAcumuladoDia: 0,
     });
@@ -38,8 +41,11 @@ export const consolidateFluxoFromStores = (
   contas.forEach((conta) => {
     let statusFx: StatusMovimentacao = "Prevista";
     if (conta.status === "Pago") statusFx = "Confirmada";
-    if (conta.status === "Pago Parcialmente") statusFx = "Parcial";
-    if (conta.status === "Cancelado") statusFx = "Cancelada";
+    else if (conta.status === "Pago Parcialmente") statusFx = "Parcial";
+    else if (conta.status === "Cancelado") statusFx = "Cancelada";
+
+    const isPago = statusFx === "Confirmada";
+    const isParcial = statusFx === "Parcial";
 
     fluxo.push({
       id: `fluxo-pag-${conta.id}`,
@@ -52,7 +58,7 @@ export const consolidateFluxoFromStores = (
       descricao: conta.descricao || "Despesa",
       categoria: conta.categoria || "Operacional",
       valorOriginal: conta.valorOriginal || 0,
-      valorRealizado: conta.status === "Pago" ? (conta.valorPago || conta.valorOriginal || 0) : (conta.valorPago || 0),
+      valorRealizado: isPago ? (conta.valorPago || conta.valorOriginal || 0) : isParcial ? (conta.valorPago || 0) : 0,
       status: statusFx,
       saldoAcumuladoDia: 0,
     });
@@ -61,26 +67,27 @@ export const consolidateFluxoFromStores = (
   // Ordenar cronologicamente pela data de competência (vencimento) com parse seguro
   fluxo.sort((a, b) => parseDateSafe(a.dataCompetencia).getTime() - parseDateSafe(b.dataCompetencia).getTime());
 
-  // Calcular Saldo Acumulado
-  let saldoCorrente = 0;
+  // Calcular Saldo Acumulado REAL de Caixa (apenas movimentos confirmados/liquidados)
+  let saldoRealizadoCorrente = 0;
 
   fluxo.forEach((mov) => {
     if (mov.status === "Cancelada") {
-      mov.saldoAcumuladoDia = saldoCorrente;
+      mov.saldoAcumuladoDia = saldoRealizadoCorrente;
       return;
     }
 
-    const valorImpacto =
-      mov.status === "Confirmada" || mov.status === "Parcial"
-        ? mov.valorRealizado
-        : mov.valorOriginal;
-
-    if (mov.tipo === "Entrada") {
-      saldoCorrente += valorImpacto;
-    } else {
-      saldoCorrente -= valorImpacto;
+    // REGRA CONTÁBIL RIGOROSA:
+    // Apenas valores efetivamente recebidos/pagos (Confirmada / Parcial) impactam o Saldo Real de Caixa!
+    // Lançamentos 'Prevista' (aguardando aprovação/baixa em Contas a Receber) têm impacto ZERO no caixa real!
+    if (mov.status === "Confirmada" || mov.status === "Parcial") {
+      if (mov.tipo === "Entrada") {
+        saldoRealizadoCorrente += mov.valorRealizado;
+      } else {
+        saldoRealizadoCorrente -= mov.valorRealizado;
+      }
     }
-    mov.saldoAcumuladoDia = saldoCorrente;
+
+    mov.saldoAcumuladoDia = saldoRealizadoCorrente;
   });
 
   return fluxo;

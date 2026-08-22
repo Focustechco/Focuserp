@@ -4,138 +4,145 @@ import { useLocalStorageState } from '@/hooks/useDataStore';
 import { TituloReceber } from '@/features/contas-receber/types';
 import { ContaPagar } from '@/features/contas-pagar/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowUpRight, ArrowDownRight, TrendingUp, DollarSign } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, TrendingUp, DollarSign, Wallet, Clock } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
+import { formatDateBrasilia } from '@/lib/dateUtils';
 
 const formatCurrency = (value?: number | null) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
 };
 
 export function Dashboard() {
-  const { data: titulos } = useLocalStorageState<TituloReceber>('focus_contas_receber');
-  const { data: contas } = useLocalStorageState<ContaPagar>('focus_contas_pagar');
+  const { data: titulos = [] } = useLocalStorageState<TituloReceber>('focus_contas_receber');
+  const { data: contas = [] } = useLocalStorageState<ContaPagar>('focus_contas_pagar');
 
   const fluxoConsolidado = consolidateFluxoFromStores(titulos, contas);
-  const currentBalance = fluxoConsolidado.length > 0 ? fluxoConsolidado[fluxoConsolidado.length - 1].saldoAcumuladoDia : 0;
-  // Calcular totais
-  const entradas = fluxoConsolidado.filter(m => m.tipo === 'Entrada').reduce((acc, m) => acc + (m.status === 'Confirmada' || m.status === 'Parcial' ? m.valorRealizado : m.valorOriginal), 0);
-  const saidas = fluxoConsolidado.filter(m => m.tipo === 'Saída').reduce((acc, m) => acc + (m.status === 'Confirmada' || m.status === 'Parcial' ? m.valorRealizado : m.valorOriginal), 0);
-  const saldoProjetado = entradas - saidas;
 
-  // Chart data
+  // 1. Saldo Real em Caixa (Apenas valores efetivamente liquidados/recebidos e pagos)
+  const entradasRealizadas = fluxoConsolidado
+    .filter(m => m.tipo === 'Entrada' && (m.status === 'Confirmada' || m.status === 'Parcial'))
+    .reduce((acc, m) => acc + (m.valorRealizado || 0), 0);
+
+  const saidasRealizadas = fluxoConsolidado
+    .filter(m => m.tipo === 'Saída' && (m.status === 'Confirmada' || m.status === 'Parcial'))
+    .reduce((acc, m) => acc + (m.valorRealizado || 0), 0);
+
+  const currentBalance = entradasRealizadas - saidasRealizadas;
+
+  // 2. Previsões e Totais Projetados
+  const entradasPrevistas = fluxoConsolidado
+    .filter(m => m.tipo === 'Entrada' && m.status === 'Prevista')
+    .reduce((acc, m) => acc + (m.valorOriginal || 0), 0);
+
+  const saidasPrevistas = fluxoConsolidado
+    .filter(m => m.tipo === 'Saída' && m.status === 'Prevista')
+    .reduce((acc, m) => acc + (m.valorOriginal || 0), 0);
+
+  const totalEntradasProjetadas = entradasRealizadas + entradasPrevistas;
+  const totalSaidasProjetadas = saidasRealizadas + saidasPrevistas;
+  const saldoProjetado = totalEntradasProjetadas - totalSaidasProjetadas;
+
+  // Chart data com formatação segura de fuso horário
   const chartData = fluxoConsolidado.map(mov => ({
-    data: new Date(mov.dataCompetencia).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }),
+    data: formatDateBrasilia(mov.dataCompetencia),
     saldo: mov.saldoAcumuladoDia
   }));
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        {/* Card 1: Saldo Real em Caixa */}
+        <Card className="border-emerald-200 dark:border-emerald-900 bg-gradient-to-br from-card to-emerald-50/20 dark:to-emerald-950/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Saldo Atual de Caixa</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-semibold">Saldo Atual de Caixa (Realizado)</CardTitle>
+            <Wallet className="h-4 w-4 text-emerald-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(currentBalance)}</div>
+            <div className={`text-2xl font-bold ${currentBalance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600'}`}>
+              {formatCurrency(currentBalance)}
+            </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Disponibilidade imediata
+              Disponibilidade imediata confirmada
             </p>
           </CardContent>
         </Card>
 
+        {/* Card 2: Entradas Confirmadas + Previsões */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Entradas Projetadas</CardTitle>
+            <CardTitle className="text-sm font-medium">Entradas Confirmadas</CardTitle>
             <ArrowUpRight className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-              {formatCurrency(entradas)}
+              {formatCurrency(entradasRealizadas)}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              +12% em relação ao mês anterior
+            <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+              <Clock className="w-3 h-3 text-amber-500" />
+              <span>+{formatCurrency(entradasPrevistas)} a receber</span>
             </p>
           </CardContent>
         </Card>
 
+        {/* Card 3: Saídas Confirmadas */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Saídas Projetadas</CardTitle>
-            <ArrowDownRight className="h-4 w-4 text-red-500" />
+            <CardTitle className="text-sm font-medium">Saídas Confirmadas</CardTitle>
+            <ArrowDownRight className="h-4 w-4 text-rose-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600 dark:text-red-400">
-              {formatCurrency(saidas)}
+            <div className="text-2xl font-bold text-rose-600 dark:text-rose-400">
+              {formatCurrency(saidasRealizadas)}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              -4% em relação ao mês anterior
+            <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+              <Clock className="w-3 h-3 text-rose-400" />
+              <span>+{formatCurrency(saidasPrevistas)} a pagar</span>
             </p>
           </CardContent>
         </Card>
 
+        {/* Card 4: Saldo Projetado */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Resultado do Período</CardTitle>
+            <CardTitle className="text-sm font-medium">Saldo Projetado Final</CardTitle>
             <TrendingUp className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+            <div className={`text-2xl font-bold ${saldoProjetado >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-rose-600'}`}>
               {formatCurrency(saldoProjetado)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Baseado nas previsões atuais
+              Realizado + Títulos a vencer
             </p>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid gap-4 grid-cols-1">
-        <Card className="col-span-1">
-          <CardHeader>
-            <CardTitle>Curva Financeira (Evolução do Saldo)</CardTitle>
-          </CardHeader>
-          <CardContent className="h-[350px]">
+      {/* Gráfico de Evolução do Saldo */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base font-semibold">Evolução do Saldo de Caixa Realizado</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+              <AreaChart data={chartData}>
                 <defs>
                   <linearGradient id="colorSaldo" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" vertical={false} />
-                <XAxis 
-                  dataKey="data" 
-                  stroke="#888888" 
-                  fontSize={12} 
-                  tickLine={false} 
-                  axisLine={false} 
-                />
-                <YAxis 
-                  stroke="#888888" 
-                  fontSize={12} 
-                  tickLine={false} 
-                  axisLine={false} 
-                  tickFormatter={(value) => `R$ ${value}`} 
-                />
-                <Tooltip 
-                  formatter={(value: number) => [formatCurrency(value), "Saldo"]}
-                  contentStyle={{ backgroundColor: 'hsl(var(--card))', borderRadius: '8px', border: '1px solid hsl(var(--border))' }}
-                />
-                <Area 
-                  type="monotone" 
-                  dataKey="saldo" 
-                  stroke="#3b82f6" 
-                  strokeWidth={3}
-                  fillOpacity={1} 
-                  fill="url(#colorSaldo)" 
-                />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
+                <XAxis dataKey="data" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(v) => `R$ ${v}`} />
+                <Tooltip formatter={(value: any) => [formatCurrency(Number(value)), 'Saldo Real']} />
+                <Area type="monotone" dataKey="saldo" stroke="#10b981" fillOpacity={1} fill="url(#colorSaldo)" strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
