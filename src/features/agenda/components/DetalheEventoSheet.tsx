@@ -9,7 +9,7 @@ import {
 import { EventoFinanceiro, CategoriaAgenda } from '../types';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
-import { ArrowUpRight, ArrowDownRight, FileWarning, FileText, Briefcase, CalendarIcon, ExternalLink, Clock, Info } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, FileWarning, FileText, Briefcase, CalendarIcon, ExternalLink, Clock, Info, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from '@tanstack/react-router';
 import { formatDateBrasilia } from '@/lib/dateUtils';

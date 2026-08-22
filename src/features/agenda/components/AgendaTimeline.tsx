@@ -3,7 +3,7 @@ import { CategoriaAgenda, EventoFinanceiro } from '../types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Search, Filter, Calendar as CalendarIcon, Clock, ArrowRight, ArrowUpRight, ArrowDownRight, Briefcase, FileText, FileWarning } from 'lucide-react';
+import { Search, Filter, Calendar as CalendarIcon, Clock, ArrowRight, ArrowUpRight, ArrowDownRight, Briefcase, FileText, FileWarning, RefreshCw } from 'lucide-react';
 import { format, isToday, isTomorrow, isYesterday, isPast } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
