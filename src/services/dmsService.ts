@@ -3,9 +3,16 @@ import { PastaDMS, DocumentoDMS, AuditLogDocumento, ModuloOrigemDMS, FormatoArqu
 import { INITIAL_PASTAS, INITIAL_DOCUMENTOS } from '@/features/documentos/data/initialData';
 import { safeGetItem, safeSetItem } from '@/lib/safeStorage';
 
-const PASTAS_STORAGE_KEY = 'focus_app_dms_pastas';
-const DOCS_STORAGE_KEY = 'focus_app_dms_documentos';
-const AUDIT_STORAGE_KEY = 'focus_app_dms_audit';
+const PASTAS_STORAGE_KEYS = ['focus_app_focus_dms_pastas', 'focus_dms_pastas', 'focus_app_dms_pastas'];
+const DOCS_STORAGE_KEYS = ['focus_app_focus_dms_documentos', 'focus_dms_documentos', 'focus_app_dms_documentos'];
+const AUDIT_STORAGE_KEYS = ['focus_app_focus_dms_audit', 'focus_dms_audit', 'focus_app_dms_audit'];
+
+function triggerSyncEvent() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('focus_storage_update'));
+    window.dispatchEvent(new Event('storage'));
+  }
+}
 
 /**
  * Service Central de Gestão de Documentos (DMS / ECM) integrado com
@@ -17,15 +24,16 @@ export const dmsService = {
   // ---------------------------------------------------------------------------
   getPastas(): PastaDMS[] {
     try {
-      const raw = safeGetItem(PASTAS_STORAGE_KEY);
-      if (raw) {
-        const list: PastaDMS[] = JSON.parse(raw);
-        if (Array.isArray(list) && list.length > 0) {
-          // Garantir que as pastas iniciais padrão também estejam presentes
-          const map = new Map<string, PastaDMS>();
-          INITIAL_PASTAS.forEach((p) => map.set(p.id, p));
-          list.forEach((p) => map.set(p.id, p));
-          return Array.from(map.values());
+      for (const key of PASTAS_STORAGE_KEYS) {
+        const raw = safeGetItem(key);
+        if (raw) {
+          const list: PastaDMS[] = JSON.parse(raw);
+          if (Array.isArray(list) && list.length > 0) {
+            const map = new Map<string, PastaDMS>();
+            INITIAL_PASTAS.forEach((p) => map.set(p.id, p));
+            list.forEach((p) => map.set(p.id, p));
+            return Array.from(map.values());
+          }
         }
       }
     } catch {}
@@ -33,7 +41,11 @@ export const dmsService = {
   },
 
   async savePastas(pastas: PastaDMS[]): Promise<void> {
-    safeSetItem(PASTAS_STORAGE_KEY, JSON.stringify(pastas));
+    const serialized = JSON.stringify(pastas);
+    for (const key of PASTAS_STORAGE_KEYS) {
+      safeSetItem(key, serialized);
+    }
+    triggerSyncEvent();
   },
 
   async savePasta(pasta: PastaDMS): Promise<void> {
@@ -42,7 +54,6 @@ export const dmsService = {
     const updated = [...filtered, pasta];
     await this.savePastas(updated);
 
-    // Sincronizar em segundo plano com o Supabase caso a tabela exista
     try {
       await supabase.from('dms_pastas').upsert({
         id: pasta.id,
@@ -85,7 +96,7 @@ export const dmsService = {
     const caminhoCompleto = `${parentPath}/${nome}`.replace('//', '/');
 
     const newFolder: PastaDMS = {
-      id: entidadeId ? `p-${moduloVinculado.toLowerCase()}-${entidadeId}` : `p-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      id: entidadeId ? `p-${moduloVinculado.toLowerCase().replace(/\s+/g, '-')}-${entidadeId}` : `p-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       nome,
       parentId,
       caminhoCompleto,
@@ -140,17 +151,23 @@ export const dmsService = {
   // ---------------------------------------------------------------------------
   getDocumentos(): DocumentoDMS[] {
     try {
-      const raw = safeGetItem(DOCS_STORAGE_KEY);
-      if (raw) {
-        const list: DocumentoDMS[] = JSON.parse(raw);
-        if (Array.isArray(list) && list.length > 0) return list;
+      for (const key of DOCS_STORAGE_KEYS) {
+        const raw = safeGetItem(key);
+        if (raw) {
+          const list: DocumentoDMS[] = JSON.parse(raw);
+          if (Array.isArray(list) && list.length > 0) return list;
+        }
       }
     } catch {}
     return INITIAL_DOCUMENTOS;
   },
 
   async saveDocumentos(docs: DocumentoDMS[]): Promise<void> {
-    safeSetItem(DOCS_STORAGE_KEY, JSON.stringify(docs));
+    const serialized = JSON.stringify(docs);
+    for (const key of DOCS_STORAGE_KEYS) {
+      safeSetItem(key, serialized);
+    }
+    triggerSyncEvent();
   },
 
   async saveDocumento(doc: DocumentoDMS): Promise<void> {
@@ -192,7 +209,7 @@ export const dmsService = {
   },
 
   // ---------------------------------------------------------------------------
-  // Upload Integrado Direto a partir de Qualquer Módulo
+  // Upload / Geração Integrada Direta a partir de Qualquer Módulo
   // ---------------------------------------------------------------------------
   uploadFileFromModule(params: {
     nome: string;
@@ -227,7 +244,7 @@ export const dmsService = {
     } else if (params.produtoId) {
       targetFolder = this.ensureProductFolder({ id: params.produtoId, nome: params.produtoNome });
     } else if (params.moduloOrigem === 'Relatórios') {
-      targetFolder = this.ensureReportFolder(params.relatorioTipo as any || 'Geral');
+      targetFolder = this.ensureReportFolder((params.relatorioTipo as any) || 'Geral');
     } else {
       targetFolder = this.ensureFolder(params.moduloOrigem, null, params.moduloOrigem);
     }
@@ -284,8 +301,14 @@ export const dmsService = {
   // ---------------------------------------------------------------------------
   logAction(docId: string, docName: string, acao: AuditLogDocumento['acao'], detalhes?: string): void {
     try {
-      const raw = safeGetItem(AUDIT_STORAGE_KEY);
-      const list: AuditLogDocumento[] = raw ? JSON.parse(raw) : [];
+      let list: AuditLogDocumento[] = [];
+      for (const key of AUDIT_STORAGE_KEYS) {
+        const raw = safeGetItem(key);
+        if (raw) {
+          list = JSON.parse(raw);
+          break;
+        }
+      }
       const newLog: AuditLogDocumento = {
         id: `log-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
         documentoId: docId,
@@ -296,7 +319,11 @@ export const dmsService = {
         ip: '127.0.0.1',
         detalhes,
       };
-      safeSetItem(AUDIT_STORAGE_KEY, JSON.stringify([newLog, ...list.slice(0, 100)]));
+      const updated = [newLog, ...list.slice(0, 100)];
+      const serialized = JSON.stringify(updated);
+      for (const key of AUDIT_STORAGE_KEYS) {
+        safeSetItem(key, serialized);
+      }
     } catch {}
   },
 };

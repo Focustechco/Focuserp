@@ -10,6 +10,7 @@ import { CampanhaMarketing } from "@/features/marketing/components/CampanhasMark
 import { Contrato } from "@/features/contratos/types";
 import { Cobranca } from "@/features/cobrancas/types";
 import { useDocumentosStore } from "@/features/documentos/hooks/useDocumentosStore";
+import { dmsService } from "@/services/dmsService";
 
 export function useRelatoriosStore() {
   const { data: favorites, addItem: addFav, removeItem: removeFav } = useLocalStorageState<string>('focus_relatorios_favorites');
@@ -374,34 +375,39 @@ export function useRelatoriosStore() {
       rows,
       chartData
     };
+
+    // Auto-gerar e indexar uma cópia no módulo Gestão de Documentos (DMS) imediatamente ao gerar
+    dmsService.uploadFileFromModule({
+      nome: `Relatorio_${definition.title.replace(/\s+/g, '_')}_${reportNumber}.pdf`,
+      extensao: 'pdf',
+      tamanho: '1.4 MB',
+      tamanhoBytes: 1468006,
+      moduloOrigem: 'Relatórios',
+      relatorioTipo: definition.category === 'Financeiro' ? 'DRE Gerencial' : 'Geral',
+      categoria: `Relatório Executivo - ${definition.category}`,
+      tags: ['Relatórios', definition.category, reportNumber],
+    });
+
+    return generatedData;
   };
 
   const saveReportToDmsVault = (data: GeneratedReportData, format: ReportFormat, fileUrl?: string) => {
     const category = data.definition.category;
-    
-    // Mapeamento automtico de pasta integrada no Mdulo Documentos (DMS)
-    let targetFolder = pastas.find(p => 
-      p.nome.toLowerCase().includes(category.toLowerCase()) || 
-      p.moduloVinculado?.toLowerCase() === category.toLowerCase()
-    ) || pastas[0];
-
-    const ext = format.toLowerCase();
+    const ext = format.toLowerCase() as any;
     const nomeArquivo = `Relatorio_${data.definition.title.replace(/[^a-zA-Z0-9]/g, '_')}_${data.reportNumber}.${ext}`;
     const tamanhoStr = format === 'PDF' ? '1.4 MB' : format === 'DOCX' ? '820 KB' : format === 'XLSX' ? '450 KB' : '120 KB';
 
-    if (targetFolder) {
-      uploadDocument({
-        nome: nomeArquivo,
-        extensao: (ext.toUpperCase() === 'PDF' ? 'PDF' : ext.toUpperCase() === 'DOCX' ? 'DOCX' : 'XLSX') as any,
-        tamanho: tamanhoStr,
-        tamanhoBytes: 1024 * 1024,
-        pastaId: targetFolder.id,
-        moduloOrigem: 'Relatrios',
-        categoria: `Relatrio ${category}`,
-        tags: ['Relatrio', category, data.reportNumber],
-        urlConteudo: fileUrl
-      });
-    }
+    dmsService.uploadFileFromModule({
+      nome: nomeArquivo,
+      extensao: ext,
+      tamanho: tamanhoStr,
+      tamanhoBytes: 1024 * 1024,
+      moduloOrigem: 'Relatórios',
+      relatorioTipo: category === 'Financeiro' ? 'DRE Gerencial' : 'Geral',
+      categoria: `Relatório ${category}`,
+      tags: ['Relatórios', category, data.reportNumber],
+      urlConteudo: fileUrl,
+    });
   };
 
   const registerExecution = (reportId: string, format: ReportFormat, filters: ReportFilterConfig, generatedData?: GeneratedReportData, fileUrl?: string) => {
