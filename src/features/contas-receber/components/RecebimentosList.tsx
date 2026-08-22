@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useContasReceberQuery } from '../hooks/useContasReceberQuery';
+import { useLocalStorageState } from '@/hooks/useDataStore';
 import { TituloReceber } from '../types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -51,7 +52,28 @@ export function RecebimentosList() {
   const [dataInicio, setDataInicio] = useState<string>('');
   const [dataFim, setDataFim] = useState<string>('');
 
-  const { titulos, saveTitulo, deleteTitulo } = useContasReceberQuery();
+  const { data: localTitulos = [], saveItem: saveLocalTitulo, removeItem: deleteLocalTitulo } = useLocalStorageState<TituloReceber>('focus_contas_receber');
+  const { titulos: queryTitulos = [], saveTitulo: saveQueryTitulo, deleteTitulo: deleteQueryTitulo } = useContasReceberQuery();
+
+  // Fusão consistente para garantir que todos os títulos locais e remotos apareçam imediatamente
+  const titulos = useMemo(() => {
+    const map = new Map<string, TituloReceber>();
+    localTitulos.forEach(t => map.set(t.id, t));
+    queryTitulos.forEach(t => {
+      if (!map.has(t.id)) map.set(t.id, t);
+    });
+    return Array.from(map.values());
+  }, [localTitulos, queryTitulos]);
+
+  const saveTitulo = async (titulo: TituloReceber) => {
+    saveLocalTitulo(titulo);
+    try { await saveQueryTitulo(titulo); } catch {}
+  };
+
+  const deleteTitulo = async (id: string) => {
+    deleteLocalTitulo(id);
+    try { await deleteQueryTitulo(id); } catch {}
+  };
 
   // Calcular limites de data baseados no preset selecionado
   const { filterStart, filterEnd } = useMemo(() => {

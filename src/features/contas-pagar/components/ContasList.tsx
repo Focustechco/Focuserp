@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useContasPagarQuery } from '../hooks/useContasPagarQuery';
+import { useLocalStorageState } from '@/hooks/useDataStore';
 import { ContaPagar } from '../types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -51,7 +52,28 @@ export function ContasList() {
   const [dataInicio, setDataInicio] = useState<string>('');
   const [dataFim, setDataFim] = useState<string>('');
 
-  const { contas, saveConta, deleteConta } = useContasPagarQuery();
+  const { data: localContas = [], saveItem: saveLocalConta, removeItem: deleteLocalConta } = useLocalStorageState<ContaPagar>('focus_contas_pagar');
+  const { contas: queryContas = [], saveConta: saveQueryConta, deleteConta: deleteQueryConta } = useContasPagarQuery();
+
+  // Fusão consistente para garantir que todas as contas apareçam imediatamente
+  const contas = useMemo(() => {
+    const map = new Map<string, ContaPagar>();
+    localContas.forEach(c => map.set(c.id, c));
+    queryContas.forEach(c => {
+      if (!map.has(c.id)) map.set(c.id, c);
+    });
+    return Array.from(map.values());
+  }, [localContas, queryContas]);
+
+  const saveConta = async (conta: ContaPagar) => {
+    saveLocalConta(conta);
+    try { await saveQueryConta(conta); } catch {}
+  };
+
+  const deleteConta = async (id: string) => {
+    deleteLocalConta(id);
+    try { await deleteQueryConta(id); } catch {}
+  };
 
   // Calcular limites de data baseados no preset selecionado
   const { filterStart, filterEnd } = useMemo(() => {
