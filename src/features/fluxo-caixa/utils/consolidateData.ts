@@ -1,14 +1,16 @@
 import { MovimentacaoFluxo, StatusMovimentacao } from "../types";
 import { TituloReceber } from "../../contas-receber/types";
 import { ContaPagar } from "../../contas-pagar/types";
+import { parseDateSafe, getBrasiliaTodayIso } from "@/lib/dateUtils";
 
 export const consolidateFluxoFromStores = (
   titulos: TituloReceber[] = [],
   contas: ContaPagar[] = []
 ): MovimentacaoFluxo[] => {
   const fluxo: MovimentacaoFluxo[] = [];
+  const hoje = getBrasiliaTodayIso();
 
-  // Mapear Receitas (Contas a Receber)
+  // 1. Mapear Receitas Exclusivamente a partir de Contas a Receber (onde entram as recorrências para aprovação/baixa)
   titulos.forEach((titulo) => {
     let statusFx: StatusMovimentacao = "Prevista";
     if (titulo.status === "Recebido") statusFx = "Confirmada";
@@ -20,19 +22,19 @@ export const consolidateFluxoFromStores = (
       idOrigem: titulo.id,
       moduloOrigem: "Contas a Receber",
       tipo: "Entrada",
-      dataCompetencia: titulo.dataVencimento || new Date().toISOString().split("T")[0],
+      dataCompetencia: titulo.dataVencimento || hoje,
       dataPagamento: titulo.dataRecebimento,
       clienteFornecedor: titulo.cliente || "Cliente",
       descricao: titulo.descricao || "Recebimento",
       categoria: titulo.categoria || "Geral",
       valorOriginal: titulo.valorOriginal || 0,
-      valorRealizado: titulo.valorRecebido || 0,
+      valorRealizado: titulo.status === "Recebido" ? (titulo.valorRecebido || titulo.valorOriginal || 0) : (titulo.valorRecebido || 0),
       status: statusFx,
       saldoAcumuladoDia: 0,
     });
   });
 
-  // Mapear Despesas (Contas a Pagar)
+  // 2. Mapear Despesas (Contas a Pagar)
   contas.forEach((conta) => {
     let statusFx: StatusMovimentacao = "Prevista";
     if (conta.status === "Pago") statusFx = "Confirmada";
@@ -44,25 +46,30 @@ export const consolidateFluxoFromStores = (
       idOrigem: conta.id,
       moduloOrigem: "Contas a Pagar",
       tipo: "Saída",
-      dataCompetencia: conta.dataVencimento || new Date().toISOString().split("T")[0],
+      dataCompetencia: conta.dataVencimento || hoje,
       dataPagamento: conta.dataPagamento,
       clienteFornecedor: conta.fornecedor || "Fornecedor",
       descricao: conta.descricao || "Despesa",
       categoria: conta.categoria || "Operacional",
       valorOriginal: conta.valorOriginal || 0,
-      valorRealizado: conta.valorPago || 0,
+      valorRealizado: conta.status === "Pago" ? (conta.valorPago || conta.valorOriginal || 0) : (conta.valorPago || 0),
       status: statusFx,
       saldoAcumuladoDia: 0,
     });
   });
 
-  // Ordenar cronologicamente pela data de competência (vencimento)
-  fluxo.sort((a, b) => new Date(a.dataCompetencia).getTime() - new Date(b.dataCompetencia).getTime());
+  // Ordenar cronologicamente pela data de competência (vencimento) com parse seguro
+  fluxo.sort((a, b) => parseDateSafe(a.dataCompetencia).getTime() - parseDateSafe(b.dataCompetencia).getTime());
 
   // Calcular Saldo Acumulado
   let saldoCorrente = 0;
 
   fluxo.forEach((mov) => {
+    if (mov.status === "Cancelada") {
+      mov.saldoAcumuladoDia = saldoCorrente;
+      return;
+    }
+
     const valorImpacto =
       mov.status === "Confirmada" || mov.status === "Parcial"
         ? mov.valorRealizado

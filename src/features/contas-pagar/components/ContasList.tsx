@@ -1,88 +1,341 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useContasPagarQuery } from '../hooks/useContasPagarQuery';
 import { ContaPagar } from '../types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Filter, MoreHorizontal, Download, Plus } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { 
+  Search, Filter, MoreHorizontal, Download, Plus, Calendar, 
+  CheckCircle2, X, ArrowDownRight, Clock, AlertTriangle
+} from 'lucide-react';
 import { NovaContaSheet } from './NovaContaSheet';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { formatDateBrasilia, parseDateSafe, getBrasiliaTodayIso } from '@/lib/dateUtils';
+import { 
+  startOfDay, endOfDay, startOfWeek, endOfWeek, 
+  startOfMonth, endOfMonth, addMonths, subDays, isWithinInterval 
+} from 'date-fns';
+import { toast } from 'sonner';
+
+type DatePreset = 'todos' | 'hoje' | 'esta_semana' | 'este_mes' | 'proximo_mes' | 'ultimos_30_dias' | 'personalizado';
+type DateField = 'vencimento' | 'emissao' | 'pagamento';
 
 const formatCurrency = (value?: number | null) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
 };
 
-const formatDate = (dateStr?: string) => {
-  if (!dateStr) return '-';
-  const d = new Date(dateStr);
-  return isNaN(d.getTime()) ? dateStr : d.toLocaleDateString('pt-BR');
-};
-
 const getStatusColor = (status: string) => {
   switch (status) {
-    case 'Pago': return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300';
-    case 'Pendente': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
-    case 'Vencido': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
-    case 'Pago Parcialmente': return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
-    default: return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300';
+    case 'Pago': 
+      return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-300';
+    case 'Pendente':
+    case 'Em Aberto': 
+      return 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border-amber-300';
+    case 'Vencido': 
+      return 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 border-rose-300';
+    case 'Pago Parcialmente': 
+      return 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 border-blue-300';
+    default: 
+      return 'bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-300 border-slate-300';
   }
 };
 
 export function ContasList() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('todos');
+  const [categoriaFilter, setCategoriaFilter] = useState<string>('todas');
+  const [dateField, setDateField] = useState<DateField>('vencimento');
+  const [datePreset, setDatePreset] = useState<DatePreset>('todos');
+  const [dataInicio, setDataInicio] = useState<string>('');
+  const [dataFim, setDataFim] = useState<string>('');
+
   const { contas, saveConta, deleteConta } = useContasPagarQuery();
 
-  const filteredData = contas.filter(t => 
-    (t.fornecedor || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (t.numero || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (t.descricao || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Calcular limites de data baseados no preset selecionado
+  const { filterStart, filterEnd } = useMemo(() => {
+    const today = new Date();
+    if (datePreset === 'hoje') {
+      return { filterStart: startOfDay(today), filterEnd: endOfDay(today) };
+    }
+    if (datePreset === 'esta_semana') {
+      return { filterStart: startOfWeek(today, { weekStartsOn: 1 }), filterEnd: endOfWeek(today, { weekStartsOn: 1 }) };
+    }
+    if (datePreset === 'este_mes') {
+      return { filterStart: startOfMonth(today), filterEnd: endOfMonth(today) };
+    }
+    if (datePreset === 'proximo_mes') {
+      const nextM = addMonths(today, 1);
+      return { filterStart: startOfMonth(nextM), filterEnd: endOfMonth(nextM) };
+    }
+    if (datePreset === 'ultimos_30_dias') {
+      return { filterStart: startOfDay(subDays(today, 30)), filterEnd: endOfDay(today) };
+    }
+    if (datePreset === 'personalizado') {
+      const start = dataInicio ? parseDateSafe(dataInicio) : null;
+      const end = dataFim ? parseDateSafe(dataFim) : null;
+      return { 
+        filterStart: start ? startOfDay(start) : null, 
+        filterEnd: end ? endOfDay(end) : null 
+      };
+    }
+    return { filterStart: null, filterEnd: null };
+  }, [datePreset, dataInicio, dataFim]);
+
+  // Aplicar filtros compostos
+  const filteredData = useMemo(() => {
+    return contas.filter(t => {
+      // 1. Busca textual
+      const matchesSearch = 
+        (t.fornecedor || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (t.numero || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (t.descricao || '').toLowerCase().includes(searchTerm.toLowerCase());
+
+      if (!matchesSearch) return false;
+
+      // 2. Filtro de Status
+      if (statusFilter === 'aberto' && t.status !== 'Pendente' && t.status !== 'Em Aberto') return false;
+      if (statusFilter === 'pago' && t.status !== 'Pago') return false;
+      if (statusFilter === 'vencido' && t.status !== 'Vencido') return false;
+
+      // 3. Filtro de Categoria
+      if (categoriaFilter !== 'todas') {
+        if ((t.categoria || '').toLowerCase() !== categoriaFilter.toLowerCase()) return false;
+      }
+
+      // 4. Filtro de Datas
+      if (filterStart || filterEnd) {
+        let dateVal = t.dataVencimento;
+        if (dateField === 'emissao') dateVal = t.dataEmissao;
+        if (dateField === 'pagamento') dateVal = t.dataPagamento;
+
+        if (!dateVal) return false;
+        const itemDate = parseDateSafe(dateVal);
+        if (isNaN(itemDate.getTime())) return false;
+
+        if (filterStart && filterEnd) {
+          if (!isWithinInterval(itemDate, { start: filterStart, end: filterEnd })) return false;
+        } else if (filterStart && itemDate < filterStart) {
+          return false;
+        } else if (filterEnd && itemDate > filterEnd) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [contas, searchTerm, statusFilter, categoriaFilter, dateField, filterStart, filterEnd]);
+
+  // Métricas do período filtrado
+  const totalFiltrado = filteredData.reduce((acc, t) => acc + (t.valorOriginal || 0), 0);
+  const totalPago = filteredData
+    .filter(t => t.status === 'Pago' || t.status === 'Pago Parcialmente')
+    .reduce((acc, t) => acc + (t.valorPago || t.valorOriginal || 0), 0);
+  const totalPendente = filteredData
+    .filter(t => t.status === 'Pendente' || t.status === 'Em Aberto' || t.status === 'Vencido')
+    .reduce((acc, t) => acc + (t.saldo || t.valorOriginal || 0), 0);
+
+  const limparFiltros = () => {
+    setSearchTerm('');
+    setStatusFilter('todos');
+    setCategoriaFilter('todas');
+    setDatePreset('todos');
+    setDataInicio('');
+    setDataFim('');
+  };
+
+  const handleAprovarPagamento = (conta: ContaPagar) => {
+    const hoje = getBrasiliaTodayIso();
+    saveConta({
+      ...conta,
+      status: 'Pago',
+      valorPago: conta.valorOriginal,
+      saldo: 0,
+      dataPagamento: hoje,
+    });
+    toast.success(`Pagamento da conta ${conta.numero} registrado e integrado ao Fluxo de Caixa!`);
+  };
 
   return (
     <div className="space-y-4 animate-fade-in">
-      {/* Toolbar / Filters */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <div className="relative w-full sm:w-80">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+      {/* Cards de Resumo das Contas Filtradas */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="p-3.5 rounded-lg border bg-card flex items-center justify-between shadow-sm">
+          <div>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Total em Contas a Pagar</p>
+            <h3 className="text-xl font-bold text-foreground mt-0.5">{formatCurrency(totalFiltrado)}</h3>
+            <span className="text-[11px] text-muted-foreground">{filteredData.length} contas listadas</span>
+          </div>
+          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+            <Calendar className="w-5 h-5" />
+          </div>
+        </div>
+
+        <div className="p-3.5 rounded-lg border bg-card flex items-center justify-between shadow-sm">
+          <div>
+            <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Total Pago / Liquidado (Saídas)</p>
+            <h3 className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">{formatCurrency(totalPago)}</h3>
+            <span className="text-[11px] text-muted-foreground">Contabilizado no Fluxo de Caixa Real</span>
+          </div>
+          <div className="w-9 h-9 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-600">
+            <CheckCircle2 className="w-5 h-5" />
+          </div>
+        </div>
+
+        <div className="p-3.5 rounded-lg border bg-card flex items-center justify-between shadow-sm">
+          <div>
+            <p className="text-xs font-medium text-rose-600 dark:text-rose-400 uppercase tracking-wider">Total a Pagar (Pendente)</p>
+            <h3 className="text-xl font-bold text-rose-600 dark:text-rose-400 mt-0.5">{formatCurrency(totalPendente)}</h3>
+            <span className="text-[11px] text-muted-foreground">Aguardando quitação para sair do caixa</span>
+          </div>
+          <div className="w-9 h-9 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-600">
+            <Clock className="w-5 h-5" />
+          </div>
+        </div>
+      </div>
+
+      {/* Painel Avançado de Filtros e Datas */}
+      <div className="p-4 rounded-lg border bg-card space-y-3 shadow-sm">
+        {/* Linha 1: Busca e Ações Principais */}
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3">
+          <div className="relative w-full lg:w-96">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input 
-              placeholder="Buscar por fornecedor, número ou descrição..." 
-              className="pl-8"
+              placeholder="Buscar por fornecedor, nº do documento ou descrição..." 
+              className="pl-8 text-xs h-9"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <Button variant="outline" size="icon">
-            <Filter className="h-4 w-4" />
-          </Button>
-        </div>
-        
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <Button variant="outline">
-            <Download className="mr-2 h-4 w-4" />
-            Exportar
-          </Button>
-          <NovaContaSheet>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Nova Conta
+
+          <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+            {(datePreset !== 'todos' || statusFilter !== 'todos' || categoriaFilter !== 'todas' || searchTerm) && (
+              <Button variant="ghost" size="sm" onClick={limparFiltros} className="text-xs h-9 text-muted-foreground hover:text-foreground">
+                <X className="w-3.5 h-3.5 mr-1" /> Limpar Filtros
+              </Button>
+            )}
+
+            <Button variant="outline" size="sm" className="text-xs h-9">
+              <Download className="mr-1.5 h-3.5 w-3.5" /> Exportar
             </Button>
-          </NovaContaSheet>
+
+            <NovaContaSheet>
+              <Button size="sm" className="text-xs h-9 bg-orange-600 hover:bg-orange-700 text-white">
+                <Plus className="mr-1.5 h-3.5 w-3.5" /> Nova Conta
+              </Button>
+            </NovaContaSheet>
+          </div>
+        </div>
+
+        {/* Linha 2: Filtros de Datas e Status */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-2.5 pt-2 border-t text-xs">
+          {/* Seletor do Campo de Data */}
+          <div>
+            <label className="text-[11px] font-medium text-muted-foreground block mb-1">Filtrar por Data de</label>
+            <Select value={dateField} onValueChange={(val) => setDateField(val as DateField)}>
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="vencimento">Data de Vencimento</SelectItem>
+                <SelectItem value="emissao">Data de Emissão</SelectItem>
+                <SelectItem value="pagamento">Data de Pagamento</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Período Pré-definido */}
+          <div>
+            <label className="text-[11px] font-medium text-muted-foreground block mb-1">Período</label>
+            <Select value={datePreset} onValueChange={(val) => setDatePreset(val as DatePreset)}>
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos os Períodos</SelectItem>
+                <SelectItem value="hoje">Hoje</SelectItem>
+                <SelectItem value="esta_semana">Esta Semana</SelectItem>
+                <SelectItem value="este_mes">Este Mês</SelectItem>
+                <SelectItem value="proximo_mes">Próximo Mês</SelectItem>
+                <SelectItem value="ultimos_30_dias">Últimos 30 Dias</SelectItem>
+                <SelectItem value="personalizado">Personalizado</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Seletor de Status */}
+          <div>
+            <label className="text-[11px] font-medium text-muted-foreground block mb-1">Status</label>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos os Status</SelectItem>
+                <SelectItem value="aberto">Em Aberto / Pendente</SelectItem>
+                <SelectItem value="pago">Pago / Liquidado</SelectItem>
+                <SelectItem value="vencido">Vencido</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Seletor de Categoria */}
+          <div>
+            <label className="text-[11px] font-medium text-muted-foreground block mb-1">Categoria</label>
+            <Select value={categoriaFilter} onValueChange={setCategoriaFilter}>
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todas">Todas as Categorias</SelectItem>
+                <SelectItem value="operacional">Operacional</SelectItem>
+                <SelectItem value="infraestrutura">Infraestrutura</SelectItem>
+                <SelectItem value="fornecedores">Fornecedores</SelectItem>
+                <SelectItem value="impostos">Impostos</SelectItem>
+                <SelectItem value="folha">Folha de Pagamento</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Datas Customizadas caso Personalizado */}
+          {datePreset === 'personalizado' && (
+            <div className="sm:col-span-2 md:col-span-4 lg:col-span-5 grid grid-cols-2 gap-2 pt-1">
+              <div>
+                <label className="text-[11px] font-medium text-muted-foreground block mb-1">Data Inicial (De)</label>
+                <Input 
+                  type="date" 
+                  value={dataInicio} 
+                  onChange={(e) => setDataInicio(e.target.value)} 
+                  className="h-8 text-xs" 
+                />
+              </div>
+              <div>
+                <label className="text-[11px] font-medium text-muted-foreground block mb-1">Data Final (Até)</label>
+                <Input 
+                  type="date" 
+                  value={dataFim} 
+                  onChange={(e) => setDataFim(e.target.value)} 
+                  className="h-8 text-xs" 
+                />
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Table */}
-      <div className="rounded-md border bg-card">
+      {/* Tabela de Contas a Pagar */}
+      <div className="rounded-lg border bg-card overflow-hidden shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Número</TableHead>
-              <TableHead>Fornecedor</TableHead>
+              <TableHead className="w-[110px]">Número</TableHead>
+              <TableHead>Fornecedor / Descrição</TableHead>
               <TableHead>Categoria</TableHead>
+              <TableHead>Emissão</TableHead>
               <TableHead>Vencimento</TableHead>
-              <TableHead className="text-right">Valor</TableHead>
-              <TableHead className="text-right">Saldo</TableHead>
+              <TableHead className="text-right">Valor Original</TableHead>
+              <TableHead className="text-right">Saldo Aberto</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
@@ -90,64 +343,86 @@ export function ContasList() {
           <TableBody>
             {filteredData.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-10 text-muted-foreground">
-                  Nenhuma conta encontrada.
+                <TableCell colSpan={9} className="text-center py-12 text-muted-foreground text-xs">
+                  Nenhuma conta encontrada com os filtros selecionados.
                 </TableCell>
               </TableRow>
             ) : (
               filteredData.map((conta) => (
-                <TableRow key={conta.id}>
-                  <TableCell className="font-medium">{conta.numero}</TableCell>
+                <TableRow key={conta.id} className="hover:bg-muted/40 transition-colors">
+                  <TableCell className="font-mono text-xs font-semibold text-rose-600 dark:text-rose-400">
+                    {conta.numero}
+                  </TableCell>
                   <TableCell>
-                    <div className="flex flex-col">
-                      <span>{conta.fornecedor}</span>
-                      <span className="text-xs text-muted-foreground">{conta.descricao}</span>
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-semibold text-xs text-foreground truncate">{conta.fornecedor}</span>
+                      <span className="text-[11px] text-muted-foreground truncate">{conta.descricao}</span>
                     </div>
                   </TableCell>
-                  <TableCell>{conta.categoria}</TableCell>
-                  <TableCell>{formatDate(conta.dataVencimento)}</TableCell>
-                  <TableCell className="text-right font-medium">{formatCurrency(conta.valorOriginal)}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(conta.saldo)}</TableCell>
                   <TableCell>
-                    <Badge variant="outline" className={getStatusColor(conta.status) + " border-0"}>
+                    <span className="text-xs text-muted-foreground">{conta.categoria || 'Operacional'}</span>
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {formatDateBrasilia(conta.dataEmissao)}
+                  </TableCell>
+                  <TableCell className="text-xs font-medium text-foreground">
+                    {formatDateBrasilia(conta.dataVencimento)}
+                  </TableCell>
+                  <TableCell className="text-right font-semibold text-xs text-foreground">
+                    {formatCurrency(conta.valorOriginal)}
+                  </TableCell>
+                  <TableCell className="text-right text-xs text-muted-foreground">
+                    {formatCurrency(conta.saldo)}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className={`${getStatusColor(conta.status)} text-[10px]`}>
                       {conta.status}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => {
-                          saveConta({
-                            ...conta,
-                            status: 'Pago',
-                            valorPago: conta.valorOriginal,
-                            saldo: 0,
-                          });
-                        }}>
-                          Registrar pagamento
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-red-600 cursor-pointer focus:bg-red-500/10 focus:text-red-600"
-                          onSelect={async (e) => {
-                            e.preventDefault();
-                            if (window.confirm(`Tem certeza que deseja excluir a conta "${conta.descricao || conta.numero}"?`)) {
-                              try {
-                                await deleteConta(conta.id);
-                              } catch (err) {
-                                console.error('Erro ao excluir conta a pagar:', err);
-                              }
-                            }
-                          }}
+                    <div className="flex items-center justify-end gap-1">
+                      {conta.status !== 'Pago' && (
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="h-7 text-xs px-2 gap-1 text-emerald-600 border-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+                          onClick={() => handleAprovarPagamento(conta)}
                         >
-                          Excluir conta
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                          <CheckCircle2 className="w-3 h-3" /> Pagar
+                        </Button>
+                      )}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-7 w-7 p-0">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {conta.status !== 'Pago' && (
+                            <DropdownMenuItem onClick={() => handleAprovarPagamento(conta)}>
+                              <CheckCircle2 className="w-4 h-4 mr-2 text-emerald-600" />
+                              Registrar pagamento
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem
+                            className="text-red-600 cursor-pointer focus:bg-red-500/10 focus:text-red-600"
+                            onSelect={async (e) => {
+                              e.preventDefault();
+                              if (window.confirm(`Tem certeza que deseja excluir a conta "${conta.descricao || conta.numero}"?`)) {
+                                try {
+                                  await deleteConta(conta.id);
+                                  toast.success('Conta excluída com sucesso!');
+                                } catch (err) {
+                                  console.error('Erro ao excluir conta a pagar:', err);
+                                }
+                              }
+                            }}
+                          >
+                            Excluir conta
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
