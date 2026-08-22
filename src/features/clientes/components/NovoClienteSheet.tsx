@@ -8,7 +8,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Trash2, FileText, Upload, RefreshCw, Calendar, DollarSign, CheckCircle2, PauseCircle, XCircle } from 'lucide-react';
+import { 
+  Plus, Trash2, FileText, Upload, RefreshCw, Calendar, DollarSign, 
+  CheckCircle2, PauseCircle, XCircle, FolderOpen, UploadCloud, Download, 
+  ExternalLink, Eye, ShieldCheck, Briefcase 
+} from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 
 import { useClientesQuery } from '../hooks/useClientesQuery';
@@ -20,6 +25,18 @@ import { RecorrenciaFinanceira, FrequenciaRecorrencia, StatusRecorrencia } from 
 import { calculateClienteFinanceiro, syncRecorrenciaTitulos } from '@/features/recorrencias/services/recorrenciaEngine';
 import { useNotificacoesStore } from '@/features/notificacoes/useNotificacoesStore';
 import { dmsService } from '@/services/dmsService';
+import { DocumentoDMS } from '@/features/documentos/types';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+
+interface DocumentoAnexoLocal {
+  id: string;
+  nome: string;
+  tamanho: string;
+  tamanhoBytes?: number;
+  dataUpload: string;
+  urlConteudo?: string;
+  categoria?: string;
+}
 
 export function NovoClienteSheet({ children, clienteToEdit }: { children: React.ReactNode, clienteToEdit?: Cliente }) {
   const [open, setOpen] = useState(false);
@@ -54,17 +71,30 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
   const [recorrenciaStatus, setRecorrenciaStatus] = useState<StatusRecorrencia>('Ativa');
   const [recorrenciaObservacoes, setRecorrenciaObservacoes] = useState('');
 
-  // Stores Financeiros e de Contratos Reais
+  // Documentos Anexados (Integrados ao DMS)
+  const [documentosAnexados, setDocumentosAnexados] = useState<DocumentoAnexoLocal[]>([]);
+  const [isUploadingDoc, setIsUploadingDoc] = useState(false);
+
+  // Modal Rápido de Novo Contrato Vinculado
+  const [modalNovoContratoOpen, setModalNovoContratoOpen] = useState(false);
+  const [contratoNome, setContratoNome] = useState('');
+  const [contratoTipo, setContratoTipo] = useState('Desenvolvimento de Software');
+  const [contratoValorTotal, setContratoValorTotal] = useState('');
+  const [contratoMensalidade, setContratoMensalidade] = useState('');
+  const [contratoDataInicio, setContratoDataInicio] = useState(new Date().toISOString().split('T')[0]);
+  const [contratoDataFim, setContratoDataFim] = useState(new Date(Date.now() + 365*24*3600*1000).toISOString().split('T')[0]);
+
+  // Stores Financeiros, Contratos e Clientes
   const { saveCliente } = useClientesQuery();
   const { notificar } = useNotificacoesStore();
   const { data: titulos = [], setAllItems: setAllTitulos } = useLocalStorageState<TituloReceber>('focus_contas_receber');
   const { data: recorrencias = [], setAllItems: setAllRecorrencias } = useLocalStorageState<RecorrenciaFinanceira>('focus_recorrencias');
-  const { data: contratos = [] } = useLocalStorageState<Contrato>('focus_contratos');
+  const { data: contratos = [], addItem: addContrato } = useLocalStorageState<Contrato>('focus_contratos');
 
-  // Resumo financeiro calculado em tempo real para este cliente
-  const resumoFinanceiro = calculateClienteFinanceiro(clienteToEdit?.id || '', titulos, recorrencias, contratos);
+  const clienteNomeOficial = nomeFantasia || razaoSocial || 'Cliente';
+  const currentClienteId = clienteToEdit?.id || '';
 
-  // Reset/Preenchimento dos campos ao abrir ou mudar cliente
+  // Carregar dados e documentos existentes ao abrir
   useEffect(() => {
     if (open) {
       setTipoPessoa(clienteToEdit?.tipo === 'Pessoa Física' ? 'pf' : 'pj');
@@ -81,6 +111,28 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
       setContatoNome(principal?.nome || '');
       setContatoEmail(principal?.email || '');
       setContatoCelular(principal?.celular || '');
+
+      // Carregar documentos do DMS vinculados a este cliente
+      if (clienteToEdit?.id) {
+        const todosDocs = dmsService.getDocumentos();
+        const docsDesteCliente = todosDocs.filter(
+          d => d.clienteId === clienteToEdit.id || 
+               d.caminhoPasta.toLowerCase().includes((clienteToEdit.nomeFantasia || clienteToEdit.razaoSocial || '').toLowerCase()) ||
+               d.tags?.includes(clienteToEdit.id)
+        ).map(d => ({
+          id: d.id,
+          nome: d.nome,
+          tamanho: d.tamanho,
+          tamanhoBytes: d.tamanhoBytes,
+          dataUpload: d.dataUpload,
+          urlConteudo: d.urlConteudo,
+          categoria: d.categoria
+        }));
+
+        setDocumentosAnexados(docsDesteCliente);
+      } else {
+        setDocumentosAnexados([]);
+      }
 
       // Carregar recorrência existente se houver
       if (clienteToEdit?.id) {
@@ -121,12 +173,127 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
     setRecorrenciaObservacoes('');
   };
 
-  const handleSave = () => {
-    if (!razaoSocial && !nomeFantasia) {
-      toast.error("Por favor, preencha a Razão Social ou Nome do cliente.");
+  // Upload de Documentos com Salvamento Direto no DMS
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploadingDoc(true);
+
+    Array.from(files).forEach((file) => {
+      const sizeInMb = (file.size / (1024 * 1024)).toFixed(2);
+      const reader = new FileReader();
+
+      reader.onload = (evt) => {
+        const dataUrl = evt.target?.result as string;
+        const targetId = currentClienteId || `temp-cli-${Date.now()}`;
+        const targetNome = clienteNomeOficial || 'Novo Cliente';
+
+        // 1. Salvar no módulo Gestão de Documentos (DMS) na pasta do cliente
+        const savedDoc = dmsService.uploadFileFromModule({
+          nome: file.name,
+          tamanho: `${sizeInMb} MB`,
+          tamanhoBytes: file.size,
+          moduloOrigem: 'Clientes',
+          clienteId: targetId,
+          clienteNome: targetNome,
+          categoria: file.name.toLowerCase().includes('contrato') ? 'Contratos' : 'Documentos do Cliente',
+          tags: ['Clientes', targetNome],
+          urlConteudo: dataUrl,
+        });
+
+        // 2. Adicionar na listagem da aba
+        const newLocalDoc: DocumentoAnexoLocal = {
+          id: savedDoc.id,
+          nome: file.name,
+          tamanho: `${sizeInMb} MB`,
+          tamanhoBytes: file.size,
+          dataUpload: new Date().toISOString(),
+          urlConteudo: dataUrl,
+          categoria: savedDoc.categoria
+        };
+
+        setDocumentosAnexados(prev => [newLocalDoc, ...prev]);
+        toast.success(`Documento "${file.name}" anexado e salvo na pasta /Clientes/${targetNome} do DMS!`);
+        setIsUploadingDoc(false);
+      };
+
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleRemoveDoc = (docId: string) => {
+    setDocumentosAnexados(prev => prev.filter(d => d.id !== docId));
+    toast.info("Documento removido da lista do cliente.");
+  };
+
+  // Criação Rápida de Contrato Vinculado
+  const handleCriarContratoRapido = () => {
+    if (!contratoNome.trim()) {
+      toast.error("Informe o título do contrato.");
       return;
     }
 
+    const valTotal = parseFloat(contratoValorTotal) || 0;
+    const valMensal = parseFloat(contratoMensalidade) || 0;
+    const targetCliId = currentClienteId || `cli-${Date.now()}`;
+    const targetCliNome = clienteNomeOficial || 'Cliente';
+
+    const novoContrato: Contrato = {
+      id: `cnt-${Date.now()}`,
+      codigo: `CTR-${Math.floor(1000 + Math.random() * 9000)}`,
+      numeroContrato: `CTR-2026/${Math.floor(100 + Math.random() * 900)}`,
+      nome: contratoNome.trim(),
+      categoria: 'Receita',
+      tipoServico: contratoTipo as any,
+      entidadeVinculo: 'Cliente',
+      clienteId: targetCliId,
+      responsavelInterno: 'Administrador Focus',
+      departamento: 'Comercial',
+      status: 'Vigente',
+      descricao: `Contrato de prestação de serviços para ${targetCliNome}.`,
+      dataInicial: contratoDataInicio,
+      dataFinal: contratoDataFim,
+      renovacaoAutomatica: true,
+      valorTotal: valTotal || (valMensal * 12),
+      valorImplantacao: 0,
+      valorMensalidade: valMensal,
+      multaPercentual: 2,
+      jurosAoMes: 1,
+      aditivos: [],
+      assinaturas: [
+        {
+          id: `ass-${Date.now()}`,
+          parte: 'Contratante',
+          representante: contatoNome || targetCliNome,
+          cargo: 'Representante Legal',
+          documento: documento || '000.000.000-00',
+          status: 'Assinado',
+          dataAssinatura: new Date().toISOString()
+        }
+      ]
+    };
+
+    addContrato(novoContrato);
+
+    // Salvar também uma cópia digitalizada no DMS na pasta do cliente
+    dmsService.uploadFileFromModule({
+      nome: `Contrato_${novoContrato.numeroContrato.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`,
+      moduloOrigem: 'Clientes',
+      clienteId: targetCliId,
+      clienteNome: targetCliNome,
+      categoria: 'Contratos',
+      tags: ['Contratos', novoContrato.codigo, targetCliNome],
+    });
+
+    toast.success(`Contrato "${novoContrato.nome}" criado e vinculado ao cliente com sucesso!`);
+    setModalNovoContratoOpen(false);
+    setContratoNome('');
+    setContratoValorTotal('');
+    setContratoMensalidade('');
+  };
+
+  const handleSave = () => {
     if (!documento || documento.trim() === '') {
       toast.error(tipoPessoa === 'pj' ? "O CNPJ é obrigatório!" : "O CPF é obrigatório!");
       return;
@@ -164,12 +331,12 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
     }
 
     const clienteId = clienteToEdit?.id || crypto.randomUUID();
-    const clienteNomeOficial = nomeFantasia || razaoSocial;
+    const nomeFinal = nomeFantasia || razaoSocial;
 
     const clienteData = {
       tipo: tipoPessoa === 'pj' ? 'Pessoa Jurídica' : 'Pessoa Física',
       razaoSocial: razaoSocial || nomeFantasia,
-      nomeFantasia: clienteNomeOficial,
+      nomeFantasia: nomeFinal,
       documento: documento,
       inscricaoEstadual: ie || 'Isento',
       status: clienteToEdit?.status || 'Ativo',
@@ -215,13 +382,6 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
       };
       saveCliente(novoCliente as any);
       
-      // Auto-gerar pasta específica do cliente no módulo Gestão de Documentação (DMS)
-      dmsService.ensureClientFolder({
-        id: clienteId,
-        nomeFantasia: novoCliente.nomeFantasia,
-        razaoSocial: novoCliente.razaoSocial,
-      });
-
       notificar({
         titulo: `Novo Cliente Cadastrado (${novoCliente.nomeFantasia || novoCliente.razaoSocial})`,
         descricao: `Cliente ${novoCliente.tipo} registrado na base com documento ${novoCliente.documento}.`,
@@ -232,14 +392,12 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
       });
     }
 
-    // Garantir pasta no DMS também na edição
-    if (clienteToEdit) {
-      dmsService.ensureClientFolder({
-        id: clienteId,
-        nomeFantasia: clienteNomeOficial,
-        razaoSocial: razaoSocial || clienteNomeOficial,
-      });
-    }
+    // Auto-gerar/Garantir pasta no DMS
+    dmsService.ensureClientFolder({
+      id: clienteId,
+      nomeFantasia: nomeFinal,
+      razaoSocial: razaoSocial || nomeFinal,
+    });
 
     // 2. Salvar/Atualizar Recorrência e Sincronizar Títulos Financeiros
     if (recorrenciaHabilitada) {
@@ -249,318 +407,257 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
       const novaRecorrencia: RecorrenciaFinanceira = {
         id: recExistente?.id || recId,
         clientId: clienteId,
-        clienteNome: clienteNomeOficial,
+        clientName: nomeFinal,
         descricao: recorrenciaDescricao,
         valor: parseFloat(recorrenciaValor) || 0,
         frequencia: recorrenciaFrequencia,
         dataInicio: recorrenciaDataInicio,
         proximaCobranca: recorrenciaProximaCobranca,
-        diaVencimento: parseInt(recorrenciaDiaVencimento, 10) || 10,
-        quantidade: recorrenciaQuantidade ? parseInt(recorrenciaQuantidade, 10) : null,
+        diaVencimento: parseInt(recorrenciaDiaVencimento) || 10,
+        quantidade: recorrenciaQuantidade ? parseInt(recorrenciaQuantidade) : undefined,
         status: recorrenciaStatus,
         observacoes: recorrenciaObservacoes,
-        origem: 'cliente',
-        categoria: 'Mensalidade',
-        formaPagamento: 'PIX',
-        createdAt: recExistente?.createdAt || new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        criadoEm: recExistente?.criadoEm || new Date().toISOString(),
+        atualizadoEm: new Date().toISOString()
       };
 
-      // Atualizar lista de recorrências sem duplicidade
-      const indexRec = recorrencias.findIndex(r => r.id === novaRecorrencia.id || r.clientId === clienteId);
-      let novasRecorrencias: RecorrenciaFinanceira[];
-      if (indexRec >= 0) {
-        novasRecorrencias = [...recorrencias];
-        novasRecorrencias[indexRec] = novaRecorrencia;
-      } else {
-        novasRecorrencias = [novaRecorrencia, ...recorrencias];
-      }
+      const novasRecorrencias = recExistente 
+        ? recorrencias.map(r => r.id === novaRecorrencia.id ? novaRecorrencia : r)
+        : [...recorrencias, novaRecorrencia];
+      
       setAllRecorrencias(novasRecorrencias);
 
-      // Sincronizar títulos a receber vinculados a esta recorrência e ao clientId
-      const novosTitulos = syncRecorrenciaTitulos(novaRecorrencia, titulos);
-      setAllTitulos(novosTitulos);
-
-      toast.success(clienteToEdit ? "Cliente e recorrência atualizados com sucesso!" : "Cliente e recorrência cadastrados com sucesso!");
-    } else {
-      toast.success(clienteToEdit ? "Alterações do cliente salvas!" : "Cliente cadastrado com sucesso!");
+      if (novaRecorrencia.status === 'Ativa') {
+        const novosTitulos = syncRecorrenciaTitulos(novaRecorrencia, titulos);
+        setAllTitulos(novosTitulos);
+      }
     }
-    
+
+    toast.success(clienteToEdit ? "Cliente atualizado com sucesso!" : "Cliente cadastrado com sucesso!");
     setOpen(false);
   };
+
+  // Contratos vinculados a este cliente
+  const contratosDoCliente = contratos.filter(
+    c => c.clienteId === currentClienteId || 
+         (clienteToEdit && (c.nome.toLowerCase().includes(clienteNomeOficial.toLowerCase()) || c.clienteId === clienteToEdit.id))
+  );
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         {children}
       </SheetTrigger>
-      <SheetContent className="sm:max-w-3xl overflow-y-auto">
-        <SheetHeader className="mb-6">
+      <SheetContent side="right" className="w-full sm:max-w-3xl overflow-y-auto">
+        <SheetHeader className="pb-4">
           <SheetTitle>{clienteToEdit ? 'Editar Cliente' : 'Cadastro de Cliente'}</SheetTitle>
           <SheetDescription>
-            Este é o cadastro mestre. As informações salvas aqui refletirão em todo o sistema.
+            {clienteToEdit 
+              ? 'Atualize os dados mestres, recorrência, documentos anexados e contratos vinculados.' 
+              : 'Este é o cadastro mestre. As informações salvas aqui refletirão em todo o sistema.'}
           </SheetDescription>
         </SheetHeader>
 
-        <Tabs defaultValue="geral" className="w-full">
-          {/* Scrollable Tabs List */}
-          <div className="overflow-x-auto pb-2 mb-4 scrollbar-hide">
-            <TabsList className="w-max inline-flex">
-              <TabsTrigger value="geral">Dados Gerais</TabsTrigger>
-              <TabsTrigger value="contatos">Contatos</TabsTrigger>
-              <TabsTrigger value="endereco">Endereço</TabsTrigger>
-              <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
-              <TabsTrigger value="contratos">Contratos</TabsTrigger>
-              <TabsTrigger value="documentos">Documentos</TabsTrigger>
-              <TabsTrigger value="historico">Histórico</TabsTrigger>
-            </TabsList>
-          </div>
-          
+        <Tabs defaultValue="gerais" className="mt-4">
+          <TabsList className="grid grid-cols-4 sm:grid-cols-7 mb-4 h-auto p-1 gap-1">
+            <TabsTrigger value="gerais" className="text-xs">Dados Gerais</TabsTrigger>
+            <TabsTrigger value="contatos" className="text-xs">Contatos</TabsTrigger>
+            <TabsTrigger value="endereco" className="text-xs">Endereço</TabsTrigger>
+            <TabsTrigger value="financeiro" className="text-xs">Financeiro</TabsTrigger>
+            <TabsTrigger value="contratos" className="text-xs font-semibold text-primary">
+              Contratos ({contratosDoCliente.length})
+            </TabsTrigger>
+            <TabsTrigger value="documentos" className="text-xs font-semibold text-orange-600">
+              Documentos ({documentosAnexados.length})
+            </TabsTrigger>
+            <TabsTrigger value="historico" className="text-xs">Histórico</TabsTrigger>
+          </TabsList>
+
           {/* 1. DADOS GERAIS */}
-          <TabsContent value="geral" className="space-y-4">
-            <div className="space-y-4">
+          <TabsContent value="gerais" className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Tipo de Cliente</Label>
-                <div className="flex gap-4">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox id="tipo-pj" checked={tipoPessoa === 'pj'} onCheckedChange={() => setTipoPessoa('pj')} />
-                    <label htmlFor="tipo-pj" className="text-sm font-medium">Pessoa Jurídica</label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox id="tipo-pf" checked={tipoPessoa === 'pf'} onCheckedChange={() => setTipoPessoa('pf')} />
-                    <label htmlFor="tipo-pf" className="text-sm font-medium">Pessoa Física</label>
-                  </div>
-                </div>
-              </div>
-
-              {tipoPessoa === 'pj' ? (
-                <>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="cnpj">CNPJ *</Label>
-                      <Input id="cnpj" placeholder="00.000.000/0001-00" value={documento} onChange={e => setDocumento(e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="razaoSocial">Razão Social *</Label>
-                      <Input id="razaoSocial" placeholder="Empresa XYZ Ltda" value={razaoSocial} onChange={e => setRazaoSocial(e.target.value)} />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="nomeFantasia">Nome Fantasia</Label>
-                      <Input id="nomeFantasia" placeholder="XYZ" value={nomeFantasia} onChange={e => setNomeFantasia(e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="ie">Inscrição Estadual</Label>
-                      <Input id="ie" placeholder="Isento" value={ie} onChange={e => setIe(e.target.value)} />
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="cpf">CPF *</Label>
-                    <Input id="cpf" placeholder="000.000.000-00" value={documento} onChange={e => setDocumento(e.target.value)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="nomePf">Nome Completo *</Label>
-                    <Input id="nomePf" placeholder="João da Silva" value={razaoSocial} onChange={e => setRazaoSocial(e.target.value)} />
-                  </div>
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="situacao">Situação</Label>
-                  <Select defaultValue="ativo">
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ativo">Ativo</SelectItem>
-                      <SelectItem value="inativo">Inativo</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="segmento">Segmento</Label>
-                  <Input id="segmento" placeholder="Ex: Tecnologia" value={segmento} onChange={e => setSegmento(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="porte">Porte da Empresa</Label>
-                  <Select value={porte} onValueChange={setPorte}>
-                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="me">Micro (ME)</SelectItem>
-                      <SelectItem value="epp">Pequena (EPP)</SelectItem>
-                      <SelectItem value="med">Média</SelectItem>
-                      <SelectItem value="grd">Grande</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="obs">Observações</Label>
-                <Textarea id="obs" placeholder="Anotações internas sobre o cliente..." />
-              </div>
-            </div>
-          </TabsContent>
-
-          {/* 2. CONTATOS */}
-          <TabsContent value="contatos" className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h4 className="text-sm font-medium">Contatos Vinculados</h4>
-              <Button size="sm" variant="outline"><Plus className="w-4 h-4 mr-2" /> Adicionar Contato</Button>
-            </div>
-            <div className="border rounded-md p-4 space-y-4 relative">
-              <Button variant="ghost" size="icon" className="absolute top-2 right-2 text-red-500 h-8 w-8"><Trash2 className="w-4 h-4" /></Button>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Nome do Contato *</Label>
-                  <Input value={contatoNome} onChange={e => setContatoNome(e.target.value)} placeholder="João Silva" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Cargo / Departamento</Label>
-                  <Input defaultValue={contatoPrincipal?.cargo || "Diretor Financeiro"} />
-                </div>
-                <div className="space-y-2">
-                  <Label>E-mail *</Label>
-                  <Input type="email" value={contatoEmail} onChange={e => setContatoEmail(e.target.value)} placeholder="joao@empresa.com" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Celular / WhatsApp *</Label>
-                  <Input value={contatoCelular} onChange={e => setContatoCelular(e.target.value)} placeholder="(11) 99999-9999" />
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox id="principal" defaultChecked />
-                <label htmlFor="principal" className="text-sm font-medium">Este é o contato principal (Cobranças/Avisos)</label>
-              </div>
-            </div>
-          </TabsContent>
-
-          {/* 3. ENDEREÇO */}
-          <TabsContent value="endereco" className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="space-y-2 col-span-1">
-                <Label htmlFor="cep">CEP</Label>
-                <Input id="cep" placeholder="00000-000" defaultValue={clienteToEdit?.endereco?.cep} />
-              </div>
-              <div className="space-y-2 col-span-1 sm:col-span-2">
-                <Label htmlFor="logradouro">Logradouro</Label>
-                <Input id="logradouro" placeholder="Avenida Brasil" defaultValue={clienteToEdit?.endereco?.logradouro} />
-              </div>
-              <div className="space-y-2 col-span-1">
-                <Label htmlFor="numero">Número</Label>
-                <Input id="numero" placeholder="1000" defaultValue={clienteToEdit?.endereco?.numero} />
-              </div>
-              <div className="space-y-2 col-span-1 sm:col-span-2">
-                <Label htmlFor="complemento">Complemento</Label>
-                <Input id="complemento" placeholder="Sala 101" />
-              </div>
-              <div className="space-y-2 col-span-1">
-                <Label htmlFor="bairro">Bairro</Label>
-                <Input id="bairro" placeholder="Centro" defaultValue={clienteToEdit?.endereco?.bairro} />
-              </div>
-              <div className="space-y-2 col-span-1">
-                <Label htmlFor="cidade">Cidade *</Label>
-                <Input id="cidade" placeholder="São Paulo" value={cidade} onChange={e => setCidade(e.target.value)} />
-              </div>
-              <div className="space-y-2 col-span-1">
-                <Label htmlFor="estado">Estado *</Label>
-                <Select value={estado} onValueChange={setEstado}>
-                  <SelectTrigger><SelectValue placeholder="UF" /></SelectTrigger>
+                <Label>Tipo de Pessoa</Label>
+                <Select value={tipoPessoa} onValueChange={setTipoPessoa}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="SP">SP</SelectItem>
-                    <SelectItem value="RJ">RJ</SelectItem>
-                    <SelectItem value="MG">MG</SelectItem>
-                    <SelectItem value="PR">PR</SelectItem>
-                    <SelectItem value="SC">SC</SelectItem>
-                    <SelectItem value="RS">RS</SelectItem>
+                    <SelectItem value="pj">Pessoa Jurídica</SelectItem>
+                    <SelectItem value="pf">Pessoa Física</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="doc">{tipoPessoa === 'pj' ? 'CNPJ *' : 'CPF *'}</Label>
+                <Input 
+                  id="doc" 
+                  placeholder={tipoPessoa === 'pj' ? "00.000.000/0000-00" : "000.000.000-00"} 
+                  value={documento}
+                  onChange={e => setDocumento(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="razao">{tipoPessoa === 'pj' ? 'Razão Social *' : 'Nome Completo *'}</Label>
+              <Input 
+                id="razao" 
+                placeholder="Ex: Focus Tecnologia Ltda" 
+                value={razaoSocial}
+                onChange={e => setRazaoSocial(e.target.value)}
+              />
+            </div>
+
+            {tipoPessoa === 'pj' && (
+              <div className="space-y-2">
+                <Label htmlFor="fantasia">Nome Fantasia</Label>
+                <Input 
+                  id="fantasia" 
+                  placeholder="Ex: Focus ERP" 
+                  value={nomeFantasia}
+                  onChange={e => setNomeFantasia(e.target.value)}
+                />
+              </div>
+            )}
+
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="ie">Inscrição Estadual</Label>
+                <Input 
+                  id="ie" 
+                  placeholder="Isento" 
+                  value={ie}
+                  onChange={e => setIe(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="segmento">Segmento</Label>
+                <Input 
+                  id="segmento" 
+                  placeholder="Ex: Tecnologia" 
+                  value={segmento}
+                  onChange={e => setSegmento(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="porte">Porte</Label>
+                <Select value={porte} onValueChange={setPorte}>
+                  <SelectTrigger id="porte"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="MEI">MEI</SelectItem>
+                    <SelectItem value="Micro">Microempresa</SelectItem>
+                    <SelectItem value="Pequeno">Pequeno Porte</SelectItem>
+                    <SelectItem value="Médio">Médio Porte</SelectItem>
+                    <SelectItem value="Grande">Grande Porte</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
           </TabsContent>
 
-          {/* 4. FINANCEIRO & RECORRÊNCIA INTEGRADA */}
-          <TabsContent value="financeiro" className="space-y-6">
-            {/* Seção 1: Indicadores Calculados */}
-            <div className="rounded-lg border bg-card p-5 space-y-4">
-              <div>
-                <h3 className="font-semibold text-sm">Consulta Financeira (Contas a Receber)</h3>
-                <p className="text-xs text-muted-foreground">
-                  Visão consolidada calculada a partir dos lançamentos e títulos vinculados a este cliente.
-                </p>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-left">
-                <div className="border rounded-md p-3 bg-background/50">
-                  <div className="text-[11px] text-muted-foreground font-medium">Valor em Aberto</div>
-                  <div className="font-bold text-base text-rose-600 dark:text-rose-400 mt-0.5">
-                    R$ {resumoFinanceiro.valorEmAberto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </div>
+          {/* 2. CONTATOS */}
+          <TabsContent value="contatos" className="space-y-4">
+            <div className="border p-4 rounded-md space-y-3 bg-muted/20">
+              <h4 className="font-semibold text-sm">Contato Principal *</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="c-nome">Nome do Responsável *</Label>
+                  <Input 
+                    id="c-nome" 
+                    placeholder="Nome completo" 
+                    value={contatoNome}
+                    onChange={e => setContatoNome(e.target.value)}
+                  />
                 </div>
-                <div className="border rounded-md p-3 bg-background/50">
-                  <div className="text-[11px] text-muted-foreground font-medium">Total Recebido</div>
-                  <div className="font-bold text-base text-emerald-600 dark:text-emerald-400 mt-0.5">
-                    R$ {resumoFinanceiro.totalRecebido.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="c-email">E-mail *</Label>
+                  <Input 
+                    id="c-email" 
+                    type="email" 
+                    placeholder="contato@empresa.com" 
+                    value={contatoEmail}
+                    onChange={e => setContatoEmail(e.target.value)}
+                  />
                 </div>
-                <div className="border rounded-md p-3 bg-background/50">
-                  <div className="text-[11px] text-muted-foreground font-medium">Mensalidade (Contrato/Recorrência)</div>
-                  <div className="font-bold text-base text-foreground mt-0.5">
-                    R$ {resumoFinanceiro.mensalidade.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </div>
-                </div>
-                <div className="border rounded-md p-3 bg-background/50">
-                  <div className="text-[11px] text-muted-foreground font-medium">Títulos Atrasados</div>
-                  <div className={`font-bold text-base mt-0.5 ${resumoFinanceiro.titulosAtrasados > 0 ? 'text-amber-600' : 'text-muted-foreground'}`}>
-                    {resumoFinanceiro.titulosAtrasados}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Seção 2: Recorrência Financeira do Cliente */}
-            <div className="rounded-lg border bg-card p-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold text-sm flex items-center gap-2">
-                    <RefreshCw className="w-4 h-4 text-orange-500" />
-                    Recorrência Financeira
-                  </h3>
-                  <p className="text-xs text-muted-foreground">
-                    Configurar cobrança recorrente diretamente para este cliente.
-                  </p>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Label htmlFor="toggle-recorrencia" className="text-xs font-semibold">
-                    {recorrenciaHabilitada ? 'Ativado' : 'Desativado'}
-                  </Label>
-                  <Switch 
-                    id="toggle-recorrencia" 
-                    checked={recorrenciaHabilitada} 
-                    onCheckedChange={setRecorrenciaHabilitada} 
+                <div className="space-y-2">
+                  <Label htmlFor="c-celular">Celular / WhatsApp *</Label>
+                  <Input 
+                    id="c-celular" 
+                    placeholder="(11) 90000-0000" 
+                    value={contatoCelular}
+                    onChange={e => setContatoCelular(e.target.value)}
                   />
                 </div>
               </div>
+            </div>
+          </TabsContent>
+
+          {/* 3. ENDEREÇO */}
+          <TabsContent value="endereco" className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="cidade">Cidade *</Label>
+                <Input 
+                  id="cidade" 
+                  placeholder="Ex: São Paulo" 
+                  value={cidade}
+                  onChange={e => setCidade(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="uf">Estado (UF) *</Label>
+                <Input 
+                  id="uf" 
+                  placeholder="Ex: SP" 
+                  maxLength={2}
+                  value={estado}
+                  onChange={e => setEstado(e.target.value.toUpperCase())}
+                />
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* 4. FINANCEIRO */}
+          <TabsContent value="financeiro" className="space-y-4">
+            <div className="border rounded-lg p-5 space-y-4 bg-muted/10">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-semibold text-sm flex items-center gap-2">
+                    <RefreshCw className="w-4 h-4 text-orange-600" />
+                    Contrato Recorrente / Mensalidade
+                  </h4>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Geração automática de títulos no Contas a Receber
+                  </p>
+                </div>
+                <Switch 
+                  checked={recorrenciaHabilitada}
+                  onCheckedChange={setRecorrenciaHabilitada}
+                />
+              </div>
 
               {recorrenciaHabilitada && (
-                <div className="space-y-4 pt-2 border-t animate-in fade-in slide-in-from-top-2">
+                <div className="space-y-4 pt-3 border-t">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="rec-descricao">Descrição / Referência *</Label>
+                      <Label htmlFor="rec-desc">Descrição do Serviço *</Label>
                       <Input 
-                        id="rec-descricao" 
-                        placeholder="Ex: Mensalidade de Desenvolvimento" 
+                        id="rec-desc" 
+                        placeholder="Ex: Mensalidade Software ERP" 
                         value={recorrenciaDescricao} 
                         onChange={e => setRecorrenciaDescricao(e.target.value)} 
                       />
                     </div>
+
                     <div className="space-y-2">
-                      <Label htmlFor="rec-valor">Valor da Recorrência (R$) *</Label>
+                      <Label htmlFor="rec-val">Valor Recorrente (R$) *</Label>
                       <Input 
-                        id="rec-valor" 
+                        id="rec-val" 
                         type="number" 
-                        placeholder="2500,00" 
+                        step="0.01" 
+                        placeholder="0,00" 
                         value={recorrenciaValor} 
                         onChange={e => setRecorrenciaValor(e.target.value)} 
                       />
@@ -579,8 +676,6 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="Mensal">Mensal</SelectItem>
-                          <SelectItem value="Semanal">Semanal</SelectItem>
-                          <SelectItem value="Quinzenal">Quinzenal</SelectItem>
                           <SelectItem value="Trimestral">Trimestral</SelectItem>
                           <SelectItem value="Semestral">Semestral</SelectItem>
                           <SelectItem value="Anual">Anual</SelectItem>
@@ -589,9 +684,9 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="rec-inicio">Data de Início *</Label>
+                      <Label htmlFor="rec-ini">Data de Início *</Label>
                       <Input 
-                        id="rec-inicio" 
+                        id="rec-ini" 
                         type="date" 
                         value={recorrenciaDataInicio} 
                         onChange={e => setRecorrenciaDataInicio(e.target.value)} 
@@ -635,7 +730,7 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="rec-status">Status da Recorrência *</Label>
+                      <Label htmlFor="rec-status">Status *</Label>
                       <Select 
                         value={recorrenciaStatus} 
                         onValueChange={(v: StatusRecorrencia) => setRecorrenciaStatus(v)}
@@ -644,89 +739,161 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Ativa">
-                            <span className="flex items-center gap-1.5 text-emerald-600 font-medium">
-                              <CheckCircle2 className="w-3.5 h-3.5" /> Ativa
-                            </span>
-                          </SelectItem>
-                          <SelectItem value="Pausada">
-                            <span className="flex items-center gap-1.5 text-amber-600 font-medium">
-                              <PauseCircle className="w-3.5 h-3.5" /> Pausada
-                            </span>
-                          </SelectItem>
-                          <SelectItem value="Encerrada">
-                            <span className="flex items-center gap-1.5 text-rose-600 font-medium">
-                              <XCircle className="w-3.5 h-3.5" /> Encerrada
-                            </span>
-                          </SelectItem>
+                          <SelectItem value="Ativa">Ativa</SelectItem>
+                          <SelectItem value="Pausada">Pausada</SelectItem>
+                          <SelectItem value="Encerrada">Encerrada</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                   </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="rec-obs">Observações da Cobrança Recorrente</Label>
-                    <Textarea 
-                      id="rec-obs" 
-                      placeholder="Instruções de cobrança, contratos associados ou notas financeiras..." 
-                      value={recorrenciaObservacoes} 
-                      onChange={e => setRecorrenciaObservacoes(e.target.value)} 
-                    />
-                  </div>
                 </div>
               )}
             </div>
           </TabsContent>
 
-          {/* 5. CONTRATOS */}
+          {/* 5. CONTRATOS (INTEGRADO AO MÓDULO CONTRATOS) */}
           <TabsContent value="contratos" className="space-y-4">
-            <div className="rounded-md border border-dashed p-6 text-center">
-              <h3 className="font-semibold mb-2">Contratos Vinculados</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Consumo automático do módulo de Contratos.
-              </p>
-              {contratos.filter(c => c.clienteId === clienteToEdit?.id).length > 0 ? (
-                <div className="space-y-2 text-left">
-                  {contratos.filter(c => c.clienteId === clienteToEdit?.id).map(c => (
-                    <div key={c.id} className="border rounded-md p-3 flex justify-between items-center bg-card">
-                      <div>
-                        <div className="font-semibold text-sm">{c.nome} ({c.numeroContrato || c.codigo})</div>
-                        <div className="text-xs text-muted-foreground">Mensalidade: R$ {(c.valorMensalidade || 0).toLocaleString('pt-BR')} • Status: {c.status}</div>
+            <div className="flex items-center justify-between border-b pb-3">
+              <div>
+                <h4 className="font-semibold text-sm flex items-center gap-2">
+                  <Briefcase className="w-4 h-4 text-primary" />
+                  Contratos Registrados
+                </h4>
+                <p className="text-xs text-muted-foreground">
+                  Integrado em tempo real com o módulo Gestão de Contratos (CLM).
+                </p>
+              </div>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="gap-1.5 text-xs text-primary border-primary/30 hover:bg-primary/5"
+                onClick={() => {
+                  setContratoNome(`Contrato Prestação de Serviços - ${clienteNomeOficial}`);
+                  setModalNovoContratoOpen(true);
+                }}
+              >
+                <Plus className="w-3.5 h-3.5" /> Vincular Novo Contrato
+              </Button>
+            </div>
+
+            {contratosDoCliente.length === 0 ? (
+              <div className="border border-dashed rounded-lg p-8 text-center space-y-3 bg-muted/5">
+                <FileText className="w-8 h-8 mx-auto text-muted-foreground opacity-50" />
+                <p className="text-sm font-medium">Nenhum contrato formal vinculado ainda.</p>
+                <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                  Você pode gerar um contrato formal com valores, vigência e assinaturas clicando no botão acima.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {contratosDoCliente.map(c => (
+                  <div key={c.id} className="border rounded-lg p-3.5 flex items-center justify-between bg-card hover:border-primary/40 transition-colors">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-xs text-foreground">{c.nome}</span>
+                        <Badge variant="outline" className="text-[10px] bg-primary/5 text-primary border-primary/20">
+                          {c.numeroContrato || c.codigo}
+                        </Badge>
+                        <Badge variant="secondary" className="text-[10px]">
+                          {c.status}
+                        </Badge>
                       </div>
-                      <span className="text-xs font-semibold px-2 py-1 bg-primary/10 text-primary rounded">{c.tipoServico}</span>
+                      <div className="text-[11px] text-muted-foreground flex items-center gap-3">
+                        <span>Serviço: <strong>{c.tipoServico}</strong></span>
+                        <span>• Mensal: <strong>R$ {(c.valorMensalidade || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></span>
+                        <span>• Total: <strong>R$ {(c.valorTotal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong></span>
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="text-[11px] font-medium">
+                      {c.dataInicial ? new Date(c.dataInicial).toLocaleDateString('pt-BR') : 'Sem data'}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* 6. DOCUMENTOS (INTEGRADO AO MÓDULO GESTÃO DE DOCUMENTOS - DMS) */}
+          <TabsContent value="documentos" className="space-y-4">
+            {/* Dropzone de Upload Real */}
+            <div className="border-2 border-dashed border-primary/30 hover:border-primary/60 rounded-xl p-6 flex flex-col items-center justify-center bg-primary/5 hover:bg-primary/10 transition-colors cursor-pointer relative group text-center">
+              <input 
+                type="file" 
+                multiple
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
+                onChange={handleFileUpload}
+                disabled={isUploadingDoc}
+              />
+              <div className="bg-primary/10 p-3 rounded-full mb-2 group-hover:scale-110 transition-transform">
+                <UploadCloud className="w-6 h-6 text-primary" />
+              </div>
+              <h4 className="font-semibold text-sm text-foreground">
+                {isUploadingDoc ? 'Enviando e indexando documento no DMS...' : 'Anexar Documentos do Cliente'}
+              </h4>
+              <p className="text-xs text-muted-foreground mt-1 max-w-md">
+                Arraste Contratos Sociais, CNH, Procurações, Notas, Comprovantes ou PDFs.
+              </p>
+              <p className="text-[11px] text-primary/80 mt-1 font-medium">
+                📁 Os arquivos são salvos automaticamente na pasta <strong>/Clientes/{clienteNomeOficial}</strong> do DMS.
+              </p>
+            </div>
+
+            {/* Lista de Documentos Anexados */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between border-b pb-2">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Arquivos na Pasta deste Cliente ({documentosAnexados.length})
+                </span>
+              </div>
+
+              {documentosAnexados.length === 0 ? (
+                <div className="py-6 text-center text-muted-foreground text-xs">
+                  Nenhum documento anexado ainda. Clique no campo acima para selecionar arquivos.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {documentosAnexados.map((doc) => (
+                    <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg hover:border-primary/40 bg-card transition-all">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="p-2 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
+                          <FileText className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0 truncate">
+                          <p className="font-semibold text-xs truncate">{doc.nome}</p>
+                          <p className="text-[11px] text-muted-foreground flex items-center gap-2 mt-0.5">
+                            <span className="bg-secondary px-1.5 py-0.5 rounded text-[10px]">{doc.categoria || 'Documentos do Cliente'}</span>
+                            <span>{doc.tamanho}</span>
+                            <span>• {new Date(doc.dataUpload).toLocaleDateString('pt-BR')}</span>
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1 shrink-0">
+                        {doc.urlConteudo && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            asChild
+                            className="h-8 text-xs gap-1"
+                          >
+                            <a href={doc.urlConteudo} download={doc.nome}>
+                              <Download className="w-3.5 h-3.5" /> Baixar
+                            </a>
+                          </Button>
+                        )}
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                          onClick={() => handleRemoveDoc(doc.id)}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
-              ) : (
-                <div className="border rounded text-center p-6 text-muted-foreground text-sm">
-                  Nenhum contrato ativo registrado para este cliente.
-                </div>
               )}
-            </div>
-          </TabsContent>
-
-          {/* 6. DOCUMENTOS */}
-          <TabsContent value="documentos" className="space-y-4">
-            <div className="border rounded p-6 flex flex-col items-center justify-center border-dashed">
-              <Upload className="w-8 h-8 text-muted-foreground mb-2" />
-              <h4 className="font-medium">Anexar Documentos</h4>
-              <p className="text-sm text-muted-foreground mb-4 text-center">
-                Arraste Contratos Sociais, CNH, Procurações ou PDFs.
-              </p>
-              <Button variant="secondary" size="sm">Selecionar Arquivos</Button>
-            </div>
-            
-            <div className="space-y-2 mt-4">
-              <div className="flex items-center justify-between border p-3 rounded">
-                <div className="flex items-center gap-3">
-                  <FileText className="w-5 h-5 text-blue-500" />
-                  <div>
-                    <div className="font-medium text-sm">Contrato_Social_Atualizado.pdf</div>
-                    <div className="text-xs text-muted-foreground">Adicionado em 10/10/2025</div>
-                  </div>
-                </div>
-                <Button variant="ghost" size="icon"><Trash2 className="w-4 h-4 text-red-500" /></Button>
-              </div>
             </div>
           </TabsContent>
 
@@ -735,20 +902,17 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
             <div className="relative border-l border-muted ml-4 pl-6 space-y-6">
               <div className="relative">
                 <div className="absolute -left-[31px] bg-emerald-500 rounded-full w-4 h-4 border-4 border-background" />
-                <div className="text-sm font-medium">Cobrança Automática Enviada</div>
-                <div className="text-xs text-muted-foreground">Sistema • Hoje, 08:30</div>
-                <div className="text-sm mt-1">E-mail de lembrete de vencimento enviado com sucesso.</div>
+                <div className="text-sm font-medium">Cadastro Atualizado</div>
+                <div className="text-xs text-muted-foreground">Sistema • Hoje</div>
+                <div className="text-xs mt-1 text-muted-foreground">Módulo de Clientes e CRM sincronizados.</div>
               </div>
-              <div className="relative">
-                <div className="absolute -left-[31px] bg-blue-500 rounded-full w-4 h-4 border-4 border-background" />
-                <div className="text-sm font-medium">Contrato Assinado</div>
-                <div className="text-xs text-muted-foreground">Ana Silva • 15/06/2025, 14:00</div>
-              </div>
-              <div className="relative">
-                <div className="absolute -left-[31px] bg-gray-500 rounded-full w-4 h-4 border-4 border-background" />
-                <div className="text-sm font-medium">Cadastro Realizado</div>
-                <div className="text-xs text-muted-foreground">João Silva • 10/06/2025, 10:15</div>
-              </div>
+              {clienteToEdit && (
+                <div className="relative">
+                  <div className="absolute -left-[31px] bg-blue-500 rounded-full w-4 h-4 border-4 border-background" />
+                  <div className="text-sm font-medium">Cliente Criado na Base</div>
+                  <div className="text-xs text-muted-foreground">Sistema • {new Date(clienteToEdit.dataCadastro).toLocaleDateString('pt-BR')}</div>
+                </div>
+              )}
             </div>
           </TabsContent>
 
@@ -756,9 +920,107 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
 
         <SheetFooter className="mt-8">
           <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-          <Button onClick={handleSave}>{clienteToEdit ? 'Salvar Alterações' : 'Salvar Cliente'}</Button>
+          <Button onClick={handleSave} className="bg-orange-600 hover:bg-orange-700 text-white font-semibold">
+            {clienteToEdit ? 'Salvar Alterações' : 'Salvar Cliente'}
+          </Button>
         </SheetFooter>
       </SheetContent>
+
+      {/* MODAL PARA CRIAR CONTRATO RAPIDO VINCULADO AO CLIENTE */}
+      <Dialog open={modalNovoContratoOpen} onOpenChange={setModalNovoContratoOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Briefcase className="w-4 h-4 text-primary" /> Novo Contrato para {clienteNomeOficial}
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Gera o contrato comercial e salva automaticamente no módulo de Contratos e no DMS.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3.5 py-2 text-xs">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Título / Objeto do Contrato *</Label>
+              <Input 
+                value={contratoNome} 
+                onChange={e => setContratoNome(e.target.value)} 
+                placeholder="Ex: Contrato de Prestação de Serviços de TI"
+                className="text-xs h-9"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs">Tipo de Serviço</Label>
+              <Select value={contratoTipo} onValueChange={setContratoTipo}>
+                <SelectTrigger className="text-xs h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Desenvolvimento de Software">Desenvolvimento de Software</SelectItem>
+                  <SelectItem value="Sistema Web">Sistema Web</SelectItem>
+                  <SelectItem value="Licenciamento">Licenciamento de Software</SelectItem>
+                  <SelectItem value="Suporte Técnico">Suporte Técnico & Manutenção</SelectItem>
+                  <SelectItem value="Consultoria">Consultoria</SelectItem>
+                  <SelectItem value="Prestação de Serviço">Prestação de Serviço Geral</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Mensalidade (R$)</Label>
+                <Input 
+                  type="number" 
+                  placeholder="Ex: 2500.00" 
+                  value={contratoMensalidade}
+                  onChange={e => setContratoMensalidade(e.target.value)}
+                  className="text-xs h-9"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs">Valor Total (R$)</Label>
+                <Input 
+                  type="number" 
+                  placeholder="Ex: 30000.00" 
+                  value={contratoValorTotal}
+                  onChange={e => setContratoValorTotal(e.target.value)}
+                  className="text-xs h-9"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Data de Início</Label>
+                <Input 
+                  type="date" 
+                  value={contratoDataInicio}
+                  onChange={e => setContratoDataInicio(e.target.value)}
+                  className="text-xs h-9"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs">Data de Término</Label>
+                <Input 
+                  type="date" 
+                  value={contratoDataFim}
+                  onChange={e => setContratoDataFim(e.target.value)}
+                  className="text-xs h-9"
+                />
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="pt-2">
+            <Button variant="outline" size="sm" onClick={() => setModalNovoContratoOpen(false)} className="text-xs">
+              Cancelar
+            </Button>
+            <Button size="sm" onClick={handleCriarContratoRapido} className="text-xs bg-orange-600 hover:bg-orange-700 text-white font-semibold">
+              Gerar & Vincular Contrato
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Sheet>
   );
 }
