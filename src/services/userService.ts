@@ -4,12 +4,14 @@ import { INITIAL_USUARIOS } from '@/features/usuarios/data/initialData';
 import { safeGetItem, safeSetItem } from '@/lib/safeStorage';
 
 const USERS_STORAGE_KEY = 'focus_app_focus_usuarios';
-const USERS_STATE_ROW_ID = '00000000-0000-4000-a000-000075736572'; // deterministic UUID for users state
+const USERS_STATE_ROW_ID = '00000000-0000-4000-a000-000075736572'; // deterministic UUID for users state backup
 
 function broadcastUsersUpdate() {
   if (typeof window !== 'undefined') {
-    window.dispatchEvent(new Event('focus_users_updated'));
-    window.dispatchEvent(new Event('storage'));
+    try {
+      window.dispatchEvent(new Event('focus_users_updated'));
+      window.dispatchEvent(new Event('storage'));
+    } catch {}
   }
 }
 
@@ -91,13 +93,13 @@ export const userService = {
       console.warn('[userService.getUsers] Aviso ao consultar tabela users:', e);
     }
 
-    // 4. Buscar do Banco de Dados Supabase (Tabela de Estado Global / Cloud Backup)
+    // 4. Buscar do Banco de Dados Supabase (Tabela de Estado Global / Cloud Backup usando maybeSingle)
     try {
       const { data: cloudState } = await supabase
         .from('clients')
         .select('*')
         .eq('id', USERS_STATE_ROW_ID)
-        .single();
+        .maybeSingle();
 
       if (cloudState && cloudState.name && cloudState.name.startsWith('__FOCUS_USERS_STATE__:')) {
         const jsonStr = cloudState.name.replace('__FOCUS_USERS_STATE__:', '');
@@ -227,38 +229,56 @@ export const userService = {
     if (typeof window === 'undefined') return () => {};
 
     const handleLocalEvent = async () => {
-      const users = await this.getUsers();
-      onUpdate(users);
+      try {
+        const users = await this.getUsers();
+        onUpdate(users);
+      } catch {}
     };
 
     window.addEventListener('focus_users_updated', handleLocalEvent);
     window.addEventListener('storage', handleLocalEvent);
 
-    // Canal Realtime do Supabase
-    const channel = supabase
-      .channel('focus_realtime_users')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'users' },
-        async () => {
-          const fresh = await userService.getUsers();
-          onUpdate(fresh);
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'clients', filter: `id=eq.${USERS_STATE_ROW_ID}` },
-        async () => {
-          const fresh = await userService.getUsers();
-          onUpdate(fresh);
-        }
-      )
-      .subscribe();
+    // Canal Realtime do Supabase com identificador único por instância
+    const uniqueChannelName = `focus_users_rt_${Math.random().toString(36).substring(2, 9)}`;
+    let channel: any = null;
+
+    try {
+      channel = supabase
+        .channel(uniqueChannelName)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'users' },
+          async () => {
+            try {
+              const fresh = await userService.getUsers();
+              onUpdate(fresh);
+            } catch {}
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'clients', filter: `id=eq.${USERS_STATE_ROW_ID}` },
+          async () => {
+            try {
+              const fresh = await userService.getUsers();
+              onUpdate(fresh);
+            } catch {}
+          }
+        );
+
+      channel.subscribe();
+    } catch (e) {
+      console.warn('[userService.subscribeUsers] Erro ao criar canal realtime:', e);
+    }
 
     return () => {
       window.removeEventListener('focus_users_updated', handleLocalEvent);
       window.removeEventListener('storage', handleLocalEvent);
-      supabase.removeChannel(channel);
+      if (channel) {
+        try {
+          supabase.removeChannel(channel);
+        } catch {}
+      }
     };
   },
 };
