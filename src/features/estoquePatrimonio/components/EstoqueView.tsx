@@ -12,6 +12,8 @@ import {
   User,
   SlidersHorizontal,
   Trash2,
+  ClipboardList,
+  Boxes,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,10 +32,12 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useEstoquePatrimonio } from '../hooks/useEstoquePatrimonio';
 import { EstoqueItem } from '../types';
+import { InventarioView } from './InventarioView';
 
 export function EstoqueView() {
   const { estoqueItens, addEstoqueItem, ajustarEstoqueItem, deleteEstoqueItem } = useEstoquePatrimonio();
 
+  const [subTab, setSubTab] = useState<'itens' | 'inventario'>('itens');
   const [searchTerm, setSearchTerm] = useState('');
   const [categoriaFilter, setCategoriaFilter] = useState('todos');
 
@@ -119,333 +123,358 @@ export function EstoqueView() {
 
   return (
     <div className="space-y-6">
-      {/* HEADER DAS AÇÕES DE ESTOQUE */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-bold tracking-tight text-foreground">Controle de Estoque Físico</h2>
-          <p className="text-xs text-muted-foreground">
-            Gerenciamento de periféricos, cabos, peças de reposição e suprimentos corporativos
-          </p>
+      {/* SUB-NAVEGAÇÃO: ESTOQUE FÍSICO / INVENTÁRIO */}
+      <div className="flex items-center justify-between border-b pb-3 flex-wrap gap-3">
+        <div className="flex items-center gap-1.5 bg-muted/40 p-1 rounded-lg border">
+          <Button
+            variant={subTab === 'itens' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setSubTab('itens')}
+            className={`text-xs gap-1.5 h-8 ${subTab === 'itens' ? 'bg-background text-foreground shadow-sm' : ''}`}
+          >
+            <Package className="h-3.5 w-3.5" /> Saldos e Itens de Almoxarifado
+          </Button>
+          <Button
+            variant={subTab === 'inventario' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setSubTab('inventario')}
+            className={`text-xs gap-1.5 h-8 ${subTab === 'inventario' ? 'bg-background text-foreground shadow-sm' : ''}`}
+          >
+            <ClipboardList className="h-3.5 w-3.5" /> Auditorias de Inventário
+          </Button>
         </div>
-        <Button onClick={() => setIsNovoItemOpen(true)} className="gap-2 text-xs">
-          <Plus className="h-4 w-4" /> Novo Item de Estoque
-        </Button>
+
+        {subTab === 'itens' && (
+          <Button onClick={() => setIsNovoItemOpen(true)} className="gap-2 text-xs h-8">
+            <Plus className="h-3.5 w-3.5" /> Novo Item de Estoque
+          </Button>
+        )}
       </div>
 
-      {/* BARRA DE FILTROS */}
-      <Card>
-        <CardContent className="p-4 flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por código, nome do item ou localização..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 text-xs"
-            />
-          </div>
-          <div className="w-full sm:w-56">
-            <Select value={categoriaFilter} onValueChange={setCategoriaFilter}>
-              <SelectTrigger className="text-xs">
-                <SelectValue placeholder="Todas as Categorias" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todas as Categorias</SelectItem>
-                {categoriasUnicas.map((cat) => (
-                  <SelectItem key={cat} value={cat}>
-                    {cat}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* TABELA DE ITENS DE ESTOQUE */}
-      <Card>
-        <CardHeader className="py-4">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-semibold">Itens em Almoxarifado ({filteredItens.length})</CardTitle>
-            <Badge variant="outline" className="text-[10px] font-mono">
-              Total Itens: {estoqueItens.reduce((acc, i) => acc + i.quantidade, 0)} unidades
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="text-xs">Código / Item</TableHead>
-                <TableHead className="text-xs">Categoria</TableHead>
-                <TableHead className="text-xs text-center">Qtd Atual</TableHead>
-                <TableHead className="text-xs text-center">Qtd Mínima</TableHead>
-                <TableHead className="text-xs">Localização</TableHead>
-                <TableHead className="text-xs">Status</TableHead>
-                <TableHead className="text-xs text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredItens.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-xs text-muted-foreground">
-                    Nenhum item de estoque encontrado com os filtros aplicados.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredItens.map((item) => {
-                  const isAbaixoMinimo = item.quantidade <= item.quantidadeMinima;
-                  return (
-                    <TableRow key={item.id} className="hover:bg-muted/50">
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span className="font-semibold text-xs text-foreground">{item.nome}</span>
-                          <span className="text-[10px] font-mono text-muted-foreground">{item.codigo}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-xs">
-                        <Badge variant="secondary" className="text-[10px]">
-                          {item.categoria}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-center font-bold text-xs">
-                        <span className={isAbaixoMinimo ? 'text-rose-600 dark:text-rose-400 font-extrabold' : ''}>
-                          {item.quantidade} un
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-center text-xs text-muted-foreground font-mono">
-                        {item.quantidadeMinima} un
-                      </TableCell>
-                      <TableCell className="text-xs">
-                        <div className="flex items-center gap-1.5 text-muted-foreground">
-                          <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
-                          <span className="truncate max-w-[180px]">{item.localizacao}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {isAbaixoMinimo ? (
-                          <Badge variant="destructive" className="text-[10px] gap-1">
-                            <AlertCircle className="h-3 w-3" /> Abaixo do Mínimo
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
-                            Estoque Normal
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 text-xs gap-1"
-                            onClick={() => {
-                              setSelectedItem(item);
-                              setMovForm({ tipo: 'Entrada', quantidade: 1, motivo: 'Reabastecimento' });
-                              setIsMovimentarOpen(true);
-                            }}
-                          >
-                            <ArrowUpRight className="h-3.5 w-3.5 text-emerald-600" /> Entrada
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 text-xs gap-1"
-                            onClick={() => {
-                              setSelectedItem(item);
-                              setMovForm({ tipo: 'Saída', quantidade: 1, motivo: 'Atendimento de Chamado / Baixa' });
-                              setIsMovimentarOpen(true);
-                            }}
-                          >
-                            <ArrowDownLeft className="h-3.5 w-3.5 text-amber-600" /> Saída
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-muted-foreground hover:text-rose-600"
-                            onClick={() => deleteEstoqueItem(item.id)}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      {/* MODAL: NOVO ITEM DE ESTOQUE */}
-      <Dialog open={isNovoItemOpen} onOpenChange={setIsNovoItemOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-base font-bold">Cadastrar Novo Item no Estoque</DialogTitle>
-            <DialogDescription className="text-xs">
-              Preencha os dados do item físico de almoxarifado ou suprimento de TI.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleCreateItem} className="space-y-4 py-2">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs">Código Interno *</Label>
+      {subTab === 'inventario' ? (
+        <InventarioView />
+      ) : (
+        <>
+          {/* BARRA DE FILTROS */}
+          <Card>
+            <CardContent className="p-4 flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                  required
-                  placeholder="MAT-CAB-009"
-                  value={novoItem.codigo}
-                  onChange={(e) => setNovoItem({ ...novoItem, codigo: e.target.value })}
-                  className="text-xs"
+                  placeholder="Buscar por código, nome do item ou localização..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9 text-xs"
                 />
               </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Categoria *</Label>
-                <Select
-                  value={novoItem.categoria}
-                  onValueChange={(val) => setNovoItem({ ...novoItem, categoria: val })}
-                >
+              <div className="w-full sm:w-56">
+                <Select value={categoriaFilter} onValueChange={setCategoriaFilter}>
                   <SelectTrigger className="text-xs">
-                    <SelectValue />
+                    <SelectValue placeholder="Todas as Categorias" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Periféricos e Cabos">Periféricos e Cabos</SelectItem>
-                    <SelectItem value="Componentes">Componentes</SelectItem>
-                    <SelectItem value="Armazenamento">Armazenamento</SelectItem>
-                    <SelectItem value="Acessórios">Acessórios</SelectItem>
-                    <SelectItem value="Material de Consumo">Material de Consumo</SelectItem>
+                    <SelectItem value="todos">Todas as Categorias</SelectItem>
+                    {categoriasUnicas.map((cat) => (
+                      <SelectItem key={cat} value={cat}>
+                        {cat}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
-            </div>
+            </CardContent>
+          </Card>
 
-            <div className="space-y-1">
-              <Label className="text-xs">Nome do Item *</Label>
-              <Input
-                required
-                placeholder="Ex: Cabo HDMI 2.1 2 Metros"
-                value={novoItem.nome}
-                onChange={(e) => setNovoItem({ ...novoItem, nome: e.target.value })}
-                className="text-xs"
-              />
-            </div>
+          {/* TABELA DE ITENS DE ESTOQUE */}
+          <Card>
+            <CardHeader className="py-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-semibold">Itens em Almoxarifado ({filteredItens.length})</CardTitle>
+                <Badge variant="outline" className="text-[10px] font-mono">
+                  Total Itens: {estoqueItens.reduce((acc, i) => acc + i.quantidade, 0)} unidades
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="text-xs">Código / Item</TableHead>
+                    <TableHead className="text-xs">Categoria</TableHead>
+                    <TableHead className="text-xs text-center">Qtd Atual</TableHead>
+                    <TableHead className="text-xs text-center">Qtd Mínima</TableHead>
+                    <TableHead className="text-xs">Localização</TableHead>
+                    <TableHead className="text-xs">Status</TableHead>
+                    <TableHead className="text-xs text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredItens.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8 text-xs text-muted-foreground">
+                        Nenhum item de estoque encontrado com os filtros aplicados.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredItens.map((item) => {
+                      const isAbaixoMinimo = item.quantidade <= item.quantidadeMinima;
+                      return (
+                        <TableRow key={item.id} className="hover:bg-muted/50">
+                          <TableCell>
+                            <div className="flex flex-col">
+                              <span className="font-semibold text-xs text-foreground">{item.nome}</span>
+                              <span className="text-[10px] font-mono text-muted-foreground">{item.codigo}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            <Badge variant="secondary" className="text-[10px]">
+                              {item.categoria}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-center font-bold text-xs">
+                            <span className={isAbaixoMinimo ? 'text-rose-600 dark:text-rose-400 font-extrabold' : ''}>
+                              {item.quantidade} un
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-center text-xs text-muted-foreground font-mono">
+                            {item.quantidadeMinima} un
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            <div className="flex items-center gap-1.5 text-muted-foreground">
+                              <MapPin className="h-3.5 w-3.5" />
+                              <span>{item.localizacao}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {isAbaixoMinimo ? (
+                              <Badge variant="destructive" className="text-[10px] gap-1">
+                                <AlertCircle className="h-3 w-3" /> Reposição Urgente
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-[10px] text-emerald-600 bg-emerald-500/10 border-emerald-500/20">
+                                Normal
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedItem(item);
+                                  setMovForm({ tipo: 'Entrada', quantidade: 1, motivo: 'Abastecimento de Estoque' });
+                                  setIsMovimentarOpen(true);
+                                }}
+                                className="h-7 text-[11px] px-2 gap-1 text-emerald-600 hover:text-emerald-700"
+                              >
+                                <ArrowDownLeft className="h-3 w-3" /> Entrada
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedItem(item);
+                                  setMovForm({ tipo: 'Saída', quantidade: 1, motivo: 'Entrega para Colaborador' });
+                                  setIsMovimentarOpen(true);
+                                }}
+                                className="h-7 text-[11px] px-2 gap-1 text-amber-600 hover:text-amber-700"
+                              >
+                                <ArrowUpRight className="h-3 w-3" /> Saída
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => deleteEstoqueItem(item.id)}
+                                className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </>
+      )}
 
-            <div className="grid grid-cols-3 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs">Qtd Inicial *</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  required
-                  value={novoItem.quantidade}
-                  onChange={(e) => setNovoItem({ ...novoItem, quantidade: Number(e.target.value) })}
-                  className="text-xs"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Qtd Mínima *</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  required
-                  value={novoItem.quantidadeMinima}
-                  onChange={(e) => setNovoItem({ ...novoItem, quantidadeMinima: Number(e.target.value) })}
-                  className="text-xs"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Valor Un. (R$)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={novoItem.valorUnitario}
-                  onChange={(e) => setNovoItem({ ...novoItem, valorUnitario: Number(e.target.value) })}
-                  className="text-xs"
-                />
-              </div>
-            </div>
+      {/* MODAL: NOVO ITEM */}
+      <Dialog open={isNovoItemOpen} onOpenChange={setIsNovoItemOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <form onSubmit={handleCreateItem}>
+            <DialogHeader>
+              <DialogTitle className="text-base">Cadastrar Novo Item de Almoxarifado</DialogTitle>
+              <DialogDescription className="text-xs">
+                Insira as especificações do insumo ou peça para controle de saldo em estoque.
+              </DialogDescription>
+            </DialogHeader>
 
-            <div className="space-y-1">
-              <Label className="text-xs">Localização Física *</Label>
-              <Input
-                required
-                placeholder="Ex: Almoxarifado TI - Prateleira B2"
-                value={novoItem.localizacao}
-                onChange={(e) => setNovoItem({ ...novoItem, localizacao: e.target.value })}
-                className="text-xs"
-              />
+            <div className="grid gap-3 py-3 text-xs">
+              <div className="grid grid-cols-3 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-xs">Código *</Label>
+                  <Input
+                    required
+                    placeholder="Ex: CAB-001"
+                    value={novoItem.codigo}
+                    onChange={(e) => setNovoItem({ ...novoItem, codigo: e.target.value })}
+                    className="text-xs h-8"
+                  />
+                </div>
+                <div className="col-span-2 space-y-1">
+                  <Label className="text-xs">Nome do Item *</Label>
+                  <Input
+                    required
+                    placeholder="Ex: Cabo HDMI 2.0 2 Metros Blindado"
+                    value={novoItem.nome}
+                    onChange={(e) => setNovoItem({ ...novoItem, nome: e.target.value })}
+                    className="text-xs h-8"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-xs">Categoria</Label>
+                  <Select
+                    value={novoItem.categoria}
+                    onValueChange={(val) => setNovoItem({ ...novoItem, categoria: val })}
+                  >
+                    <SelectTrigger className="text-xs h-8">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Periféricos e Cabos">Periféricos e Cabos</SelectItem>
+                      <SelectItem value="Componentes e Peças">Componentes e Peças</SelectItem>
+                      <SelectItem value="Adaptadores e Fontes">Adaptadores e Fontes</SelectItem>
+                      <SelectItem value="Rede e Conectividade">Rede e Conectividade</SelectItem>
+                      <SelectItem value="Suprimentos Gerais">Suprimentos Gerais</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Localização no Almoxarifado</Label>
+                  <Input
+                    placeholder="Ex: Armário TI - Gaveta 3"
+                    value={novoItem.localizacao}
+                    onChange={(e) => setNovoItem({ ...novoItem, localizacao: e.target.value })}
+                    className="text-xs h-8"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-xs">Qtd Inicial</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={novoItem.quantidade}
+                    onChange={(e) => setNovoItem({ ...novoItem, quantidade: Number(e.target.value) })}
+                    className="text-xs h-8"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Qtd Mínima (Alerta)</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={novoItem.quantidadeMinima}
+                    onChange={(e) => setNovoItem({ ...novoItem, quantidadeMinima: Number(e.target.value) })}
+                    className="text-xs h-8"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Valor Unitário (R$)</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={novoItem.valorUnitario}
+                    onChange={(e) => setNovoItem({ ...novoItem, valorUnitario: Number(e.target.value) })}
+                    className="text-xs h-8"
+                  />
+                </div>
+              </div>
             </div>
 
             <DialogFooter className="pt-2">
-              <Button type="button" variant="outline" size="sm" onClick={() => setIsNovoItemOpen(false)}>
+              <Button type="button" variant="outline" size="sm" onClick={() => setIsNovoItemOpen(false)} className="text-xs">
                 Cancelar
               </Button>
-              <Button type="submit" size="sm">
-                Cadastrar Item
+              <Button type="submit" size="sm" className="text-xs bg-orange-600 hover:bg-orange-700 text-white font-semibold">
+                Salvar Item
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* MODAL: MOVIMENTAR ESTOQUE (ENTRADA / SAÍDA) */}
+      {/* MODAL: MOVIMENTAÇÃO (ENTRADA / SAÍDA / AJUSTE) */}
       <Dialog open={isMovimentarOpen} onOpenChange={setIsMovimentarOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-base font-bold">
-              Movimentar Estoque: {selectedItem?.nome}
-            </DialogTitle>
-            <DialogDescription className="text-xs">
-              Registre a entrada, saída ou ajuste físico deste item de estoque.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleMovimentar} className="space-y-4 py-2">
-            <div className="grid grid-cols-2 gap-3">
+        <DialogContent className="sm:max-w-md">
+          <form onSubmit={handleMovimentar}>
+            <DialogHeader>
+              <DialogTitle className="text-base">
+                Registrar Movimentação: {selectedItem?.nome}
+              </DialogTitle>
+              <DialogDescription className="text-xs">
+                Saldo Atual: <strong>{selectedItem?.quantidade} unidades</strong> ({selectedItem?.codigo})
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="grid gap-3 py-3 text-xs">
               <div className="space-y-1">
-                <Label className="text-xs">Tipo de Operação *</Label>
+                <Label className="text-xs">Tipo de Movimentação</Label>
                 <Select
                   value={movForm.tipo}
-                  onValueChange={(val: any) => setMovForm({ ...movForm, tipo: val })}
+                  onValueChange={(val: 'Entrada' | 'Saída' | 'Ajuste') => setMovForm({ ...movForm, tipo: val })}
                 >
-                  <SelectTrigger className="text-xs">
+                  <SelectTrigger className="text-xs h-8">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Entrada">Entrada (Adicionar)</SelectItem>
-                    <SelectItem value="Saída">Saída (Remover)</SelectItem>
-                    <SelectItem value="Ajuste">Ajuste Direto</SelectItem>
+                    <SelectItem value="Entrada">Entrada (Adicionar ao Saldo)</SelectItem>
+                    <SelectItem value="Saída">Saída (Retirar do Saldo)</SelectItem>
+                    <SelectItem value="Ajuste">Ajuste de Balanço / Inventário</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+
               <div className="space-y-1">
-                <Label className="text-xs">Quantidade *</Label>
+                <Label className="text-xs">Quantidade</Label>
                 <Input
                   type="number"
                   min="1"
                   required
                   value={movForm.quantidade}
                   onChange={(e) => setMovForm({ ...movForm, quantidade: Number(e.target.value) })}
-                  className="text-xs"
+                  className="text-xs h-8"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs">Motivo / Justificativa</Label>
+                <Input
+                  required
+                  placeholder="Ex: Entrega de boas-vindas colaborador / Compra NF 123"
+                  value={movForm.motivo}
+                  onChange={(e) => setMovForm({ ...movForm, motivo: e.target.value })}
+                  className="text-xs h-8"
                 />
               </div>
             </div>
 
-            <div className="space-y-1">
-              <Label className="text-xs">Motivo / Destino da Movimentação *</Label>
-              <Input
-                required
-                placeholder="Ex: Entrega ao colaborador João / Compra lote NF 442"
-                value={movForm.motivo}
-                onChange={(e) => setMovForm({ ...movForm, motivo: e.target.value })}
-                className="text-xs"
-              />
-            </div>
-
             <DialogFooter className="pt-2">
-              <Button type="button" variant="outline" size="sm" onClick={() => setIsMovimentarOpen(false)}>
+              <Button type="button" variant="outline" size="sm" onClick={() => setIsMovimentarOpen(false)} className="text-xs">
                 Cancelar
               </Button>
-              <Button type="submit" size="sm">
+              <Button type="submit" size="sm" className="text-xs bg-orange-600 hover:bg-orange-700 text-white font-semibold">
                 Confirmar Movimentação
               </Button>
             </DialogFooter>

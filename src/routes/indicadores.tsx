@@ -21,11 +21,11 @@ function IndicadoresPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="saas" className="space-y-6 mt-4">
+      <Tabs defaultValue="softwares" className="space-y-6 mt-4">
         <div className="w-full overflow-x-auto scrollbar-hide border-b pb-1">
           <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
-            <TabsTrigger value="saas" className="gap-2 shrink-0">
-              <Rocket className="w-4 h-4" /> SaaS
+            <TabsTrigger value="softwares" className="gap-2 shrink-0">
+              <Rocket className="w-4 h-4" /> Softwares
             </TabsTrigger>
             <TabsTrigger value="financeiro" className="gap-2 shrink-0">
               <Wallet className="w-4 h-4" /> Financeiro
@@ -42,7 +42,7 @@ function IndicadoresPage() {
           </TabsList>
         </div>
 
-        <TabsContent value="saas" className="space-y-4 outline-none">
+        <TabsContent value="softwares" className="space-y-4 outline-none">
           <MetricasSaaSTab />
         </TabsContent>
         
