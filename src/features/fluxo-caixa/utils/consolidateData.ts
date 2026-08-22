@@ -4,13 +4,14 @@ import { ContaPagar } from "../../contas-pagar/types";
 import { parseDateSafe, getBrasiliaTodayIso } from "@/lib/dateUtils";
 
 /**
- * Consolida o Fluxo de Caixa Real a partir das movimentações financeiras liquidadas.
+ * Consolida o Fluxo de Caixa a partir dos títulos e contas recebidos/pagos.
  * 
- * REGRA CONTÁBIL ABSOLUTA:
- * - Apenas títulos que foram RECEBIDOS no módulo 'Contas a Receber' entram no Fluxo de Caixa.
- * - Recorrências cadastradas entram exclusivamente no módulo 'Contas a Receber' como títulos pendentes.
- * - Somente após o usuário dar baixa/recebimento no 'Contas a Receber' é que o valor é transferido para o Fluxo de Caixa.
- * - Apenas contas que foram PAGAS no módulo 'Contas a Pagar' entram no Fluxo de Caixa como saídas.
+ * REGRA CONTÁBIL:
+ * - Títulos em aberto/pendentes (incluindo parcelas de recorrência) residem no Contas a Receber.
+ * - Ao confirmar/aprovar o recebimento no Contas a Receber (status 'Recebido'), o registro
+ *   entra IMEDIATAMENTE no Fluxo de Caixa como entrada confirmada e atualiza o saldo real.
+ * - Ao registrar o pagamento no Contas a Pagar (status 'Pago'), o registro entra
+ *   IMEDIATAMENTE no Fluxo de Caixa como saída confirmada.
  */
 export const consolidateFluxoFromStores = (
   titulos: TituloReceber[] = [],
@@ -19,14 +20,17 @@ export const consolidateFluxoFromStores = (
   const fluxo: MovimentacaoFluxo[] = [];
   const hoje = getBrasiliaTodayIso();
 
-  // 1. Mapear Receitas: EXCLUSIVAMENTE títulos que foram RECEBIDOS no Contas a Receber
+  // 1. Mapear Receitas: Títulos que foram RECEBIDOS / LIQUIDADOS
   titulos.forEach((titulo) => {
-    // Se o título não estiver recebido (ex: pendente de aprovação, previsão ou cancelado), NÃO entra no fluxo de caixa
-    if (titulo.status !== "Recebido" && titulo.status !== "Recebido Parcialmente") {
+    const statusNormalized = (titulo.status || '').trim().toLowerCase();
+    const isRecebido = statusNormalized === 'recebido' || statusNormalized === 'recebido parcialmente' || statusNormalized === 'liquidado' || statusNormalized === 'pago';
+
+    // Se o título não estiver recebido/liquidado, não entra no fluxo de caixa
+    if (!isRecebido) {
       return;
     }
 
-    const valorRec = titulo.valorRecebido || titulo.valorOriginal || 0;
+    const valorRec = Number(titulo.valorRecebido || titulo.valorOriginal || 0);
     const dataMov = titulo.dataRecebimento || titulo.dataVencimento || hoje;
 
     fluxo.push({
@@ -35,25 +39,28 @@ export const consolidateFluxoFromStores = (
       moduloOrigem: "Contas a Receber",
       tipo: "Entrada",
       dataCompetencia: dataMov,
-      dataPagamento: titulo.dataRecebimento,
+      dataPagamento: titulo.dataRecebimento || dataMov,
       clienteFornecedor: titulo.cliente || "Cliente",
       descricao: titulo.descricao || "Recebimento",
       categoria: titulo.categoria || "Geral",
-      valorOriginal: titulo.valorOriginal || 0,
+      valorOriginal: Number(titulo.valorOriginal || valorRec),
       valorRealizado: valorRec,
       status: "Confirmada",
       saldoAcumuladoDia: 0,
     });
   });
 
-  // 2. Mapear Despesas: EXCLUSIVAMENTE contas que foram PAGAS no Contas a Pagar
+  // 2. Mapear Despesas: Contas que foram PAGAS / LIQUIDADAS
   contas.forEach((conta) => {
-    // Se a conta não estiver paga (ex: pendente, vencida ou cancelada), NÃO entra no fluxo de caixa
-    if (conta.status !== "Pago" && conta.status !== "Pago Parcialmente") {
+    const statusNormalized = (conta.status || '').trim().toLowerCase();
+    const isPago = statusNormalized === 'pago' || statusNormalized === 'pago parcialmente' || statusNormalized === 'liquidado';
+
+    // Se a conta não estiver paga/liquidada, não entra no fluxo de caixa
+    if (!isPago) {
       return;
     }
 
-    const valorPg = conta.valorPago || conta.valorOriginal || 0;
+    const valorPg = Number(conta.valorPago || conta.valorOriginal || 0);
     const dataMov = conta.dataPagamento || conta.dataVencimento || hoje;
 
     fluxo.push({
@@ -62,18 +69,18 @@ export const consolidateFluxoFromStores = (
       moduloOrigem: "Contas a Pagar",
       tipo: "Saída",
       dataCompetencia: dataMov,
-      dataPagamento: conta.dataPagamento,
+      dataPagamento: conta.dataPagamento || dataMov,
       clienteFornecedor: conta.fornecedor || "Fornecedor",
       descricao: conta.descricao || "Despesa",
       categoria: conta.categoria || "Operacional",
-      valorOriginal: conta.valorOriginal || 0,
+      valorOriginal: Number(conta.valorOriginal || valorPg),
       valorRealizado: valorPg,
       status: "Confirmada",
       saldoAcumuladoDia: 0,
     });
   });
 
-  // Ordenar cronologicamente pela data com parse seguro no horário de Brasília
+  // Ordenar cronologicamente pela data de realização com parse seguro
   fluxo.sort((a, b) => parseDateSafe(a.dataCompetencia).getTime() - parseDateSafe(b.dataCompetencia).getTime());
 
   // Calcular Saldo Acumulado REAL de Caixa
