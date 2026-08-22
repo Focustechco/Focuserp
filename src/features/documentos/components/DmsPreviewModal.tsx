@@ -27,7 +27,8 @@ import {
   Sparkles,
   FileCode,
   FileSpreadsheet,
-  ExternalLink
+  ExternalLink,
+  Upload
 } from 'lucide-react';
 import { DocumentoDMS } from '../types';
 import { useDocumentosStore } from '../hooks/useDocumentosStore';
@@ -43,7 +44,7 @@ export interface PreviewProps {
 }
 
 export function DmsPreviewModal({ documento: propDocumento, doc: propDoc, isOpen: propIsOpen, open: propOpen, onClose, onOpenChange }: PreviewProps) {
-  const { addVersion, moveToTrash, logAction } = useDocumentosStore();
+  const { addVersion, moveToTrash, logAction, updateDocument } = useDocumentosStore();
 
   const documento = propDocumento || propDoc;
   const isModalOpen = propOpen !== undefined ? propOpen : propIsOpen !== undefined ? propIsOpen : !!documento;
@@ -60,6 +61,21 @@ export function DmsPreviewModal({ documento: propDocumento, doc: propDoc, isOpen
 
   if (!documento) return null;
 
+  const handleOpenInNewTab = () => {
+    if (documento.urlConteudo) {
+      const win = window.open();
+      if (win) {
+        if (documento.urlConteudo.startsWith('data:')) {
+          win.document.write(`<iframe src="${documento.urlConteudo}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
+        } else {
+          win.location.href = documento.urlConteudo;
+        }
+      }
+    } else {
+      handleDownload();
+    }
+  };
+
   const handleDownload = () => {
     logAction(documento.id, documento.nome, 'Download', `Download da versão ${documento.versaoAtual}`);
 
@@ -72,11 +88,11 @@ export function DmsPreviewModal({ documento: propDocumento, doc: propDoc, isOpen
       window.document.body.removeChild(link);
     } else {
       const content = `====================================================\nFOCUS ERP - REPOSITÓRIO SEGURO DMS\n====================================================\nDocumento: ${documento.nome}\nCódigo: ${documento.codigo}\nVersão: ${documento.versaoAtual}\nMódulo Origem: ${documento.moduloOrigem}\nResponsável pelo Upload: ${documento.responsavelUpload}\nData de Upload: ${new Date(documento.dataUpload).toLocaleString('pt-BR')}\n====================================================\nConteúdo autenticado pelo sistema Focus ERP.`;
-      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+      const blob = new Blob([content], { type: 'application/pdf;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const link = window.document.createElement('a');
       link.href = url;
-      link.download = documento.nome.endsWith('.txt') || documento.nome.endsWith('.pdf') ? documento.nome : `${documento.nome}.txt`;
+      link.download = documento.nome.endsWith('.pdf') ? documento.nome : `${documento.nome}.pdf`;
       window.document.body.appendChild(link);
       link.click();
       window.document.body.removeChild(link);
@@ -84,6 +100,25 @@ export function DmsPreviewModal({ documento: propDocumento, doc: propDoc, isOpen
     }
 
     toast.success(`Download de "${documento.nome}" efetuado com sucesso!`);
+  };
+
+  const handleUploadRealFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const dataUrl = evt.target?.result as string;
+      if (dataUrl) {
+        updateDocument(documento.id, {
+          urlConteudo: dataUrl,
+          tamanho: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
+          tamanhoBytes: file.size,
+        });
+        toast.success(`Arquivo real anexado e atualizado com sucesso!`);
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleAddVersion = () => {
@@ -111,7 +146,6 @@ export function DmsPreviewModal({ documento: propDocumento, doc: propDoc, isOpen
     setTimeout(() => setCopiedCode(false), 2000);
   };
 
-  // Gerador de conteúdo de texto/XML/CSV para visualização simulada de arquivos reais
   const getSampleTextContent = () => {
     const ext = (documento?.extensao || '').toLowerCase();
     if (ext === 'xml') {
@@ -173,17 +207,31 @@ Qualquer alteração gera uma nova versão auditável no histórico.`;
   // Renderizador Inline Inteligente do Conteúdo do Documento
   const renderInlineViewer = () => {
     const ext = (documento?.extensao || documento?.nome.split('.').pop() || '').toLowerCase();
+    const hasUrl = !!documento.urlConteudo && (documento.urlConteudo.startsWith('data:') || documento.urlConteudo.startsWith('blob:') || documento.urlConteudo.startsWith('http'));
 
-    // 1. IMAGENS (PNG, JPG, JPEG, SVG, WEBP, GIF)
+    // 1. SE HOUVER URL / ARQUIVO REAL (PDF OU OUTRO FORMATO)
+    if (hasUrl && ext === 'pdf') {
+      return (
+        <div className="w-full h-full min-h-[550px] p-1 flex flex-col items-center justify-center">
+          <iframe 
+            src={documento.urlConteudo} 
+            title={documento.nome}
+            className="w-full h-full min-h-[550px] rounded-lg border-0 shadow-2xl bg-white"
+          />
+        </div>
+      );
+    }
+
+    // 2. IMAGENS (PNG, JPG, JPEG, SVG, WEBP, GIF)
     if (['png', 'jpg', 'jpeg', 'svg', 'webp', 'gif'].includes(ext)) {
-      if (documento.urlConteudo) {
+      if (hasUrl) {
         return (
           <div className="w-full h-full flex items-center justify-center p-4 overflow-auto">
             <img
               src={documento.urlConteudo}
               alt={documento.nome}
               style={{ transform: `scale(${zoomLevel})` }}
-              className="max-h-[500px] max-w-full object-contain rounded-lg shadow-2xl border border-slate-800 transition-transform duration-200"
+              className="max-h-[550px] max-w-full object-contain rounded-lg shadow-2xl border border-slate-800 transition-transform duration-200"
             />
           </div>
         );
@@ -191,93 +239,15 @@ Qualquer alteração gera uma nova versão auditável no histórico.`;
       return (
         <div className="w-full h-full flex flex-col items-center justify-center p-6 text-slate-400">
           <ImageIcon className="w-20 h-20 mb-3 text-blue-500 opacity-60" />
-          <span className="text-sm font-semibold">{documento.nome}</span>
+          <span className="text-sm font-semibold text-slate-200">{documento.nome}</span>
           <span className="text-xs text-slate-500 mt-1">Imagem registrada no sistema ({documento.tamanho})</span>
         </div>
       );
     }
 
-    // 2. DOCUMENTOS PDF
-    if (ext === 'pdf') {
-      if (documento.urlConteudo && (documento.urlConteudo.startsWith('data:application/pdf') || documento.urlConteudo.startsWith('http') || documento.urlConteudo.startsWith('blob:'))) {
-        return (
-          <div className="w-full h-full min-h-[480px] p-2 flex flex-col">
-            <iframe 
-              src={documento.urlConteudo} 
-              title={documento.nome}
-              className="w-full h-full min-h-[480px] rounded-lg border border-slate-800 shadow-inner bg-slate-900"
-            />
-          </div>
-        );
-      }
-
-      // Visualização estilizada de folha PDF oficial
-      return (
-        <div className="w-full h-full p-4 overflow-y-auto flex justify-center">
-          <div 
-            style={{ transform: `scale(${zoomLevel})` }}
-            className="w-full max-w-2xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 p-8 rounded-lg shadow-2xl border border-slate-200 dark:border-slate-800 space-y-6 transition-transform duration-200 my-auto"
-          >
-            {/* Cabeçalho da Folha PDF */}
-            <div className="flex justify-between items-start border-b pb-4 border-slate-200 dark:border-slate-800">
-              <div>
-                <div className="text-xs font-mono font-bold text-orange-600 dark:text-orange-400">FOCUS ERP • CLOUD DMS</div>
-                <h3 className="text-lg font-bold mt-1 text-slate-900 dark:text-white">{documento.nome}</h3>
-                <span className="text-xs text-slate-400 font-mono">Código: {documento.codigo} • Versão {documento.versaoAtual}</span>
-              </div>
-              <Badge variant="outline" className="border-rose-300 dark:border-rose-900 text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/40 text-[10px]">
-                OFICIAL
-              </Badge>
-            </div>
-
-            {/* Conteúdo do PDF */}
-            <div className="space-y-4 text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
-              <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-200 dark:border-slate-700/60 space-y-2">
-                <div className="font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5 text-xs">
-                  <FileText className="w-4 h-4 text-rose-500" /> REGISTRO DE DOCUMENTO INSTITUCIONAL
-                </div>
-                <p className="text-[11px]">
-                  O arquivo <strong>{documento.nome}</strong> foi indexado sob a categoria <strong>"{documento.categoria}"</strong> no módulo <strong>{documento.moduloOrigem}</strong>.
-                </p>
-                {documento.clienteNome && (
-                  <p className="text-[11px]">
-                    Cliente Vinculado: <strong>{documento.clienteNome}</strong>
-                  </p>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 text-[11px] pt-1">
-                <div className="p-3 border rounded bg-card">
-                  <span className="text-slate-400 block text-[10px]">Responsável de Upload</span>
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">{documento.responsavelUpload}</span>
-                </div>
-                <div className="p-3 border rounded bg-card">
-                  <span className="text-slate-400 block text-[10px]">Data de Registro</span>
-                  <span className="font-semibold text-slate-800 dark:text-slate-200">{new Date(documento.dataUpload).toLocaleDateString('pt-BR')}</span>
-                </div>
-              </div>
-
-              <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300 rounded border border-emerald-200 dark:border-emerald-900/50 flex items-center justify-between text-[11px]">
-                <span className="flex items-center gap-1.5 font-medium">
-                  <ShieldCheck className="w-4 h-4 text-emerald-500" /> Assinatura Digital e Hash Verificados
-                </span>
-                <span className="font-mono text-[10px]">OK</span>
-              </div>
-            </div>
-
-            {/* Rodapé da Folha PDF */}
-            <div className="pt-6 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center text-[10px] text-slate-400 font-mono">
-              <span>Página 1 de 1</span>
-              <span>DMS Secure Vault • Focus ERP</span>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    // 3. XML, CSV, TXT, CODE
+    // 3. XML, CSV, TXT, CODE, JSON
     if (['xml', 'txt', 'csv', 'json', 'md', 'html'].includes(ext)) {
-      const codeText = documento.urlConteudo || getSampleTextContent();
+      const codeText = (hasUrl && !documento.urlConteudo?.startsWith('data:image')) ? documento.urlConteudo : getSampleTextContent();
       return (
         <div className="w-full h-full flex flex-col p-4">
           <div className="flex justify-between items-center mb-2 px-2">
@@ -299,21 +269,83 @@ Qualquer alteração gera uma nova versão auditável no histórico.`;
       );
     }
 
-    // 4. PLANILHAS E OUTROS (XLS, XLSX, DOCX, PPTX, ZIP)
+    // 4. DOCUMENTO SEM BINÁRIO ANEXADO: VISUALIZAÇÃO E OPÇÃO DE UPLOAD REAL
     return (
-      <div className="w-full h-full flex items-center justify-center p-6">
-        <div className="w-full max-w-md p-6 bg-slate-900/90 border border-slate-800 rounded-xl text-center space-y-4 shadow-2xl">
-          <div className="w-20 h-20 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto text-emerald-400">
-            {ext.includes('xls') ? <FileSpreadsheet className="w-10 h-10" /> : <Folder className="w-10 h-10" />}
+      <div className="w-full h-full p-4 overflow-y-auto flex flex-col items-center justify-center">
+        <div 
+          style={{ transform: `scale(${zoomLevel})` }}
+          className="w-full max-w-2xl bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 p-8 rounded-lg shadow-2xl border border-slate-200 dark:border-slate-800 space-y-6 transition-transform duration-200 my-auto"
+        >
+          {/* Cabeçalho da Folha PDF */}
+          <div className="flex justify-between items-start border-b pb-4 border-slate-200 dark:border-slate-800">
+            <div>
+              <div className="text-xs font-mono font-bold text-orange-600 dark:text-orange-400">FOCUS ERP • CLOUD DMS</div>
+              <h3 className="text-lg font-bold mt-1 text-slate-900 dark:text-white">{documento.nome}</h3>
+              <span className="text-xs text-slate-400 font-mono">Código: {documento.codigo} • Versão {documento.versaoAtual}</span>
+            </div>
+            <Badge variant="outline" className="border-rose-300 dark:border-rose-900 text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/40 text-[10px]">
+              OFICIAL
+            </Badge>
           </div>
-          <div>
-            <h4 className="font-bold text-base text-slate-100 truncate">{documento.nome}</h4>
-            <p className="text-xs text-slate-400 mt-1">{documento.categoria} • {documento.tamanho}</p>
+
+          {/* Conteúdo do Registro */}
+          <div className="space-y-4 text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+            <div className="p-4 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-200 dark:border-slate-700/60 space-y-2">
+              <div className="font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5 text-xs">
+                <FileText className="w-4 h-4 text-rose-500" /> REGISTRO DE DOCUMENTO INSTITUCIONAL
+              </div>
+              <p className="text-[11px]">
+                O arquivo <strong>{documento.nome}</strong> está indexado sob a categoria <strong>"{documento.categoria}"</strong> no módulo <strong>{documento.moduloOrigem}</strong>.
+              </p>
+              {documento.clienteNome && (
+                <p className="text-[11px]">
+                  Entidade Vinculada: <strong>{documento.clienteNome}</strong>
+                </p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 text-[11px] pt-1">
+              <div className="p-3 border rounded bg-card">
+                <span className="text-slate-400 block text-[10px]">Responsável de Upload</span>
+                <span className="font-semibold text-slate-800 dark:text-slate-200">{documento.responsavelUpload}</span>
+              </div>
+              <div className="p-3 border rounded bg-card">
+                <span className="text-slate-400 block text-[10px]">Data de Registro</span>
+                <span className="font-semibold text-slate-800 dark:text-slate-200">{new Date(documento.dataUpload).toLocaleDateString('pt-BR')}</span>
+              </div>
+            </div>
+
+            {/* Ação rápida para carregar arquivo original */}
+            <div className="p-3 bg-muted/40 rounded-lg border border-dashed flex items-center justify-between">
+              <div>
+                <div className="font-semibold text-xs text-foreground">Substituir por Arquivo Real (.PDF)</div>
+                <div className="text-[11px] text-muted-foreground">Envie o arquivo original para visualização de todas as páginas</div>
+              </div>
+              <div className="relative">
+                <Button size="sm" variant="outline" className="text-xs gap-1.5 h-8">
+                  <Upload className="w-3.5 h-3.5" /> Enviar PDF
+                </Button>
+                <input 
+                  type="file" 
+                  accept=".pdf,image/*" 
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                  onChange={handleUploadRealFile}
+                />
+              </div>
+            </div>
+
+            <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-800 dark:text-emerald-300 rounded border border-emerald-200 dark:border-emerald-900/50 flex items-center justify-between text-[11px]">
+              <span className="flex items-center gap-1.5 font-medium">
+                <ShieldCheck className="w-4 h-4 text-emerald-500" /> Assinatura Digital e Hash Verificados
+              </span>
+              <span className="font-mono text-[10px]">OK</span>
+            </div>
           </div>
-          <div className="p-3 bg-slate-950/80 rounded-lg text-left text-xs space-y-1.5 border border-slate-800 text-slate-300 font-mono">
-            <div>• Formato: .{ext.toUpperCase()}</div>
-            <div>• Módulo de Origem: {documento.moduloOrigem}</div>
-            <div>• Criptografia: Repositório Seguro AES-256</div>
+
+          {/* Rodapé da Folha PDF */}
+          <div className="pt-6 border-t border-slate-200 dark:border-slate-800 flex justify-between items-center text-[10px] text-slate-400 font-mono">
+            <span>Página 1 de 1</span>
+            <span>DMS Secure Vault • Focus ERP</span>
           </div>
         </div>
       </div>
@@ -322,7 +354,7 @@ Qualquer alteração gera uma nova versão auditável no histórico.`;
 
   return (
     <Dialog open={isModalOpen} onOpenChange={(openState) => { if (!openState) handleClose(); }}>
-      <DialogContent className="w-full sm:max-w-5xl h-[94vh] max-h-[94vh] overflow-hidden p-0 border shadow-2xl bg-background flex flex-col">
+      <DialogContent className="w-full sm:max-w-6xl h-[95vh] max-h-[95vh] overflow-hidden p-0 border shadow-2xl bg-background flex flex-col">
         <DialogHeader className="sr-only">
           <DialogTitle>Visualizador de Documentos - {documento.nome}</DialogTitle>
           <DialogDescription>Detalhes e preview seguro do arquivo</DialogDescription>
@@ -335,9 +367,21 @@ Qualquer alteração gera uma nova versão auditável no histórico.`;
             
             {/* Barra de Ferramentas Superior do Visualizador */}
             <div className="p-2.5 sm:p-3.5 border-b border-slate-800/80 flex items-center justify-between bg-slate-900/90 backdrop-blur-md z-20 shrink-0">
-              <Badge variant="outline" className="border-slate-700 text-slate-300 gap-1 bg-slate-950 text-[10px] sm:text-xs">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /> DMS Secure Viewer
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="border-slate-700 text-slate-300 gap-1 bg-slate-950 text-[10px] sm:text-xs">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /> DMS Secure Viewer
+                </Badge>
+                {documento.urlConteudo && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={handleOpenInNewTab}
+                    className="h-6 px-2 text-[11px] gap-1 text-slate-300 hover:text-white hover:bg-slate-800"
+                  >
+                    <ExternalLink className="w-3 h-3" /> Abrir em Nova Guia
+                  </Button>
+                )}
+              </div>
 
               {/* Controles de Zoom */}
               <div className="flex items-center gap-1">
@@ -372,7 +416,7 @@ Qualquer alteração gera uma nova versão auditável no histórico.`;
             </div>
 
             {/* ÁREA DE VISUALIZAÇÃO DO CONTEÚDO */}
-            <div className="flex-1 overflow-y-auto overflow-x-hidden flex items-center justify-center relative bg-slate-950/80 min-h-0 p-1 sm:p-4">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden flex items-center justify-center relative bg-slate-950/80 min-h-0 p-1 sm:p-2">
               {renderInlineViewer()}
             </div>
 
