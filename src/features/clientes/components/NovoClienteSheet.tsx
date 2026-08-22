@@ -1023,7 +1023,7 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
                         <Badge variant="outline" className="text-[10px]">{c.numeroContrato}</Badge>
                       </div>
                       <p className="text-[11px] text-muted-foreground">
-                        {c.tipoServico} • R$ {c.valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        {c.tipoServico} • R$ {(c.valorTotal || (c as any).valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </p>
                     </div>
                     <Badge className={c.status === 'Ativo' ? 'bg-emerald-600' : 'bg-slate-500'}>

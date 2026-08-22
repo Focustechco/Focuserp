@@ -29,6 +29,35 @@ interface ClientePerfilSheetProps {
   onEdit?: (cliente: Cliente) => void;
 }
 
+function formatCurrency(val: any): string {
+  const num = typeof val === 'number' ? val : parseFloat(String(val || 0)) || 0;
+  return num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function formatDateSafe(dateVal: any): string {
+  if (!dateVal) return 'Não informada';
+  try {
+    const str = String(dateVal);
+    const d = new Date(str.includes('T') ? str : `${str}T12:00:00Z`);
+    if (isNaN(d.getTime())) return str;
+    return d.toLocaleDateString('pt-BR');
+  } catch {
+    return String(dateVal);
+  }
+}
+
+function formatDateTimeSafe(dateVal: any): string {
+  if (!dateVal) return 'Não informada';
+  try {
+    const str = String(dateVal);
+    const d = new Date(str);
+    if (isNaN(d.getTime())) return str;
+    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  } catch {
+    return String(dateVal);
+  }
+}
+
 export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: ClientePerfilSheetProps) {
   const { data: titulos = [] } = useLocalStorageState<TituloReceber>('focus_contas_receber');
   const { data: recorrencias = [] } = useLocalStorageState<RecorrenciaFinanceira>('focus_recorrencias');
@@ -42,11 +71,11 @@ export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: Clie
 
   const nomeOficial = cliente.nomeFantasia || cliente.razaoSocial || 'Cliente';
   const financeiro = calculateClienteFinanceiro(cliente.id, titulos, recorrencias, contratos);
-  const recorrenciaAtiva = financeiro.recorrenciasDoCliente.find(r => r.status === 'Ativa');
+  const recorrenciaAtiva = (financeiro?.recorrenciasDoCliente || []).find(r => r.status === 'Ativa');
   const contatos = Array.isArray(cliente.contatos) ? cliente.contatos : [];
 
   // 1. Documentos no DMS vinculados a este cliente
-  const todosDocumentos = dmsService.getDocumentos();
+  const todosDocumentos = dmsService.getDocumentos() || [];
   const documentosDoCliente = todosDocumentos.filter(d => {
     if (!d) return false;
     if (d.clienteId === cliente.id) return true;
@@ -57,7 +86,7 @@ export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: Clie
   });
 
   // 2. Contratos vinculados
-  const contratosDoCliente = contratos.filter(c => {
+  const contratosDoCliente = (contratos || []).filter(c => {
     if (!c) return false;
     if (c.clienteId === cliente.id) return true;
     if (c.clienteNome && c.clienteNome.toLowerCase() === nomeOficial.toLowerCase()) return true;
@@ -66,7 +95,7 @@ export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: Clie
   });
 
   // 3. Projetos vinculados
-  const projetosDoCliente = projetos.filter((p: any) => {
+  const projetosDoCliente = (projetos || []).filter((p: any) => {
     if (!p) return false;
     if (p.clienteId === cliente.id) return true;
     if (p.cliente && p.cliente.toLowerCase() === nomeOficial.toLowerCase()) return true;
@@ -75,7 +104,7 @@ export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: Clie
   });
 
   // 4. Oportunidades / CRM Deals
-  const oportunidadesDoCliente = oportunidades.filter(op => {
+  const oportunidadesDoCliente = (oportunidades || []).filter(op => {
     if (!op) return false;
     if (op.clienteId === cliente.id) return true;
     if (op.empresa && op.empresa.toLowerCase() === nomeOficial.toLowerCase()) return true;
@@ -83,13 +112,8 @@ export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: Clie
     return false;
   });
 
-  const dataCadastroFormatada = cliente.dataCadastro 
-    ? new Date(cliente.dataCadastro).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-    : 'Data não informada';
-
-  const ultimaAtualizacaoFormatada = cliente.ultimaAtualizacao
-    ? new Date(cliente.ultimaAtualizacao).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-    : dataCadastroFormatada;
+  const dataCadastroFormatada = formatDateTimeSafe(cliente.dataCadastro);
+  const ultimaAtualizacaoFormatada = formatDateTimeSafe(cliente.ultimaAtualizacao || cliente.dataCadastro);
 
   const enderecoTexto = [
     cliente.endereco?.logradouro,
@@ -118,7 +142,7 @@ export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: Clie
                   variant={cliente.status === 'Ativo' ? 'default' : 'secondary'} 
                   className={cliente.status === 'Ativo' ? 'bg-emerald-600 hover:bg-emerald-700' : ''}
                 >
-                  {cliente.status}
+                  {cliente.status || 'Ativo'}
                 </Badge>
                 {recorrenciaAtiva && (
                   <Badge variant="outline" className="border-orange-500/40 text-orange-600 dark:text-orange-400 bg-orange-50/50 dark:bg-orange-950/30 flex items-center gap-1 text-xs">
@@ -178,7 +202,7 @@ export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: Clie
               <TabsTrigger value="dados" className="text-xs">Dados Cadastrais</TabsTrigger>
               <TabsTrigger value="endereco" className="text-xs">Endereço</TabsTrigger>
               <TabsTrigger value="contatos" className="text-xs">Contatos ({contatos.length})</TabsTrigger>
-              <TabsTrigger value="financeiro" className="text-xs">Financeiro ({financeiro.titulosDoCliente.length})</TabsTrigger>
+              <TabsTrigger value="financeiro" className="text-xs">Financeiro ({financeiro?.titulosDoCliente?.length || 0})</TabsTrigger>
               <TabsTrigger value="contratos" className="text-xs font-semibold text-primary">
                 Contratos ({contratosDoCliente.length})
               </TabsTrigger>
@@ -207,7 +231,7 @@ export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: Clie
                 <div className="text-[11px] font-medium text-muted-foreground">Situação Cadastral</div>
                 <div className="font-semibold text-sm mt-0.5 flex items-center gap-1.5">
                   <span className={`w-2 h-2 rounded-full ${cliente.status === 'Ativo' ? 'bg-emerald-500' : 'bg-muted-foreground'}`} />
-                  {cliente.status}
+                  {cliente.status || 'Ativo'}
                 </div>
               </div>
 
@@ -234,7 +258,7 @@ export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: Clie
               <div className="p-3.5 rounded-lg border bg-card">
                 <div className="text-[11px] font-medium text-muted-foreground">Data Fundação / Nascimento</div>
                 <div className="font-semibold text-sm mt-0.5">
-                  {cliente.dataFundacaoNascimento ? new Date(cliente.dataFundacaoNascimento + 'T12:00:00Z').toLocaleDateString('pt-BR') : 'Não informada'}
+                  {formatDateSafe(cliente.dataFundacaoNascimento)}
                 </div>
               </div>
 
@@ -339,11 +363,11 @@ export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: Clie
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
-                          {contato.nome.slice(0, 2).toUpperCase()}
+                          {(contato.nome || 'CT').slice(0, 2).toUpperCase()}
                         </div>
                         <div>
                           <div className="font-semibold text-sm text-foreground flex items-center gap-1.5">
-                            {contato.nome}
+                            {contato.nome || 'Contato'}
                             {contato.principal && (
                               <Badge className="text-[10px] bg-primary/10 text-primary border-primary/20 hover:bg-primary/20">
                                 Contato Principal
@@ -401,31 +425,31 @@ export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: Clie
               <div className="p-3.5 rounded-lg border bg-card">
                 <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Valor em Aberto</div>
                 <div className="font-bold text-base text-rose-600 dark:text-rose-400 mt-1">
-                  R$ {financeiro.valorEmAberto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  R$ {formatCurrency(financeiro?.valorEmAberto)}
                 </div>
               </div>
               <div className="p-3.5 rounded-lg border bg-card">
                 <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Total Recebido</div>
                 <div className="font-bold text-base text-emerald-600 dark:text-emerald-400 mt-1">
-                  R$ {financeiro.totalRecebido.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  R$ {formatCurrency(financeiro?.totalRecebido)}
                 </div>
               </div>
               <div className="p-3.5 rounded-lg border bg-card">
                 <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Mensalidade (MRR)</div>
                 <div className="font-bold text-base text-foreground mt-1">
-                  R$ {financeiro.mensalidade.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  R$ {formatCurrency(financeiro?.mensalidade)}
                 </div>
               </div>
               <div className="p-3.5 rounded-lg border bg-card">
                 <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Títulos Atrasados</div>
-                <div className={`font-bold text-base mt-1 ${financeiro.titulosAtrasados > 0 ? 'text-amber-600' : 'text-muted-foreground'}`}>
-                  {financeiro.titulosAtrasados}
+                <div className={`font-bold text-base mt-1 ${(financeiro?.titulosAtrasados || 0) > 0 ? 'text-amber-600' : 'text-muted-foreground'}`}>
+                  {financeiro?.titulosAtrasados || 0}
                 </div>
               </div>
             </div>
 
             {/* Recorrência Ativa */}
-            {financeiro.recorrenciasDoCliente.length > 0 && (
+            {(financeiro?.recorrenciasDoCliente || []).length > 0 && (
               <div className="p-4 rounded-lg border bg-card space-y-2">
                 <div className="font-semibold text-xs flex items-center gap-1.5 text-orange-600 dark:text-orange-400">
                   <RefreshCw className="w-3.5 h-3.5" />
@@ -439,7 +463,7 @@ export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: Clie
                     </div>
                     <div>
                       <span className="text-[10px] text-muted-foreground block">Valor</span>
-                      <span className="font-bold text-foreground">R$ {rec.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                      <span className="font-bold text-foreground">R$ {formatCurrency(rec.valor)}</span>
                     </div>
                     <div>
                       <span className="text-[10px] text-muted-foreground block">Frequência / Vencimento</span>
@@ -458,14 +482,14 @@ export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: Clie
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Títulos a Receber Vinculados ({financeiro.titulosDoCliente.length})
+                  Títulos a Receber Vinculados ({financeiro?.titulosDoCliente?.length || 0})
                 </span>
                 <Link to="/contas-a-receber" className="text-xs text-primary hover:underline flex items-center gap-1">
                   Ver no Contas a Receber <ExternalLink className="w-3 h-3" />
                 </Link>
               </div>
 
-              {financeiro.titulosDoCliente.length === 0 ? (
+              {(financeiro?.titulosDoCliente || []).length === 0 ? (
                 <div className="p-8 text-center text-xs text-muted-foreground border border-dashed rounded-lg">
                   <DollarSign className="w-8 h-8 mx-auto mb-2 opacity-40" />
                   Nenhum título a receber registrado para este cliente.
@@ -480,12 +504,12 @@ export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: Clie
                           <span>• {titulo.descricao}</span>
                         </div>
                         <div className="text-[11px] text-muted-foreground">
-                          Emissão: {new Date(titulo.dataEmissao + 'T12:00:00Z').toLocaleDateString('pt-BR')} • Vencimento: <strong className="text-foreground">{new Date(titulo.dataVencimento + 'T12:00:00Z').toLocaleDateString('pt-BR')}</strong>
+                          Emissão: {formatDateSafe(titulo.dataEmissao)} • Vencimento: <strong className="text-foreground">{formatDateSafe(titulo.dataVencimento)}</strong>
                         </div>
                       </div>
                       <div className="text-right">
                         <div className="font-bold text-sm text-foreground">
-                          R$ {titulo.valorOriginal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          R$ {formatCurrency(titulo.valorOriginal || (titulo as any).valor)}
                         </div>
                         <Badge 
                           variant="outline" 
@@ -533,10 +557,10 @@ export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: Clie
                         <Badge variant="outline" className="text-[10px] font-mono">{contrato.numeroContrato || contrato.codigo}</Badge>
                       </div>
                       <p className="text-muted-foreground text-[11px]">
-                        {contrato.tipoServico} • Vigência: {new Date(contrato.dataInicio + 'T12:00:00Z').toLocaleDateString('pt-BR')} até {contrato.dataFim ? new Date(contrato.dataFim + 'T12:00:00Z').toLocaleDateString('pt-BR') : 'Indeterminado'}
+                        {contrato.tipoServico} • Vigência: {formatDateSafe(contrato.dataInicio)} até {contrato.dataFim ? formatDateSafe(contrato.dataFim) : 'Indeterminado'}
                       </p>
                       <p className="text-muted-foreground text-[11px]">
-                        Valor Total: <strong>R$ {contrato.valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong> • Mensal: R$ {(contrato.valorMensal || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        Valor Total: <strong>R$ {formatCurrency(contrato.valorTotal || (contrato as any).valor)}</strong> • Mensal: R$ {formatCurrency(contrato.valorMensal || (contrato as any).valorMensalidade)}
                       </p>
                     </div>
                     <Badge className={contrato.status === 'Ativo' ? 'bg-emerald-600' : 'bg-slate-500'}>
@@ -578,7 +602,7 @@ export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: Clie
                         <p className="text-[10px] text-muted-foreground flex items-center gap-2">
                           <span>{doc.codigo}</span>
                           <span>• {doc.tamanho}</span>
-                          <span>• {new Date(doc.dataUpload).toLocaleDateString('pt-BR')}</span>
+                          <span>• {formatDateSafe(doc.dataUpload)}</span>
                           <span className="bg-secondary px-1 py-0.5 rounded text-[9px]">{doc.categoria || doc.moduloOrigem}</span>
                         </p>
                       </div>
@@ -633,7 +657,7 @@ export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: Clie
                         {proj.codigo && <Badge variant="outline" className="text-[10px]">{proj.codigo}</Badge>}
                       </div>
                       <p className="text-[11px] text-muted-foreground">
-                        Responsável: {proj.responsavel || proj.gerente || 'Equipe Focus'} • Prazo: {proj.dataFim ? new Date(proj.dataFim).toLocaleDateString('pt-BR') : 'A definir'}
+                        Responsável: {proj.responsavel || proj.gerente || 'Equipe Focus'} • Prazo: {proj.dataFim ? formatDateSafe(proj.dataFim) : 'A definir'}
                       </p>
                     </div>
                     <Badge variant="outline" className="text-xs">
@@ -668,7 +692,7 @@ export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: Clie
                     <div className="space-y-1">
                       <div className="font-semibold text-foreground">{op.titulo}</div>
                       <p className="text-[11px] text-muted-foreground">
-                        Valor Estimado: <strong className="text-foreground">R$ {op.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong> • Probabilidade: {op.probabilidade}%
+                        Valor Estimado: <strong className="text-foreground">R$ {formatCurrency(op.valor)}</strong> • Probabilidade: {op.probabilidade || 0}%
                       </p>
                     </div>
                     <Badge variant="secondary" className="text-xs">
