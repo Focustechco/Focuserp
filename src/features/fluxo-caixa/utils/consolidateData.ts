@@ -1,11 +1,17 @@
-import { MovimentacaoFluxo, StatusMovimentacao } from "../types";
+import { MovimentacaoFluxo } from "../types";
 import { TituloReceber } from "../../contas-receber/types";
 import { ContaPagar } from "../../contas-pagar/types";
 import { parseDateSafe, getBrasiliaTodayIso } from "@/lib/dateUtils";
 
 /**
- * Consolida todas as movimentações financeiras no Fluxo de Caixa
- * integrando em tempo real os módulos 'Contas a Receber' e 'Contas a Pagar'.
+ * Consolida o Fluxo de Caixa Real a partir das movimentações financeiras liquidadas.
+ * 
+ * REGRA CONTÁBIL ESTRITA:
+ * 1. As recorrências do cliente residem EXCLUSIVAMENTE no módulo 'Contas a Receber'.
+ * 2. Somente ao clicar em 'Registrar Recebimento' / 'Aprovar / Baixar' no 'Contas a Receber',
+ *    o título passa para o status 'Recebido' e ENTRA no Fluxo de Caixa como entrada realizada.
+ * 3. Títulos pendentes, em aberto ou previsões NÃO aparecem no Fluxo de Caixa.
+ * 4. No Contas a Pagar, somente contas com status 'Pago' entram no Fluxo de Caixa como saídas.
  */
 export const consolidateFluxoFromStores = (
   titulos: TituloReceber[] = [],
@@ -14,27 +20,23 @@ export const consolidateFluxoFromStores = (
   const fluxo: MovimentacaoFluxo[] = [];
   const hoje = getBrasiliaTodayIso();
 
-  // 1. Mapear Receitas (Contas a Receber)
+  // 1. Mapear Receitas: EXCLUSIVAMENTE títulos que foram RECEBIDOS no Contas a Receber
   titulos.forEach((titulo) => {
-    const statusNormalized = (titulo.status || '').trim().toLowerCase();
-    
-    let statusFx: StatusMovimentacao = "Prevista";
-    if (statusNormalized === 'recebido' || statusNormalized === 'liquidado' || statusNormalized === 'pago') {
-      statusFx = "Confirmada";
-    } else if (statusNormalized === 'recebido parcialmente') {
-      statusFx = "Parcial";
-    } else if (statusNormalized === 'cancelado' || statusNormalized === 'cancelada') {
-      statusFx = "Cancelada";
+    const statusNorm = (titulo.status || '').trim().toLowerCase();
+    const isRecebido = statusNorm === 'recebido' || statusNorm === 'liquidado' || statusNorm === 'pago';
+    const isParcial = statusNorm === 'recebido parcialmente';
+
+    // Se o título não foi recebido (ex: pendente, em aberto, previsto, cancelado), NÃO ENTRA no Fluxo de Caixa
+    if (!isRecebido && !isParcial) {
+      return;
     }
 
     const valorOriginal = Number(titulo.valorOriginal ?? titulo.saldo ?? 0);
-    const valorRealizado = statusFx === "Confirmada" 
+    const valorRealizado = isRecebido 
       ? Number(titulo.valorRecebido || valorOriginal) 
-      : (statusFx === "Parcial" ? Number(titulo.valorRecebido || 0) : 0);
+      : Number(titulo.valorRecebido || 0);
 
-    const dataCompetencia = statusFx === "Confirmada" && titulo.dataRecebimento
-      ? titulo.dataRecebimento
-      : (titulo.dataVencimento || titulo.dataEmissao || hoje);
+    const dataCompetencia = titulo.dataRecebimento || titulo.dataVencimento || hoje;
 
     fluxo.push({
       id: `fluxo-rec-${titulo.id}`,
@@ -42,38 +44,34 @@ export const consolidateFluxoFromStores = (
       moduloOrigem: "Contas a Receber",
       tipo: "Entrada",
       dataCompetencia: dataCompetencia,
-      dataPagamento: titulo.dataRecebimento,
+      dataPagamento: titulo.dataRecebimento || dataCompetencia,
       clienteFornecedor: titulo.cliente || "Cliente",
       descricao: titulo.descricao || `Recebimento ${titulo.numero || ''}`.trim(),
       categoria: titulo.categoria || "Geral",
       valorOriginal: valorOriginal,
       valorRealizado: valorRealizado,
-      status: statusFx,
+      status: "Confirmada",
       saldoAcumuladoDia: 0,
     });
   });
 
-  // 2. Mapear Despesas (Contas a Pagar)
+  // 2. Mapear Despesas: EXCLUSIVAMENTE contas que foram PAGAS no Contas a Pagar
   contas.forEach((conta) => {
-    const statusNormalized = (conta.status || '').trim().toLowerCase();
+    const statusNorm = (conta.status || '').trim().toLowerCase();
+    const isPago = statusNorm === 'pago' || statusNorm === 'liquidado';
+    const isParcial = statusNorm === 'pago parcialmente';
 
-    let statusFx: StatusMovimentacao = "Prevista";
-    if (statusNormalized === 'pago' || statusNormalized === 'liquidado') {
-      statusFx = "Confirmada";
-    } else if (statusNormalized === 'pago parcialmente') {
-      statusFx = "Parcial";
-    } else if (statusNormalized === 'cancelado' || statusNormalized === 'cancelada') {
-      statusFx = "Cancelada";
+    // Se a conta não foi paga, NÃO ENTRA no Fluxo de Caixa
+    if (!isPago && !isParcial) {
+      return;
     }
 
     const valorOriginal = Number(conta.valorOriginal ?? conta.saldo ?? 0);
-    const valorRealizado = statusFx === "Confirmada" 
+    const valorRealizado = isPago 
       ? Number(conta.valorPago || valorOriginal) 
-      : (statusFx === "Parcial" ? Number(conta.valorPago || 0) : 0);
+      : Number(conta.valorPago || 0);
 
-    const dataCompetencia = statusFx === "Confirmada" && conta.dataPagamento
-      ? conta.dataPagamento
-      : (conta.dataVencimento || conta.dataEmissao || hoje);
+    const dataCompetencia = conta.dataPagamento || conta.dataVencimento || hoje;
 
     fluxo.push({
       id: `fluxo-pag-${conta.id}`,
@@ -81,40 +79,30 @@ export const consolidateFluxoFromStores = (
       moduloOrigem: "Contas a Pagar",
       tipo: "Saída",
       dataCompetencia: dataCompetencia,
-      dataPagamento: conta.dataPagamento,
+      dataPagamento: conta.dataPagamento || dataCompetencia,
       clienteFornecedor: conta.fornecedor || "Fornecedor",
       descricao: conta.descricao || `Pagamento ${conta.numero || ''}`.trim(),
       categoria: conta.categoria || "Operacional",
       valorOriginal: valorOriginal,
       valorRealizado: valorRealizado,
-      status: statusFx,
+      status: "Confirmada",
       saldoAcumuladoDia: 0,
     });
   });
 
-  // Ordenar cronologicamente pela data de competência com parse seguro no horário de Brasília
+  // Ordenar cronologicamente pela data de realização
   fluxo.sort((a, b) => parseDateSafe(a.dataCompetencia).getTime() - parseDateSafe(b.dataCompetencia).getTime());
 
-  // Calcular Saldo Acumulado Progressivo
-  let saldoCorrente = 0;
+  // Calcular Saldo Acumulado REAL de Caixa
+  let saldoRealizadoCorrente = 0;
 
   fluxo.forEach((mov) => {
-    if (mov.status === "Cancelada") {
-      mov.saldoAcumuladoDia = saldoCorrente;
-      return;
-    }
-
-    const valorImpacto = (mov.status === "Confirmada" || mov.status === "Parcial")
-      ? mov.valorRealizado
-      : mov.valorOriginal;
-
     if (mov.tipo === "Entrada") {
-      saldoCorrente += valorImpacto;
+      saldoRealizadoCorrente += mov.valorRealizado;
     } else {
-      saldoCorrente -= valorImpacto;
+      saldoRealizadoCorrente -= mov.valorRealizado;
     }
-
-    mov.saldoAcumuladoDia = saldoCorrente;
+    mov.saldoAcumuladoDia = saldoRealizadoCorrente;
   });
 
   return fluxo;
