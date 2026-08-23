@@ -135,9 +135,10 @@ export function FluxoTimeline() {
                   </TableCell>
 
                   <TableCell>
-                    <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-300">
-                      Confirmada (Liquidado)
-                    </Badge>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/40">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                      Liquidado
+                    </span>
                   </TableCell>
 
                   <TableCell className={`text-right font-semibold text-xs ${
