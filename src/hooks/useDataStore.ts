@@ -267,14 +267,19 @@ export function useLocalStorageState<T extends { id: string }>(
   const updateItem = useCallback(
     async (id: string, patch: Partial<T>) => {
       const updatedData = data.map((it) => {
-        if (it.id === id || (it as any).email?.toLowerCase().trim() === (patch as any).email?.toLowerCase().trim()) {
+        const matchesId = it.id === id;
+        const matchesEmail = isUsersTable && 
+          Boolean((it as any).email && (patch as any).email && 
+          String((it as any).email).toLowerCase().trim() === String((patch as any).email).toLowerCase().trim());
+
+        if (matchesId || matchesEmail) {
           return { ...it, ...patch };
         }
         return it;
       });
       await save(updatedData);
     },
-    [data, save]
+    [data, isUsersTable, save]
   );
 
   const deleteItem = useCallback(
