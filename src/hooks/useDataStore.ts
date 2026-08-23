@@ -296,6 +296,18 @@ export function useLocalStorageState<T extends { id: string }>(
     [data, isClientsTable, save, table]
   );
 
+  const saveItem = useCallback(
+    async (item: T) => {
+      const exists = data.some((it) => it.id === item.id);
+      if (exists) {
+        await updateItem(item.id, item);
+      } else {
+        await addItem(item);
+      }
+    },
+    [data, addItem, updateItem]
+  );
+
   const removeItem = deleteItem;
   const setAllItems = save;
 
@@ -305,6 +317,7 @@ export function useLocalStorageState<T extends { id: string }>(
     error,
     addItem,
     updateItem,
+    saveItem,
     deleteItem,
     removeItem,
     save,
