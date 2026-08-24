@@ -7,13 +7,12 @@ import { userService } from '@/services/userService';
  * Helper to generate a valid, deterministic UUID for state storage keys in PostgreSQL.
  */
 function getTableUuid(table: string): string {
-  let hash = 0;
+  let hex = '';
   for (let i = 0; i < table.length; i++) {
-    hash = ((hash << 5) - hash) + table.charCodeAt(i);
-    hash |= 0;
+    hex += table.charCodeAt(i).toString(16);
   }
-  const hex = Math.abs(hash).toString(16).padStart(12, '0').slice(-12);
-  return `00000000-0000-4000-a000-${hex}`;
+  const paddedHex = (hex + '000000000000000000000000').slice(0, 12);
+  return `00000000-0000-4000-a000-${paddedHex}`;
 }
 
 /**
@@ -61,7 +60,7 @@ function writeLocalCache<T>(table: string, items: T[]) {
 
 /**
  * Bulletproof Multi-Device Storage Hook (Real-Time Cloud Persistence for ALL Modules, Users & Notifications)
- * 100% Persistido no Banco de Dados Real Supabase / PostgreSQL com sincronização em tempo real e proteção total contra falhas.
+ * 100% Persistido no Banco de Dados Real Supabase / PostgreSQL com sincronização em tempo real para Desktop e Mobile iOS/Android.
  */
 export function useLocalStorageState<T extends { id: string }>(
   table: string,
@@ -76,7 +75,7 @@ export function useLocalStorageState<T extends { id: string }>(
   const isMountedRef = useRef(true);
 
   // ---------------------------------------------------------------------------
-  // Sync Data on Client Mount & Realtime Cloud Database
+  // Sync Data on Client Mount & Realtime Cloud Database (with iOS Mobile Lifecycle support)
   // ---------------------------------------------------------------------------
   useEffect(() => {
     isMountedRef.current = true;
@@ -181,12 +180,14 @@ export function useLocalStorageState<T extends { id: string }>(
           }
         } else {
           // Para todos os outros módulos (Contas a Receber, Contas a Pagar, Recorrências, Contratos, etc.)
-          // Carregar do Banco de Dados Supabase Cloud
+          // Carregar do Banco de Dados Supabase Cloud por nome ou ID
           const stateRowId = getTableUuid(table);
+          const stateName = `__FOCUS_STATE_${table}__`;
+
           const { data: cloudRow, error: cloudErr } = await supabase
             .from('clients')
             .select('contact_email')
-            .eq('id', stateRowId)
+            .or(`name.eq.${stateName},id.eq.${stateRowId}`)
             .maybeSingle();
 
           if (!isMountedRef.current) return;
@@ -194,7 +195,7 @@ export function useLocalStorageState<T extends { id: string }>(
           if (!cloudErr && cloudRow?.contact_email) {
             try {
               const cloudItems: T[] = JSON.parse(cloudRow.contact_email);
-              if (Array.isArray(cloudItems) && cloudItems.length > 0) {
+              if (Array.isArray(cloudItems)) {
                 if (isMountedRef.current) {
                   setData(cloudItems);
                   writeLocalCache(table, cloudItems);
@@ -233,10 +234,11 @@ export function useLocalStorageState<T extends { id: string }>(
       });
     }
 
+    // Supabase Realtime Subscription para sincronização multi-device em tempo real
     let channel: any = null;
     if (typeof window !== 'undefined') {
       try {
-        const stateRowId = getTableUuid(table);
+        const stateName = `__FOCUS_STATE_${table}__`;
         channel = supabase
           .channel(`rt_${table}_${Math.random().toString(36).slice(2, 7)}`)
           .on(
@@ -250,14 +252,17 @@ export function useLocalStorageState<T extends { id: string }>(
               if (!isMountedRef.current) return;
               if (isClientsTable) {
                 fetchData();
-              } else if (payload.new && (payload.new as any).id === stateRowId && (payload.new as any).contact_email) {
-                try {
-                  const remoteData: T[] = JSON.parse((payload.new as any).contact_email);
-                  if (Array.isArray(remoteData)) {
-                    setData(remoteData);
-                    writeLocalCache(table, remoteData);
-                  }
-                } catch {}
+              } else if (payload.new) {
+                const newRow = payload.new as any;
+                if ((newRow.name === stateName || newRow.id === getTableUuid(table)) && newRow.contact_email) {
+                  try {
+                    const remoteData: T[] = JSON.parse(newRow.contact_email);
+                    if (Array.isArray(remoteData)) {
+                      setData(remoteData);
+                      writeLocalCache(table, remoteData);
+                    }
+                  } catch {}
+                }
               }
             }
           )
@@ -267,6 +272,13 @@ export function useLocalStorageState<T extends { id: string }>(
       }
     }
 
+    // Suporte a ciclo de vida de Mobile iOS / Android (quando o app volta do background)
+    const handleVisibilityOrFocus = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        fetchData();
+      }
+    };
+
     const handleFocusStorageUpdate = () => {
       const updated = readLocalCache(table, initialValue);
       if (isMountedRef.current) setData(updated);
@@ -274,7 +286,11 @@ export function useLocalStorageState<T extends { id: string }>(
 
     if (typeof window !== 'undefined') {
       window.addEventListener('storage', handleStorageUpdate);
+      window.addEventListener('focus', handleVisibilityOrFocus);
       window.addEventListener('focus_storage_update', handleFocusStorageUpdate);
+      if (typeof document !== 'undefined') {
+        document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+      }
     }
 
     return () => {
@@ -287,7 +303,11 @@ export function useLocalStorageState<T extends { id: string }>(
       }
       if (typeof window !== 'undefined') {
         window.removeEventListener('storage', handleStorageUpdate);
+        window.removeEventListener('focus', handleVisibilityOrFocus);
         window.removeEventListener('focus_storage_update', handleFocusStorageUpdate);
+      }
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
