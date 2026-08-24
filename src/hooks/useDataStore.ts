@@ -105,6 +105,10 @@ export function useLocalStorageState<T extends { id: string }>(
           if (!dbErr && Array.isArray(dbClients)) {
             const rawDeletedIds = safeGetItem('focus_app_deleted_client_ids');
             const deletedSet = new Set<string>(rawDeletedIds ? JSON.parse(rawDeletedIds) : []);
+            const localMap = new Map<string, any>();
+            localCached.forEach((lc: any) => {
+              if (lc && lc.id) localMap.set(String(lc.id), lc);
+            });
 
             const mapped = dbClients
               .filter((c: any) => {
@@ -113,40 +117,54 @@ export function useLocalStorageState<T extends { id: string }>(
                 if (typeof c.name === 'string' && (c.name.startsWith('__DELETED__') || c.name.startsWith('__FOCUS_'))) return false;
                 return true;
               })
-              .map((c: any) => ({
-                id: c.id,
-                codigo: `CLI-${c.id.slice(0, 4).toUpperCase()}`,
-                tipo: 'Pessoa Jurídica',
-                razaoSocial: c.name || 'Cliente sem nome',
-                nomeFantasia: c.name || 'Cliente sem nome',
-                documento: '00.000.000/0001-00',
-                status: c.status === 'inativo' ? 'Inativo' : 'Ativo',
-                segmento: 'Geral',
-                endereco: {
-                  cep: '',
-                  logradouro: '',
-                  numero: '',
-                  bairro: '',
-                  cidade: 'São Paulo',
-                  estado: 'SP',
-                  pais: 'Brasil'
-                },
-                contatos: [
-                  {
-                    id: `ct-${c.id}`,
-                    nome: c.name || 'Contato Principal',
-                    cargo: 'Responsável',
-                    departamento: 'Geral',
-                    celular: c.contact_phone || '(11) 99999-9999',
-                    whatsapp: true,
-                    email: c.contact_email || 'contato@cliente.com',
-                    principal: true
-                  }
-                ],
-                dataCadastro: c.created_at || new Date().toISOString(),
-                ultimaAtualizacao: c.updated_at || new Date().toISOString(),
-                ...c
-              })) as T[];
+              .map((c: any) => {
+                const existing = localMap.get(String(c.id)) || {};
+                return {
+                  ...existing,
+                  ...c,
+                  id: String(c.id),
+                  codigo: existing.codigo || `CLI-${String(c.id).slice(0, 4).toUpperCase()}`,
+                  tipo: existing.tipo || 'Pessoa Jurídica',
+                  razaoSocial: existing.razaoSocial || c.name || 'Cliente sem nome',
+                  nomeFantasia: existing.nomeFantasia || c.name || 'Cliente sem nome',
+                  documento: existing.documento || '00.000.000/0001-00',
+                  status: c.status === 'inativo' ? 'Inativo' : (existing.status || 'Ativo'),
+                  segmento: existing.segmento || 'Geral',
+                  endereco: existing.endereco || {
+                    cep: '',
+                    logradouro: '',
+                    numero: '',
+                    bairro: '',
+                    cidade: 'São Paulo',
+                    estado: 'SP',
+                    pais: 'Brasil'
+                  },
+                  contatos: (existing.contatos && existing.contatos.length > 0)
+                    ? existing.contatos
+                    : [
+                        {
+                          id: `ct-${c.id}`,
+                          nome: c.name || 'Contato Principal',
+                          cargo: 'Responsável',
+                          departamento: 'Geral',
+                          celular: c.contact_phone || '(11) 99999-9999',
+                          whatsapp: true,
+                          email: c.contact_email || 'contato@cliente.com',
+                          principal: true
+                        }
+                      ],
+                  recorrencias: existing.recorrencias || [],
+                  dataCadastro: existing.dataCadastro || c.created_at || new Date().toISOString(),
+                  ultimaAtualizacao: existing.ultimaAtualizacao || c.updated_at || new Date().toISOString(),
+                };
+              }) as T[];
+
+            // Manter também clientes locais criados que ainda não estejam em dbClients
+            localCached.forEach((lc: any) => {
+              if (lc && lc.id && !mapped.some((m: any) => m.id === lc.id) && !deletedSet.has(String(lc.id))) {
+                mapped.push(lc);
+              }
+            });
 
             setData(mapped);
             writeLocalCache(table, mapped);

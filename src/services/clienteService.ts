@@ -90,34 +90,20 @@ export const clienteService = {
       const localMap = getLocalClients();
       let dbItems: any[] = [];
 
-      // 1. Tentar buscar na tabela relacional 'clientes'
+      // Buscar na tabela relacional 'clients'
       try {
-        const { data: clientesData, error: clientesErr } = await supabase
-          .from('clientes')
+        const { data: clientsData, error: clientsErr } = await supabase
+          .from('clients')
           .select('*')
+          .not('name', 'like', '__FOCUS_STATE__%')
+          .not('name', 'like', '__DELETED__%')
+          .neq('status', 'deleted')
           .order('created_at', { ascending: false });
 
-        if (!clientesErr && Array.isArray(clientesData) && clientesData.length > 0) {
-          dbItems = clientesData;
+        if (!clientsErr && Array.isArray(clientsData) && clientsData.length > 0) {
+          dbItems = clientsData;
         }
       } catch {}
-
-      // Fallback: Tentar buscar na tabela 'clients' se clientes estiver vazio
-      if (dbItems.length === 0) {
-        try {
-          const { data: clientsData, error: clientsErr } = await supabase
-            .from('clients')
-            .select('*')
-            .not('name', 'like', '__FOCUS_STATE__%')
-            .not('name', 'like', '__DELETED__%')
-            .neq('status', 'deleted')
-            .order('created_at', { ascending: false });
-
-          if (!clientsErr && Array.isArray(clientsData) && clientsData.length > 0) {
-            dbItems = clientsData;
-          }
-        } catch {}
-      }
 
       const mergedMap = new Map<string, ClienteDTO>(localMap);
 
@@ -242,26 +228,14 @@ export const clienteService = {
 
     // 2. Persistir no Supabase de forma resiliente
     try {
-      const { error: errClientes } = await supabase.from('clientes').upsert({
+      await supabase.from('clients').upsert({
         id,
-        tipo: validatedWithId.tipo,
-        razao_social: validatedWithId.razaoSocial,
-        nome_fantasia: validatedWithId.nomeFantasia,
-        documento: validatedWithId.documento,
-        status: validatedWithId.status,
+        name: validatedWithId.nomeFantasia || validatedWithId.razaoSocial,
+        status: validatedWithId.status.toLowerCase(),
+        contact_email: validatedWithId.contatos?.[0]?.email || null,
+        contact_phone: validatedWithId.contatos?.[0]?.celular || null,
         updated_at: new Date().toISOString(),
       });
-      if (errClientes) {
-        // Tentar tabela alternada 'clients'
-        await supabase.from('clients').upsert({
-          id,
-          name: validatedWithId.nomeFantasia || validatedWithId.razaoSocial,
-          status: validatedWithId.status.toLowerCase(),
-          contact_email: validatedWithId.contatos?.[0]?.email || null,
-          contact_phone: validatedWithId.contatos?.[0]?.celular || null,
-          updated_at: new Date().toISOString(),
-        });
-      }
     } catch (e) {
       console.warn('[clienteService.saveCliente] Supabase sync completed via local-first store:', e);
     }
@@ -284,11 +258,13 @@ export const clienteService = {
     try { await supabase.from('projetos').delete().eq('cliente_id', id); } catch {}
 
     try {
-      const { error: err1 } = await supabase.from('clientes').delete().eq('id', id);
+      const { error: err1 } = await supabase.from('clients').delete().eq('id', id);
       if (err1 && (err1.code === '23503' || err1.message?.includes('foreign key') || err1.message?.includes('Conflict'))) {
-        await supabase.from('clientes').update({ status: 'Inativo', updated_at: new Date().toISOString() }).eq('id', id);
+        await supabase.from('clients').update({ status: 'inativo', updated_at: new Date().toISOString() }).eq('id', id);
       }
-    } catch {}
+    } catch (e) {
+      console.warn('[clienteService.deleteCliente] Local delete complete:', e);
+    }
 
     try {
       const { error: err2 } = await supabase.from('clients').delete().eq('id', id);
