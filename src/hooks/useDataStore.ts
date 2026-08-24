@@ -1,18 +1,19 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { safeSetItem, safeGetItem, safeRemoveItem } from '@/lib/safeStorage';
+import { safeSetItem, safeGetItem } from '@/lib/safeStorage';
 import { userService } from '@/services/userService';
 
 /**
- * Helper to generate a valid, deterministic UUID for state storage keys.
+ * Helper to generate a valid, deterministic UUID for state storage keys in PostgreSQL.
  */
 function getTableUuid(table: string): string {
-  let hex = '';
+  let hash = 0;
   for (let i = 0; i < table.length; i++) {
-    hex += table.charCodeAt(i).toString(16);
+    hash = ((hash << 5) - hash) + table.charCodeAt(i);
+    hash |= 0;
   }
-  const paddedHex = (hex + '000000000000000000000000').slice(0, 12);
-  return `00000000-0000-4000-a000-${paddedHex}`;
+  const hex = Math.abs(hash).toString(16).padStart(12, '0').slice(-12);
+  return `00000000-0000-4000-a000-${hex}`;
 }
 
 /**
@@ -60,7 +61,7 @@ function writeLocalCache<T>(table: string, items: T[]) {
 
 /**
  * Bulletproof Multi-Device Storage Hook (Real-Time Cloud Persistence for ALL Modules, Users & Notifications)
- * 100% Persistido no Banco de Dados Real Supabase / PostgreSQL com sincronização em tempo real.
+ * 100% Persistido no Banco de Dados Real Supabase / PostgreSQL com sincronização em tempo real e proteção total contra falhas.
  */
 export function useLocalStorageState<T extends { id: string }>(
   table: string,
@@ -72,16 +73,17 @@ export function useLocalStorageState<T extends { id: string }>(
 
   const isClientsTable = table === 'clients' || table === 'clientes' || table === 'focus_clientes';
   const isUsersTable = table === 'focus_usuarios' || table === 'users' || table === 'usuarios';
+  const isMountedRef = useRef(true);
 
   // ---------------------------------------------------------------------------
   // Sync Data on Client Mount & Realtime Cloud Database
   // ---------------------------------------------------------------------------
   useEffect(() => {
-    let isMounted = true;
+    isMountedRef.current = true;
 
     // 1. Initial local load for instant UI responsiveness
     const localCached = readLocalCache(table, initialValue);
-    if (isMounted && localCached.length > 0) {
+    if (isMountedRef.current && localCached.length > 0) {
       setData(localCached);
     }
 
@@ -90,7 +92,7 @@ export function useLocalStorageState<T extends { id: string }>(
         if (isUsersTable) {
           // Carregar diretamente do Banco de Dados Supabase (Users / State)
           const dbUsers = await userService.getUsers();
-          if (isMounted && Array.isArray(dbUsers) && dbUsers.length > 0) {
+          if (isMountedRef.current && Array.isArray(dbUsers) && dbUsers.length > 0) {
             setData(dbUsers as unknown as T[]);
             writeLocalCache(table, dbUsers);
             setError(null);
@@ -105,7 +107,7 @@ export function useLocalStorageState<T extends { id: string }>(
             .neq('status', 'deleted')
             .order('created_at', { ascending: false });
 
-          if (!isMounted) return;
+          if (!isMountedRef.current) return;
 
           if (!dbErr && Array.isArray(dbClients)) {
             const rawDeletedIds = safeGetItem('focus_app_deleted_client_ids');
@@ -171,9 +173,11 @@ export function useLocalStorageState<T extends { id: string }>(
               }
             });
 
-            setData(mapped);
-            writeLocalCache(table, mapped);
-            setError(null);
+            if (isMountedRef.current) {
+              setData(mapped);
+              writeLocalCache(table, mapped);
+              setError(null);
+            }
           }
         } else {
           // Para todos os outros módulos (Contas a Receber, Contas a Pagar, Recorrências, Contratos, etc.)
@@ -185,89 +189,105 @@ export function useLocalStorageState<T extends { id: string }>(
             .eq('id', stateRowId)
             .maybeSingle();
 
-          if (!isMounted) return;
+          if (!isMountedRef.current) return;
 
           if (!cloudErr && cloudRow?.contact_email) {
             try {
               const cloudItems: T[] = JSON.parse(cloudRow.contact_email);
               if (Array.isArray(cloudItems) && cloudItems.length > 0) {
-                setData(cloudItems);
-                writeLocalCache(table, cloudItems);
-                setError(null);
+                if (isMountedRef.current) {
+                  setData(cloudItems);
+                  writeLocalCache(table, cloudItems);
+                  setError(null);
+                }
               }
             } catch {}
           }
         }
       } catch (err: any) {
-        if (!isMounted) return;
+        if (!isMountedRef.current) return;
         setError(err?.message || 'Unknown fetch error');
       } finally {
-        if (isMounted) setLoading(false);
+        if (isMountedRef.current) setLoading(false);
       }
     };
 
-    fetchData();
+    if (typeof window !== 'undefined') {
+      fetchData();
+    }
 
     // Event listener for cross-tab / cross-window updates
     const handleStorageUpdate = (e: StorageEvent) => {
       if (e.key === `focus_app_${table}` || e.key === table || e.key === `focus_${table}`) {
         const updated = readLocalCache(table, initialValue);
-        if (isMounted) setData(updated);
+        if (isMountedRef.current) setData(updated);
       }
     };
 
     let unsubscribeUsers: (() => void) | null = null;
     if (isUsersTable) {
       unsubscribeUsers = userService.subscribeUsers((freshUsers) => {
-        if (isMounted && Array.isArray(freshUsers)) {
+        if (isMountedRef.current && Array.isArray(freshUsers)) {
           setData(freshUsers as unknown as T[]);
         }
       });
     }
 
-    // Supabase Realtime Subscription para sincronização entre dispositivos
-    const stateRowId = getTableUuid(table);
-    const channel = supabase
-      .channel(`realtime_${table}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'clients',
-          filter: isClientsTable ? undefined : `id=eq.${stateRowId}`,
-        },
-        (payload) => {
-          if (!isMounted) return;
-          if (isClientsTable) {
-            fetchData();
-          } else if (payload.new && (payload.new as any).contact_email) {
-            try {
-              const remoteData: T[] = JSON.parse((payload.new as any).contact_email);
-              if (Array.isArray(remoteData)) {
-                setData(remoteData);
-                writeLocalCache(table, remoteData);
+    let channel: any = null;
+    if (typeof window !== 'undefined') {
+      try {
+        const stateRowId = getTableUuid(table);
+        channel = supabase
+          .channel(`rt_${table}_${Math.random().toString(36).slice(2, 7)}`)
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'clients',
+            },
+            (payload) => {
+              if (!isMountedRef.current) return;
+              if (isClientsTable) {
+                fetchData();
+              } else if (payload.new && (payload.new as any).id === stateRowId && (payload.new as any).contact_email) {
+                try {
+                  const remoteData: T[] = JSON.parse((payload.new as any).contact_email);
+                  if (Array.isArray(remoteData)) {
+                    setData(remoteData);
+                    writeLocalCache(table, remoteData);
+                  }
+                } catch {}
               }
-            } catch {}
-          }
-        }
-      )
-      .subscribe();
+            }
+          )
+          .subscribe();
+      } catch (e) {
+        console.warn('[useLocalStorageState] Realtime subscribe non-critical notice:', e);
+      }
+    }
+
+    const handleFocusStorageUpdate = () => {
+      const updated = readLocalCache(table, initialValue);
+      if (isMountedRef.current) setData(updated);
+    };
 
     if (typeof window !== 'undefined') {
       window.addEventListener('storage', handleStorageUpdate);
-      window.addEventListener('focus_storage_update', () => {
-        const updated = readLocalCache(table, initialValue);
-        if (isMounted) setData(updated);
-      });
+      window.addEventListener('focus_storage_update', handleFocusStorageUpdate);
     }
 
     return () => {
-      isMounted = false;
+      isMountedRef.current = false;
       if (unsubscribeUsers) unsubscribeUsers();
-      supabase.removeChannel(channel);
+      if (channel) {
+        try {
+          supabase.removeChannel(channel);
+        } catch {}
+      }
       if (typeof window !== 'undefined') {
         window.removeEventListener('storage', handleStorageUpdate);
+        window.removeEventListener('focus_storage_update', handleFocusStorageUpdate);
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
