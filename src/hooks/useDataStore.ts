@@ -31,11 +31,14 @@ function toValidUuid(idStr?: string): string {
 function readLocalCache<T>(table: string, fallback: T[]): T[] {
   if (typeof window === 'undefined') return fallback;
   try {
-    const raw = safeGetItem(`focus_app_${table}`) || safeGetItem(table);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+    const keysToTry = [`focus_app_${table}`, table, `focus_${table}`];
+    for (const k of keysToTry) {
+      const raw = safeGetItem(k);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
       }
     }
   } catch {}
@@ -51,12 +54,13 @@ function writeLocalCache<T>(table: string, items: T[]) {
     const serialized = JSON.stringify(items);
     safeSetItem(`focus_app_${table}`, serialized);
     safeSetItem(table, serialized);
+    safeSetItem(`focus_${table}`, serialized);
   } catch {}
 }
 
 /**
  * Bulletproof Multi-Device Storage Hook (Real-Time Cloud Persistence for ALL Modules, Users & Notifications)
- * Seamless cross-device sync between Desktop, Mobile iOS & Android.
+ * 100% Persistido no Banco de Dados Real Supabase / PostgreSQL com sincronização em tempo real.
  */
 export function useLocalStorageState<T extends { id: string }>(
   table: string,
@@ -70,12 +74,12 @@ export function useLocalStorageState<T extends { id: string }>(
   const isUsersTable = table === 'focus_usuarios' || table === 'users' || table === 'usuarios';
 
   // ---------------------------------------------------------------------------
-  // Sync Data on Client Mount & Cloud
+  // Sync Data on Client Mount & Realtime Cloud Database
   // ---------------------------------------------------------------------------
   useEffect(() => {
     let isMounted = true;
 
-    // 1. Initial local load
+    // 1. Initial local load for instant UI responsiveness
     const localCached = readLocalCache(table, initialValue);
     if (isMounted && localCached.length > 0) {
       setData(localCached);
@@ -98,6 +102,7 @@ export function useLocalStorageState<T extends { id: string }>(
             .select('*')
             .not('name', 'like', '__FOCUS_STATE__%')
             .not('name', 'like', '__FOCUS_USERS_STATE__%')
+            .neq('status', 'deleted')
             .order('created_at', { ascending: false });
 
           if (!isMounted) return;
@@ -159,7 +164,7 @@ export function useLocalStorageState<T extends { id: string }>(
                 };
               }) as T[];
 
-            // Manter também clientes locais criados que ainda não estejam em dbClients
+            // Manter também clientes locais que ainda estão sendo sincronizados
             localCached.forEach((lc: any) => {
               if (lc && lc.id && !mapped.some((m: any) => m.id === lc.id) && !deletedSet.has(String(lc.id))) {
                 mapped.push(lc);
@@ -169,6 +174,28 @@ export function useLocalStorageState<T extends { id: string }>(
             setData(mapped);
             writeLocalCache(table, mapped);
             setError(null);
+          }
+        } else {
+          // Para todos os outros módulos (Contas a Receber, Contas a Pagar, Recorrências, Contratos, etc.)
+          // Carregar do Banco de Dados Supabase Cloud
+          const stateRowId = getTableUuid(table);
+          const { data: cloudRow, error: cloudErr } = await supabase
+            .from('clients')
+            .select('contact_email')
+            .eq('id', stateRowId)
+            .maybeSingle();
+
+          if (!isMounted) return;
+
+          if (!cloudErr && cloudRow?.contact_email) {
+            try {
+              const cloudItems: T[] = JSON.parse(cloudRow.contact_email);
+              if (Array.isArray(cloudItems) && cloudItems.length > 0) {
+                setData(cloudItems);
+                writeLocalCache(table, cloudItems);
+                setError(null);
+              }
+            } catch {}
           }
         }
       } catch (err: any) {
@@ -183,7 +210,7 @@ export function useLocalStorageState<T extends { id: string }>(
 
     // Event listener for cross-tab / cross-window updates
     const handleStorageUpdate = (e: StorageEvent) => {
-      if (e.key === `focus_app_${table}` || e.key === table) {
+      if (e.key === `focus_app_${table}` || e.key === table || e.key === `focus_${table}`) {
         const updated = readLocalCache(table, initialValue);
         if (isMounted) setData(updated);
       }
@@ -198,6 +225,35 @@ export function useLocalStorageState<T extends { id: string }>(
       });
     }
 
+    // Supabase Realtime Subscription para sincronização entre dispositivos
+    const stateRowId = getTableUuid(table);
+    const channel = supabase
+      .channel(`realtime_${table}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'clients',
+          filter: isClientsTable ? undefined : `id=eq.${stateRowId}`,
+        },
+        (payload) => {
+          if (!isMounted) return;
+          if (isClientsTable) {
+            fetchData();
+          } else if (payload.new && (payload.new as any).contact_email) {
+            try {
+              const remoteData: T[] = JSON.parse((payload.new as any).contact_email);
+              if (Array.isArray(remoteData)) {
+                setData(remoteData);
+                writeLocalCache(table, remoteData);
+              }
+            } catch {}
+          }
+        }
+      )
+      .subscribe();
+
     if (typeof window !== 'undefined') {
       window.addEventListener('storage', handleStorageUpdate);
       window.addEventListener('focus_storage_update', () => {
@@ -209,6 +265,7 @@ export function useLocalStorageState<T extends { id: string }>(
     return () => {
       isMounted = false;
       if (unsubscribeUsers) unsubscribeUsers();
+      supabase.removeChannel(channel);
       if (typeof window !== 'undefined') {
         window.removeEventListener('storage', handleStorageUpdate);
       }
@@ -217,7 +274,7 @@ export function useLocalStorageState<T extends { id: string }>(
   }, [table]);
 
   // ---------------------------------------------------------------------------
-  // CRUD helpers (Instant LocalStorage update + Supabase Cloud sync)
+  // CRUD helpers (Instant Local update + Real Supabase Database Cloud sync)
   // ---------------------------------------------------------------------------
   const save = useCallback(
     async (newData: T[]) => {
@@ -232,13 +289,20 @@ export function useLocalStorageState<T extends { id: string }>(
       setData(cleanedData);
       writeLocalCache(table, cleanedData);
 
-      // 2. Sincronização direta de Usuários com Supabase
+      // Disparar evento para outras abas e componentes
+      if (typeof window !== 'undefined') {
+        try {
+          window.dispatchEvent(new Event('focus_storage_update'));
+        } catch {}
+      }
+
+      // 2. Sincronização de Usuários no Banco Real
       if (isUsersTable) {
         await userService.saveAllUsers(cleanedData as any);
         return;
       }
 
-      // 3. Cross-Device Supabase persistence for relational tables
+      // 3. Sincronização de Clientes no Banco Real
       try {
         if (isClientsTable) {
           const payload = cleanedData.map((item: any) => {
@@ -263,8 +327,18 @@ export function useLocalStorageState<T extends { id: string }>(
             }
           }
         }
+
+        // 4. Persistir todos os dados do módulo no Banco de Dados Supabase (Cross-Device Cloud Sync)
+        const stateRowId = getTableUuid(table);
+        await supabase.from('clients').upsert({
+          id: stateRowId,
+          name: `__FOCUS_STATE_${table}__`,
+          status: 'system',
+          contact_email: JSON.stringify(cleanedData),
+          updated_at: new Date().toISOString(),
+        });
       } catch (err: any) {
-        console.warn(`[Supabase] Save note for '${table}':`, err?.message);
+        console.warn(`[Supabase] Erro ao sincronizar '${table}' com o banco de dados:`, err?.message);
       }
     },
     [isClientsTable, isUsersTable, table]
