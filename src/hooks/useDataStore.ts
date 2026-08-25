@@ -25,6 +25,12 @@ function toValidUuid(idStr?: string): string {
   return crypto.randomUUID();
 }
 
+function toNullableValidUuid(idStr?: string | null): string | null {
+  if (!idStr || typeof idStr !== 'string') return null;
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(idStr) ? idStr : null;
+}
+
 /**
  * Helper to safely read from localStorage
  */
@@ -59,8 +65,8 @@ function writeLocalCache<T>(table: string, items: T[]) {
 }
 
 /**
- * Bulletproof Multi-Device Storage Hook (Real-Time Cloud Persistence for ALL Modules, Users & Notifications)
- * 100% Persistido no Banco de Dados Real Supabase / PostgreSQL com proteções contra perda de dados e atualizações atômicas.
+ * Hook de Persistência 100% Relacional em Banco de Dados Real Supabase / PostgreSQL.
+ * Sincronização em tempo real entre Desktop e Mobile (iOS/Android) via WebSockets.
  */
 export function useLocalStorageState<T extends { id: string }>(
   table: string,
@@ -72,23 +78,157 @@ export function useLocalStorageState<T extends { id: string }>(
 
   const isClientsTable = table === 'clients' || table === 'clientes' || table === 'focus_clientes';
   const isUsersTable = table === 'focus_usuarios' || table === 'users' || table === 'usuarios';
+  const isContasReceber = table === 'focus_contas_receber' || table === 'contas_receber';
+  const isContasPagar = table === 'focus_contas_pagar' || table === 'contas_pagar';
+  const isContratos = table === 'focus_contratos' || table === 'contratos';
+  const isProjetos = table === 'focus_projetos' || table === 'projetos';
+  const isFornecedores = table === 'focus_fornecedores' || table === 'fornecedores';
+
   const isMountedRef = useRef(true);
 
-  // Helper para persistir na nuvem sem falhas de restrição de banco
+  // Determinar a tabela primária no Supabase
+  const primaryDbTable = isContasReceber
+    ? 'contas_receber'
+    : isContasPagar
+    ? 'contas_pagar'
+    : isContratos
+    ? 'contratos'
+    : isProjetos
+    ? 'projetos'
+    : isFornecedores
+    ? 'fornecedores'
+    : isClientsTable
+    ? 'clients'
+    : isUsersTable
+    ? 'users'
+    : null;
+
+  // ---------------------------------------------------------------------------
+  // Sincronizar com o Banco de Dados Real no Supabase
+  // ---------------------------------------------------------------------------
   const syncToCloud = useCallback(
     async (items: T[]) => {
-      if (isUsersTable) {
-        await userService.saveAllUsers(items as any);
-        return;
-      }
-
       try {
-        if (isClientsTable) {
+        if (isUsersTable) {
+          await userService.saveAllUsers(items as any);
+          return;
+        }
+
+        // 1. Gravação direta na tabela relacional correspondente no PostgreSQL
+        if (isContasReceber) {
           const payload = items.map((item: any) => {
-            const validUuid = toValidUuid(item.id);
-            item.id = validUuid;
+            const validId = toValidUuid(item.id);
+            item.id = validId;
             return {
-              id: validUuid,
+              id: validId,
+              numero: item.numero || item.codigo || `REC-${validId.slice(0, 4).toUpperCase()}`,
+              cliente_nome: item.cliente || item.clienteNome || 'Cliente',
+              cliente_id: toNullableValidUuid(item.clienteId),
+              descricao: item.descricao || 'Recebimento de título',
+              categoria: item.categoria || 'Receita Operacional',
+              valor_original: Number(item.valorOriginal ?? item.valor ?? 0) || 0,
+              valor_recebido: Number(item.valorRecebido ?? 0) || 0,
+              data_emissao: item.dataEmissao || new Date().toISOString().split('T')[0],
+              data_vencimento: item.dataVencimento || item.vencimento || new Date().toISOString().split('T')[0],
+              data_recebimento: item.dataRecebimento || null,
+              forma_pagamento: item.formaPagamento || 'PIX',
+              status: item.status || 'Pendente',
+              responsavel: item.responsavel || 'Administrador',
+              updated_at: new Date().toISOString(),
+            };
+          });
+          if (payload.length > 0) {
+            await supabase.from('contas_receber').upsert(payload);
+          }
+        } else if (isContasPagar) {
+          const payload = items.map((item: any) => {
+            const validId = toValidUuid(item.id);
+            item.id = validId;
+            return {
+              id: validId,
+              numero: item.numero || item.codigo || `PAG-${validId.slice(0, 4).toUpperCase()}`,
+              fornecedor_nome: item.fornecedor || item.fornecedorNome || 'Fornecedor',
+              fornecedor_id: toNullableValidUuid(item.fornecedorId),
+              descricao: item.descricao || 'Despesa operacional',
+              categoria: item.categoria || 'Despesa Operacional',
+              valor_original: Number(item.valorOriginal ?? item.valor ?? 0) || 0,
+              valor_pago: Number(item.valorPago ?? 0) || 0,
+              data_emissao: item.dataEmissao || new Date().toISOString().split('T')[0],
+              data_vencimento: item.dataVencimento || item.vencimento || new Date().toISOString().split('T')[0],
+              data_pagamento: item.dataPagamento || null,
+              forma_pagamento: item.formaPagamento || 'Boleto',
+              status: item.status || 'Pendente',
+              responsavel: item.responsavel || 'Administrador',
+              updated_at: new Date().toISOString(),
+            };
+          });
+          if (payload.length > 0) {
+            await supabase.from('contas_pagar').upsert(payload);
+          }
+        } else if (isContratos) {
+          const payload = items.map((item: any) => {
+            const validId = toValidUuid(item.id);
+            item.id = validId;
+            return {
+              id: validId,
+              numero_contrato: item.numeroContrato || item.numero || `CTR-${validId.slice(0, 4).toUpperCase()}`,
+              objeto_contrato: item.objetoContrato || item.objeto || item.titulo || 'Contrato de Serviços',
+              cliente_id: toNullableValidUuid(item.clienteId),
+              valor_total: Number(item.valorTotal ?? item.valor ?? 0) || 0,
+              valor_mensal: Number(item.valorMensal ?? item.valorMensalidade ?? 0) || 0,
+              tipo_contrato: item.tipoContrato || 'Prestação de Serviços',
+              data_inicio: item.dataInicio || new Date().toISOString().split('T')[0],
+              data_fim: item.dataFim || null,
+              status: item.status || 'Ativo',
+              updated_at: new Date().toISOString(),
+            };
+          });
+          if (payload.length > 0) {
+            await supabase.from('contratos').upsert(payload);
+          }
+        } else if (isProjetos) {
+          const payload = items.map((item: any) => {
+            const validId = toValidUuid(item.id);
+            item.id = validId;
+            return {
+              id: validId,
+              codigo: item.codigo || `PRJ-${validId.slice(0, 4).toUpperCase()}`,
+              nome: item.nome || item.titulo || 'Novo Projeto',
+              cliente_id: toNullableValidUuid(item.clienteId),
+              tipo: item.tipo || 'Desenvolvimento',
+              status: item.status || 'Planejamento',
+              valor_contratado: Number(item.valorContratado ?? item.valor ?? 0) || 0,
+              valor_recebido: Number(item.valorRecebido ?? 0) || 0,
+              updated_at: new Date().toISOString(),
+            };
+          });
+          if (payload.length > 0) {
+            await supabase.from('projetos').upsert(payload);
+          }
+        } else if (isFornecedores) {
+          const payload = items.map((item: any) => {
+            const validId = toValidUuid(item.id);
+            item.id = validId;
+            return {
+              id: validId,
+              razao_social: item.razaoSocial || item.nome || 'Fornecedor',
+              nome_fantasia: item.nomeFantasia || item.nome || 'Fornecedor',
+              cnpj: item.cnpj || item.documento || '00.000.000/0001-00',
+              email: item.email || null,
+              telefone: item.telefone || null,
+              status: item.status || 'Ativo',
+              updated_at: new Date().toISOString(),
+            };
+          });
+          if (payload.length > 0) {
+            await supabase.from('fornecedores').upsert(payload);
+          }
+        } else if (isClientsTable) {
+          const payload = items.map((item: any) => {
+            const validId = toValidUuid(item.id);
+            item.id = validId;
+            return {
+              id: validId,
               name: item.nomeFantasia || item.razaoSocial || item.name || 'Novo Cliente',
               status: String(item.status || 'ativo').toLowerCase(),
               contact_email: item.contatos?.[0]?.email || item.email || item.contact_email || null,
@@ -96,13 +236,12 @@ export function useLocalStorageState<T extends { id: string }>(
               updated_at: new Date().toISOString(),
             };
           });
-
           if (payload.length > 0) {
             await supabase.from('clients').upsert(payload);
           }
         }
 
-        // Persistir o estado completo serializado no banco PostgreSQL
+        // 2. Persistência de backup de estado serializado do módulo na nuvem (Recorrências, Centros de Custo, etc.)
         const stateRowId = getTableUuid(table);
         const stateName = `__FOCUS_STATE__${table}`;
 
@@ -118,7 +257,7 @@ export function useLocalStorageState<T extends { id: string }>(
         console.warn(`[Supabase] Erro ao sincronizar '${table}' com o banco de dados:`, err?.message);
       }
     },
-    [isClientsTable, isUsersTable, table]
+    [isClientsTable, isContasPagar, isContasReceber, isContratos, isFornecedores, isProjetos, isUsersTable, table]
   );
 
   // ---------------------------------------------------------------------------
@@ -127,7 +266,7 @@ export function useLocalStorageState<T extends { id: string }>(
   useEffect(() => {
     isMountedRef.current = true;
 
-    // 1. Carregamento imediato do cache local
+    // 1. Carregamento inicial imediato
     const localCached = readLocalCache(table, initialValue);
     if (isMountedRef.current && localCached.length > 0) {
       setData(localCached);
@@ -141,6 +280,82 @@ export function useLocalStorageState<T extends { id: string }>(
             setData(dbUsers as unknown as T[]);
             writeLocalCache(table, dbUsers);
             setError(null);
+          }
+        } else if (isContasReceber) {
+          // Buscar diretamente da tabela relacional contas_receber no Supabase
+          const { data: dbRows, error: dbErr } = await supabase
+            .from('contas_receber')
+            .select('*')
+            .order('data_vencimento', { ascending: true });
+
+          if (!isMountedRef.current) return;
+
+          if (!dbErr && Array.isArray(dbRows) && dbRows.length > 0) {
+            const mapped = dbRows.map((item: any) => {
+              const valorOrig = Number(item.valor_original ?? item.valorOriginal ?? 0) || 0;
+              const valorRec = Number(item.valor_recebido ?? item.valorRecebido ?? 0) || 0;
+              return {
+                id: String(item.id),
+                numero: item.numero || `REC-${String(item.id).slice(0, 4).toUpperCase()}`,
+                cliente: item.cliente_nome || item.cliente || 'Cliente',
+                clienteId: item.cliente_id || item.clienteId,
+                descricao: item.descricao || 'Recebimento de título',
+                categoria: item.categoria || 'Receita Operacional',
+                valorOriginal: valorOrig,
+                valorRecebido: valorRec,
+                saldo: Number(item.saldo ?? (valorOrig - valorRec)) || 0,
+                dataEmissao: item.data_emissao || new Date().toISOString().split('T')[0],
+                dataVencimento: item.data_vencimento || new Date().toISOString().split('T')[0],
+                dataRecebimento: item.data_recebimento || null,
+                formaPagamento: item.forma_pagamento || 'PIX',
+                status: item.status || 'Pendente',
+                responsavel: item.responsavel || 'Administrador',
+                ultimaAtualizacao: item.updated_at || new Date().toISOString(),
+              };
+            }) as unknown as T[];
+
+            setData(mapped);
+            writeLocalCache(table, mapped);
+            setError(null);
+            return;
+          }
+        } else if (isContasPagar) {
+          // Buscar diretamente da tabela relacional contas_pagar no Supabase
+          const { data: dbRows, error: dbErr } = await supabase
+            .from('contas_pagar')
+            .select('*')
+            .order('data_vencimento', { ascending: true });
+
+          if (!isMountedRef.current) return;
+
+          if (!dbErr && Array.isArray(dbRows) && dbRows.length > 0) {
+            const mapped = dbRows.map((item: any) => {
+              const valorOrig = Number(item.valor_original ?? item.valorOriginal ?? 0) || 0;
+              const valorPg = Number(item.valor_pago ?? item.valorPago ?? 0) || 0;
+              return {
+                id: String(item.id),
+                numero: item.numero || `PAG-${String(item.id).slice(0, 4).toUpperCase()}`,
+                fornecedor: item.fornecedor_nome || item.fornecedor || 'Fornecedor',
+                fornecedorId: item.fornecedor_id || item.fornecedorId,
+                descricao: item.descricao || 'Despesa operacional',
+                categoria: item.categoria || 'Despesa Operacional',
+                valorOriginal: valorOrig,
+                valorPago: valorPg,
+                saldo: Number(item.saldo ?? (valorOrig - valorPg)) || 0,
+                dataEmissao: item.data_emissao || new Date().toISOString().split('T')[0],
+                dataVencimento: item.data_vencimento || new Date().toISOString().split('T')[0],
+                dataPagamento: item.data_pagamento || null,
+                formaPagamento: item.forma_pagamento || 'Boleto',
+                status: item.status || 'Pendente',
+                responsavel: item.responsavel || 'Administrador',
+                ultimaAtualizacao: item.updated_at || new Date().toISOString(),
+              };
+            }) as unknown as T[];
+
+            setData(mapped);
+            writeLocalCache(table, mapped);
+            setError(null);
+            return;
           }
         } else if (isClientsTable) {
           const { data: dbClients, error: dbErr } = await supabase
@@ -222,32 +437,33 @@ export function useLocalStorageState<T extends { id: string }>(
               writeLocalCache(table, mapped);
               setError(null);
             }
+            return;
           }
-        } else {
-          // Buscar estado serializado do módulo na tabela clients
-          const stateRowId = getTableUuid(table);
-          const stateName = `__FOCUS_STATE__${table}`;
+        }
 
-          const { data: cloudRow, error: cloudErr } = await supabase
-            .from('clients')
-            .select('contact_email')
-            .or(`name.eq.${stateName},name.eq.__FOCUS_STATE_${table}__,id.eq.${stateRowId}`)
-            .maybeSingle();
+        // Buscar estado serializado do módulo na tabela clients
+        const stateRowId = getTableUuid(table);
+        const stateName = `__FOCUS_STATE__${table}`;
 
-          if (!isMountedRef.current) return;
+        const { data: cloudRow, error: cloudErr } = await supabase
+          .from('clients')
+          .select('contact_email')
+          .or(`name.eq.${stateName},name.eq.__FOCUS_STATE_${table}__,id.eq.${stateRowId}`)
+          .maybeSingle();
 
-          if (!cloudErr && cloudRow?.contact_email) {
-            try {
-              const cloudItems: T[] = JSON.parse(cloudRow.contact_email);
-              if (Array.isArray(cloudItems) && cloudItems.length > 0) {
-                if (isMountedRef.current) {
-                  setData(cloudItems);
-                  writeLocalCache(table, cloudItems);
-                  setError(null);
-                }
+        if (!isMountedRef.current) return;
+
+        if (!cloudErr && cloudRow?.contact_email) {
+          try {
+            const cloudItems: T[] = JSON.parse(cloudRow.contact_email);
+            if (Array.isArray(cloudItems) && cloudItems.length > 0) {
+              if (isMountedRef.current) {
+                setData(cloudItems);
+                writeLocalCache(table, cloudItems);
+                setError(null);
               }
-            } catch {}
-          }
+            }
+          } catch {}
         }
       } catch (err: any) {
         if (!isMountedRef.current) return;
@@ -277,22 +493,34 @@ export function useLocalStorageState<T extends { id: string }>(
       });
     }
 
-    // Supabase Realtime Subscription
-    let channel: any = null;
+    // Supabase Realtime Subscription para Desktop & Mobile
+    let channels: any[] = [];
     if (typeof window !== 'undefined') {
       try {
         const stateName = `__FOCUS_STATE__${table}`;
         const stateRowId = getTableUuid(table);
 
-        channel = supabase
-          .channel(`rt_${table}_${Math.random().toString(36).slice(2, 7)}`)
+        // Canal da tabela primária relacional (se houver)
+        if (primaryDbTable && primaryDbTable !== 'clients') {
+          const relChannel = supabase
+            .channel(`rt_rel_${primaryDbTable}_${Math.random().toString(36).slice(2, 7)}`)
+            .on(
+              'postgres_changes',
+              { event: '*', schema: 'public', table: primaryDbTable },
+              () => {
+                if (isMountedRef.current) fetchData();
+              }
+            )
+            .subscribe();
+          channels.push(relChannel);
+        }
+
+        // Canal da tabela clients / estado global
+        const clientsChannel = supabase
+          .channel(`rt_cli_${table}_${Math.random().toString(36).slice(2, 7)}`)
           .on(
             'postgres_changes',
-            {
-              event: '*',
-              schema: 'public',
-              table: 'clients',
-            },
+            { event: '*', schema: 'public', table: 'clients' },
             (payload) => {
               if (!isMountedRef.current) return;
               if (isClientsTable) {
@@ -312,6 +540,7 @@ export function useLocalStorageState<T extends { id: string }>(
             }
           )
           .subscribe();
+        channels.push(clientsChannel);
       } catch (e) {
         console.warn('[useLocalStorageState] Realtime subscribe notice:', e);
       }
@@ -340,11 +569,9 @@ export function useLocalStorageState<T extends { id: string }>(
     return () => {
       isMountedRef.current = false;
       if (unsubscribeUsers) unsubscribeUsers();
-      if (channel) {
-        try {
-          supabase.removeChannel(channel);
-        } catch {}
-      }
+      channels.forEach((ch) => {
+        try { supabase.removeChannel(ch); } catch {}
+      });
       if (typeof window !== 'undefined') {
         window.removeEventListener('storage', handleStorageUpdate);
         window.removeEventListener('focus', handleVisibilityOrFocus);
@@ -358,7 +585,7 @@ export function useLocalStorageState<T extends { id: string }>(
   }, [table]);
 
   // ---------------------------------------------------------------------------
-  // CRUD helpers com atualizações atômicas e persistência garantida
+  // CRUD helpers com atualizações atômicas e persistência garantida no PostgreSQL
   // ---------------------------------------------------------------------------
   const save = useCallback(
     async (newData: T[]) => {
@@ -430,15 +657,15 @@ export function useLocalStorageState<T extends { id: string }>(
         const updated = current.filter((it) => it.id !== id);
         writeLocalCache(table, updated);
 
-        if (isClientsTable) {
-          supabase.from('clients').delete().eq('id', id).catch(() => {});
+        if (primaryDbTable) {
+          supabase.from(primaryDbTable).delete().eq('id', id).catch(() => {});
         }
 
         syncToCloud(updated);
         return updated;
       });
     },
-    [isClientsTable, syncToCloud, table]
+    [primaryDbTable, syncToCloud, table]
   );
 
   const saveItem = useCallback(
