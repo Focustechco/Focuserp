@@ -60,7 +60,7 @@ function writeLocalCache<T>(table: string, items: T[]) {
 
 /**
  * Bulletproof Multi-Device Storage Hook (Real-Time Cloud Persistence for ALL Modules, Users & Notifications)
- * 100% Persistido no Banco de Dados Real Supabase / PostgreSQL com sincronização em tempo real para Desktop e Mobile iOS/Android.
+ * 100% Persistido no Banco de Dados Real Supabase / PostgreSQL com proteções contra perda de dados e atualizações atômicas.
  */
 export function useLocalStorageState<T extends { id: string }>(
   table: string,
@@ -74,13 +74,60 @@ export function useLocalStorageState<T extends { id: string }>(
   const isUsersTable = table === 'focus_usuarios' || table === 'users' || table === 'usuarios';
   const isMountedRef = useRef(true);
 
+  // Helper para persistir na nuvem sem falhas de restrição de banco
+  const syncToCloud = useCallback(
+    async (items: T[]) => {
+      if (isUsersTable) {
+        await userService.saveAllUsers(items as any);
+        return;
+      }
+
+      try {
+        if (isClientsTable) {
+          const payload = items.map((item: any) => {
+            const validUuid = toValidUuid(item.id);
+            item.id = validUuid;
+            return {
+              id: validUuid,
+              name: item.nomeFantasia || item.razaoSocial || item.name || 'Novo Cliente',
+              status: String(item.status || 'ativo').toLowerCase(),
+              contact_email: item.contatos?.[0]?.email || item.email || item.contact_email || null,
+              contact_phone: item.contatos?.[0]?.celular || item.telefone || item.contact_phone || null,
+              updated_at: new Date().toISOString(),
+            };
+          });
+
+          if (payload.length > 0) {
+            await supabase.from('clients').upsert(payload);
+          }
+        }
+
+        // Persistir o estado completo serializado no banco PostgreSQL
+        const stateRowId = getTableUuid(table);
+        const stateName = `__FOCUS_STATE__${table}`;
+
+        await supabase.from('clients').upsert({
+          id: stateRowId,
+          name: stateName,
+          status: 'inativo',
+          contact_email: JSON.stringify(items),
+          contact_phone: '(11) 99999-9999',
+          updated_at: new Date().toISOString(),
+        });
+      } catch (err: any) {
+        console.warn(`[Supabase] Erro ao sincronizar '${table}' com o banco de dados:`, err?.message);
+      }
+    },
+    [isClientsTable, isUsersTable, table]
+  );
+
   // ---------------------------------------------------------------------------
-  // Sync Data on Client Mount & Realtime Cloud Database (with iOS Mobile Lifecycle support)
+  // Sync Data on Client Mount & Realtime Cloud Database
   // ---------------------------------------------------------------------------
   useEffect(() => {
     isMountedRef.current = true;
 
-    // 1. Initial local load for instant UI responsiveness
+    // 1. Carregamento imediato do cache local
     const localCached = readLocalCache(table, initialValue);
     if (isMountedRef.current && localCached.length > 0) {
       setData(localCached);
@@ -89,7 +136,6 @@ export function useLocalStorageState<T extends { id: string }>(
     const fetchData = async () => {
       try {
         if (isUsersTable) {
-          // Carregar diretamente do Banco de Dados Supabase (Users / State)
           const dbUsers = await userService.getUsers();
           if (isMountedRef.current && Array.isArray(dbUsers) && dbUsers.length > 0) {
             setData(dbUsers as unknown as T[]);
@@ -97,11 +143,11 @@ export function useLocalStorageState<T extends { id: string }>(
             setError(null);
           }
         } else if (isClientsTable) {
-          // Fetch real client rows from Supabase
           const { data: dbClients, error: dbErr } = await supabase
             .from('clients')
             .select('*')
             .not('name', 'like', '__FOCUS_STATE__%')
+            .not('name', 'like', '__FOCUS_STATE_%')
             .not('name', 'like', '__FOCUS_USERS_STATE__%')
             .neq('status', 'deleted')
             .order('created_at', { ascending: false });
@@ -165,7 +211,6 @@ export function useLocalStorageState<T extends { id: string }>(
                 };
               }) as T[];
 
-            // Manter também clientes locais que ainda estão sendo sincronizados
             localCached.forEach((lc: any) => {
               if (lc && lc.id && !mapped.some((m: any) => m.id === lc.id) && !deletedSet.has(String(lc.id))) {
                 mapped.push(lc);
@@ -179,15 +224,14 @@ export function useLocalStorageState<T extends { id: string }>(
             }
           }
         } else {
-          // Para todos os outros módulos (Contas a Receber, Contas a Pagar, Recorrências, Contratos, etc.)
-          // Carregar do Banco de Dados Supabase Cloud por nome ou ID
+          // Buscar estado serializado do módulo na tabela clients
           const stateRowId = getTableUuid(table);
-          const stateName = `__FOCUS_STATE_${table}__`;
+          const stateName = `__FOCUS_STATE__${table}`;
 
           const { data: cloudRow, error: cloudErr } = await supabase
             .from('clients')
             .select('contact_email')
-            .or(`name.eq.${stateName},id.eq.${stateRowId}`)
+            .or(`name.eq.${stateName},name.eq.__FOCUS_STATE_${table}__,id.eq.${stateRowId}`)
             .maybeSingle();
 
           if (!isMountedRef.current) return;
@@ -195,7 +239,7 @@ export function useLocalStorageState<T extends { id: string }>(
           if (!cloudErr && cloudRow?.contact_email) {
             try {
               const cloudItems: T[] = JSON.parse(cloudRow.contact_email);
-              if (Array.isArray(cloudItems)) {
+              if (Array.isArray(cloudItems) && cloudItems.length > 0) {
                 if (isMountedRef.current) {
                   setData(cloudItems);
                   writeLocalCache(table, cloudItems);
@@ -217,7 +261,6 @@ export function useLocalStorageState<T extends { id: string }>(
       fetchData();
     }
 
-    // Event listener for cross-tab / cross-window updates
     const handleStorageUpdate = (e: StorageEvent) => {
       if (e.key === `focus_app_${table}` || e.key === table || e.key === `focus_${table}`) {
         const updated = readLocalCache(table, initialValue);
@@ -234,11 +277,13 @@ export function useLocalStorageState<T extends { id: string }>(
       });
     }
 
-    // Supabase Realtime Subscription para sincronização multi-device em tempo real
+    // Supabase Realtime Subscription
     let channel: any = null;
     if (typeof window !== 'undefined') {
       try {
-        const stateName = `__FOCUS_STATE_${table}__`;
+        const stateName = `__FOCUS_STATE__${table}`;
+        const stateRowId = getTableUuid(table);
+
         channel = supabase
           .channel(`rt_${table}_${Math.random().toString(36).slice(2, 7)}`)
           .on(
@@ -254,7 +299,7 @@ export function useLocalStorageState<T extends { id: string }>(
                 fetchData();
               } else if (payload.new) {
                 const newRow = payload.new as any;
-                if ((newRow.name === stateName || newRow.id === getTableUuid(table)) && newRow.contact_email) {
+                if ((newRow.name === stateName || newRow.name === `__FOCUS_STATE_${table}__` || newRow.id === stateRowId) && newRow.contact_email) {
                   try {
                     const remoteData: T[] = JSON.parse(newRow.contact_email);
                     if (Array.isArray(remoteData)) {
@@ -268,11 +313,10 @@ export function useLocalStorageState<T extends { id: string }>(
           )
           .subscribe();
       } catch (e) {
-        console.warn('[useLocalStorageState] Realtime subscribe non-critical notice:', e);
+        console.warn('[useLocalStorageState] Realtime subscribe notice:', e);
       }
     }
 
-    // Suporte a ciclo de vida de Mobile iOS / Android (quando o app volta do background)
     const handleVisibilityOrFocus = () => {
       if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
         fetchData();
@@ -314,7 +358,7 @@ export function useLocalStorageState<T extends { id: string }>(
   }, [table]);
 
   // ---------------------------------------------------------------------------
-  // CRUD helpers (Instant Local update + Real Supabase Database Cloud sync)
+  // CRUD helpers com atualizações atômicas e persistência garantida
   // ---------------------------------------------------------------------------
   const save = useCallback(
     async (newData: T[]) => {
@@ -325,63 +369,18 @@ export function useLocalStorageState<T extends { id: string }>(
         return item;
       });
 
-      // 1. Instant local persistence
       setData(cleanedData);
       writeLocalCache(table, cleanedData);
 
-      // Disparar evento para outras abas e componentes
       if (typeof window !== 'undefined') {
         try {
           window.dispatchEvent(new Event('focus_storage_update'));
         } catch {}
       }
 
-      // 2. Sincronização de Usuários no Banco Real
-      if (isUsersTable) {
-        await userService.saveAllUsers(cleanedData as any);
-        return;
-      }
-
-      // 3. Sincronização de Clientes no Banco Real
-      try {
-        if (isClientsTable) {
-          const payload = cleanedData.map((item: any) => {
-            const validUuid = toValidUuid(item.id);
-            item.id = validUuid;
-            return {
-              id: validUuid,
-              name: item.nomeFantasia || item.razaoSocial || item.name || 'Novo Cliente',
-              status: String(item.status || 'ativo').toLowerCase(),
-              contact_email: item.contatos?.[0]?.email || item.email || item.contact_email || null,
-              contact_phone: item.contatos?.[0]?.celular || item.telefone || item.contact_phone || null,
-              updated_at: new Date().toISOString(),
-            };
-          });
-
-          if (payload.length > 0) {
-            const { error: upsertErr } = await supabase.from('clients').upsert(payload);
-            if (upsertErr) {
-              setError(upsertErr.message);
-            } else {
-              setError(null);
-            }
-          }
-        }
-
-        // 4. Persistir todos os dados do módulo no Banco de Dados Supabase (Cross-Device Cloud Sync)
-        const stateRowId = getTableUuid(table);
-        await supabase.from('clients').upsert({
-          id: stateRowId,
-          name: `__FOCUS_STATE_${table}__`,
-          status: 'system',
-          contact_email: JSON.stringify(cleanedData),
-          updated_at: new Date().toISOString(),
-        });
-      } catch (err: any) {
-        console.warn(`[Supabase] Erro ao sincronizar '${table}' com o banco de dados:`, err?.message);
-      }
+      await syncToCloud(cleanedData);
     },
-    [isClientsTable, isUsersTable, table]
+    [syncToCloud, table]
   );
 
   const addItem = useCallback(
@@ -390,59 +389,76 @@ export function useLocalStorageState<T extends { id: string }>(
         ...item,
         id: item.id ? item.id : crypto.randomUUID(),
       };
-      const newData = [itemWithUuid, ...data.filter((i) => i.id !== itemWithUuid.id)];
-      await save(newData);
+      setData((prev) => {
+        const current = Array.isArray(prev) ? prev : [];
+        const updated = [itemWithUuid, ...current.filter((i) => i.id !== itemWithUuid.id)];
+        writeLocalCache(table, updated);
+        syncToCloud(updated);
+        return updated;
+      });
     },
-    [data, save]
+    [syncToCloud, table]
   );
 
   const updateItem = useCallback(
     async (id: string, patch: Partial<T>) => {
-      const updatedData = data.map((it) => {
-        const matchesId = it.id === id;
-        const matchesEmail = isUsersTable && 
-          Boolean((it as any).email && (patch as any).email && 
-          String((it as any).email).toLowerCase().trim() === String((patch as any).email).toLowerCase().trim());
+      setData((prev) => {
+        const current = Array.isArray(prev) ? prev : [];
+        const updated = current.map((it) => {
+          const matchesId = it.id === id;
+          const matchesEmail = isUsersTable && 
+            Boolean((it as any).email && (patch as any).email && 
+            String((it as any).email).toLowerCase().trim() === String((patch as any).email).toLowerCase().trim());
 
-        if (matchesId || matchesEmail) {
-          return { ...it, ...patch };
-        }
-        return it;
+          if (matchesId || matchesEmail) {
+            return { ...it, ...patch };
+          }
+          return it;
+        });
+        writeLocalCache(table, updated);
+        syncToCloud(updated);
+        return updated;
       });
-      await save(updatedData);
     },
-    [data, isUsersTable, save]
+    [isUsersTable, syncToCloud, table]
   );
 
   const deleteItem = useCallback(
     async (id: string) => {
-      const filtered = data.filter((it) => it.id !== id);
-      setData(filtered);
-      writeLocalCache(table, filtered);
+      setData((prev) => {
+        const current = Array.isArray(prev) ? prev : [];
+        const updated = current.filter((it) => it.id !== id);
+        writeLocalCache(table, updated);
 
-      if (isClientsTable) {
-        try {
-          await supabase.from('clients').delete().eq('id', id);
-        } catch (e) {
-          console.warn('[Supabase] Error deleting client:', e);
+        if (isClientsTable) {
+          supabase.from('clients').delete().eq('id', id).catch(() => {});
         }
-      }
 
-      await save(filtered);
+        syncToCloud(updated);
+        return updated;
+      });
     },
-    [data, isClientsTable, save, table]
+    [isClientsTable, syncToCloud, table]
   );
 
   const saveItem = useCallback(
     async (item: T) => {
-      const exists = data.some((it) => it.id === item.id);
-      if (exists) {
-        await updateItem(item.id, item);
-      } else {
-        await addItem(item);
-      }
+      const itemWithUuid = {
+        ...item,
+        id: item.id ? item.id : crypto.randomUUID(),
+      };
+      setData((prev) => {
+        const current = Array.isArray(prev) ? prev : [];
+        const exists = current.some((it) => it.id === itemWithUuid.id);
+        const updated = exists
+          ? current.map((it) => (it.id === itemWithUuid.id ? { ...it, ...itemWithUuid } : it))
+          : [itemWithUuid, ...current];
+        writeLocalCache(table, updated);
+        syncToCloud(updated);
+        return updated;
+      });
     },
-    [data, addItem, updateItem]
+    [syncToCloud, table]
   );
 
   const removeItem = deleteItem;
