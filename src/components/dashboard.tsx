@@ -108,31 +108,75 @@ function StatCard({ label, value, delta, hint, icon: Icon, accent = "primary" }:
 }
 
 export function Dashboard() {
-  const { titulos = [], recebimentos = [] } = useContasReceberQuery();
-  const contasReceber = titulos.length > 0 ? titulos : recebimentos;
+  const { data: localTitulos = [] } = useLocalStorageState<TituloReceber>("focus_contas_receber");
+  const { titulos: queryTitulos = [] } = useContasReceberQuery();
 
-  const { contas = [], contasPagar = [] } = useContasPagarQuery();
-  const listContasPagar = contas.length > 0 ? contas : contasPagar;
+  const contasReceber = React.useMemo(() => {
+    const map = new Map<string, TituloReceber>();
+    localTitulos.forEach(t => map.set(t.id, t));
+    queryTitulos.forEach(t => {
+      if (!map.has(t.id)) map.set(t.id, t as any);
+    });
+    return Array.from(map.values());
+  }, [localTitulos, queryTitulos]);
+
+  const { data: localContas = [] } = useLocalStorageState<ContaPagar>("focus_contas_pagar");
+  const { contas: queryContas = [] } = useContasPagarQuery();
+
+  const listContasPagar = React.useMemo(() => {
+    const map = new Map<string, ContaPagar>();
+    localContas.forEach(c => map.set(c.id, c));
+    queryContas.forEach(c => {
+      if (!map.has(c.id)) map.set(c.id, c as any);
+    });
+    return Array.from(map.values());
+  }, [localContas, queryContas]);
 
   const { clientes = [] } = useClientesQuery();
+  const { data: localClientes = [] } = useLocalStorageState<Cliente>("focus_clientes");
+
+  const allClientes = React.useMemo(() => {
+    const map = new Map<string, any>();
+    localClientes.forEach(c => map.set(c.id, c));
+    clientes.forEach(c => {
+      if (!map.has(c.id)) map.set(c.id, c);
+    });
+    return Array.from(map.values()).filter(c => !c.name?.startsWith('__DELETED__') && !c.name?.startsWith('__FOCUS_'));
+  }, [localClientes, clientes]);
+
   const { data: contratos = [] } = useLocalStorageState<Contrato>("focus_contratos");
   const { data: recorrencias = [] } = useLocalStorageState<RecorrenciaFinanceira>("focus_recorrencias");
 
-  // Cálculos dinâmicos
-  const totalRecebido = contasReceber.reduce((acc, c) => acc + (c.valorRecebido || (c.status === "Recebido" ? c.valorOriginal : 0) || 0), 0);
-  const totalPago = listContasPagar.reduce((acc, c) => acc + (c.valorPago || (c.status === "Pago" ? c.valorOriginal : 0) || 0), 0);
+  // Cálculos dinâmicos consolidados
+  const totalRecebido = contasReceber
+    .filter(c => {
+      const st = (c.status || '').trim().toLowerCase();
+      return st === 'recebido' || st === 'liquidado' || st === 'pago';
+    })
+    .reduce((acc, c) => acc + (Number(c.valorRecebido || c.valorOriginal) || 0), 0);
+
+  const totalPago = listContasPagar
+    .filter(c => {
+      const st = (c.status || '').trim().toLowerCase();
+      return st === 'pago' || st === 'liquidado';
+    })
+    .reduce((acc, c) => acc + (Number(c.valorPago || c.valorOriginal) || 0), 0);
+
   const saldoEmCaixa = totalRecebido - totalPago;
 
-  const receitasDoMes = contasReceber.reduce((acc, c) => acc + (c.valorOriginal || 0), 0);
-  const despesasDoMes = listContasPagar.reduce((acc, c) => acc + (c.valorOriginal || 0), 0);
-  const lucroLiquido = receitasDoMes - despesasDoMes;
+  const receitasDoMes = contasReceber.reduce((acc, c) => acc + (Number(c.valorOriginal) || 0), 0);
+  const despesasDoMes = listContasPagar.reduce((acc, c) => acc + (Number(c.valorOriginal) || 0), 0);
+  const lucroLiquido = totalRecebido - totalPago;
 
   const mrr = calculateTotalMRR(recorrencias, contratos);
   const arr = mrr * 12;
-  const clientesAtivosCount = clientes.length;
+  const clientesAtivosCount = allClientes.filter(c => (c.status || '').trim().toLowerCase() !== 'inativo').length;
 
-  const titulosEmAberto = contasReceber.filter((c) => c.status !== "Recebido" && c.status !== "Pago");
-  const valorEmAberto = titulosEmAberto.reduce((acc, c) => acc + (c.saldo || 0), 0);
+  const titulosEmAberto = contasReceber.filter((c) => {
+    const st = (c.status || '').trim().toLowerCase();
+    return st !== "recebido" && st !== "liquidado" && st !== "pago" && st !== "cancelado";
+  });
+  const valorEmAberto = titulosEmAberto.reduce((acc, c) => acc + (Number(c.saldo || c.valorOriginal) || 0), 0);
   const percentualInadimplencia = receitasDoMes > 0 ? ((valorEmAberto / receitasDoMes) * 100).toFixed(1) : "0.0";
 
   // Próximos recebimentos pendentes
