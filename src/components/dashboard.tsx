@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,6 @@ import {
   AlertTriangle,
   Repeat,
   Target,
-  MoreHorizontal,
   Download,
   Plus,
 } from "lucide-react";
@@ -39,53 +38,47 @@ import { useContasReceberQuery } from "@/features/contas-receber/hooks/useContas
 import { useContasPagarQuery } from "@/features/contas-pagar/hooks/useContasPagarQuery";
 import { useClientesQuery } from "@/features/clientes/hooks/useClientesQuery";
 import { useLocalStorageState } from "@/hooks/useDataStore";
+import { TituloReceber } from "@/features/contas-receber/types";
+import { ContaPagar } from "@/features/contas-pagar/types";
+import { Cliente } from "@/features/clientes/types";
 import { Contrato } from "@/features/contratos/types";
 import { RecorrenciaFinanceira } from "@/features/recorrencias/types";
 import { calculateTotalMRR } from "@/features/recorrencias/services/recorrenciaEngine";
 import { NovoRecebimentoSheet } from "@/features/contas-receber/components/NovoRecebimentoSheet";
+import { formatDateBrasilia } from "@/lib/dateUtils";
 
 const currency = (v?: number | null) => {
   const num = typeof v === "number" && !isNaN(v) ? v : 0;
   return num.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 2 });
 };
 
-const chartColors = [
-  "var(--color-chart-1)",
-  "var(--color-chart-2)",
-  "var(--color-chart-3)",
-  "var(--color-chart-4)",
-  "var(--color-chart-5)",
-];
-
-interface StatProps {
-  label: string;
+interface MetricCardProps {
+  title: string;
   value: string;
   delta: number;
   hint?: string;
-  icon: React.ComponentType<{ className?: string }>;
-  accent?: "primary" | "success" | "destructive" | "muted";
+  icon: React.ElementType;
+  accent?: "emerald" | "orange" | "rose" | "blue";
 }
 
-function StatCard({ label, value, delta, hint, icon: Icon, accent = "primary" }: StatProps) {
+function MetricCard({ title, value, delta, hint, icon: Icon, accent = "orange" }: MetricCardProps) {
   const up = delta >= 0;
   const accentClass =
-    accent === "success"
-      ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-400"
-      : accent === "destructive"
-      ? "bg-rose-100 text-rose-800 dark:bg-rose-950/30 dark:text-rose-400"
-      : accent === "muted"
-      ? "bg-muted text-muted-foreground"
-      : "bg-primary/10 text-primary";
+    accent === "emerald"
+      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+      : accent === "rose"
+      ? "bg-rose-500/10 text-rose-600 dark:text-rose-400"
+      : accent === "blue"
+      ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
+      : "bg-orange-500/10 text-orange-600 dark:text-orange-400";
 
   return (
-    <Card className="group relative overflow-hidden transition-shadow hover:shadow-md">
-      <CardContent className="p-5">
-        <div className="flex items-start justify-between gap-3">
+    <Card className="relative overflow-hidden transition-all hover:shadow-md">
+      <CardContent className="p-6">
+        <div className="flex items-center justify-between">
           <div className="space-y-1">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              {label}
-            </p>
-            <p className="text-2xl font-semibold tracking-tight">{value}</p>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{title}</span>
+            <div className="text-2xl font-bold tracking-tight">{value}</div>
           </div>
           <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${accentClass}`}>
             <Icon className="h-5 w-5" />
@@ -111,53 +104,62 @@ export function Dashboard() {
   const { data: localTitulos = [] } = useLocalStorageState<TituloReceber>("focus_contas_receber");
   const { titulos: queryTitulos = [] } = useContasReceberQuery();
 
-  const contasReceber = React.useMemo(() => {
+  const contasReceber = useMemo(() => {
     const map = new Map<string, TituloReceber>();
-    localTitulos.forEach(t => map.set(t.id, t));
-    queryTitulos.forEach(t => {
-      if (!map.has(t.id)) map.set(t.id, t as any);
-    });
+    if (Array.isArray(localTitulos)) {
+      localTitulos.forEach((t) => { if (t && t.id) map.set(t.id, t); });
+    }
+    if (Array.isArray(queryTitulos)) {
+      queryTitulos.forEach((t) => { if (t && t.id && !map.has(t.id)) map.set(t.id, t as any); });
+    }
     return Array.from(map.values());
   }, [localTitulos, queryTitulos]);
 
   const { data: localContas = [] } = useLocalStorageState<ContaPagar>("focus_contas_pagar");
   const { contas: queryContas = [] } = useContasPagarQuery();
 
-  const listContasPagar = React.useMemo(() => {
+  const listContasPagar = useMemo(() => {
     const map = new Map<string, ContaPagar>();
-    localContas.forEach(c => map.set(c.id, c));
-    queryContas.forEach(c => {
-      if (!map.has(c.id)) map.set(c.id, c as any);
-    });
+    if (Array.isArray(localContas)) {
+      localContas.forEach((c) => { if (c && c.id) map.set(c.id, c); });
+    }
+    if (Array.isArray(queryContas)) {
+      queryContas.forEach((c) => { if (c && c.id && !map.has(c.id)) map.set(c.id, c as any); });
+    }
     return Array.from(map.values());
   }, [localContas, queryContas]);
 
-  const { clientes = [] } = useClientesQuery();
+  const { clientes: queryClientes = [] } = useClientesQuery();
   const { data: localClientes = [] } = useLocalStorageState<Cliente>("focus_clientes");
 
-  const allClientes = React.useMemo(() => {
+  const allClientes = useMemo(() => {
     const map = new Map<string, any>();
-    localClientes.forEach(c => map.set(c.id, c));
-    clientes.forEach(c => {
-      if (!map.has(c.id)) map.set(c.id, c);
+    if (Array.isArray(localClientes)) {
+      localClientes.forEach((c) => { if (c && c.id) map.set(c.id, c); });
+    }
+    if (Array.isArray(queryClientes)) {
+      queryClientes.forEach((c) => { if (c && c.id && !map.has(c.id)) map.set(c.id, c); });
+    }
+    return Array.from(map.values()).filter((c) => {
+      const n = String(c?.name || c?.razaoSocial || '');
+      return !n.startsWith('__DELETED__') && !n.startsWith('__FOCUS_');
     });
-    return Array.from(map.values()).filter(c => !c.name?.startsWith('__DELETED__') && !c.name?.startsWith('__FOCUS_'));
-  }, [localClientes, clientes]);
+  }, [localClientes, queryClientes]);
 
   const { data: contratos = [] } = useLocalStorageState<Contrato>("focus_contratos");
   const { data: recorrencias = [] } = useLocalStorageState<RecorrenciaFinanceira>("focus_recorrencias");
 
   // Cálculos dinâmicos consolidados
   const totalRecebido = contasReceber
-    .filter(c => {
-      const st = (c.status || '').trim().toLowerCase();
+    .filter((c) => {
+      const st = String(c.status || '').trim().toLowerCase();
       return st === 'recebido' || st === 'liquidado' || st === 'pago';
     })
     .reduce((acc, c) => acc + (Number(c.valorRecebido || c.valorOriginal) || 0), 0);
 
   const totalPago = listContasPagar
-    .filter(c => {
-      const st = (c.status || '').trim().toLowerCase();
+    .filter((c) => {
+      const st = String(c.status || '').trim().toLowerCase();
       return st === 'pago' || st === 'liquidado';
     })
     .reduce((acc, c) => acc + (Number(c.valorPago || c.valorOriginal) || 0), 0);
@@ -168,12 +170,12 @@ export function Dashboard() {
   const despesasDoMes = listContasPagar.reduce((acc, c) => acc + (Number(c.valorOriginal) || 0), 0);
   const lucroLiquido = totalRecebido - totalPago;
 
-  const mrr = calculateTotalMRR(recorrencias, contratos);
+  const mrr = calculateTotalMRR(Array.isArray(recorrencias) ? recorrencias : [], Array.isArray(contratos) ? contratos : []);
   const arr = mrr * 12;
-  const clientesAtivosCount = allClientes.filter(c => (c.status || '').trim().toLowerCase() !== 'inativo').length;
+  const clientesAtivosCount = allClientes.filter((c) => String(c.status || '').trim().toLowerCase() !== 'inativo').length;
 
   const titulosEmAberto = contasReceber.filter((c) => {
-    const st = (c.status || '').trim().toLowerCase();
+    const st = String(c.status || '').trim().toLowerCase();
     return st !== "recebido" && st !== "liquidado" && st !== "pago" && st !== "cancelado";
   });
   const valorEmAberto = titulosEmAberto.reduce((acc, c) => acc + (Number(c.saldo || c.valorOriginal) || 0), 0);
@@ -186,7 +188,7 @@ export function Dashboard() {
   const catMapReceita: Record<string, number> = {};
   contasReceber.forEach((c) => {
     const cat = c.categoria || "Geral";
-    catMapReceita[cat] = (catMapReceita[cat] || 0) + (c.valorOriginal || 0);
+    catMapReceita[cat] = (catMapReceita[cat] || 0) + (Number(c.valorOriginal) || 0);
   });
   const revenueByCategory = Object.keys(catMapReceita).length > 0
     ? Object.entries(catMapReceita).map(([name, value]) => ({ name, value }))
@@ -196,7 +198,7 @@ export function Dashboard() {
   const catMapDespesa: Record<string, number> = {};
   listContasPagar.forEach((c) => {
     const cat = c.categoria || "Operacional";
-    catMapDespesa[cat] = (catMapDespesa[cat] || 0) + (c.valorOriginal || 0);
+    catMapDespesa[cat] = (catMapDespesa[cat] || 0) + (Number(c.valorOriginal) || 0);
   });
   const expensesByCenter = Object.keys(catMapDespesa).length > 0
     ? Object.entries(catMapDespesa).map(([name, value]) => ({ name, value }))
@@ -223,122 +225,157 @@ export function Dashboard() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
-            <Download className="mr-2 h-4 w-4" /> Exportar
+          <Button variant="outline" size="sm" className="h-9 gap-1.5 text-xs">
+            <Download className="h-4 w-4" />
+            Exportar
           </Button>
           <NovoRecebimentoSheet>
-            <Button size="sm">
-              <Plus className="mr-2 h-4 w-4" /> Novo Recebimento
+            <Button size="sm" className="h-9 gap-1.5 bg-orange-600 hover:bg-orange-700 text-white text-xs shadow-sm">
+              <Plus className="h-4 w-4" />
+              Novo Recebimento
             </Button>
           </NovoRecebimentoSheet>
         </div>
       </div>
 
-      {/* KPI grid */}
+      {/* Grid de 8 Métricas Principais */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Saldo em caixa" value={currency(saldoEmCaixa)} delta={0} hint="entradas - saídas" icon={Wallet} />
-        <StatCard label="Receitas do mês" value={currency(receitasDoMes)} delta={0} hint="títulos previstos" icon={TrendingUp} accent="success" />
-        <StatCard label="Despesas do mês" value={currency(despesasDoMes)} delta={0} hint="contas a pagar" icon={TrendingDown} accent="destructive" />
-        <StatCard label="Lucro líquido" value={currency(lucroLiquido)} delta={0} hint="receitas - despesas" icon={PiggyBank} accent={lucroLiquido >= 0 ? "success" : "destructive"} />
-        <StatCard label="MRR" value={currency(mrr)} delta={0} hint={`ARR: ${currency(arr)}`} icon={Repeat} />
-        <StatCard label="Clientes ativos" value={String(clientesAtivosCount)} delta={0} hint="base cadastrada" icon={Users} />
-        <StatCard label="Inadimplência" value={`${percentualInadimplencia}%`} delta={0} hint={`${currency(valorEmAberto)} em aberto`} icon={AlertTriangle} accent="destructive" />
-        <StatCard label="Meta de faturamento" value={receitasDoMes > 0 ? "100%" : "0%"} delta={0} hint="acompanhamento em tempo real" icon={Target} accent="muted" />
+        <MetricCard
+          title="Saldo em Caixa"
+          value={currency(saldoEmCaixa)}
+          delta={0}
+          hint="entradas - saídas"
+          icon={Wallet}
+          accent={saldoEmCaixa >= 0 ? "emerald" : "rose"}
+        />
+        <MetricCard
+          title="Receitas do Mês"
+          value={currency(receitasDoMes)}
+          delta={0}
+          hint="títulos previstos"
+          icon={TrendingUp}
+          accent="emerald"
+        />
+        <MetricCard
+          title="Despesas do Mês"
+          value={currency(despesasDoMes)}
+          delta={0}
+          hint="contas a pagar"
+          icon={TrendingDown}
+          accent="rose"
+        />
+        <MetricCard
+          title="Lucro Líquido"
+          value={currency(lucroLiquido)}
+          delta={0}
+          hint="receitas - despesas"
+          icon={PiggyBank}
+          accent={lucroLiquido >= 0 ? "emerald" : "rose"}
+        />
+        <MetricCard
+          title="MRR"
+          value={currency(mrr)}
+          delta={0}
+          hint={`ARR: ${currency(arr)}`}
+          icon={Repeat}
+          accent="blue"
+        />
+        <MetricCard
+          title="Clientes Ativos"
+          value={String(clientesAtivosCount)}
+          delta={0}
+          hint="base cadastrada"
+          icon={Users}
+          accent="orange"
+        />
+        <MetricCard
+          title="Inadimplência"
+          value={`${percentualInadimplencia}%`}
+          delta={0}
+          hint={`${currency(valorEmAberto)} em aberto`}
+          icon={AlertTriangle}
+          accent="rose"
+        />
+        <MetricCard
+          title="Meta de Faturamento"
+          value="0%"
+          delta={0}
+          hint="acompanhamento em tempo real"
+          icon={Target}
+          accent="blue"
+        />
       </div>
 
-      {/* Charts row 1 */}
+      {/* Gráficos Principais */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        {/* Fluxo de Caixa */}
         <Card className="lg:col-span-2">
           <CardHeader className="flex flex-row items-start justify-between space-y-0">
             <div>
-              <CardTitle className="text-base">Fluxo de caixa</CardTitle>
-              <CardDescription>Entradas vs Saídas registradas</CardDescription>
-            </div>
-            <div className="flex items-center gap-3 text-xs">
-              <span className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-primary" /> Entradas
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-foreground/70" /> Saídas
-              </span>
+              <CardTitle className="text-base">Fluxo de Caixa</CardTitle>
+              <CardDescription>Entradas vs Saídas consolidadas</CardDescription>
             </div>
           </CardHeader>
-          <CardContent className="h-[300px] pl-1">
+          <CardContent className="h-[280px] pl-1">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={cashflowData} margin={{ top: 6, right: 12, left: 0, bottom: 0 }}>
+              <AreaChart data={cashflowData} margin={{ top: 10, right: 12, left: 0, bottom: 0 }}>
                 <defs>
-                  <linearGradient id="gEnt" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--color-primary)" stopOpacity={0.35} />
-                    <stop offset="100%" stopColor="var(--color-primary)" stopOpacity={0} />
+                  <linearGradient id="entGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(142.1 76.2% 36.3%)" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="hsl(142.1 76.2% 36.3%)" stopOpacity={0} />
                   </linearGradient>
-                  <linearGradient id="gSai" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--color-foreground)" stopOpacity={0.18} />
-                    <stop offset="100%" stopColor="var(--color-foreground)" stopOpacity={0} />
+                  <linearGradient id="saiGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(0 84.2% 60.2%)" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="hsl(0 84.2% 60.2%)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--color-border)" />
                 <XAxis dataKey="m" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} />
                 <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} tickFormatter={(v) => `R$${v}`} />
                 <Tooltip
-                  cursor={{ stroke: "var(--color-border)" }}
                   contentStyle={{ background: "var(--color-card)", border: "1px solid var(--color-border)", borderRadius: 10, fontSize: 12 }}
                   formatter={(v: number) => currency(v)}
                 />
-                <Area type="monotone" dataKey="entradas" stroke="var(--color-primary)" strokeWidth={2} fill="url(#gEnt)" />
-                <Area type="monotone" dataKey="saidas" stroke="var(--color-foreground)" strokeOpacity={0.7} strokeWidth={2} fill="url(#gSai)" />
+                <Area type="monotone" dataKey="entradas" stroke="hsl(142.1 76.2% 36.3%)" strokeWidth={2} fillOpacity={1} fill="url(#entGrad)" name="Entradas" />
+                <Area type="monotone" dataKey="saidas" stroke="hsl(0 84.2% 60.2%)" strokeWidth={2} fillOpacity={1} fill="url(#saiGrad)" name="Saídas" />
               </AreaChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
+        {/* Receita por Categoria */}
         <Card>
-          <CardHeader className="flex flex-row items-start justify-between space-y-0">
-            <div>
-              <CardTitle className="text-base">Receita por categoria</CardTitle>
-              <CardDescription>Composição do faturamento real</CardDescription>
-            </div>
-            <Button variant="ghost" size="icon" className="h-7 w-7">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
+          <CardHeader>
+            <CardTitle className="text-base">Receita por Categoria</CardTitle>
+            <CardDescription>Distribuição de entradas</CardDescription>
           </CardHeader>
-          <CardContent className="h-[300px]">
+          <CardContent className="h-[280px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie
-                  data={revenueByCategory}
-                  dataKey="value"
-                  nameKey="name"
-                  innerRadius={58}
-                  outerRadius={92}
-                  paddingAngle={2}
-                  stroke="var(--color-background)"
-                  strokeWidth={2}
-                >
+                <Pie data={revenueByCategory} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={4}>
                   {revenueByCategory.map((_, i) => (
-                    <Cell key={i} fill={chartColors[i % chartColors.length]} />
+                    <Cell key={i} fill={["#ea580c", "#10b981", "#3b82f6", "#8b5cf6", "#f59e0b", "#06b6d4"][i % 6]} />
                   ))}
                 </Pie>
                 <Tooltip
                   contentStyle={{ background: "var(--color-card)", border: "1px solid var(--color-border)", borderRadius: 10, fontSize: 12 }}
                   formatter={(v: number) => currency(v)}
                 />
-                <Legend
-                  verticalAlign="bottom"
-                  iconType="circle"
-                  wrapperStyle={{ fontSize: 11, color: "var(--color-muted-foreground)" }}
-                />
+                <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: 11 }} />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
       </div>
 
-      {/* Charts row 2 */}
+      {/* Seção Inferior */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">MRR — Receita recorrente</CardTitle>
-            <CardDescription>Contratos ativos</CardDescription>
+          <CardHeader className="flex flex-row items-start justify-between space-y-0">
+            <div>
+              <CardTitle className="text-base">MRR — Receita Recorrente</CardTitle>
+              <CardDescription>Evolução de contratos e assinaturas</CardDescription>
+            </div>
           </CardHeader>
           <CardContent className="h-[240px] pl-1">
             <ResponsiveContainer width="100%" height="100%">
@@ -359,7 +396,7 @@ export function Dashboard() {
         <Card className="lg:col-span-2">
           <CardHeader className="flex flex-row items-start justify-between space-y-0">
             <div>
-              <CardTitle className="text-base">Despesas por categoria</CardTitle>
+              <CardTitle className="text-base">Despesas por Categoria</CardTitle>
               <CardDescription>Distribuição de contas a pagar</CardDescription>
             </div>
           </CardHeader>
@@ -381,12 +418,12 @@ export function Dashboard() {
         </Card>
       </div>
 
-      {/* Bottom row */}
+      {/* Lista de Próximos Recebimentos */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader className="flex flex-row items-start justify-between space-y-0">
             <div>
-              <CardTitle className="text-base">Próximos recebimentos</CardTitle>
+              <CardTitle className="text-base">Próximos Recebimentos</CardTitle>
               <CardDescription>Títulos pendentes no sistema</CardDescription>
             </div>
           </CardHeader>
@@ -398,10 +435,6 @@ export function Dashboard() {
             ) : (
               <div className="divide-y">
                 {proximosRecebimentos.map((r) => {
-                  const variant =
-                    r.status === "Atrasado" || r.status === "Vencido"
-                      ? "bg-rose-100 text-rose-800 dark:bg-rose-950/40 dark:text-rose-400"
-                      : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-400";
                   const clienteNome = r.cliente || (r as any).clienteNome || "Cliente";
                   const initials = (clienteNome || "C")
                     .split(" ")
@@ -418,15 +451,14 @@ export function Dashboard() {
                         </div>
                         <div className="min-w-0">
                           <p className="truncate text-sm font-medium">{clienteNome}</p>
-                          <p className="text-xs text-muted-foreground">{r.descricao || "Título"} · Vence em {r.dataVencimento || "A vencer"}</p>
+                          <p className="text-xs text-muted-foreground">{r.descricao || "Título"} · Vence em {r.dataVencimento ? formatDateBrasilia(r.dataVencimento) : "A vencer"}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
-                        <Badge variant="secondary" className={`${variant} border-0 text-[10px] font-medium`}>
+                        <span className="text-sm font-semibold">{currency(valorExibir)}</span>
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/40">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
                           {r.status || "Pendente"}
-                        </Badge>
-                        <span className="w-24 text-right text-sm font-semibold tabular-nums">
-                          {currency(valorExibir)}
                         </span>
                       </div>
                     </div>
@@ -437,28 +469,30 @@ export function Dashboard() {
           </CardContent>
         </Card>
 
+        {/* Resumo de Metas */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Resumo de Atividades</CardTitle>
-            <CardDescription>Cadastros no sistema</CardDescription>
+            <CardTitle className="text-base">Meta Financeira</CardTitle>
+            <CardDescription>Progresso do faturamento do mês</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-5">
-            {[
-              { label: "Clientes Cadastrados", count: clientes.length },
-              { label: "Contratos Vigentes", count: contratos.length },
-              { label: "Contas a Pagar", count: contasPagar.length },
-              { label: "Contas a Receber", count: contasReceber.length },
-            ].map((g) => (
-              <div key={g.label} className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="font-medium">{g.label}</span>
-                  <span className="tabular-nums font-bold text-primary">
-                    {g.count}
-                  </span>
-                </div>
-                <Progress value={g.count > 0 ? 100 : 0} className="h-2" />
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Faturamento Realizado</span>
+                <span className="font-semibold">{currency(totalRecebido)}</span>
               </div>
-            ))}
+              <Progress value={receitasDoMes > 0 ? Math.min(100, (totalRecebido / receitasDoMes) * 100) : 0} className="h-2" />
+            </div>
+            <div className="rounded-lg border bg-muted/40 p-3 text-xs text-muted-foreground space-y-1.5">
+              <div className="flex justify-between">
+                <span>Receitas Previstas:</span>
+                <strong className="text-foreground">{currency(receitasDoMes)}</strong>
+              </div>
+              <div className="flex justify-between">
+                <span>Saldo em Caixa:</span>
+                <strong className="text-emerald-600 dark:text-emerald-400">{currency(saldoEmCaixa)}</strong>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
