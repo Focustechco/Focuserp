@@ -4,15 +4,28 @@ import { safeSetItem, safeGetItem } from '@/lib/safeStorage';
 import { userService } from '@/services/userService';
 
 /**
- * Helper to generate a valid, deterministic UUID for state storage keys in PostgreSQL.
+ * Helper to generate a valid, unique, deterministic UUID for state storage keys in PostgreSQL without collisions.
  */
 function getTableUuid(table: string): string {
-  let hex = '';
+  let hash1 = 5381;
+  let hash2 = 52711;
   for (let i = 0; i < table.length; i++) {
-    hex += table.charCodeAt(i).toString(16);
+    const char = table.charCodeAt(i);
+    hash1 = ((hash1 << 5) + hash1) ^ char;
+    hash2 = ((hash2 << 5) + hash2) ^ char;
   }
-  const paddedHex = (hex + '000000000000000000000000').slice(0, 12);
-  return `00000000-0000-4000-a000-${paddedHex}`;
+  const hex1 = Math.abs(hash1).toString(16).padStart(8, '0');
+  const hex2 = Math.abs(hash2).toString(16).padStart(8, '0');
+  const hex3 = Math.abs((hash1 ^ hash2) + 12345).toString(16).padStart(8, '0');
+  const hex4 = Math.abs((hash1 + hash2) * 7).toString(16).padStart(8, '0');
+
+  const p1 = hex1;
+  const p2 = hex2.slice(0, 4);
+  const p3 = '4' + hex2.slice(4, 7);
+  const p4 = 'a' + hex3.slice(1, 4);
+  const p5 = (hex3.slice(4, 8) + hex4.slice(0, 8)).slice(0, 12);
+
+  return `${p1}-${p2}-${p3}-${p4}-${p5}`;
 }
 
 /**

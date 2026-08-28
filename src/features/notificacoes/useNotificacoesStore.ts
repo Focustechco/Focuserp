@@ -104,28 +104,33 @@ export function useNotificacoesStore() {
   // Dynamically derive client creation notifications from synced Supabase clients
   const clientNotifications = useMemo<Notificacao[]>(() => {
     if (!clientes || !Array.isArray(clientes)) return [];
-    return clientes.map((c: any) => {
-      const notifId = `notif-client-${c.id}`;
-      const isRead = readNotifIds.includes(notifId);
-      const name = c.nomeFantasia || c.razaoSocial || c.name || 'Novo Cliente';
-      const doc = c.documento ? ` com documento ${c.documento}` : '';
+    return clientes
+      .filter((c: any) => {
+        const name = String(c.nomeFantasia || c.razaoSocial || c.name || '');
+        return name && !name.startsWith('__DELETED__') && !name.startsWith('__FOCUS_');
+      })
+      .map((c: any) => {
+        const notifId = `notif-client-${c.id}`;
+        const isRead = readNotifIds.includes(notifId);
+        const name = c.nomeFantasia || c.razaoSocial || c.name || 'Novo Cliente';
+        const doc = c.documento ? ` com documento ${c.documento}` : '';
 
-      return {
-        id: notifId,
-        titulo: `Novo Cliente Cadastrado: ${name}`,
-        descricao: `Cliente ${c.tipo || 'Pessoa Jurídica'}${doc} registrado com sucesso no sistema.`,
-        origem: 'CRM' as NotificationCategory,
-        tipo: 'Sucesso' as NotificationType,
-        prioridade: 'Normal' as NotificationPriority,
-        lida: isRead,
-        arquivada: false,
-        dataCriacao: c.dataCadastro || c.created_at || c.ultimaAtualizacao || new Date().toISOString(),
-        responsavel: 'Sistema CRM',
-        usuarioDestino: 'Você',
-        targetUrl: '/clientes',
-        entidadeId: c.id
-      };
-    });
+        return {
+          id: notifId,
+          titulo: `Novo Cliente Cadastrado: ${name}`,
+          descricao: `Cliente ${c.tipo || 'Pessoa Jurídica'}${doc} registrado com sucesso no sistema.`,
+          origem: 'CRM' as NotificationCategory,
+          tipo: 'Sucesso' as NotificationType,
+          prioridade: 'Normal' as NotificationPriority,
+          lida: isRead,
+          arquivada: false,
+          dataCriacao: c.dataCadastro || c.created_at || c.ultimaAtualizacao || new Date().toISOString(),
+          responsavel: 'Sistema CRM',
+          usuarioDestino: 'Você',
+          targetUrl: '/clientes',
+          entidadeId: c.id
+        };
+      });
   }, [clientes, readNotifIds]);
 
   // Combine derived client notifications with manual/custom notifications
@@ -135,11 +140,13 @@ export function useNotificacoesStore() {
     // Add client notifications
     clientNotifications.forEach((n) => map.set(n.id, n));
 
-    // Add manual notifications (rawNotificacoes take precedence if ID matches)
-    (rawNotificacoes || []).forEach((n) => {
-      const isRead = n.lida || readNotifIds.includes(n.id);
-      map.set(n.id, { ...n, lida: isRead });
-    });
+    // Add manual notifications (validating title existence to avoid DMS folder contamination)
+    (rawNotificacoes || [])
+      .filter((n: any) => n && n.id && typeof n.titulo === 'string' && n.titulo.trim().length > 0)
+      .forEach((n) => {
+        const isRead = n.lida || readNotifIds.includes(n.id);
+        map.set(n.id, { ...n, lida: isRead });
+      });
 
     return Array.from(map.values()).sort(
       (a, b) => new Date(b.dataCriacao).getTime() - new Date(a.dataCriacao).getTime()

@@ -11,7 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { 
   Plus, Trash2, FileText, Upload, RefreshCw, Calendar, DollarSign, 
   CheckCircle2, PauseCircle, XCircle, FolderOpen, UploadCloud, Download, 
-  ExternalLink, Eye, ShieldCheck, Briefcase, Search, MapPin, Building, Globe, User
+  ExternalLink, Eye, ShieldCheck, Briefcase, Search, MapPin, Building, Globe, User, Info
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';

@@ -56,8 +56,17 @@ export function ContratosList({ filterEntidade }: { filterEntidade?: string[] })
     const seenIds = new Set<string>();
     const seenKeys = new Set<string>();
     
-    return (contratos || []).filter((c) => {
-      if (!c || (!c.id && !c.numeroContrato && !c.nome)) return false;
+    return (contratos || []).filter((c: any) => {
+      if (!c || !c.id) return false;
+      // Excluir pastas do DMS que possam ter sido injetadas por colisão
+      if (c.caminhoCompleto || c.parentId !== undefined || c.moduloVinculado) return false;
+      // Validar campos mínimos de contrato legítimo
+      const hasContractData = Boolean(c.numeroContrato || c.objetoContrato || c.objeto || c.valorTotal || c.valorMensalidade || c.tipoContrato);
+      if (!hasContractData && !c.nome) return false;
+      if (['Clientes', 'Projetos', 'RH', 'Colaboradores', 'Folha de Pagamento', 'Contratos de Trabalho', 'Atestados e Licenças', 'Produtos Focus', 'Manuais e Guias'].includes(c.nome)) {
+        return false;
+      }
+      
       if (seenIds.has(c.id)) return false;
       
       const key = `${c.numeroContrato || ''}_${c.clienteNome || ''}_${c.nome || ''}`;
