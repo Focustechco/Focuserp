@@ -199,11 +199,13 @@ export function generateRecorrenciaDates(
   return dates;
 }
 
+import { recurringBillingService } from './recurringBillingService';
+
 /**
- * Sincroniza todos os títulos de Contas a Receber e Agenda para a vigência da recorrência.
- * - Gera os recebimentos para cada ciclo (ex: todo dia 10 durante o período).
- * - Proteção contra duplicidade de títulos.
- * - Se 'Pausada' ou 'Encerrada', preserva o histórico e não gera novos títulos futuros.
+ * Sincroniza o título de Contas a Receber do ciclo vigente da recorrência.
+ * - REGRA DE OURO ERP: Gera EXCLUSIVAMENTE o 1º título vigente do ciclo atual com status 'Pendente'.
+ * - Os meses futuros são programados e NÃO geram lançamentos realizados de caixa.
+ * - Idempotência absoluta contra duplicações.
  */
 export function syncRecorrenciaTitulos(
   recorrencia: RecorrenciaFinanceira,
@@ -216,76 +218,6 @@ export function syncRecorrenciaTitulos(
     return titulosAtuais;
   }
 
-  const hoje = getBrasiliaTodayIso();
-  const scheduledDates = generateRecorrenciaDates(recorrencia, 12);
-  let updatedList = [...titulosAtuais];
-
-  scheduledDates.forEach((dueDate, index) => {
-    // Checar se já existe título desta recorrência nesta data específica
-    const existingIndex = updatedList.findIndex(
-      t => (t.recorrenciaId === recorrencia.id || (t.clienteId === recorrencia.clientId && t.origem === 'recorrencia')) &&
-           t.dataVencimento === dueDate
-    );
-
-    if (existingIndex >= 0) {
-      const existing = updatedList[existingIndex];
-      // Se não estiver recebido nem cancelado, atualiza dados da recorrência
-      if (existing.status !== 'Recebido' && existing.status !== 'Cancelado') {
-        const isPastDue = dueDate < hoje;
-        const currentStatus = isPastDue ? 'Atrasado' : (dueDate === hoje ? 'Pendente' : 'Previsto');
-
-        updatedList[existingIndex] = {
-          ...existing,
-          cliente: recorrencia.clienteNome,
-          clienteId: recorrencia.clientId,
-          recorrenciaId: recorrencia.id,
-          descricao: `${recorrencia.descricao} (${index + 1}/${scheduledDates.length})`,
-          valorOriginal: Number(recorrencia.valor) || 0,
-          saldo: Number(recorrencia.valor) - (existing.valorRecebido || 0),
-          status: existing.status === 'Recebido Parcialmente' ? 'Recebido Parcialmente' : currentStatus,
-          formaPagamento: recorrencia.formaPagamento || existing.formaPagamento || 'PIX',
-          ultimaAtualizacao: new Date().toISOString()
-        };
-      }
-    } else {
-      // Criar novo título financeiro periódico
-      const isPastDue = dueDate < hoje;
-      const initialStatus = isPastDue ? 'Atrasado' : (dueDate === hoje ? 'Pendente' : 'Previsto');
-
-      const novoTitulo: TituloReceber = {
-        id: crypto.randomUUID(),
-        numero: `REC-${Math.floor(1000 + Math.random() * 9000)}`,
-        cliente: recorrencia.clienteNome,
-        clienteId: recorrencia.clientId,
-        recorrenciaId: recorrencia.id,
-        origem: 'recorrencia',
-        descricao: `${recorrencia.descricao} (${index + 1}/${scheduledDates.length})`,
-        categoria: recorrencia.categoria || 'Mensalidade',
-        valorOriginal: Number(recorrencia.valor) || 0,
-        valorRecebido: 0,
-        saldo: Number(recorrencia.valor) || 0,
-        dataEmissao: new Date().toISOString().split('T')[0],
-        dataVencimento: dueDate,
-        formaPagamento: recorrencia.formaPagamento || 'PIX',
-        status: initialStatus,
-        responsavel: 'Financeiro',
-        ultimaAtualizacao: new Date().toISOString(),
-        recorrente: true,
-        recorrenciaFrequencia: recorrencia.frequencia,
-        historico: [
-          {
-            id: `h-${Date.now()}-${index}`,
-            data: new Date().toISOString(),
-            usuario: 'Sistema',
-            acao: 'Criação do título recorrente',
-            observacao: `Gerado automaticamente da recorrência "${recorrencia.descricao}". Ciclo ${index + 1}.`
-          }
-        ]
-      };
-
-      updatedList.unshift(novoTitulo);
-    }
-  });
-
+  const { updatedList } = recurringBillingService.generateCurrentCycleTitle(recorrencia, titulosAtuais);
   return updatedList;
 }

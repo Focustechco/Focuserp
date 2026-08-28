@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useContasReceberQuery } from '../hooks/useContasReceberQuery';
+import { recurringBillingService } from '@/features/recorrencias/services/recurringBillingService';
 import { useLocalStorageState } from '@/hooks/useDataStore';
 import { TituloReceber } from '../types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -190,16 +191,20 @@ export function RecebimentosList() {
     setDataFim('');
   };
 
-  const handleAprovarRecebimento = (titulo: TituloReceber) => {
+  const handleAprovarRecebimento = async (titulo: TituloReceber) => {
     const hoje = getBrasiliaTodayIso();
-    saveTitulo({
-      ...titulo,
-      status: 'Recebido',
-      valorRecebido: titulo.valorOriginal,
-      saldo: 0,
-      dataRecebimento: hoje,
-    });
-    toast.success(`Recebimento do título ${titulo.numero} aprovado e integrado ao Fluxo de Caixa!`);
+    try {
+      const tituloBaixado = await recurringBillingService.baixarTituloTransacional(titulo, {
+        valorRecebido: titulo.valorOriginal,
+        dataRecebimento: hoje,
+        formaPagamento: titulo.formaPagamento || 'PIX',
+        usuario: 'Financeiro'
+      });
+      await saveTitulo(tituloBaixado);
+      toast.success(`Recebimento do título ${titulo.numero} registrado e integrado ao Fluxo de Caixa Realizado!`);
+    } catch (err: any) {
+      toast.error('Erro ao registrar recebimento do título.');
+    }
   };
 
   return (

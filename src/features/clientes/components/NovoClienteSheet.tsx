@@ -154,8 +154,8 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
         const todosDocs = dmsService.getDocumentos();
         const docsDesteCliente = todosDocs.filter(
           d => d.clienteId === clienteToEdit.id || 
-               d.caminhoPasta.toLowerCase().includes((clienteToEdit.nomeFantasia || clienteToEdit.razaoSocial || '').toLowerCase()) ||
-               d.tags?.includes(clienteToEdit.id)
+               (d.caminhoPasta || '').toLowerCase().includes((clienteToEdit.nomeFantasia || clienteToEdit.razaoSocial || '').toLowerCase()) ||
+               (Array.isArray(d.tags) && d.tags.includes(clienteToEdit.id))
         ).map(d => ({
           id: d.id,
           nome: d.nome,
@@ -495,7 +495,10 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
   // Contratos vinculados a este cliente
   const contratosDoCliente = contratos.filter(
     c => c.clienteId === currentClienteId || 
-         (clienteToEdit && (c.nome.toLowerCase().includes(clienteNomeOficial.toLowerCase()) || c.clienteId === clienteToEdit.id))
+         (clienteToEdit && (
+           String(c.nome || (c as any).objetoContrato || (c as any).numeroContrato || '').toLowerCase().includes(clienteNomeOficial.toLowerCase()) || 
+           c.clienteId === clienteToEdit.id
+         ))
   );
 
   return (
@@ -985,6 +988,16 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
                           <SelectItem value="Encerrada">Encerrada</SelectItem>
                         </SelectContent>
                       </Select>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-blue-50/60 dark:bg-blue-950/20 border border-blue-200/60 dark:border-blue-800/40 rounded-md text-xs text-blue-800 dark:text-blue-300 flex items-start gap-2">
+                    <Info className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="font-semibold text-xs text-blue-950 dark:text-blue-200">Regra de Faturamento Recorrente:</p>
+                      <p className="text-[11px] text-blue-700/90 dark:text-blue-300/80 mt-0.5">
+                        Este contrato programa cobranças e gera o título com status <strong>Pendente</strong> no Contas a Receber. O valor <strong>somente entrará no Fluxo de Caixa Realizado</strong> e no saldo após o registro da baixa do título.
+                      </p>
                     </div>
                   </div>
                 </div>

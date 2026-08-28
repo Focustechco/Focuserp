@@ -445,17 +445,33 @@ export function useLocalStorageState<T extends { id: string }>(
         const stateRowId = getTableUuid(table);
         const stateName = `__FOCUS_STATE__${table}`;
 
-        const { data: cloudRow, error: cloudErr } = await supabase
-          .from('clients')
-          .select('contact_email')
-          .or(`name.eq.${stateName},name.eq.__FOCUS_STATE_${table}__,id.eq.${stateRowId}`)
-          .maybeSingle();
+        let cloudEmail: string | null = null;
+        try {
+          const { data: rowById } = await supabase
+            .from('clients')
+            .select('contact_email')
+            .eq('id', stateRowId)
+            .maybeSingle();
+
+          if (rowById?.contact_email) {
+            cloudEmail = rowById.contact_email;
+          } else {
+            const { data: rowByName } = await supabase
+              .from('clients')
+              .select('contact_email')
+              .eq('name', stateName)
+              .maybeSingle();
+            if (rowByName?.contact_email) {
+              cloudEmail = rowByName.contact_email;
+            }
+          }
+        } catch {}
 
         if (!isMountedRef.current) return;
 
-        if (!cloudErr && cloudRow?.contact_email) {
+        if (cloudEmail) {
           try {
-            const cloudItems: T[] = JSON.parse(cloudRow.contact_email);
+            const cloudItems: T[] = JSON.parse(cloudEmail);
             if (Array.isArray(cloudItems) && cloudItems.length > 0) {
               if (isMountedRef.current) {
                 setData(cloudItems);

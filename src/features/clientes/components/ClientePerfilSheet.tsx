@@ -60,14 +60,16 @@ export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: Clie
   const recorrenciaAtiva = (financeiro?.recorrenciasDoCliente || []).find(r => r.status === 'Ativa');
   const contatos = Array.isArray(cliente.contatos) ? cliente.contatos : [];
 
+  const safeNome = String(nomeOficial || '').toLowerCase();
+
   // 1. Documentos no DMS vinculados a este cliente
   const todosDocumentos = dmsService.getDocumentos() || [];
   const documentosDoCliente = todosDocumentos.filter(d => {
     if (!d) return false;
     if (d.clienteId === cliente.id) return true;
-    if (d.clienteNome && d.clienteNome.toLowerCase() === nomeOficial.toLowerCase()) return true;
-    if (d.caminhoPasta && d.caminhoPasta.toLowerCase().includes(nomeOficial.toLowerCase())) return true;
-    if (d.tags && (d.tags.includes(cliente.id) || d.tags.includes(nomeOficial))) return true;
+    if (d.clienteNome && String(d.clienteNome).toLowerCase() === safeNome) return true;
+    if (d.caminhoPasta && String(d.caminhoPasta).toLowerCase().includes(safeNome)) return true;
+    if (Array.isArray(d.tags) && (d.tags.includes(cliente.id) || d.tags.includes(nomeOficial))) return true;
     return false;
   });
 
@@ -75,8 +77,8 @@ export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: Clie
   const contratosDoCliente = (contratos || []).filter(c => {
     if (!c) return false;
     if (c.clienteId === cliente.id) return true;
-    if (c.clienteNome && c.clienteNome.toLowerCase() === nomeOficial.toLowerCase()) return true;
-    if (c.nome && c.nome.toLowerCase().includes(nomeOficial.toLowerCase())) return true;
+    if (c.clienteNome && String(c.clienteNome).toLowerCase() === safeNome) return true;
+    if (c.nome && String(c.nome).toLowerCase().includes(safeNome)) return true;
     return false;
   });
 
@@ -84,8 +86,8 @@ export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: Clie
   const projetosDoCliente = (projetos || []).filter((p: any) => {
     if (!p) return false;
     if (p.clienteId === cliente.id) return true;
-    if (p.cliente && p.cliente.toLowerCase() === nomeOficial.toLowerCase()) return true;
-    if (p.clienteNome && p.clienteNome.toLowerCase() === nomeOficial.toLowerCase()) return true;
+    if (p.cliente && String(p.cliente).toLowerCase() === safeNome) return true;
+    if (p.clienteNome && String(p.clienteNome).toLowerCase() === safeNome) return true;
     return false;
   });
 
@@ -93,8 +95,8 @@ export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: Clie
   const oportunidadesDoCliente = (oportunidades || []).filter(op => {
     if (!op) return false;
     if (op.clienteId === cliente.id) return true;
-    if (op.empresa && op.empresa.toLowerCase() === nomeOficial.toLowerCase()) return true;
-    if (op.titulo && op.titulo.toLowerCase().includes(nomeOficial.toLowerCase())) return true;
+    if (op.empresa && String(op.empresa).toLowerCase() === safeNome) return true;
+    if (op.titulo && String(op.titulo).toLowerCase().includes(safeNome)) return true;
     return false;
   });
 

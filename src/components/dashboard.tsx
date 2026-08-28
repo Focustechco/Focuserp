@@ -149,7 +149,9 @@ export function Dashboard() {
   const { data: contratos = [] } = useLocalStorageState<Contrato>("focus_contratos");
   const { data: recorrencias = [] } = useLocalStorageState<RecorrenciaFinanceira>("focus_recorrencias");
 
-  // Cálculos dinâmicos consolidados
+  const nowIsoMonth = new Date().toISOString().slice(0, 7); // 'YYYY-MM'
+
+  // 1. Receitas e Despesas Realizadas Globais (Saldo Real em Caixa)
   const totalRecebido = contasReceber
     .filter((c) => {
       const st = String(c.status || '').trim().toLowerCase();
@@ -166,9 +168,45 @@ export function Dashboard() {
 
   const saldoEmCaixa = totalRecebido - totalPago;
 
-  const receitasDoMes = contasReceber.reduce((acc, c) => acc + (Number(c.valorOriginal) || 0), 0);
-  const despesasDoMes = listContasPagar.reduce((acc, c) => acc + (Number(c.valorOriginal) || 0), 0);
-  const lucroLiquido = totalRecebido - totalPago;
+  // 2. Receitas do Mês: Realizadas vs Previstas
+  const receitasDoMes = contasReceber
+    .filter((c) => {
+      const st = String(c.status || '').trim().toLowerCase();
+      const isLiquidado = st === 'recebido' || st === 'liquidado' || st === 'pago';
+      const dt = String(c.dataRecebimento || c.dataVencimento || '');
+      return isLiquidado && dt.startsWith(nowIsoMonth);
+    })
+    .reduce((acc, c) => acc + (Number(c.valorRecebido || c.valorOriginal) || 0), 0);
+
+  const receitasPrevistasDoMes = contasReceber
+    .filter((c) => {
+      const st = String(c.status || '').trim().toLowerCase();
+      const isAberto = st !== 'recebido' && st !== 'liquidado' && st !== 'pago' && st !== 'cancelado';
+      const dt = String(c.dataVencimento || '');
+      return isAberto && dt.startsWith(nowIsoMonth);
+    })
+    .reduce((acc, c) => acc + (Number(c.saldo || c.valorOriginal) || 0), 0);
+
+  // 3. Despesas do Mês: Pagas vs Previstas
+  const despesasDoMes = listContasPagar
+    .filter((c) => {
+      const st = String(c.status || '').trim().toLowerCase();
+      const isPago = st === 'pago' || st === 'liquidado';
+      const dt = String(c.dataPagamento || c.dataVencimento || '');
+      return isPago && dt.startsWith(nowIsoMonth);
+    })
+    .reduce((acc, c) => acc + (Number(c.valorPago || c.valorOriginal) || 0), 0);
+
+  const despesasPrevistasDoMes = listContasPagar
+    .filter((c) => {
+      const st = String(c.status || '').trim().toLowerCase();
+      const isAberto = st !== 'pago' && st !== 'liquidado' && st !== 'cancelado';
+      const dt = String(c.dataVencimento || '');
+      return isAberto && dt.startsWith(nowIsoMonth);
+    })
+    .reduce((acc, c) => acc + (Number(c.saldo || c.valorOriginal) || 0), 0);
+
+  const lucroLiquido = receitasDoMes - despesasDoMes;
 
   const mrr = calculateTotalMRR(Array.isArray(recorrencias) ? recorrencias : [], Array.isArray(contratos) ? contratos : []);
   const arr = mrr * 12;
@@ -179,7 +217,8 @@ export function Dashboard() {
     return st !== "recebido" && st !== "liquidado" && st !== "pago" && st !== "cancelado";
   });
   const valorEmAberto = titulosEmAberto.reduce((acc, c) => acc + (Number(c.saldo || c.valorOriginal) || 0), 0);
-  const percentualInadimplencia = receitasDoMes > 0 ? ((valorEmAberto / receitasDoMes) * 100).toFixed(1) : "0.0";
+  const totalReceitasProjetadas = receitasDoMes + receitasPrevistasDoMes;
+  const percentualInadimplencia = totalReceitasProjetadas > 0 ? ((valorEmAberto / totalReceitasProjetadas) * 100).toFixed(1) : "0.0";
 
   // Próximos recebimentos pendentes
   const proximosRecebimentos = titulosEmAberto.slice(0, 6);
@@ -201,20 +240,24 @@ export function Dashboard() {
       const label = `${monthNames[mIdx]}/${String(y).slice(-2)}`;
       const monthPrefix = `${y}-${String(mIdx + 1).padStart(2, '0')}`;
 
-      // Filtrar títulos deste mês
+      // Filtrar entradas liquidadas deste mês
       let entMonth = contasReceber.reduce((acc, c) => {
-        const dt = String(c.dataVencimento || c.dataRecebimento || c.dataEmissao || '');
-        if (dt.startsWith(monthPrefix)) {
-          return acc + (Number(c.valorOriginal || c.valorRecebido) || 0);
+        const st = String(c.status || '').trim().toLowerCase();
+        const isLiquidado = st === 'recebido' || st === 'liquidado' || st === 'pago';
+        const dt = String(c.dataRecebimento || c.dataVencimento || '');
+        if (isLiquidado && dt.startsWith(monthPrefix)) {
+          return acc + (Number(c.valorRecebido || c.valorOriginal) || 0);
         }
         return acc;
       }, 0);
 
-      // Filtrar contas a pagar deste mês
+      // Filtrar saídas pagas deste mês
       let saiMonth = listContasPagar.reduce((acc, c) => {
-        const dt = String(c.dataVencimento || c.dataPagamento || c.dataEmissao || '');
-        if (dt.startsWith(monthPrefix)) {
-          return acc + (Number(c.valorOriginal || c.valorPago) || 0);
+        const st = String(c.status || '').trim().toLowerCase();
+        const isPago = st === 'pago' || st === 'liquidado';
+        const dt = String(c.dataPagamento || c.dataVencimento || '');
+        if (isPago && dt.startsWith(monthPrefix)) {
+          return acc + (Number(c.valorPago || c.valorOriginal) || 0);
         }
         return acc;
       }, 0);
@@ -303,7 +346,7 @@ export function Dashboard() {
           title="Saldo em Caixa"
           value={currency(saldoEmCaixa)}
           delta={0}
-          hint="entradas - saídas"
+          hint="caixa realizado efetivo"
           icon={Wallet}
           accent={saldoEmCaixa >= 0 ? "emerald" : "rose"}
         />
@@ -311,7 +354,7 @@ export function Dashboard() {
           title="Receitas do Mês"
           value={currency(receitasDoMes)}
           delta={0}
-          hint="títulos previstos"
+          hint={`+ ${currency(receitasPrevistasDoMes)} a receber`}
           icon={TrendingUp}
           accent="emerald"
         />
@@ -319,7 +362,7 @@ export function Dashboard() {
           title="Despesas do Mês"
           value={currency(despesasDoMes)}
           delta={0}
-          hint="contas a pagar"
+          hint={`+ ${currency(despesasPrevistasDoMes)} a pagar`}
           icon={TrendingDown}
           accent="rose"
         />
