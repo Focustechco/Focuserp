@@ -15,7 +15,7 @@ export function useContasPagarQuery() {
   } = useQuery<ContaPagarDTO[]>({
     queryKey: ['contas_pagar'],
     queryFn: () => financeiroService.getContasPagar(),
-    staleTime: 1000 * 60 * 5,
+    staleTime: 0,
   });
 
   const saveMutation = useMutation({

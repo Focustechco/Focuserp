@@ -19,7 +19,7 @@ export function useClientesQuery() {
   } = useQuery<ClienteDTO[]>({
     queryKey: ['clientes'],
     queryFn: () => clienteService.getClientes(),
-    staleTime: 1000 * 60 * 5, // Cache por 5 minutos sem refetch desnecessário
+    staleTime: 0,
   });
 
   // Mutação para salvar/atualizar cliente

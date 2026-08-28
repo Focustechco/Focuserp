@@ -28,8 +28,8 @@ import type { ProjetoDTO } from '@/schemas/projetoSchema';
 import type { UserDTO } from '@/schemas/userSchema';
 import type { AuditLogDTO } from '@/schemas/auditLogSchema';
 
-// ─── STALE TIME padronizado ────────────────────────────────────────────────────
-const STALE_5MIN = 1000 * 60 * 5;
+// ─── STALE TIME padronizado (0 para sincronização imediata em tempo real com o banco) ───
+const STALE_5MIN = 0;
 
 // ==============================================================================
 // 1. CLIENTES
