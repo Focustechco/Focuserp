@@ -74,12 +74,18 @@ export function RecebimentosList() {
   const { data: localTitulos = [], saveItem: saveLocalTitulo, removeItem: deleteLocalTitulo } = useLocalStorageState<TituloReceber>('focus_contas_receber');
   const { titulos: queryTitulos = [], saveTitulo: saveQueryTitulo, deleteTitulo: deleteQueryTitulo } = useContasReceberQuery();
 
-  // Fusão consistente para garantir que todos os títulos locais e remotos apareçam imediatamente
+  // Fusão consistente para garantir que apenas títulos válidos (com cliente, número ou descrição) apareçam
   const titulos = useMemo(() => {
     const map = new Map<string, TituloReceber>();
-    localTitulos.forEach(t => map.set(t.id, t));
+    localTitulos.forEach(t => {
+      if (t && t.id && (t.cliente || t.descricao || (t.numero && !t.numero.startsWith('REC-0000')) || Number(t.valorOriginal || 0) > 0)) {
+        map.set(t.id, t);
+      }
+    });
     queryTitulos.forEach(t => {
-      if (!map.has(t.id)) map.set(t.id, t);
+      if (t && t.id && (t.cliente || t.descricao || (t.numero && !t.numero.startsWith('REC-0000')) || Number(t.valorOriginal || 0) > 0)) {
+        if (!map.has(t.id)) map.set(t.id, t);
+      }
     });
     return Array.from(map.values());
   }, [localTitulos, queryTitulos]);

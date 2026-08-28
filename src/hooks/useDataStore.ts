@@ -31,6 +31,25 @@ function toNullableValidUuid(idStr?: string | null): string | null {
   return uuidRegex.test(idStr) ? idStr : null;
 }
 
+function isValidItem(table: string, item: any): boolean {
+  if (!item || typeof item !== 'object') return false;
+  if (!item.id || typeof item.id !== 'string') return false;
+  if (table.includes('contas_receber') || table.includes('receber')) {
+    const hasCliente = Boolean(item.cliente || item.clienteNome || item.cliente_nome);
+    const hasDesc = Boolean(item.descricao);
+    const hasValor = Number(item.valorOriginal ?? item.valor ?? 0) > 0;
+    const hasNum = Boolean(item.numero && !item.numero.startsWith('REC-0000'));
+    return hasCliente || hasDesc || hasValor || hasNum;
+  }
+  if (table.includes('contas_pagar') || table.includes('pagar')) {
+    const hasForn = Boolean(item.fornecedor || item.fornecedorNome || item.fornecedor_nome);
+    const hasDesc = Boolean(item.descricao);
+    const hasValor = Number(item.valorOriginal ?? item.valor ?? 0) > 0;
+    return hasForn || hasDesc || hasValor;
+  }
+  return true;
+}
+
 /**
  * Helper to safely read from localStorage
  */
@@ -42,8 +61,9 @@ function readLocalCache<T>(table: string, fallback: T[]): T[] {
       const raw = safeGetItem(k);
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
+        if (Array.isArray(parsed)) {
+          const valid = parsed.filter(it => isValidItem(table, it));
+          if (valid.length > 0) return valid;
         }
       }
     }
@@ -290,29 +310,31 @@ export function useLocalStorageState<T extends { id: string }>(
 
           if (!isMountedRef.current) return;
 
-          if (!dbErr && Array.isArray(dbRows) && dbRows.length > 0) {
-            const mapped = dbRows.map((item: any) => {
-              const valorOrig = Number(item.valor_original ?? item.valorOriginal ?? 0) || 0;
-              const valorRec = Number(item.valor_recebido ?? item.valorRecebido ?? 0) || 0;
-              return {
-                id: String(item.id),
-                numero: item.numero || `REC-${String(item.id).slice(0, 4).toUpperCase()}`,
-                cliente: item.cliente_nome || item.cliente || 'Cliente',
-                clienteId: item.cliente_id || item.clienteId,
-                descricao: item.descricao || 'Recebimento de título',
-                categoria: item.categoria || 'Receita Operacional',
-                valorOriginal: valorOrig,
-                valorRecebido: valorRec,
-                saldo: Number(item.saldo ?? (valorOrig - valorRec)) || 0,
-                dataEmissao: item.data_emissao || new Date().toISOString().split('T')[0],
-                dataVencimento: item.data_vencimento || new Date().toISOString().split('T')[0],
-                dataRecebimento: item.data_recebimento || null,
-                formaPagamento: item.forma_pagamento || 'PIX',
-                status: item.status || 'Pendente',
-                responsavel: item.responsavel || 'Administrador',
-                ultimaAtualizacao: item.updated_at || new Date().toISOString(),
-              };
-            }) as unknown as T[];
+          if (!dbErr && Array.isArray(dbRows)) {
+            const mapped = dbRows
+              .filter((item: any) => item && (item.cliente_nome || item.descricao || Number(item.valor_original || 0) > 0))
+              .map((item: any) => {
+                const valorOrig = Number(item.valor_original ?? item.valorOriginal ?? 0) || 0;
+                const valorRec = Number(item.valor_recebido ?? item.valorRecebido ?? 0) || 0;
+                return {
+                  id: String(item.id),
+                  numero: item.numero || `REC-${String(item.id).slice(0, 4).toUpperCase()}`,
+                  cliente: item.cliente_nome || item.cliente || 'Cliente',
+                  clienteId: item.cliente_id || item.clienteId,
+                  descricao: item.descricao || 'Recebimento de título',
+                  categoria: item.categoria || 'Receita Operacional',
+                  valorOriginal: valorOrig,
+                  valorRecebido: valorRec,
+                  saldo: Number(item.saldo ?? (valorOrig - valorRec)) || 0,
+                  dataEmissao: item.data_emissao || new Date().toISOString().split('T')[0],
+                  dataVencimento: item.data_vencimento || new Date().toISOString().split('T')[0],
+                  dataRecebimento: item.data_recebimento || null,
+                  formaPagamento: item.forma_pagamento || 'PIX',
+                  status: item.status || 'Pendente',
+                  responsavel: item.responsavel || 'Administrador',
+                  ultimaAtualizacao: item.updated_at || new Date().toISOString(),
+                };
+              }) as unknown as T[];
 
             setData(mapped);
             writeLocalCache(table, mapped);
@@ -328,29 +350,31 @@ export function useLocalStorageState<T extends { id: string }>(
 
           if (!isMountedRef.current) return;
 
-          if (!dbErr && Array.isArray(dbRows) && dbRows.length > 0) {
-            const mapped = dbRows.map((item: any) => {
-              const valorOrig = Number(item.valor_original ?? item.valorOriginal ?? 0) || 0;
-              const valorPg = Number(item.valor_pago ?? item.valorPago ?? 0) || 0;
-              return {
-                id: String(item.id),
-                numero: item.numero || `PAG-${String(item.id).slice(0, 4).toUpperCase()}`,
-                fornecedor: item.fornecedor_nome || item.fornecedor || 'Fornecedor',
-                fornecedorId: item.fornecedor_id || item.fornecedorId,
-                descricao: item.descricao || 'Despesa operacional',
-                categoria: item.categoria || 'Despesa Operacional',
-                valorOriginal: valorOrig,
-                valorPago: valorPg,
-                saldo: Number(item.saldo ?? (valorOrig - valorPg)) || 0,
-                dataEmissao: item.data_emissao || new Date().toISOString().split('T')[0],
-                dataVencimento: item.data_vencimento || new Date().toISOString().split('T')[0],
-                dataPagamento: item.data_pagamento || null,
-                formaPagamento: item.forma_pagamento || 'Boleto',
-                status: item.status || 'Pendente',
-                responsavel: item.responsavel || 'Administrador',
-                ultimaAtualizacao: item.updated_at || new Date().toISOString(),
-              };
-            }) as unknown as T[];
+          if (!dbErr && Array.isArray(dbRows)) {
+            const mapped = dbRows
+              .filter((item: any) => item && (item.fornecedor_nome || item.descricao || Number(item.valor_original || 0) > 0))
+              .map((item: any) => {
+                const valorOrig = Number(item.valor_original ?? item.valorOriginal ?? 0) || 0;
+                const valorPg = Number(item.valor_pago ?? item.valorPago ?? 0) || 0;
+                return {
+                  id: String(item.id),
+                  numero: item.numero || `PAG-${String(item.id).slice(0, 4).toUpperCase()}`,
+                  fornecedor: item.fornecedor_nome || item.fornecedor || 'Fornecedor',
+                  fornecedorId: item.fornecedor_id || item.fornecedorId,
+                  descricao: item.descricao || 'Despesa operacional',
+                  categoria: item.categoria || 'Despesa Operacional',
+                  valorOriginal: valorOrig,
+                  valorPago: valorPg,
+                  saldo: Number(item.saldo ?? (valorOrig - valorPg)) || 0,
+                  dataEmissao: item.data_emissao || new Date().toISOString().split('T')[0],
+                  dataVencimento: item.data_vencimento || new Date().toISOString().split('T')[0],
+                  dataPagamento: item.data_pagamento || null,
+                  formaPagamento: item.forma_pagamento || 'Boleto',
+                  status: item.status || 'Pendente',
+                  responsavel: item.responsavel || 'Administrador',
+                  ultimaAtualizacao: item.updated_at || new Date().toISOString(),
+                };
+              }) as unknown as T[];
 
             setData(mapped);
             writeLocalCache(table, mapped);
