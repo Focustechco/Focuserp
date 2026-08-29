@@ -28,6 +28,7 @@ export function NovoCentroCustoSheet({ children }: { children?: React.ReactNode 
   const [responsavel, setResponsavel] = useState("");
   const [descricao, setDescricao] = useState("");
 
+  const { notificar } = useNotificacoesStore();
   const { addItem, data: centros } = useLocalStorageState<CentroCusto>('focus_centro_custos', INITIAL_CENTROS);
   const { data: usuarios } = useLocalStorageState<Usuario>('focus_usuarios', INITIAL_USUARIOS);
   const centrosPaisDisponiveis = centros.filter(c => !c.centroPaiId);

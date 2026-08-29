@@ -19,6 +19,16 @@ function toNullableValidUuid(idStr?: string | null): string | null {
   return uuidRegex.test(idStr) ? idStr : null;
 }
 
+function deduplicateById<T extends { id: string }>(items: T[]): T[] {
+  const map = new Map<string, T>();
+  items.forEach((item) => {
+    if (item && item.id) {
+      map.set(item.id, item);
+    }
+  });
+  return Array.from(map.values());
+}
+
 const DMS_FOLDER_NAMES = [
   'Clientes',
   'Projetos',
@@ -202,10 +212,11 @@ export function useLocalStorageState<T extends { id: string }>(
               updated_at: new Date().toISOString(),
             };
           });
-          if (payload.length > 0) {
-            const { error: upsertErr } = await supabase.from('contas_receber').upsert(payload, { onConflict: 'id' });
+          const dedupedPayload = deduplicateById(payload);
+          if (dedupedPayload.length > 0) {
+            const { error: upsertErr } = await supabase.from('contas_receber').upsert(dedupedPayload, { onConflict: 'id' });
             if (upsertErr) {
-              const safePayload = payload.map(p => ({ ...p, cliente_id: null }));
+              const safePayload = dedupedPayload.map(p => ({ ...p, cliente_id: null }));
               await supabase.from('contas_receber').upsert(safePayload, { onConflict: 'id' });
             }
           }
@@ -231,10 +242,11 @@ export function useLocalStorageState<T extends { id: string }>(
               updated_at: new Date().toISOString(),
             };
           });
-          if (payload.length > 0) {
-            const { error: upsertErr } = await supabase.from('contas_pagar').upsert(payload, { onConflict: 'id' });
+          const dedupedPayload = deduplicateById(payload);
+          if (dedupedPayload.length > 0) {
+            const { error: upsertErr } = await supabase.from('contas_pagar').upsert(dedupedPayload, { onConflict: 'id' });
             if (upsertErr) {
-              const safePayload = payload.map(p => ({ ...p, fornecedor_id: null }));
+              const safePayload = dedupedPayload.map(p => ({ ...p, fornecedor_id: null }));
               await supabase.from('contas_pagar').upsert(safePayload, { onConflict: 'id' });
             }
           }
@@ -257,10 +269,11 @@ export function useLocalStorageState<T extends { id: string }>(
               updated_at: new Date().toISOString(),
             };
           });
-          if (payload.length > 0) {
-            const { error: upsertErr } = await supabase.from('contratos').upsert(payload, { onConflict: 'id' });
+          const dedupedPayload = deduplicateById(payload);
+          if (dedupedPayload.length > 0) {
+            const { error: upsertErr } = await supabase.from('contratos').upsert(dedupedPayload, { onConflict: 'id' });
             if (upsertErr) {
-              const safePayload = payload.map(p => ({ ...p, cliente_id: null }));
+              const safePayload = dedupedPayload.map(p => ({ ...p, cliente_id: null }));
               await supabase.from('contratos').upsert(safePayload, { onConflict: 'id' });
             }
           }
@@ -280,10 +293,11 @@ export function useLocalStorageState<T extends { id: string }>(
               updated_at: new Date().toISOString(),
             };
           });
-          if (payload.length > 0) {
-            const { error: upsertErr } = await supabase.from('projetos').upsert(payload, { onConflict: 'id' });
+          const dedupedPayload = deduplicateById(payload);
+          if (dedupedPayload.length > 0) {
+            const { error: upsertErr } = await supabase.from('projetos').upsert(dedupedPayload, { onConflict: 'id' });
             if (upsertErr) {
-              const safePayload = payload.map(p => ({ ...p, cliente_id: null }));
+              const safePayload = dedupedPayload.map(p => ({ ...p, cliente_id: null }));
               await supabase.from('projetos').upsert(safePayload, { onConflict: 'id' });
             }
           }
@@ -302,8 +316,9 @@ export function useLocalStorageState<T extends { id: string }>(
               updated_at: new Date().toISOString(),
             };
           });
-          if (payload.length > 0) {
-            await supabase.from('fornecedores').upsert(payload, { onConflict: 'id' });
+          const dedupedPayload = deduplicateById(payload);
+          if (dedupedPayload.length > 0) {
+            await supabase.from('fornecedores').upsert(dedupedPayload, { onConflict: 'id' });
           }
         } else if (isColaboradores) {
           const payload = items.map((item: any) => {
@@ -324,8 +339,9 @@ export function useLocalStorageState<T extends { id: string }>(
               updated_at: new Date().toISOString(),
             };
           });
-          if (payload.length > 0) {
-            await supabase.from('colaboradores').upsert(payload, { onConflict: 'id' });
+          const dedupedPayload = deduplicateById(payload);
+          if (dedupedPayload.length > 0) {
+            await supabase.from('colaboradores').upsert(dedupedPayload, { onConflict: 'id' });
           }
         } else if (isClientsTable) {
           const payloadClients = items.map((item: any) => {
@@ -353,9 +369,11 @@ export function useLocalStorageState<T extends { id: string }>(
               updated_at: new Date().toISOString(),
             };
           });
-          if (payloadClients.length > 0) {
-            await supabase.from('clients').upsert(payloadClients, { onConflict: 'id' });
-            await supabase.from('clientes').upsert(payloadClientes, { onConflict: 'id' });
+          const dedupedClients = deduplicateById(payloadClients);
+          const dedupedClientes = deduplicateById(payloadClientes);
+          if (dedupedClients.length > 0) {
+            await supabase.from('clients').upsert(dedupedClients, { onConflict: 'id' });
+            await supabase.from('clientes').upsert(dedupedClientes, { onConflict: 'id' });
           }
         }
       } catch (err: any) {

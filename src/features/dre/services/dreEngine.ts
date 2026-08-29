@@ -151,15 +151,21 @@ function itemPassaFiltro(
   itemStatus?: string,
   isRecebimento = true
 ): boolean {
-  if (!itemDataStr) return false;
-  
+  if (itemStatus === 'Cancelado' || itemStatus === 'Cancelada') return false;
+
+  if (filtros.regime === 'caixa') {
+    const isLiquidado = isRecebimento 
+      ? (itemStatus === 'Recebido' || itemStatus === 'Liquidado' || itemStatus === 'Pago')
+      : (itemStatus === 'Pago' || itemStatus === 'Liquidado');
+    if (!isLiquidado) return false;
+  }
+
   if (filtros.periodo === 'todos') {
     if (filtros.clienteId && filtros.clienteId !== 'todos' && itemClienteId !== filtros.clienteId) return false;
-    if (filtros.regime === 'caixa') {
-      return isRecebimento ? itemStatus === 'Recebido' : itemStatus === 'Pago';
-    }
     return true;
   }
+
+  if (!itemDataStr) return false;
 
   try {
     const itemDate = parseISO(itemDataStr.split('T')[0]);
@@ -169,14 +175,8 @@ function itemPassaFiltro(
     return false;
   }
 
-  // Filtro por cliente
   if (filtros.clienteId && filtros.clienteId !== 'todos') {
     if (itemClienteId !== filtros.clienteId) return false;
-  }
-
-  // Filtro por regime contábil
-  if (filtros.regime === 'caixa') {
-    return isRecebimento ? itemStatus === 'Recebido' : itemStatus === 'Pago';
   }
 
   return true;
@@ -190,8 +190,7 @@ export interface DreCalculatedResult {
 }
 
 /**
- * Motor de Cálculo da DRE Gerencial.
- * Filtra dados de receitas e despesas por período e dimensões, calculando valores reais atuais e anteriores.
+ * Motor de Cálculo da DRE Gerencial Integrada com Fluxo de Caixa e Competência.
  */
 export function buildDRE(
   contasReceber: TituloReceber[] = [],
@@ -200,12 +199,23 @@ export function buildDRE(
 ): DreCalculatedResult {
   const { atual, anterior } = getIntervalosPeriodo(filtros.periodo, filtros.mesEspecifico);
 
-  // Data campo a usar no filtro: competência usa dataVencimento/dataEmissao; caixa usa dataRecebimento/dataPagamento
   const getDateStr = (item: any, isRecebimento: boolean) => {
     if (filtros.regime === 'caixa') {
-      return isRecebimento ? (item.dataRecebimento || item.dataVencimento) : (item.dataPagamento || item.dataVencimento);
+      return isRecebimento 
+        ? (item.dataRecebimento || item.dataPagamento || item.dataVencimento) 
+        : (item.dataPagamento || item.dataVencimento);
     }
     return item.dataVencimento || item.dataEmissao;
+  };
+
+  const getValorItem = (item: any, isRecebimento: boolean) => {
+    if (filtros.regime === 'caixa') {
+      if (isRecebimento) {
+        return Number(item.valorRecebido || item.valorOriginal || item.valor || 0);
+      }
+      return Number(item.valorPago || item.valorOriginal || item.valor || 0);
+    }
+    return Number(item.valorOriginal ?? item.valor ?? 0);
   };
 
   // 1. Filtrar títulos do período Atual
@@ -216,7 +226,7 @@ export function buildDRE(
     itemPassaFiltro(getDateStr(c, false), atual, filtros, (c as any).clienteId, c.status, false)
   );
 
-  // 2. Filtrar títulos do período Anterior (para análise horizontal e comparativo real)
+  // 2. Filtrar títulos do período Anterior
   const recAnterior = contasReceber.filter(t => 
     itemPassaFiltro(getDateStr(t, true), anterior, filtros, t.clienteId, t.status, true)
   );
@@ -226,7 +236,7 @@ export function buildDRE(
 
   // Agregações Período Atual
   let receitaAtual = 0;
-  recAtual.forEach(t => receitaAtual += Number(t.valorOriginal || 0));
+  recAtual.forEach(t => receitaAtual += getValorItem(t, true));
 
   let deducoesAtual = 0;
   let custosAtual = 0;
@@ -235,13 +245,13 @@ export function buildDRE(
   let despFinanAtual = 0;
 
   pagAtual.forEach(c => {
-    const val = Number(c.valorOriginal || 0);
+    const val = getValorItem(c, false);
     const cat = (c.categoria || '').toLowerCase();
-    if (cat.includes('imposto') || cat.includes('tributo') || cat.includes('devolução')) {
+    if (cat.includes('imposto') || cat.includes('tributo') || cat.includes('devolução') || cat.includes('devolucao')) {
       deducoesAtual += val;
-    } else if (cat.includes('custo') || cat.includes('fornecedor') || cat.includes('infra') || cat.includes('cloud') || cat.includes('hospedagem') || cat.includes('servidor')) {
+    } else if (cat.includes('custo') || cat.includes('fornecedor') || cat.includes('infra') || cat.includes('cloud') || cat.includes('hospedagem') || cat.includes('servidor') || cat.includes('software')) {
       custosAtual += val;
-    } else if (cat.includes('marketing') || cat.includes('venda') || cat.includes('comissão') || cat.includes('comissao') || cat.includes('anúncio') || cat.includes('ads')) {
+    } else if (cat.includes('marketing') || cat.includes('venda') || cat.includes('comissão') || cat.includes('comissao') || cat.includes('anúncio') || cat.includes('ads') || cat.includes('tráfego')) {
       despComercialAtual += val;
     } else if (cat.includes('tarifa') || cat.includes('banc') || cat.includes('juro') || cat.includes('iof') || cat.includes('multa')) {
       despFinanAtual += val;
@@ -252,7 +262,7 @@ export function buildDRE(
 
   // Agregações Período Anterior
   let receitaAnt = 0;
-  recAnterior.forEach(t => receitaAnt += Number(t.valorOriginal || 0));
+  recAnterior.forEach(t => receitaAnt += getValorItem(t, true));
 
   let deducoesAnt = 0;
   let custosAnt = 0;
@@ -261,13 +271,13 @@ export function buildDRE(
   let despFinanAnt = 0;
 
   pagAnterior.forEach(c => {
-    const val = Number(c.valorOriginal || 0);
+    const val = getValorItem(c, false);
     const cat = (c.categoria || '').toLowerCase();
-    if (cat.includes('imposto') || cat.includes('tributo') || cat.includes('devolução')) {
+    if (cat.includes('imposto') || cat.includes('tributo') || cat.includes('devolução') || cat.includes('devolucao')) {
       deducoesAnt += val;
-    } else if (cat.includes('custo') || cat.includes('fornecedor') || cat.includes('infra') || cat.includes('cloud') || cat.includes('hospedagem') || cat.includes('servidor')) {
+    } else if (cat.includes('custo') || cat.includes('fornecedor') || cat.includes('infra') || cat.includes('cloud') || cat.includes('hospedagem') || cat.includes('servidor') || cat.includes('software')) {
       custosAnt += val;
-    } else if (cat.includes('marketing') || cat.includes('venda') || cat.includes('comissão') || cat.includes('comissao') || cat.includes('anúncio') || cat.includes('ads')) {
+    } else if (cat.includes('marketing') || cat.includes('venda') || cat.includes('comissão') || cat.includes('comissao') || cat.includes('anúncio') || cat.includes('ads') || cat.includes('tráfego')) {
       despComercialAnt += val;
     } else if (cat.includes('tarifa') || cat.includes('banc') || cat.includes('juro') || cat.includes('iof') || cat.includes('multa')) {
       despFinanAnt += val;
