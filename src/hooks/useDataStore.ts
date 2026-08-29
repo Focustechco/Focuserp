@@ -47,6 +47,12 @@ function toNullableValidUuid(idStr?: string | null): string | null {
 function isValidItem(table: string, item: any): boolean {
   if (!item || typeof item !== 'object') return false;
   if (!item.id || typeof item.id !== 'string') return false;
+
+  // Rejeitar pastas do DMS injetadas por colisão
+  if (table !== 'focus_dms_pastas' && (item.caminhoCompleto || item.parentId !== undefined || item.moduloVinculado)) {
+    return false;
+  }
+
   if (table.includes('contas_receber') || table.includes('receber')) {
     const hasCliente = Boolean(item.cliente || item.clienteNome || item.cliente_nome);
     const hasDesc = Boolean(item.descricao);
@@ -59,6 +65,24 @@ function isValidItem(table: string, item: any): boolean {
     const hasDesc = Boolean(item.descricao);
     const hasValor = Number(item.valorOriginal ?? item.valor ?? 0) > 0;
     return hasForn || hasDesc || hasValor;
+  }
+  if (table.includes('fornecedores')) {
+    const name = item.nomeFantasia || item.razaoSocial || item.name || item.nome;
+    return Boolean(name && name.trim() !== '' && name !== 'Fornecedor Sem Nome');
+  }
+  if (table.includes('contratos')) {
+    const hasContractData = Boolean(item.numeroContrato || item.objetoContrato || item.objeto || item.valorTotal || item.valorMensalidade || item.tipoContrato);
+    if (!hasContractData && !item.nome) return false;
+    if (['Clientes', 'Projetos', 'RH', 'Colaboradores', 'Folha de Pagamento', 'Contratos de Trabalho', 'Atestados e Licenças', 'Produtos Focus', 'Manuais e Guias'].includes(item.nome)) {
+      return false;
+    }
+    return true;
+  }
+  if (table.includes('notificacoes')) {
+    return Boolean(item.titulo && typeof item.titulo === 'string' && item.titulo.trim().length > 0);
+  }
+  if (table.includes('projetos')) {
+    return Boolean(item.nome && typeof item.nome === 'string' && item.nome.trim().length > 0);
   }
   return true;
 }
@@ -711,7 +735,7 @@ export function useLocalStorageState<T extends { id: string }>(
         writeLocalCache(table, updated);
 
         if (primaryDbTable) {
-          supabase.from(primaryDbTable).delete().eq('id', id).catch(() => {});
+          Promise.resolve(supabase.from(primaryDbTable).delete().eq('id', id)).catch(() => {});
         }
 
         syncToCloud(updated);

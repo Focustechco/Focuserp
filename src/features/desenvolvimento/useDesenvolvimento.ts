@@ -227,7 +227,7 @@ export function useDesenvolvimento() {
       const projGit = updatedGit.find((g) => g.projetoId === proj.id);
       if (!projGit) {
         hasChanges = true;
-        const nameSlug = proj.nome.toLowerCase().replace(/[^a-z0-9]/g, '-');
+        const nameSlug = (proj.nome || `projeto-${proj.id}`).toLowerCase().replace(/[^a-z0-9]/g, '-');
         updatedGit.push({
           id: `git-${proj.id}`,
           projetoId: proj.id,
@@ -252,7 +252,7 @@ export function useDesenvolvimento() {
       const projAmbs = updatedAmbientes.filter((a) => a.projetoId === proj.id);
       if (projAmbs.length === 0) {
         hasChanges = true;
-        const nameSlug = proj.nome.toLowerCase().replace(/[^a-z0-9]/g, '-');
+        const nameSlug = (proj.nome || `projeto-${proj.id}`).toLowerCase().replace(/[^a-z0-9]/g, '-');
         updatedAmbientes.push(
           {
             id: `amb-${proj.id}-dev`,

@@ -16,10 +16,14 @@ export function FornecedoresList() {
 
   const safeFornecedores = Array.isArray(fornecedores) ? fornecedores : [];
 
-  const filteredData = safeFornecedores.filter(f => {
-    if (!f) return false;
+  const filteredData = safeFornecedores.filter((f: any) => {
+    if (!f || !f.id) return false;
+    if (f.caminhoCompleto || f.parentId !== undefined) return false;
+    const name = f.nomeFantasia || f.razaoSocial || f.name || f.nome;
+    if (!name || name.trim() === '' || name === 'Fornecedor Sem Nome') return false;
+
     const search = searchTerm.toLowerCase();
-    return (f.nomeFantasia || f.razaoSocial || '').toLowerCase().includes(search) ||
+    return name.toLowerCase().includes(search) ||
            (f.codigo || '').toLowerCase().includes(search) ||
            (f.documento || '').includes(search);
   });
