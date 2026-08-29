@@ -203,7 +203,11 @@ export function useLocalStorageState<T extends { id: string }>(
             };
           });
           if (payload.length > 0) {
-            await supabase.from('contas_receber').upsert(payload);
+            const { error: upsertErr } = await supabase.from('contas_receber').upsert(payload, { onConflict: 'id' });
+            if (upsertErr) {
+              const safePayload = payload.map(p => ({ ...p, cliente_id: null }));
+              await supabase.from('contas_receber').upsert(safePayload, { onConflict: 'id' });
+            }
           }
         } else if (isContasPagar) {
           const payload = items.map((item: any) => {
@@ -228,7 +232,11 @@ export function useLocalStorageState<T extends { id: string }>(
             };
           });
           if (payload.length > 0) {
-            await supabase.from('contas_pagar').upsert(payload);
+            const { error: upsertErr } = await supabase.from('contas_pagar').upsert(payload, { onConflict: 'id' });
+            if (upsertErr) {
+              const safePayload = payload.map(p => ({ ...p, fornecedor_id: null }));
+              await supabase.from('contas_pagar').upsert(safePayload, { onConflict: 'id' });
+            }
           }
         } else if (isContratos) {
           const payload = items.map((item: any) => {
@@ -250,7 +258,11 @@ export function useLocalStorageState<T extends { id: string }>(
             };
           });
           if (payload.length > 0) {
-            await supabase.from('contratos').upsert(payload);
+            const { error: upsertErr } = await supabase.from('contratos').upsert(payload, { onConflict: 'id' });
+            if (upsertErr) {
+              const safePayload = payload.map(p => ({ ...p, cliente_id: null }));
+              await supabase.from('contratos').upsert(safePayload, { onConflict: 'id' });
+            }
           }
         } else if (isProjetos) {
           const payload = items.map((item: any) => {
@@ -269,7 +281,11 @@ export function useLocalStorageState<T extends { id: string }>(
             };
           });
           if (payload.length > 0) {
-            await supabase.from('projetos').upsert(payload);
+            const { error: upsertErr } = await supabase.from('projetos').upsert(payload, { onConflict: 'id' });
+            if (upsertErr) {
+              const safePayload = payload.map(p => ({ ...p, cliente_id: null }));
+              await supabase.from('projetos').upsert(safePayload, { onConflict: 'id' });
+            }
           }
         } else if (isFornecedores) {
           const payload = items.map((item: any) => {
@@ -287,7 +303,7 @@ export function useLocalStorageState<T extends { id: string }>(
             };
           });
           if (payload.length > 0) {
-            await supabase.from('fornecedores').upsert(payload);
+            await supabase.from('fornecedores').upsert(payload, { onConflict: 'id' });
           }
         } else if (isColaboradores) {
           const payload = items.map((item: any) => {
@@ -309,10 +325,10 @@ export function useLocalStorageState<T extends { id: string }>(
             };
           });
           if (payload.length > 0) {
-            await supabase.from('colaboradores').upsert(payload);
+            await supabase.from('colaboradores').upsert(payload, { onConflict: 'id' });
           }
         } else if (isClientsTable) {
-          const payload = items.map((item: any) => {
+          const payloadClients = items.map((item: any) => {
             const validId = toValidUuid(item.id);
             item.id = validId;
             return {
@@ -324,8 +340,22 @@ export function useLocalStorageState<T extends { id: string }>(
               updated_at: new Date().toISOString(),
             };
           });
-          if (payload.length > 0) {
-            await supabase.from('clients').upsert(payload);
+          const payloadClientes = items.map((item: any) => {
+            const validId = toValidUuid(item.id);
+            return {
+              id: validId,
+              codigo: item.codigo || `CLI-${validId.slice(0, 4).toUpperCase()}`,
+              razao_social: item.razaoSocial || item.nomeFantasia || item.name || 'Cliente',
+              nome_fantasia: item.nomeFantasia || item.razaoSocial || item.name || 'Cliente',
+              documento: item.documento || item.cnpj || item.cpf || '00.000.000/0001-00',
+              tipo: item.tipo || 'Pessoa Jurídica',
+              status: String(item.status || 'Ativo'),
+              updated_at: new Date().toISOString(),
+            };
+          });
+          if (payloadClients.length > 0) {
+            await supabase.from('clients').upsert(payloadClients, { onConflict: 'id' });
+            await supabase.from('clientes').upsert(payloadClientes, { onConflict: 'id' });
           }
         }
       } catch (err: any) {

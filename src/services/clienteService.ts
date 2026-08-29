@@ -226,7 +226,7 @@ export const clienteService = {
     const updatedList = Array.from(localMap.values());
     persistClientsToAllStores(updatedList);
 
-    // 2. Persistir no Supabase de forma resiliente
+    // 2. Persistir no Supabase de forma resiliente nas tabelas clients e clientes
     try {
       await supabase.from('clients').upsert({
         id,
@@ -235,7 +235,18 @@ export const clienteService = {
         contact_email: validatedWithId.contatos?.[0]?.email || null,
         contact_phone: validatedWithId.contatos?.[0]?.celular || null,
         updated_at: new Date().toISOString(),
-      });
+      }, { onConflict: 'id' });
+
+      await supabase.from('clientes').upsert({
+        id,
+        codigo: validatedWithId.codigo || `CLI-${id.slice(0, 4).toUpperCase()}`,
+        razao_social: validatedWithId.razaoSocial || validatedWithId.nomeFantasia,
+        nome_fantasia: validatedWithId.nomeFantasia || validatedWithId.razaoSocial,
+        documento: validatedWithId.documento || '00.000.000/0001-00',
+        tipo: validatedWithId.tipo || 'Pessoa Jurídica',
+        status: validatedWithId.status || 'Ativo',
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'id' });
     } catch (e) {
       console.warn('[clienteService.saveCliente] Supabase sync completed via local-first store:', e);
     }

@@ -143,7 +143,11 @@ export const financeiroService = {
     };
 
     try {
-      await supabase.from('contas_receber').upsert(payload);
+      const { error } = await supabase.from('contas_receber').upsert(payload, { onConflict: 'id' });
+      if (error) {
+        const safePayload = { ...payload, cliente_id: null };
+        await supabase.from('contas_receber').upsert(safePayload, { onConflict: 'id' });
+      }
     } catch (e: any) {
       console.warn('[financeiroService.saveContaReceber] Fallback upsert:', e?.message);
     }

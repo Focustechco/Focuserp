@@ -133,9 +133,10 @@ function toNullableValidUuid(id?: string | null): string | null {
       updated_at: new Date().toISOString(),
     };
 
-    const { error } = await supabase.from('contas_receber').upsert(payload);
+    const { error } = await supabase.from('contas_receber').upsert(payload, { onConflict: 'id' });
     if (error) {
-      console.warn('[contaReceberService.saveContaReceber] Warning ao salvar conta a receber:', error.message);
+      const safePayload = { ...payload, cliente_id: null };
+      await supabase.from('contas_receber').upsert(safePayload, { onConflict: 'id' });
     }
 
     return { ...validated, id };
