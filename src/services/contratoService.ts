@@ -52,7 +52,9 @@ export const contratoService = {
       const rawLocal = typeof window !== 'undefined' ? window.localStorage.getItem('focus_contratos') : null;
       if (rawLocal) {
         const parsed = JSON.parse(rawLocal);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed)) {
+          return parsed.filter((c: any) => c && !c.caminhoCompleto && c.parentId === undefined && (c.numeroContrato || c.objetoContrato || c.valorTotal));
+        }
       }
 
       return [];

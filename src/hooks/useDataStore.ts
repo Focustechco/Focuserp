@@ -1,32 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { safeSetItem, safeGetItem } from '@/lib/safeStorage';
+import { safeSetItem, safeGetItem, safeRemoveItem } from '@/lib/safeStorage';
 import { userService } from '@/services/userService';
-
-/**
- * Helper to generate a valid, unique, deterministic UUID for state storage keys in PostgreSQL without collisions.
- */
-function getTableUuid(table: string): string {
-  let hash1 = 5381;
-  let hash2 = 52711;
-  for (let i = 0; i < table.length; i++) {
-    const char = table.charCodeAt(i);
-    hash1 = ((hash1 << 5) + hash1) ^ char;
-    hash2 = ((hash2 << 5) + hash2) ^ char;
-  }
-  const hex1 = Math.abs(hash1).toString(16).padStart(8, '0');
-  const hex2 = Math.abs(hash2).toString(16).padStart(8, '0');
-  const hex3 = Math.abs((hash1 ^ hash2) + 12345).toString(16).padStart(8, '0');
-  const hex4 = Math.abs((hash1 + hash2) * 7).toString(16).padStart(8, '0');
-
-  const p1 = hex1;
-  const p2 = hex2.slice(0, 4);
-  const p3 = '4' + hex2.slice(4, 7);
-  const p4 = 'a' + hex3.slice(1, 4);
-  const p5 = (hex3.slice(4, 8) + hex4.slice(0, 8)).slice(0, 12);
-
-  return `${p1}-${p2}-${p3}-${p4}-${p5}`;
-}
 
 /**
  * Helper to ensure a string is a valid UUID for PostgreSQL uuid columns.
@@ -44,12 +19,33 @@ function toNullableValidUuid(idStr?: string | null): string | null {
   return uuidRegex.test(idStr) ? idStr : null;
 }
 
+const DMS_FOLDER_NAMES = [
+  'Clientes',
+  'Projetos',
+  'RH',
+  'Colaboradores',
+  'Folha de Pagamento',
+  'Contratos de Trabalho',
+  'Atestados e Licenças',
+  'Produtos Focus',
+  'Manuais e Guias',
+];
+
+function isDmsFolderObject(item: any): boolean {
+  if (!item || typeof item !== 'object') return false;
+  if (item.caminhoCompleto || item.parentId !== undefined || item.moduloVinculado) return true;
+  if (item.nome && DMS_FOLDER_NAMES.includes(item.nome) && !item.codigo && !item.tipo && !item.clienteId && !item.valorContratado && !item.numeroContrato) {
+    return true;
+  }
+  return false;
+}
+
 function isValidItem(table: string, item: any): boolean {
   if (!item || typeof item !== 'object') return false;
   if (!item.id || typeof item.id !== 'string') return false;
 
-  // Rejeitar pastas do DMS injetadas por colisão
-  if (table !== 'focus_dms_pastas' && (item.caminhoCompleto || item.parentId !== undefined || item.moduloVinculado)) {
+  // Rejeitar pastas do DMS injetadas por colisão em outros módulos
+  if (table !== 'focus_dms_pastas' && isDmsFolderObject(item)) {
     return false;
   }
 
@@ -73,22 +69,25 @@ function isValidItem(table: string, item: any): boolean {
   if (table.includes('contratos')) {
     const hasContractData = Boolean(item.numeroContrato || item.objetoContrato || item.objeto || item.valorTotal || item.valorMensalidade || item.tipoContrato);
     if (!hasContractData && !item.nome) return false;
-    if (['Clientes', 'Projetos', 'RH', 'Colaboradores', 'Folha de Pagamento', 'Contratos de Trabalho', 'Atestados e Licenças', 'Produtos Focus', 'Manuais e Guias'].includes(item.nome)) {
-      return false;
-    }
+    if (DMS_FOLDER_NAMES.includes(item.nome)) return false;
     return true;
+  }
+  if (table.includes('projetos')) {
+    if (DMS_FOLDER_NAMES.includes(item.nome) && !item.clienteId && !item.valorContratado) return false;
+    return Boolean(item.nome && typeof item.nome === 'string' && item.nome.trim().length > 0);
+  }
+  if (table.includes('produtos')) {
+    if (DMS_FOLDER_NAMES.includes(item.nome) && !item.preco && !item.categoria) return false;
+    return Boolean((item.nome || item.name) && typeof (item.nome || item.name) === 'string');
   }
   if (table.includes('notificacoes')) {
     return Boolean(item.titulo && typeof item.titulo === 'string' && item.titulo.trim().length > 0);
-  }
-  if (table.includes('projetos')) {
-    return Boolean(item.nome && typeof item.nome === 'string' && item.nome.trim().length > 0);
   }
   return true;
 }
 
 /**
- * Helper to safely read from localStorage
+ * Helper to safely read from localStorage and auto-heal contaminated cache
  */
 function readLocalCache<T>(table: string, fallback: T[]): T[] {
   if (typeof window === 'undefined') return fallback;
@@ -99,6 +98,12 @@ function readLocalCache<T>(table: string, fallback: T[]): T[] {
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) {
+          // Auto-heal: se o cache foi contaminado por pastas do DMS, expurgar a chave
+          if (table !== 'focus_dms_pastas' && parsed.some(isDmsFolderObject)) {
+            safeRemoveItem(k);
+            continue;
+          }
+
           const valid = parsed.filter(it => isValidItem(table, it));
           if (valid.length > 0) return valid;
         }
@@ -122,8 +127,8 @@ function writeLocalCache<T>(table: string, items: T[]) {
 }
 
 /**
- * Hook de Persistência 100% Relacional em Banco de Dados Real Supabase / PostgreSQL.
- * Sincronização em tempo real entre Desktop e Mobile (iOS/Android) via WebSockets.
+ * Hook de Persistência 100% Relacional com Isolamento Estrito de Tabelas no Supabase / PostgreSQL.
+ * Sincronização em tempo real entre Desktop e Mobile (iOS/Android).
  */
 export function useLocalStorageState<T extends { id: string }>(
   table: string,
@@ -140,10 +145,11 @@ export function useLocalStorageState<T extends { id: string }>(
   const isContratos = table === 'focus_contratos' || table === 'contratos';
   const isProjetos = table === 'focus_projetos' || table === 'projetos';
   const isFornecedores = table === 'focus_fornecedores' || table === 'fornecedores';
+  const isColaboradores = table === 'focus_colaboradores' || table === 'colaboradores' || table === 'focus_rh_colaboradores';
 
   const isMountedRef = useRef(true);
 
-  // Determinar a tabela primária no Supabase
+  // Determinar a tabela primária real no PostgreSQL do Supabase
   const primaryDbTable = isContasReceber
     ? 'contas_receber'
     : isContasPagar
@@ -154,6 +160,8 @@ export function useLocalStorageState<T extends { id: string }>(
     ? 'projetos'
     : isFornecedores
     ? 'fornecedores'
+    : isColaboradores
+    ? 'colaboradores'
     : isClientsTable
     ? 'clients'
     : isUsersTable
@@ -171,7 +179,7 @@ export function useLocalStorageState<T extends { id: string }>(
           return;
         }
 
-        // 1. Gravação direta na tabela relacional correspondente no PostgreSQL
+        // 1. Gravação direta e isolada na tabela relacional correspondente no PostgreSQL
         if (isContasReceber) {
           const payload = items.map((item: any) => {
             const validId = toValidUuid(item.id);
@@ -229,11 +237,12 @@ export function useLocalStorageState<T extends { id: string }>(
             return {
               id: validId,
               numero_contrato: item.numeroContrato || item.numero || `CTR-${validId.slice(0, 4).toUpperCase()}`,
-              objeto_contrato: item.objetoContrato || item.objeto || item.titulo || 'Contrato de Serviços',
               cliente_id: toNullableValidUuid(item.clienteId),
+              cliente_nome: item.clienteNome || item.cliente || 'Cliente',
+              objeto_contrato: item.objetoContrato || item.nome || 'Prestação de Serviços',
+              tipo_contrato: item.tipoContrato || 'Recorrente',
               valor_total: Number(item.valorTotal ?? item.valor ?? 0) || 0,
-              valor_mensal: Number(item.valorMensal ?? item.valorMensalidade ?? 0) || 0,
-              tipo_contrato: item.tipoContrato || 'Prestação de Serviços',
+              valor_mensalidade: Number(item.valorMensalidade ?? 0) || 0,
               data_inicio: item.dataInicio || new Date().toISOString().split('T')[0],
               data_fim: item.dataFim || null,
               status: item.status || 'Ativo',
@@ -280,6 +289,28 @@ export function useLocalStorageState<T extends { id: string }>(
           if (payload.length > 0) {
             await supabase.from('fornecedores').upsert(payload);
           }
+        } else if (isColaboradores) {
+          const payload = items.map((item: any) => {
+            const validId = toValidUuid(item.id);
+            item.id = validId;
+            return {
+              id: validId,
+              matricula: item.matricula || `COL-${validId.slice(0, 4).toUpperCase()}`,
+              nome: item.nome || item.name || 'Colaborador',
+              cargo: item.cargo || 'Especialista',
+              departamento: item.departamento || 'Tecnologia',
+              email: item.email || null,
+              telefone: item.telefone || null,
+              cpf: item.cpf || item.documento || null,
+              salario: Number(item.salario ?? 0) || 0,
+              status: item.status || 'Ativo',
+              data_admissao: item.dataAdmissao || item.data_admissao || new Date().toISOString().split('T')[0],
+              updated_at: new Date().toISOString(),
+            };
+          });
+          if (payload.length > 0) {
+            await supabase.from('colaboradores').upsert(payload);
+          }
         } else if (isClientsTable) {
           const payload = items.map((item: any) => {
             const validId = toValidUuid(item.id);
@@ -297,24 +328,11 @@ export function useLocalStorageState<T extends { id: string }>(
             await supabase.from('clients').upsert(payload);
           }
         }
-
-        // 2. Persistência de backup de estado serializado do módulo na nuvem (Recorrências, Centros de Custo, etc.)
-        const stateRowId = getTableUuid(table);
-        const stateName = `__FOCUS_STATE__${table}`;
-
-        await supabase.from('clients').upsert({
-          id: stateRowId,
-          name: stateName,
-          status: 'inativo',
-          contact_email: JSON.stringify(items),
-          contact_phone: '(11) 99999-9999',
-          updated_at: new Date().toISOString(),
-        });
       } catch (err: any) {
         console.warn(`[Supabase] Erro ao sincronizar '${table}' com o banco de dados:`, err?.message);
       }
     },
-    [isClientsTable, isContasPagar, isContasReceber, isContratos, isFornecedores, isProjetos, isUsersTable, table]
+    [isClientsTable, isColaboradores, isContasPagar, isContasReceber, isContratos, isFornecedores, isProjetos, isUsersTable, table]
   );
 
   // ---------------------------------------------------------------------------
@@ -323,7 +341,7 @@ export function useLocalStorageState<T extends { id: string }>(
   useEffect(() => {
     isMountedRef.current = true;
 
-    // 1. Carregamento inicial imediato
+    // 1. Carregamento inicial imediato com dados limpos
     const localCached = readLocalCache(table, initialValue);
     if (isMountedRef.current && localCached.length > 0) {
       setData(localCached);
@@ -333,13 +351,15 @@ export function useLocalStorageState<T extends { id: string }>(
       try {
         if (isUsersTable) {
           const dbUsers = await userService.getUsers();
-          if (isMountedRef.current && Array.isArray(dbUsers) && dbUsers.length > 0) {
+          if (isMountedRef.current && Array.isArray(dbUsers)) {
             setData(dbUsers as unknown as T[]);
             writeLocalCache(table, dbUsers);
             setError(null);
           }
-        } else if (isContasReceber) {
-          // Buscar diretamente da tabela relacional contas_receber no Supabase
+          return;
+        }
+
+        if (isContasReceber) {
           const { data: dbRows, error: dbErr } = await supabase
             .from('contas_receber')
             .select('*')
@@ -378,8 +398,9 @@ export function useLocalStorageState<T extends { id: string }>(
             setError(null);
             return;
           }
-        } else if (isContasPagar) {
-          // Buscar diretamente da tabela relacional contas_pagar no Supabase
+        }
+
+        if (isContasPagar) {
           const { data: dbRows, error: dbErr } = await supabase
             .from('contas_pagar')
             .select('*')
@@ -418,7 +439,146 @@ export function useLocalStorageState<T extends { id: string }>(
             setError(null);
             return;
           }
-        } else if (isClientsTable) {
+        }
+
+        if (isContratos) {
+          const { data: dbRows, error: dbErr } = await supabase
+            .from('contratos')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+          if (!isMountedRef.current) return;
+
+          if (!dbErr && Array.isArray(dbRows)) {
+            const mapped = dbRows
+              .filter((item: any) => item && (item.numero_contrato || item.objeto_contrato || item.nome) && !isDmsFolderObject(item))
+              .map((item: any) => ({
+                id: String(item.id),
+                numeroContrato: item.numero_contrato || item.numeroContrato || `CTR-${String(item.id).slice(0, 4).toUpperCase()}`,
+                nome: item.objeto_contrato || item.nome || 'Contrato de Prestação de Serviços',
+                clienteId: item.cliente_id || item.clienteId,
+                clienteNome: item.cliente_nome || item.clienteNome || 'Cliente Focus',
+                objetoContrato: item.objeto_contrato || item.objetoContrato || 'Serviços de Tecnologia',
+                tipoContrato: item.tipo_contrato || item.tipoContrato || 'Recorrente',
+                valorTotal: Number(item.valor_total ?? item.valorTotal ?? 0) || 0,
+                valorMensalidade: Number(item.valor_mensalidade ?? item.valorMensalidade ?? 0) || 0,
+                dataInicio: item.data_inicio || item.dataInicio || new Date().toISOString().split('T')[0],
+                dataFim: item.data_fim || item.dataFim || null,
+                status: item.status || 'Ativo',
+                vigenciaIndeterminada: item.vigencia_indeterminada ?? true,
+                createdAt: item.created_at || new Date().toISOString(),
+              })) as unknown as T[];
+
+            setData(mapped);
+            writeLocalCache(table, mapped);
+            setError(null);
+            return;
+          }
+        }
+
+        if (isProjetos) {
+          const { data: dbRows, error: dbErr } = await supabase
+            .from('projetos')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+          if (!isMountedRef.current) return;
+
+          if (!dbErr && Array.isArray(dbRows)) {
+            const mapped = dbRows
+              .filter((item: any) => item && item.nome && !isDmsFolderObject(item))
+              .map((item: any) => ({
+                id: String(item.id),
+                codigo: item.codigo || `PRJ-${String(item.id).slice(0, 4).toUpperCase()}`,
+                nome: item.nome || 'Projeto',
+                clienteId: item.cliente_id || item.clienteId,
+                cliente: item.cliente || 'Cliente Focus',
+                tipo: item.tipo || 'Desenvolvimento',
+                status: item.status || 'Planejamento',
+                progresso: Number(item.progresso ?? item.progresso_estimado ?? 0) || 0,
+                responsavel: item.responsavel || 'Tech Lead',
+                valorContratado: Number(item.valor_contratado ?? item.valorContratado ?? 0) || 0,
+                valorRecebido: Number(item.valor_recebido ?? item.valorRecebido ?? 0) || 0,
+                dataInicio: item.data_inicio || item.dataInicio || new Date().toISOString().split('T')[0],
+                dataPrevisaoFim: item.data_previsao_fim || item.dataPrevisaoFim || null,
+                createdAt: item.created_at || new Date().toISOString(),
+              })) as unknown as T[];
+
+            setData(mapped);
+            writeLocalCache(table, mapped);
+            setError(null);
+            return;
+          }
+        }
+
+        if (isFornecedores) {
+          const { data: dbRows, error: dbErr } = await supabase
+            .from('fornecedores')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+          if (!isMountedRef.current) return;
+
+          if (!dbErr && Array.isArray(dbRows)) {
+            const mapped = dbRows
+              .filter((item: any) => item && (item.razao_social || item.nome_fantasia || item.nome) && !isDmsFolderObject(item))
+              .map((item: any) => ({
+                id: String(item.id),
+                codigo: item.codigo || `FOR-${String(item.id).slice(0, 4).toUpperCase()}`,
+                razaoSocial: item.razao_social || item.razaoSocial || 'Fornecedor',
+                nomeFantasia: item.nome_fantasia || item.nomeFantasia || item.razao_social || 'Fornecedor',
+                cnpj: item.cnpj || item.documento || '00.000.000/0001-00',
+                documento: item.cnpj || item.documento || '00.000.000/0001-00',
+                tipo: item.tipo || 'Pessoa Jurídica',
+                categoria: item.categoria || 'Geral',
+                email: item.email || '',
+                telefone: item.telefone || '',
+                status: item.status || 'Ativo',
+                contatos: Array.isArray(item.contatos) ? item.contatos : [],
+                createdAt: item.created_at || new Date().toISOString(),
+              })) as unknown as T[];
+
+            setData(mapped);
+            writeLocalCache(table, mapped);
+            setError(null);
+            return;
+          }
+        }
+
+        if (isColaboradores) {
+          const { data: dbRows, error: dbErr } = await supabase
+            .from('colaboradores')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+          if (!isMountedRef.current) return;
+
+          if (!dbErr && Array.isArray(dbRows)) {
+            const mapped = dbRows
+              .filter((item: any) => item && (item.nome || item.name) && !isDmsFolderObject(item))
+              .map((item: any) => ({
+                id: String(item.id),
+                matricula: item.matricula || `COL-${String(item.id).slice(0, 4).toUpperCase()}`,
+                nome: item.nome || item.name || 'Colaborador',
+                cargo: item.cargo || 'Especialista',
+                departamento: item.departamento || 'Tecnologia',
+                email: item.email || '',
+                telefone: item.telefone || '',
+                cpf: item.cpf || item.documento || '',
+                salario: Number(item.salario ?? 0) || 0,
+                status: item.status || 'Ativo',
+                dataAdmissao: item.data_admissao || item.dataAdmissao || new Date().toISOString().split('T')[0],
+                createdAt: item.created_at || new Date().toISOString(),
+              })) as unknown as T[];
+
+            setData(mapped);
+            writeLocalCache(table, mapped);
+            setError(null);
+            return;
+          }
+        }
+
+        if (isClientsTable) {
           const { data: dbClients, error: dbErr } = await supabase
             .from('clients')
             .select('*')
@@ -501,47 +661,6 @@ export function useLocalStorageState<T extends { id: string }>(
             return;
           }
         }
-
-        // Buscar estado serializado do módulo na tabela clients
-        const stateRowId = getTableUuid(table);
-        const stateName = `__FOCUS_STATE__${table}`;
-
-        let cloudEmail: string | null = null;
-        try {
-          const { data: rowById } = await supabase
-            .from('clients')
-            .select('contact_email')
-            .eq('id', stateRowId)
-            .maybeSingle();
-
-          if (rowById?.contact_email) {
-            cloudEmail = rowById.contact_email;
-          } else {
-            const { data: rowByName } = await supabase
-              .from('clients')
-              .select('contact_email')
-              .eq('name', stateName)
-              .maybeSingle();
-            if (rowByName?.contact_email) {
-              cloudEmail = rowByName.contact_email;
-            }
-          }
-        } catch {}
-
-        if (!isMountedRef.current) return;
-
-        if (cloudEmail) {
-          try {
-            const cloudItems: T[] = JSON.parse(cloudEmail);
-            if (Array.isArray(cloudItems) && cloudItems.length > 0) {
-              if (isMountedRef.current) {
-                setData(cloudItems);
-                writeLocalCache(table, cloudItems);
-                setError(null);
-              }
-            }
-          } catch {}
-        }
       } catch (err: any) {
         if (!isMountedRef.current) return;
         setError(err?.message || 'Unknown fetch error');
@@ -570,17 +689,13 @@ export function useLocalStorageState<T extends { id: string }>(
       });
     }
 
-    // Supabase Realtime Subscription para Desktop & Mobile
+    // Supabase Realtime Subscription para Desktop & Mobile na tabela específica
     let channels: any[] = [];
     if (typeof window !== 'undefined') {
       try {
-        const stateName = `__FOCUS_STATE__${table}`;
-        const stateRowId = getTableUuid(table);
-
-        // Canal da tabela primária relacional (se houver)
-        if (primaryDbTable && primaryDbTable !== 'clients') {
+        if (primaryDbTable) {
           const relChannel = supabase
-            .channel(`rt_rel_${primaryDbTable}_${Math.random().toString(36).slice(2, 7)}`)
+            .channel(`rt_${primaryDbTable}_${Math.random().toString(36).slice(2, 7)}`)
             .on(
               'postgres_changes',
               { event: '*', schema: 'public', table: primaryDbTable },
@@ -591,33 +706,6 @@ export function useLocalStorageState<T extends { id: string }>(
             .subscribe();
           channels.push(relChannel);
         }
-
-        // Canal da tabela clients / estado global
-        const clientsChannel = supabase
-          .channel(`rt_cli_${table}_${Math.random().toString(36).slice(2, 7)}`)
-          .on(
-            'postgres_changes',
-            { event: '*', schema: 'public', table: 'clients' },
-            (payload) => {
-              if (!isMountedRef.current) return;
-              if (isClientsTable) {
-                fetchData();
-              } else if (payload.new) {
-                const newRow = payload.new as any;
-                if ((newRow.name === stateName || newRow.name === `__FOCUS_STATE_${table}__` || newRow.id === stateRowId) && newRow.contact_email) {
-                  try {
-                    const remoteData: T[] = JSON.parse(newRow.contact_email);
-                    if (Array.isArray(remoteData)) {
-                      setData(remoteData);
-                      writeLocalCache(table, remoteData);
-                    }
-                  } catch {}
-                }
-              }
-            }
-          )
-          .subscribe();
-        channels.push(clientsChannel);
       } catch (e) {
         console.warn('[useLocalStorageState] Realtime subscribe notice:', e);
       }

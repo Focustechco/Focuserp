@@ -34,10 +34,11 @@ export function useProdutos() {
     save: saveProdutos,
   } = useLocalStorageState<ProdutoFocus>('focus_produtos', []);
 
-  // Garantir remoção definitiva de IDs mockados antigos e itens de teste
+  // Garantir remoção definitiva de IDs mockados antigos e itens de teste / pastas do DMS
   const mockIds = ['prod-erp', 'prod-crm', 'prod-pay', 'prod-bi'];
+  const dmsNames = ['Clientes', 'Projetos', 'RH', 'Colaboradores', 'Folha de Pagamento', 'Contratos de Trabalho', 'Atestados e Licenças', 'Produtos Focus', 'Manuais e Guias'];
   const produtos = rawProdutos.filter(
-    (p) => !mockIds.includes(p.id) && p.nome && p.nome.trim() !== '' && p.nome !== 'teste'
+    (p: any) => !mockIds.includes(p.id) && p.nome && p.nome.trim() !== '' && p.nome !== 'teste' && !p.caminhoCompleto && p.parentId === undefined && !dmsNames.includes(p.nome)
   );
 
   const excluirProduto = (id: string) => {

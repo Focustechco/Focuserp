@@ -25,8 +25,9 @@ export const projetoService = {
       const rawLocal = safeGetItem('focus_app_focus_projetos') || safeGetItem('focus_projetos');
       if (rawLocal) {
         const parsed = JSON.parse(rawLocal);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          localProjetos = parsed;
+        if (Array.isArray(parsed)) {
+          const dmsNames = ['Clientes', 'Projetos', 'RH', 'Colaboradores', 'Folha de Pagamento', 'Contratos de Trabalho', 'Atestados e Licenças', 'Produtos Focus', 'Manuais e Guias'];
+          localProjetos = parsed.filter((p: any) => p && !p.caminhoCompleto && p.parentId === undefined && p.nome && !dmsNames.includes(p.nome));
         }
       }
     } catch {}
