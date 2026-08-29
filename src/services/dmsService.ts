@@ -198,34 +198,6 @@ export const dmsService = {
 
     // Auditoria
     this.logAction(doc.id, doc.nome, 'Upload', `Arquivo indexado na pasta ${doc.caminhoPasta}`);
-
-    try {
-      await supabase.from('dms_documentos').upsert({
-        id: doc.id,
-        codigo: doc.codigo,
-        nome: doc.nome,
-        extensao: doc.extensao,
-        tamanho: doc.tamanho,
-        tamanho_bytes: doc.tamanhoBytes,
-        pasta_id: doc.pastaId,
-        caminho_pasta: doc.caminhoPasta,
-        modulo_origem: doc.moduloOrigem,
-        cliente_id: doc.clienteId,
-        cliente_nome: doc.clienteNome,
-        projeto_id: doc.projetoId,
-        projeto_nome: doc.projetoNome,
-        tags: doc.tags,
-        categoria: doc.categoria,
-        responsavel_upload: doc.responsavelUpload,
-        data_upload: doc.dataUpload,
-        data_ultima_alteracao: doc.dataUltimaAlteracao,
-        versao_atual: doc.versaoAtual,
-        favorito: doc.favorito,
-        status: doc.status,
-        url_conteudo: doc.urlConteudo,
-        updated_at: new Date().toISOString(),
-      });
-    } catch {}
   },
 
   // ---------------------------------------------------------------------------

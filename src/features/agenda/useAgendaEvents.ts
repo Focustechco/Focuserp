@@ -38,14 +38,16 @@ export function useAgendaEvents() {
     else if (c.status === 'Atrasado') statusMapped = 'Vencido';
     else if (c.status === 'Cancelado') statusMapped = 'Cancelado';
 
+    const dataVenc = (c.dataVencimento || (c as any).vencimento || (c as any).data_vencimento || getBrasiliaTodayIso()).split('T')[0];
+
     return {
       id: `rec-${c.id}`,
-      titulo: c.descricao ? `${c.cliente} - ${c.descricao}` : `Recebimento de ${c.cliente}`,
+      titulo: c.descricao ? `${c.cliente || (c as any).cliente_nome || 'Cliente'} - ${c.descricao}` : `Recebimento de ${c.cliente || (c as any).cliente_nome || 'Cliente'}`,
       categoria: 'Recebimento',
-      data: c.dataVencimento || getBrasiliaTodayIso(),
-      valor: c.valorOriginal || 0,
-      entidadeVinculo: c.cliente,
-      clienteId: c.clienteId,
+      data: dataVenc,
+      valor: Number(c.valorOriginal || (c as any).valor_original || (c as any).valor || 0),
+      entidadeVinculo: c.cliente || (c as any).cliente_nome || 'Cliente',
+      clienteId: c.clienteId || (c as any).cliente_id,
       status: statusMapped,
       prioridade: c.status === 'Atrasado' ? 'Alta' : 'Média',
       moduloOrigem: 'Contas a Receber',
@@ -55,12 +57,10 @@ export function useAgendaEvents() {
   });
 
   // 2. Projeção de Recorrências do Módulo Clientes / Recorrências no Calendário
-  // Ex: Se cadastrou dia 10 do mês, projeta todos os dias 10 do ano
   const mappedRecorrencias: EventoFinanceiro[] = [];
   const currentDate = new Date();
   const currentYear = currentDate.getFullYear();
   const yearsToProject = [currentYear - 1, currentYear, currentYear + 1, currentYear + 2];
-
   const todayIso = getBrasiliaTodayIso();
 
   recorrencias.forEach(r => {
@@ -74,7 +74,6 @@ export function useAgendaEvents() {
 
     yearsToProject.forEach(year => {
       for (let month = 0; month < 12; month++) {
-        // Verificar se deve gerar neste mês de acordo com a frequência
         let shouldGenerate = false;
         if (r.frequencia === 'Mensal' || !r.frequencia) {
           shouldGenerate = true;
@@ -92,10 +91,8 @@ export function useAgendaEvents() {
         const targetDay = Math.min(diaVenc, maxDaysInMonth);
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(targetDay).padStart(2, '0')}`;
 
-        // Não projetar antes da data de início da recorrência
         if (dateStr < dataInicioStr.split('T')[0]) continue;
 
-        // Verificar se já existe um título no contas a receber para este cliente nesta data
         const tituloExistente = contasReceber.find(c => 
           (c.clienteId === r.clientId || (c.cliente && c.cliente.toLowerCase() === (r.clientName || '').toLowerCase())) &&
           (c.dataVencimento === dateStr || (c.descricao && c.descricao.includes(r.descricao)))
@@ -114,14 +111,12 @@ export function useAgendaEvents() {
           }
         }
 
-        // Se já tiver um título exato renderizado no mappedReceber para este dia, evitamos duplicar ou enriquecemos como recorrência
         const duplicateIndex = mappedReceber.findIndex(m => 
           (m.clienteId === r.clientId || m.entidadeVinculo?.toLowerCase() === (r.clientName || '').toLowerCase()) &&
           m.data === dateStr
         );
 
         if (duplicateIndex !== -1) {
-          // Marca o evento já existente como Recorrência
           mappedReceber[duplicateIndex].categoria = 'Recorrência';
           mappedReceber[duplicateIndex].titulo = `[Recorrência] ${r.clientName} - ${r.descricao || 'Mensalidade'}`;
           mappedReceber[duplicateIndex].observacoes = `Recorrência ${r.frequencia || 'Mensal'} (Todo dia ${diaVenc} do mês)`;
@@ -131,7 +126,7 @@ export function useAgendaEvents() {
             titulo: `[Recorrência] ${r.clientName} - ${r.descricao || 'Mensalidade'}`,
             categoria: 'Recorrência',
             data: dateStr,
-            valor: r.valor || 0,
+            valor: Number(r.valor || 0),
             entidadeVinculo: r.clientName,
             clienteId: r.clientId,
             status: statusEvent,
@@ -145,55 +140,65 @@ export function useAgendaEvents() {
     });
   });
 
-  // 3. Contas a Pagar
+  // 3. Contas a Pagar (Totalmente integrado com datas, fornecedores e valores)
   const mappedPagar: EventoFinanceiro[] = contasPagar.map(c => {
     let statusMapped: StatusAgenda = 'Em Aberto';
     if (c.status === 'Pago') statusMapped = 'Pago';
     else if (c.status === 'Vencido') statusMapped = 'Vencido';
     else if (c.status === 'Cancelado') statusMapped = 'Cancelado';
 
+    const dataVenc = (c.dataVencimento || (c as any).vencimento || (c as any).data_vencimento || getBrasiliaTodayIso()).split('T')[0];
+    const fornNome = c.fornecedor || (c as any).fornecedor_nome || 'Fornecedor';
+    const isImposto = (c.categoria || '').toLowerCase().includes('imposto') || (c.categoria || '').toLowerCase().includes('tributo');
+
     return {
       id: `pag-${c.id}`,
-      titulo: c.descricao ? `${c.fornecedor} - ${c.descricao}` : `Pagamento a ${c.fornecedor}`,
-      categoria: 'Pagamento',
-      data: c.dataVencimento || new Date().toISOString(),
-      valor: c.valorOriginal || 0,
-      entidadeVinculo: c.fornecedor,
+      titulo: c.descricao ? `${fornNome} - ${c.descricao}` : `Pagamento a ${fornNome}`,
+      categoria: isImposto ? 'Imposto' : 'Pagamento',
+      data: dataVenc,
+      valor: Number(c.valorOriginal || (c as any).valor_original || (c as any).valor || 0),
+      entidadeVinculo: fornNome,
       status: statusMapped,
       prioridade: c.status === 'Vencido' ? 'Alta' : 'Média',
       moduloOrigem: 'Contas a Pagar',
       linkOrigem: '/contas-a-pagar',
-      observacoes: c.observacoes || `Forma de Pagamento: ${c.formaPagamento || 'N/A'}`
+      observacoes: c.observacoes || `Categoria: ${c.categoria || 'Despesa'} • Forma: ${c.formaPagamento || 'Boleto'}`
     };
   });
 
   // 4. Contratos
-  const mappedContratos: EventoFinanceiro[] = contratos.map(ct => ({
-    id: `ct-${ct.id}`,
-    titulo: ct.numeroContrato ? `Vencimento do Contrato ${ct.numeroContrato}` : `Contrato ${ct.clienteNome || ''}`,
-    categoria: 'Contrato',
-    data: ct.dataVencimento || ct.dataInicio || new Date().toISOString(),
-    valor: ct.valorTotal || 0,
-    entidadeVinculo: ct.clienteNome || 'Cliente',
-    status: (ct.status === 'Ativo' ? 'Em Aberto' : 'Concluído') as StatusAgenda,
-    prioridade: 'Média',
-    moduloOrigem: 'Contratos',
-    linkOrigem: '/contratos'
-  }));
+  const mappedContratos: EventoFinanceiro[] = contratos.map(ct => {
+    const dataVenc = (ct.dataVencimento || ct.dataInicio || getBrasiliaTodayIso()).split('T')[0];
+    return {
+      id: `ct-${ct.id}`,
+      titulo: ct.numeroContrato ? `Vencimento do Contrato ${ct.numeroContrato}` : `Contrato ${ct.clienteNome || ''}`,
+      categoria: 'Contrato',
+      data: dataVenc,
+      valor: Number(ct.valorTotal || 0),
+      entidadeVinculo: ct.clienteNome || 'Cliente',
+      status: (ct.status === 'Ativo' ? 'Em Aberto' : 'Concluído') as StatusAgenda,
+      prioridade: 'Média',
+      moduloOrigem: 'Contratos',
+      linkOrigem: '/contratos'
+    };
+  });
 
   // 5. Projetos
-  const mappedProjetos: EventoFinanceiro[] = projetos.map(p => ({
-    id: `prj-${p.id}`,
-    titulo: `Entrega do Projeto: ${p.nome}`,
-    categoria: 'Projeto',
-    data: p.dataFinal || new Date().toISOString(),
-    valor: p.valorContratado || 0,
-    entidadeVinculo: p.nome,
-    status: (p.status === 'Concluído' ? 'Concluído' : 'Em Aberto') as StatusAgenda,
-    prioridade: 'Média',
-    moduloOrigem: 'Projetos',
-    linkOrigem: '/projetos'
-  }));
+  const mappedProjetos: EventoFinanceiro[] = projetos.map(p => {
+    const dataEntrega = (p.dataFinal || (p as any).dataPrevisaoFim || (p as any).data_previsao_fim || getBrasiliaTodayIso()).split('T')[0];
+    return {
+      id: `prj-${p.id}`,
+      titulo: `Entrega do Projeto: ${p.nome}`,
+      categoria: 'Projeto',
+      data: dataEntrega,
+      valor: Number(p.valorContratado || (p as any).valor_contratado || 0),
+      entidadeVinculo: p.nome,
+      status: (p.status === 'Concluído' ? 'Concluído' : 'Em Aberto') as StatusAgenda,
+      prioridade: 'Média',
+      moduloOrigem: 'Projetos',
+      linkOrigem: '/projetos'
+    };
+  });
 
   const allEvents: EventoFinanceiro[] = [
     ...mappedReceber,
