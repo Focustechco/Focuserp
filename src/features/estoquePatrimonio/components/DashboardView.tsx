@@ -86,7 +86,7 @@ export function DashboardView({ onNavigateTab }: DashboardViewProps) {
               className="text-xs border-amber-500/40 text-amber-700 hover:bg-amber-500/10 dark:text-amber-300"
               onClick={() => onNavigateTab('estoque')}
             >
-              Ver Estoque Físico
+              Ver Itens/Estoque
             </Button>
             <Button
               variant="outline"

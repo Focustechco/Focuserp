@@ -21,7 +21,7 @@ import { ManutencoesView } from './ManutencoesView';
 import { RelatoriosModal } from './RelatoriosModal';
 
 export function EstoquePatrimonioScreen() {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('equipamentos');
   const [isRelatoriosOpen, setIsRelatoriosOpen] = useState(false);
 
   return (
@@ -51,14 +51,14 @@ export function EstoquePatrimonioScreen() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <div className="w-full overflow-x-auto scrollbar-hide border-b pb-1">
           <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
-            <TabsTrigger value="dashboard" className="gap-2 shrink-0 text-xs">
-              <LayoutDashboard className="h-4 w-4" /> Dashboard
-            </TabsTrigger>
-            <TabsTrigger value="estoque" className="gap-2 shrink-0 text-xs">
-              <Package className="h-4 w-4" /> Estoque Físico
-            </TabsTrigger>
             <TabsTrigger value="equipamentos" className="gap-2 shrink-0 text-xs">
               <Laptop className="h-4 w-4" /> Equipamentos
+            </TabsTrigger>
+            <TabsTrigger value="estoque" className="gap-2 shrink-0 text-xs">
+              <Package className="h-4 w-4" /> Itens/Estoque
+            </TabsTrigger>
+            <TabsTrigger value="dashboard" className="gap-2 shrink-0 text-xs">
+              <LayoutDashboard className="h-4 w-4" /> Dashboard
             </TabsTrigger>
             <TabsTrigger value="licencas" className="gap-2 shrink-0 text-xs">
               <KeyRound className="h-4 w-4" /> Licenças SaaS
