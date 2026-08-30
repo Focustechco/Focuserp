@@ -108,12 +108,14 @@ export interface ClickUpTaskReal {
 export interface ClickUpBoardOption {
   id: string;
   name: string;
-  kind: 'list' | 'view' | 'space';
+  kind: 'list' | 'view' | 'space' | 'team';
   spaceName?: string;
   folderName?: string;
 }
 
 const CLICKUP_API_BASE = 'https://api.clickup.com/api/v2';
+
+const VALID_TASK_VIEW_TYPES = ['board', 'list', 'table', 'gantt', 'timeline', 'calendar'];
 
 /**
  * Valida a chave de API do ClickUp testando o endpoint GET /user
@@ -166,7 +168,8 @@ export async function fetchClickUpTeams(apiToken: string): Promise<ClickUpTeam[]
  * Busca todos os Spaces de um Team/Workspace
  */
 export async function fetchClickUpSpaces(teamId: string, apiToken: string): Promise<ClickUpSpace[]> {
-  const response = await fetch(`${CLICKUP_API_BASE}/team/${teamId.trim()}/space?archived=false`, {
+  const cleanTeamId = teamId.trim();
+  const response = await fetch(`${CLICKUP_API_BASE}/team/${cleanTeamId}/space?archived=false`, {
     method: 'GET',
     headers: {
       'Authorization': apiToken.trim(),
@@ -183,11 +186,12 @@ export async function fetchClickUpSpaces(teamId: string, apiToken: string): Prom
 }
 
 /**
- * Busca Views criadas no nível do Workspace (Team)
+ * Busca Views criadas no nível do Workspace (Team) - Filtrando apenas views com tarefas
  */
 export async function fetchClickUpTeamViews(teamId: string, apiToken: string): Promise<ClickUpView[]> {
   try {
-    const resp = await fetch(`${CLICKUP_API_BASE}/team/${teamId.trim()}/view`, {
+    const cleanTeamId = teamId.trim();
+    const resp = await fetch(`${CLICKUP_API_BASE}/team/${cleanTeamId}/view`, {
       method: 'GET',
       headers: {
         'Authorization': apiToken.trim(),
@@ -196,7 +200,8 @@ export async function fetchClickUpTeamViews(teamId: string, apiToken: string): P
     });
     if (resp.ok) {
       const data = await resp.json();
-      return data.views || [];
+      const allViews: ClickUpView[] = data.views || [];
+      return allViews.filter(v => v.type && VALID_TASK_VIEW_TYPES.includes(v.type.toLowerCase()));
     }
   } catch (e) {
     console.warn('Erro ao buscar views do team:', e);
@@ -205,7 +210,7 @@ export async function fetchClickUpTeamViews(teamId: string, apiToken: string): P
 }
 
 /**
- * Busca Views criadas no nível do Space
+ * Busca Views criadas no nível do Space - Filtrando apenas views com tarefas
  */
 export async function fetchClickUpSpaceViews(spaceId: string, apiToken: string): Promise<ClickUpView[]> {
   try {
@@ -218,7 +223,8 @@ export async function fetchClickUpSpaceViews(spaceId: string, apiToken: string):
     });
     if (resp.ok) {
       const data = await resp.json();
-      return data.views || [];
+      const allViews: ClickUpView[] = data.views || [];
+      return allViews.filter(v => v.type && VALID_TASK_VIEW_TYPES.includes(v.type.toLowerCase()));
     }
   } catch (e) {
     console.warn('Erro ao buscar views do space:', e);
@@ -235,38 +241,18 @@ export async function fetchAllClickUpBoardsAndLists(
 ): Promise<ClickUpBoardOption[]> {
   const options: ClickUpBoardOption[] = [];
   const token = apiToken.trim();
+  const cleanTeamId = teamId.trim();
 
-  // 1. Views a nível de Workspace / Team (ex: quadros globais)
-  const teamViews = await fetchClickUpTeamViews(teamId, token);
-  for (const v of teamViews) {
-    options.push({
-      id: v.id,
-      name: `Quadro Geral: ${v.name || 'Visão Workspace'} (${v.type || 'board'})`,
-      kind: 'view'
-    });
-  }
-
-  // 2. Buscar Spaces do Workspace
+  // 1. Buscar Spaces do Workspace
   let spaces: ClickUpSpace[] = [];
   try {
-    spaces = await fetchClickUpSpaces(teamId, token);
+    spaces = await fetchClickUpSpaces(cleanTeamId, token);
   } catch (e) {
     console.warn('Erro ao buscar spaces:', e);
   }
 
   for (const sp of spaces) {
-    // 2.1 Views no nível do Space
-    const spaceViews = await fetchClickUpSpaceViews(sp.id, token);
-    for (const sv of spaceViews) {
-      options.push({
-        id: sv.id,
-        name: `[${sp.name}] Quadro: ${sv.name} (${sv.type || 'board'})`,
-        kind: 'view',
-        spaceName: sp.name
-      });
-    }
-
-    // 2.2 Listas avulsas no Space (folderless)
+    // 1.1 Listas avulsas no Space (folderless)
     try {
       const respFolderless = await fetch(`${CLICKUP_API_BASE}/space/${sp.id}/list?archived=false`, {
         headers: { 'Authorization': token, 'Content-Type': 'application/json' }
@@ -277,7 +263,7 @@ export async function fetchAllClickUpBoardsAndLists(
           for (const l of dataFolderless.lists) {
             options.push({
               id: l.id,
-              name: `[${sp.name}] Lista: ${l.name}`,
+              name: `📋 [${sp.name}] Lista: ${l.name}`,
               kind: 'list',
               spaceName: sp.name
             });
@@ -286,7 +272,7 @@ export async function fetchAllClickUpBoardsAndLists(
       }
     } catch (e) {}
 
-    // 2.3 Listas dentro de Pastas
+    // 1.2 Listas dentro de Pastas
     try {
       const respFolders = await fetch(`${CLICKUP_API_BASE}/space/${sp.id}/folder?archived=false`, {
         headers: { 'Authorization': token, 'Content-Type': 'application/json' }
@@ -299,7 +285,7 @@ export async function fetchAllClickUpBoardsAndLists(
               for (const fl of f.lists) {
                 options.push({
                   id: fl.id,
-                  name: `[${sp.name} / ${f.name}] Lista: ${fl.name}`,
+                  name: `📁 [${sp.name} / ${f.name}] Lista: ${fl.name}`,
                   kind: 'list',
                   spaceName: sp.name,
                   folderName: f.name
@@ -310,7 +296,43 @@ export async function fetchAllClickUpBoardsAndLists(
         }
       }
     } catch (e) {}
+
+    // 1.3 Views no nível do Space (apenas board/list de tarefas)
+    const spaceViews = await fetchClickUpSpaceViews(sp.id, token);
+    for (const sv of spaceViews) {
+      options.push({
+        id: sv.id,
+        name: `📊 [${sp.name}] Quadro: ${sv.name} (${sv.type})`,
+        kind: 'view',
+        spaceName: sp.name
+      });
+    }
+
+    // 1.4 Opção de puxar todas as tarefas do Space
+    options.push({
+      id: sp.id,
+      name: `🚀 Todas as Listas do Space: ${sp.name}`,
+      kind: 'space',
+      spaceName: sp.name
+    });
   }
+
+  // 2. Views a nível de Workspace / Team (apenas task views)
+  const teamViews = await fetchClickUpTeamViews(cleanTeamId, token);
+  for (const v of teamViews) {
+    options.push({
+      id: v.id,
+      name: `📊 Quadro Workspace: ${v.name || 'Geral'} (${v.type})`,
+      kind: 'view'
+    });
+  }
+
+  // 3. Opção de Todo o Workspace
+  options.push({
+    id: cleanTeamId,
+    name: '🌐 Todo o Workspace (Todas as Tarefas da Conta)',
+    kind: 'team'
+  });
 
   return options;
 }
@@ -323,8 +345,8 @@ export function extractCleanClickUpId(input: string): string {
   let str = input.trim();
 
   // Se o usuário colou a URL completa do ClickUp
-  // Ex: https://app.clickup.com/901323318822/v/b/6-901323318822-2
-  // Ex: https://app.clickup.com/901323318822/v/l/li/901305412852
+  // Ex: https://app.clickup.com/90132273898/v/b/6-90132273898-2
+  // Ex: https://app.clickup.com/90132273898/v/l/li/901305412852
   if (str.includes('clickup.com')) {
     const matchView = str.match(/\/v\/[a-z]\/([a-zA-Z0-9_-]+)/);
     const matchList = str.match(/\/li\/([0-9]+)/);
@@ -339,65 +361,76 @@ export function extractCleanClickUpId(input: string): string {
 }
 
 /**
- * Busca todas as tarefas reais de um Quadro (View) ou Lista (List) no ClickUp de forma inteligente e resiliente
+ * Busca todas as tarefas reais de um Quadro (View), Lista (List), Space ou Workspace no ClickUp de forma inteligente e resiliente
  */
-export async function fetchClickUpTasks(targetId: string, apiToken: string): Promise<ClickUpTaskReal[]> {
+export async function fetchClickUpTasks(
+  targetId: string, 
+  apiToken: string,
+  providedTeamId?: string
+): Promise<ClickUpTaskReal[]> {
   if (!targetId || !apiToken) {
     throw new Error('ID do Quadro/Lista e API Token são obrigatórios para buscar tarefas do ClickUp.');
   }
 
   const cleanId = extractCleanClickUpId(targetId);
   const token = apiToken.trim();
-  const isViewFormat = cleanId.startsWith('6-') || cleanId.startsWith('v/') || cleanId.includes('-');
 
-  // 1. Se tem formato de View (ex: 6-901323318822-2), buscar no endpoint de View
-  if (isViewFormat) {
+  // Tentar descobrir numeric team ID
+  let numericTeamId = providedTeamId?.trim();
+  if (!numericTeamId || !/^\d+$/.test(numericTeamId)) {
+    if (cleanId.includes('-')) {
+      const parts = cleanId.split('-');
+      if (parts.length >= 2 && /^\d+$/.test(parts[1])) {
+        numericTeamId = parts[1];
+      }
+    }
+  }
+
+  // 1. Se for puramente numérico, tentar List ou Space ou Team
+  if (/^\d+$/.test(cleanId)) {
+    // 1.1 Tentar como List
     try {
-      const resp = await fetch(`${CLICKUP_API_BASE}/view/${cleanId}/task?page=0`, {
+      const respList = await fetch(`${CLICKUP_API_BASE}/list/${cleanId}/task?include_closed=true&subtasks=true`, {
         method: 'GET',
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
-        }
+        headers: { 'Authorization': token, 'Content-Type': 'application/json' }
       });
-
-      if (resp.ok) {
-        const data = await resp.json();
+      if (respList.ok) {
+        const data = await respList.json();
         if (Array.isArray(data.tasks)) return data.tasks;
-        if (data.data && Array.isArray(data.data.tasks)) return data.data.tasks;
       }
-    } catch (e) {
-      console.warn('Tentativa via view falhou, tentando fallback:', e);
-    }
+    } catch (e) {}
+
+    // 1.2 Tentar como Space
+    try {
+      const respSpace = await fetch(`${CLICKUP_API_BASE}/space/${cleanId}/task?include_closed=true&subtasks=true`, {
+        method: 'GET',
+        headers: { 'Authorization': token, 'Content-Type': 'application/json' }
+      });
+      if (respSpace.ok) {
+        const data = await respSpace.json();
+        if (Array.isArray(data.tasks)) return data.tasks;
+      }
+    } catch (e) {}
+
+    // 1.3 Tentar como Team / Workspace
+    try {
+      const respTeam = await fetch(`${CLICKUP_API_BASE}/team/${cleanId}/task?include_closed=true&page=0&subtasks=true`, {
+        method: 'GET',
+        headers: { 'Authorization': token, 'Content-Type': 'application/json' }
+      });
+      if (respTeam.ok) {
+        const data = await respTeam.json();
+        if (Array.isArray(data.tasks)) return data.tasks;
+      }
+    } catch (e) {}
   }
 
-  // 2. Buscar no endpoint de List
-  try {
-    const respList = await fetch(`${CLICKUP_API_BASE}/list/${cleanId}/task?include_closed=true&subtasks=true`, {
-      method: 'GET',
-      headers: {
-        'Authorization': token,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    if (respList.ok) {
-      const data = await respList.json();
-      if (Array.isArray(data.tasks)) return data.tasks;
-    }
-  } catch (e) {
-    console.warn('Tentativa via list falhou:', e);
-  }
-
-  // 3. Fallback View se não foi tentado antes
-  if (!isViewFormat) {
+  // 2. Se tem formato de View (ex: 6-901323318822-2), buscar no endpoint de View
+  if (cleanId.includes('-') || cleanId.startsWith('v/')) {
     try {
       const respView = await fetch(`${CLICKUP_API_BASE}/view/${cleanId}/task?page=0`, {
         method: 'GET',
-        headers: {
-          'Authorization': token,
-          'Content-Type': 'application/json'
-        }
+        headers: { 'Authorization': token, 'Content-Type': 'application/json' }
       });
 
       if (respView.ok) {
@@ -405,26 +438,42 @@ export async function fetchClickUpTasks(targetId: string, apiToken: string): Pro
         if (Array.isArray(data.tasks)) return data.tasks;
         if (data.data && Array.isArray(data.data.tasks)) return data.data.tasks;
       }
+    } catch (e) {
+      console.warn('Tentativa via view falhou:', e);
+    }
+  }
+
+  // 3. Fallback: Se temos o numericTeamId, buscar tarefas do Workspace
+  if (numericTeamId && /^\d+$/.test(numericTeamId)) {
+    try {
+      const respTeam = await fetch(`${CLICKUP_API_BASE}/team/${numericTeamId}/task?include_closed=true&page=0&subtasks=true`, {
+        method: 'GET',
+        headers: { 'Authorization': token, 'Content-Type': 'application/json' }
+      });
+      if (respTeam.ok) {
+        const data = await respTeam.json();
+        if (Array.isArray(data.tasks)) return data.tasks;
+      }
     } catch (e) {}
   }
 
-  // 4. Fallback Team/Workspace Tasks se cleanId for team
+  // 4. Fallback final: listar Workspaces da conta e buscar tarefas do primeiro
   try {
-    const respTeam = await fetch(`${CLICKUP_API_BASE}/team/${cleanId}/task?include_closed=true&page=0`, {
-      method: 'GET',
-      headers: {
-        'Authorization': token,
-        'Content-Type': 'application/json'
+    const teams = await fetchClickUpTeams(token);
+    if (teams.length > 0) {
+      const firstTeamId = String(teams[0].id).trim();
+      const respTeam = await fetch(`${CLICKUP_API_BASE}/team/${firstTeamId}/task?include_closed=true&page=0&subtasks=true`, {
+        method: 'GET',
+        headers: { 'Authorization': token, 'Content-Type': 'application/json' }
+      });
+      if (respTeam.ok) {
+        const data = await respTeam.json();
+        if (Array.isArray(data.tasks)) return data.tasks;
       }
-    });
-
-    if (respTeam.ok) {
-      const data = await respTeam.json();
-      if (Array.isArray(data.tasks)) return data.tasks;
     }
   } catch (e) {}
 
-  throw new Error(`Não foi possível carregar as tarefas do ClickUp para o ID "${cleanId}". Verifique se sua chave possui permissão no quadro.`);
+  throw new Error(`Não foi possível carregar as tarefas do ClickUp para o ID "${cleanId}". Verifique se o quadro ou lista possui permissões ativas.`);
 }
 
 /**

@@ -100,7 +100,7 @@ export function useCrmStore() {
 
     setIsLoadingClickUp(true);
     try {
-      const realTasks = await fetchClickUpTasks(listId, apiToken);
+      const realTasks = await fetchClickUpTasks(listId, apiToken, activeConfig.teamId);
       
       // Coletar status dinâmicos únicos reais do ClickUp
       const statusMap = new Map<string, ClickUpStatusItem>();
