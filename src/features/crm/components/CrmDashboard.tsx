@@ -71,17 +71,6 @@ export function CrmDashboard() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Banner de Sincronização ClickUp */}
-      <div className="p-3 border rounded-xl bg-orange-50/50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-900 flex justify-between items-center text-xs">
-        <div className="flex items-center gap-2">
-          <Badge className="bg-emerald-500 text-white gap-1">
-            <RefreshCw className="w-3 h-3" /> {config.statusConexao}
-          </Badge>
-          <span className="font-semibold">Quadro ClickUp: <code className="bg-muted px-1.5 py-0.5 rounded font-mono">{config.listName || config.listId}</code></span>
-        </div>
-        <span className="text-muted-foreground text-[11px]">Último sync real: {config.lastSyncTime ? new Date(config.lastSyncTime).toLocaleTimeString('pt-BR') : 'Agora'}</span>
-      </div>
-
       {/* Grid de KPI Cards Reais */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card className="shadow-xs">

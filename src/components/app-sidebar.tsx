@@ -104,7 +104,7 @@ const groups = [
     items: [
       { title: "Comercial Ops", url: "/comercial", icon: ShoppingBag },
       { title: "CRM Focus", url: "/crm", icon: Target },
-      { title: "Customer Success (CS)", url: "/customer-success", icon: Heart },
+      { title: "Customer Service", url: "/customer-success", icon: Heart },
     ],
   },
   {

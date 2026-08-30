@@ -164,7 +164,7 @@ export function CustomerSuccessScreen() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
-              Customer Success (CS)
+              Customer Service
             </h1>
             <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
               Gestão estratégica do ciclo de vida dos clientes da software house. Acompanhe Onboarding, Health Score, NPS, Renovações e Expansão.
