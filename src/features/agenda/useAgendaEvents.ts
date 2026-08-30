@@ -56,7 +56,33 @@ export function useAgendaEvents() {
     };
   });
 
-  // 2. Projeção de Recorrências no Calendário (Recebimentos de Clientes & Pagamentos de Fornecedores)
+  // 2. Contas a Pagar Emitidas (Totalmente integrado com datas, fornecedores e valores)
+  const mappedPagar: EventoFinanceiro[] = contasPagar.map(c => {
+    let statusMapped: StatusAgenda = 'Em Aberto';
+    if (c.status === 'Pago') statusMapped = 'Pago';
+    else if (c.status === 'Vencido') statusMapped = 'Vencido';
+    else if (c.status === 'Cancelado') statusMapped = 'Cancelado';
+
+    const dataVenc = (c.dataVencimento || (c as any).vencimento || (c as any).data_vencimento || getBrasiliaTodayIso()).split('T')[0];
+    const fornNome = c.fornecedor || (c as any).fornecedor_nome || 'Fornecedor';
+    const isImposto = (c.categoria || '').toLowerCase().includes('imposto') || (c.categoria || '').toLowerCase().includes('tributo');
+
+    return {
+      id: `pag-${c.id}`,
+      titulo: c.descricao ? `${fornNome} - ${c.descricao}` : `Pagamento a ${fornNome}`,
+      categoria: isImposto ? 'Imposto' : 'Pagamento',
+      data: dataVenc,
+      valor: Number(c.valorOriginal || (c as any).valor_original || (c as any).valor || 0),
+      entidadeVinculo: fornNome,
+      status: statusMapped,
+      prioridade: c.status === 'Vencido' ? 'Alta' : 'Média',
+      moduloOrigem: 'Contas a Pagar',
+      linkOrigem: '/contas-a-pagar',
+      observacoes: c.observacoes || `Categoria: ${c.categoria || 'Despesa'} • Forma: ${c.formaPagamento || 'Boleto'}`
+    };
+  });
+
+  // 3. Projeção de Recorrências no Calendário (Recebimentos de Clientes & Pagamentos de Fornecedores)
   const mappedRecorrencias: EventoFinanceiro[] = [];
   const currentDate = new Date();
   const currentYear = currentDate.getFullYear();
@@ -182,32 +208,6 @@ export function useAgendaEvents() {
         }
       }
     });
-  });
-
-  // 3. Contas a Pagar (Totalmente integrado com datas, fornecedores e valores)
-  const mappedPagar: EventoFinanceiro[] = contasPagar.map(c => {
-    let statusMapped: StatusAgenda = 'Em Aberto';
-    if (c.status === 'Pago') statusMapped = 'Pago';
-    else if (c.status === 'Vencido') statusMapped = 'Vencido';
-    else if (c.status === 'Cancelado') statusMapped = 'Cancelado';
-
-    const dataVenc = (c.dataVencimento || (c as any).vencimento || (c as any).data_vencimento || getBrasiliaTodayIso()).split('T')[0];
-    const fornNome = c.fornecedor || (c as any).fornecedor_nome || 'Fornecedor';
-    const isImposto = (c.categoria || '').toLowerCase().includes('imposto') || (c.categoria || '').toLowerCase().includes('tributo');
-
-    return {
-      id: `pag-${c.id}`,
-      titulo: c.descricao ? `${fornNome} - ${c.descricao}` : `Pagamento a ${fornNome}`,
-      categoria: isImposto ? 'Imposto' : 'Pagamento',
-      data: dataVenc,
-      valor: Number(c.valorOriginal || (c as any).valor_original || (c as any).valor || 0),
-      entidadeVinculo: fornNome,
-      status: statusMapped,
-      prioridade: c.status === 'Vencido' ? 'Alta' : 'Média',
-      moduloOrigem: 'Contas a Pagar',
-      linkOrigem: '/contas-a-pagar',
-      observacoes: c.observacoes || `Categoria: ${c.categoria || 'Despesa'} • Forma: ${c.formaPagamento || 'Boleto'}`
-    };
   });
 
   // 4. Contratos
