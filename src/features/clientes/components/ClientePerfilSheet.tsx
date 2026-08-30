@@ -65,12 +65,10 @@ export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: Clie
 
   const [selectedDocPreview, setSelectedDocPreview] = useState<DocumentoDMS | null>(null);
 
-  if (!cliente) return null;
-
-  const nomeOficial = cliente.nomeFantasia || cliente.razaoSocial || 'Cliente';
-  const financeiro = calculateClienteFinanceiro(cliente.id, titulos, recorrencias, contratos);
+  const nomeOficial = cliente?.nomeFantasia || cliente?.razaoSocial || 'Cliente';
+  const financeiro = calculateClienteFinanceiro(cliente?.id || '', titulos, recorrencias, contratos);
   const recorrenciaAtiva = (financeiro?.recorrenciasDoCliente || []).find(r => r.status === 'Ativa');
-  const contatos = Array.isArray(cliente.contatos) ? cliente.contatos : [];
+  const contatos = Array.isArray(cliente?.contatos) ? cliente.contatos : [];
 
   const safeNome = String(nomeOficial || '').toLowerCase();
 
@@ -129,6 +127,8 @@ export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: Clie
 
     return listaUnificada;
   }, [cliente, financeiro]);
+
+  if (!cliente) return null;
 
   // 1. Documentos no DMS vinculados a este cliente
   const todosDocumentos = dmsService.getDocumentos() || [];
