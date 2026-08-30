@@ -1,5 +1,5 @@
 export type EtapaPipeline = string;
-export type PrioridadeOportunidade = 'Baixa' | 'Média' | 'Alta' | 'Urgente' | string;
+export type PrioridadeOportunidade = 'Baixa' | 'Média' | 'Alta' | 'Urgente' | 'Normal' | string;
 
 export interface ClickUpStatusItem {
   status: string;
@@ -98,6 +98,20 @@ export interface OportunidadeCrm {
   statusClickUp: 'synced' | 'pending' | 'error';
   observacoes?: string;
   clickUpUrl?: string;
+}
+
+export interface InteracaoCrm {
+  id: string;
+  oportunidadeId: string;
+  clickUpTaskId: string;
+  clienteNome: string;
+  tipo: 'WhatsApp' | 'Ligação' | 'Reunião' | 'E-mail' | 'Diagnóstico' | 'Follow-up';
+  descricao: string;
+  dataHora: string;
+  responsavel: string;
+  responsavelAvatar?: string;
+  proximoContatoData?: string;
+  resultado?: 'Positivo' | 'Neutro' | 'Negativo' | 'Agendou Diagnóstico' | 'Aguardando Resposta';
 }
 
 export interface AtividadeCrm {

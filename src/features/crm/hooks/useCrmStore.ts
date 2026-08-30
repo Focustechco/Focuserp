@@ -23,6 +23,7 @@ export function useCrmStore() {
   const { data: leads, addItem: addLeadItem, updateItem: updateLeadItem, deleteItem: deleteLeadItem, save: saveLeads } = useLocalStorageState<LeadCrm>('focus_crm_leads', INITIAL_LEADS);
   const { data: empresas, addItem: addEmpresaItem, updateItem: updateEmpresaItem, deleteItem: deleteEmpresaItem, save: saveEmpresas } = useLocalStorageState<EmpresaCrm>('focus_crm_empresas', INITIAL_EMPRESAS);
   const { data: contatos, addItem: addContatoItem, updateItem: updateContatoItem, deleteItem: deleteContatoItem, save: saveContatos } = useLocalStorageState<ContatoCrm>('focus_crm_contatos', INITIAL_CONTATOS);
+  const { data: interacoes, addItem: addInteracaoItem, deleteItem: deleteInteracaoItem, save: saveInteracoes } = useLocalStorageState<InteracaoCrm>('focus_crm_interacoes', []);
   const { data: atividades, addItem: addAtividadeItem, save: saveAtividades } = useLocalStorageState<AtividadeCrm>('focus_crm_atividades', INITIAL_ATIVIDADES);
   const { data: syncLogs, addItem: addSyncLogItem, save: saveLogs } = useLocalStorageState<LogSyncClickUp>('focus_crm_sync_logs', INITIAL_SYNC_LOGS);
 
@@ -390,6 +391,7 @@ export function useCrmStore() {
     leads,
     empresas,
     contatos,
+    interacoes,
     atividades,
     syncLogs,
     isLoadingClickUp,
@@ -401,6 +403,8 @@ export function useCrmStore() {
     addOportunidade,
     deleteOportunidade: deleteOpItem,
     updateOportunidade: updateOpItem,
+    addInteracao: addInteracaoItem,
+    deleteInteracao: deleteInteracaoItem,
     carregarDadosDemo,
     limparDadosCrm,
     addLeadItem,

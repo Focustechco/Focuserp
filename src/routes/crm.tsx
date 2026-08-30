@@ -6,8 +6,7 @@ import { CrmKanbanView } from "@/features/crm/components/CrmKanbanView";
 import { LeadsView } from "@/features/crm/components/LeadsView";
 import { EmpresasContatosView } from "@/features/crm/components/EmpresasContatosView";
 import { ClickUpConfigView } from "@/features/crm/components/ClickUpConfigView";
-import { Target, LayoutGrid, Users, Building2, RefreshCw, ShieldCheck } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Target, LayoutGrid, Award, Building2, RefreshCw } from "lucide-react";
 
 export const Route = createFileRoute("/crm")({
   component: ModuloCrmPage,
@@ -39,10 +38,10 @@ function ModuloCrmPage() {
               <LayoutGrid className="w-4 h-4" /> Dashboard CRM
             </TabsTrigger>
             <TabsTrigger value="leads" className="gap-2 shrink-0">
-              <Users className="w-4 h-4" /> Leads & Scoring
+              <Award className="w-4 h-4 text-orange-500" /> Desempenho & Usuários
             </TabsTrigger>
             <TabsTrigger value="empresas" className="gap-2 shrink-0">
-              <Building2 className="w-4 h-4" /> Empresas & Decisores
+              <Building2 className="w-4 h-4 text-blue-500" /> Clientes & Follow-ups
             </TabsTrigger>
             <TabsTrigger value="clickup" className="gap-2 shrink-0">
               <RefreshCw className="w-4 h-4" /> ClickUp Engine & Logs
