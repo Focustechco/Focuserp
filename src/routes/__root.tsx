@@ -257,11 +257,28 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   useEffect(() => {
+    // Tratamento defensivo para scripts injetados de telemetria/profiler do navegador
+    const handleGlobalError = (event: ErrorEvent) => {
+      if (
+        event?.message?.includes('startTime') || 
+        event?.message?.includes('reportAllChanges')
+      ) {
+        event.preventDefault?.();
+        event.stopImmediatePropagation?.();
+      }
+    };
+
+    window.addEventListener('error', handleGlobalError);
+
     autoRegisterServiceWorker().catch(console.error);
 
     if (isPushSupported() && getNotificationPermission() === 'granted') {
       subscribeToPush(getPushUserId()).catch(console.error);
     }
+
+    return () => {
+      window.removeEventListener('error', handleGlobalError);
+    };
   }, []);
 
   return (
