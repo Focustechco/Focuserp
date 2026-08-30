@@ -11,7 +11,7 @@ import {
 } from "../data/initialData";
 import { 
   testClickUpConnection, fetchClickUpTasks, createClickUpTask, updateClickUpTaskStatus,
-  fetchClickUpTeams, fetchClickUpSpaces, fetchClickUpListsInSpace
+  fetchClickUpTeams, fetchAllClickUpBoardsAndLists, extractCleanClickUpId
 } from "../services/clickupApi";
 import { Cliente } from "@/features/clientes/types";
 import { Contrato } from "@/features/contratos/types";
@@ -50,6 +50,8 @@ export function useCrmStore() {
       const userData = await testClickUpConnection(apiToken);
       const user = userData.user;
 
+      const cleanListId = extractCleanClickUpId(listId);
+
       const newConfig: ClickUpSyncConfig = {
         id: "cfg-clickup",
         apiToken: apiToken.trim(),
@@ -58,7 +60,7 @@ export function useCrmStore() {
         workspaceId: workspaceId || `Workspace (${user.username})`,
         spaceId: spaceId || undefined,
         spaceName: extraInfo?.spaceName || 'Vendas',
-        listId: listId.trim(),
+        listId: cleanListId,
         listName: extraInfo?.listName || 'Quadro CRM / Pipeline',
         autoSync: true,
         lastSyncTime: new Date().toISOString(),
@@ -80,11 +82,9 @@ export function useCrmStore() {
         mensagem: `Conectado com sucesso à conta de ${user.username} (${user.email}).`
       });
 
-      toast.success(`🎉 Conectado ao ClickUp! Conta autenticada: ${user.username} (${user.email}).`);
-
       // Se informou um List ID, buscar as tarefas reais
-      if (listId.trim()) {
-        await importRealClickUpTasks(listId.trim(), apiToken.trim());
+      if (cleanListId) {
+        await importRealClickUpTasks(cleanListId, apiToken.trim());
       }
     } catch (err: any) {
       toast.error(`Erro ao conectar com o ClickUp: ${err.message || 'Verifique sua chave de API.'}`);
@@ -105,7 +105,7 @@ export function useCrmStore() {
     return 'Qualificação';
   };
 
-  // 3. Buscar tarefas reais da Lista do ClickUp
+  // 3. Buscar tarefas reais da Lista/Quadro do ClickUp
   const importRealClickUpTasks = async (listId = activeConfig.listId, apiToken = activeConfig.apiToken) => {
     if (!apiToken || !listId) {
       toast.error('Informe o API Token e o List ID para importar tarefas do ClickUp.');
@@ -133,7 +133,6 @@ export function useCrmStore() {
           }
         }
         if (valorExtracted === 0) {
-          // Valor simulado realista se não houver campo customizado
           valorExtracted = Math.floor(15000 + (idx + 1) * 22500);
         }
 
@@ -181,14 +180,14 @@ export function useCrmStore() {
       addSyncLogItem({
         id: `log-${Date.now()}`,
         timestamp: new Date().toLocaleTimeString('pt-BR'),
-        clickUpTaskId: `LIST-${listId}`,
+        clickUpTaskId: `BOARD-${listId}`,
         entidade: 'Oportunidade',
         acao: 'Sincronização de Tarefas',
         status: 'Sucesso',
         mensagem: `${realTasks.length} tarefas reais do ClickUp sincronizadas no CRM.`
       });
 
-      toast.success(`${realTasks.length} tarefas reais importadas do quadro ClickUp!`);
+      toast.success(`${realTasks.length} tarefas reais importadas do ClickUp com sucesso!`);
     } catch (err: any) {
       toast.error(`Erro ao importar tarefas: ${err.message}`);
     } finally {

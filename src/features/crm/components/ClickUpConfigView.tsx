@@ -7,12 +7,13 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   RefreshCw, CheckCircle2, ShieldCheck, Key, Database, AlertCircle, 
-  Trash2, Layers, ExternalLink, User, FolderTree, Sparkles, Clock, Globe
+  Trash2, Layers, ExternalLink, User, FolderTree, Sparkles, Clock, Globe,
+  Check, ArrowRight
 } from 'lucide-react';
 import { useCrmStore } from '../hooks/useCrmStore';
 import { 
-  testClickUpConnection, fetchClickUpTeams, fetchClickUpSpaces, fetchClickUpListsInSpace,
-  ClickUpTeam, ClickUpSpace, ClickUpList 
+  testClickUpConnection, fetchClickUpTeams, fetchAllClickUpBoardsAndLists,
+  ClickUpTeam, ClickUpBoardOption 
 } from '../services/clickupApi';
 import { formatDateBrasilia } from '@/lib/dateUtils';
 import { toast } from 'sonner';
@@ -25,139 +26,139 @@ export function ClickUpConfigView() {
 
   const [apiToken, setApiToken] = useState(config.apiToken || '');
   const [selectedTeamId, setSelectedTeamId] = useState(config.teamId || config.workspaceId || '');
-  const [selectedSpaceId, setSelectedSpaceId] = useState(config.spaceId || '');
-  const [selectedListId, setSelectedListId] = useState(config.listId || '');
+  const [selectedBoardId, setSelectedBoardId] = useState(config.listId || '');
 
   // Dynamic discovery states
   const [teams, setTeams] = useState<ClickUpTeam[]>([]);
-  const [spaces, setSpaces] = useState<ClickUpSpace[]>([]);
-  const [lists, setLists] = useState<ClickUpList[]>([]);
+  const [boards, setBoards] = useState<ClickUpBoardOption[]>([]);
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [connectedUser, setConnectedUser] = useState<any>(null);
 
   const isConnected = config.statusConexao === 'Conectado ClickUp API';
 
-  // 1. Testar Token e Descobrir Workspaces / Teams
-  const handleTestAndDiscover = async () => {
-    if (!apiToken.trim()) {
+  // 1. Validar Token e Descobrir Workspaces e Todos os Quadros / Listas Automaticamente
+  const discoverAndLoadEverything = async (tokenToUse = apiToken) => {
+    const cleanToken = tokenToUse.trim();
+    if (!cleanToken) {
       toast.error('Insira o seu ClickUp Personal API Token (pk_...).');
       return;
     }
 
     setIsDiscovering(true);
     try {
-      // Testar conexão
-      const userData = await testClickUpConnection(apiToken.trim());
+      // 1. Validar usuário
+      const userData = await testClickUpConnection(cleanToken);
       setConnectedUser(userData.user);
 
-      // Buscar Workspaces
-      const teamsData = await fetchClickUpTeams(apiToken.trim());
+      // 2. Buscar Workspaces
+      const teamsData = await fetchClickUpTeams(cleanToken);
       setTeams(teamsData);
 
       if (teamsData.length > 0) {
-        const firstTeam = teamsData[0];
-        setSelectedTeamId(firstTeam.id);
+        const team = teamsData.find(t => t.id === selectedTeamId) || teamsData[0];
+        setSelectedTeamId(team.id);
 
-        // Buscar Spaces do primeiro Workspace
-        const spacesData = await fetchClickUpSpaces(firstTeam.id, apiToken.trim());
-        setSpaces(spacesData);
+        // 3. Buscar TODOS os Quadros (Views) e Listas desse Workspace
+        const boardsData = await fetchAllClickUpBoardsAndLists(team.id, cleanToken);
+        setBoards(boardsData);
 
-        if (spacesData.length > 0) {
-          const firstSpace = spacesData[0];
-          setSelectedSpaceId(firstSpace.id);
+        // Se tiver quadros e nenhum selecionado ainda, seleciona o primeiro
+        if (boardsData.length > 0) {
+          const currentBoard = boardsData.find(b => b.id === selectedBoardId) || boardsData[0];
+          setSelectedBoardId(currentBoard.id);
 
-          // Buscar Listas do primeiro Space
-          const listsData = await fetchClickUpListsInSpace(firstSpace.id, apiToken.trim());
-          setLists(listsData);
-
-          if (listsData.length > 0) {
-            setSelectedListId(listsData[0].id);
-          }
+          // Salvar e conectar automaticamente
+          await saveAndConnectClickUp(
+            cleanToken,
+            team.id,
+            '',
+            currentBoard.id,
+            {
+              teamName: team.name,
+              listName: currentBoard.name
+            }
+          );
+        } else {
+          // Se não encontrou listas listadas, salvar com a lista atual
+          await saveAndConnectClickUp(
+            cleanToken,
+            team.id,
+            '',
+            selectedBoardId || team.id,
+            { teamName: team.name }
+          );
         }
       }
 
-      toast.success(`Token validado! Conectado à conta de ${userData.user.username} (${userData.user.email}).`);
+      toast.success(`Conexão autenticada! Bem-vindo(a), ${userData.user.username}.`);
     } catch (err: any) {
-      toast.error(`Erro de autenticação no ClickUp: ${err.message}`);
+      toast.error(`Erro ao conectar com o ClickUp: ${err.message}`);
     } finally {
       setIsDiscovering(false);
     }
   };
 
-  // Ao alterar Workspace selecionado
+  // Carregar listas ao abrir se já houver token salvo
+  useEffect(() => {
+    if (config.apiToken && teams.length === 0) {
+      discoverAndLoadEverything(config.apiToken);
+    }
+  }, [config.apiToken]);
+
+  // Ao trocar de Workspace
   const handleTeamChange = async (teamId: string) => {
     setSelectedTeamId(teamId);
     if (!apiToken.trim()) return;
 
+    setIsDiscovering(true);
     try {
-      const spacesData = await fetchClickUpSpaces(teamId, apiToken.trim());
-      setSpaces(spacesData);
-      if (spacesData.length > 0) {
-        setSelectedSpaceId(spacesData[0].id);
-        const listsData = await fetchClickUpListsInSpace(spacesData[0].id, apiToken.trim());
-        setLists(listsData);
-        if (listsData.length > 0) {
-          setSelectedListId(listsData[0].id);
-        }
-      } else {
-        setLists([]);
-        setSelectedListId('');
+      const team = teams.find(t => t.id === teamId);
+      const boardsData = await fetchAllClickUpBoardsAndLists(teamId, apiToken.trim());
+      setBoards(boardsData);
+      
+      if (boardsData.length > 0) {
+        setSelectedBoardId(boardsData[0].id);
+        await saveAndConnectClickUp(
+          apiToken.trim(),
+          teamId,
+          '',
+          boardsData[0].id,
+          {
+            teamName: team?.name,
+            listName: boardsData[0].name
+          }
+        );
       }
     } catch (e: any) {
-      console.warn('Erro ao atualizar spaces:', e.message);
+      toast.error(`Erro ao carregar quadros do workspace: ${e.message}`);
+    } finally {
+      setIsDiscovering(false);
     }
   };
 
-  // Ao alterar Space selecionado
-  const handleSpaceChange = async (spaceId: string) => {
-    setSelectedSpaceId(spaceId);
+  // Ao selecionar um Quadro / Lista
+  const handleBoardChange = async (boardId: string) => {
+    setSelectedBoardId(boardId);
     if (!apiToken.trim()) return;
 
-    try {
-      const listsData = await fetchClickUpListsInSpace(spaceId, apiToken.trim());
-      setLists(listsData);
-      if (listsData.length > 0) {
-        setSelectedListId(listsData[0].id);
-      } else {
-        setSelectedListId('');
-      }
-    } catch (e: any) {
-      console.warn('Erro ao atualizar listas:', e.message);
-    }
-  };
-
-  // 2. Salvar Conexão e Sincronizar
-  const handleSaveAndSync = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!apiToken.trim()) {
-      toast.error('Insira o seu ClickUp Personal API Token para integrar.');
-      return;
-    }
-    if (!selectedListId.trim()) {
-      toast.error('Selecione ou informe o List ID (Quadro CRM) do ClickUp.');
-      return;
-    }
-
-    const teamObj = teams.find(t => t.id === selectedTeamId);
-    const spaceObj = spaces.find(s => s.id === selectedSpaceId);
-    const listObj = lists.find(l => l.id === selectedListId);
+    const board = boards.find(b => b.id === boardId);
+    const team = teams.find(t => t.id === selectedTeamId);
 
     await saveAndConnectClickUp(
-      apiToken.trim(), 
-      selectedTeamId, 
-      selectedSpaceId, 
-      selectedListId.trim(),
+      apiToken.trim(),
+      selectedTeamId,
+      '',
+      boardId,
       {
-        teamName: teamObj?.name,
-        spaceName: spaceObj?.name,
-        listName: listObj?.name
+        teamName: team?.name,
+        listName: board?.name
       }
     );
   };
 
   const handleSyncNow = async () => {
     if (!config.apiToken || !config.listId) {
-      toast.error('Configure e conecte seu Token e List ID do ClickUp primeiro.');
+      toast.error('Informe o API Token do ClickUp primeiro.');
       return;
     }
     await importRealClickUpTasks();
@@ -165,27 +166,27 @@ export function ClickUpConfigView() {
 
   return (
     <div className="space-y-6 animate-fade-in pt-2">
-      {/* SEÇÃO CONEXÃO API REAL CLICKUP */}
+      {/* SEÇÃO PRINCIPAL DE CONEXÃO CLICKUP */}
       <Card className="border-2 border-primary/20 shadow-md">
         <CardHeader className="border-b pb-4">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <div>
               <CardTitle className="text-base flex items-center gap-2">
-                <Key className="w-5 h-5 text-orange-500" /> Conexão Oficial da Conta ClickUp (REST API v2)
+                <Key className="w-5 h-5 text-orange-500" /> Conexão do ClickUp via API Oficial (REST v2)
               </CardTitle>
               <CardDescription className="text-xs mt-0.5">
-                Conecte a API real da sua empresa para importar e sincronizar tarefas, leads e oportunidades bidirecionalmente em tempo real.
+                Basta inserir seu token para conectar e selecionar seus quadros e listas em 1 clique.
               </CardDescription>
             </div>
 
             <div className="flex items-center gap-2">
               {isConnected ? (
                 <Badge className="bg-emerald-500 text-white gap-1 text-xs py-1 px-3">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> Conectado ClickUp API Real
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Conectado & Ativo
                 </Badge>
               ) : (
                 <Badge variant="outline" className="text-rose-600 border-rose-300 bg-rose-50 dark:bg-rose-950/40 text-xs py-1 px-3 gap-1">
-                  <AlertCircle className="w-3.5 h-3.5" /> Nenhuma Conta Conectada
+                  <AlertCircle className="w-3.5 h-3.5" /> Desconectado
                 </Badge>
               )}
             </div>
@@ -193,11 +194,11 @@ export function ClickUpConfigView() {
         </CardHeader>
 
         <CardContent className="pt-6 space-y-6 text-xs">
-          {/* Card de Status da Conta Conectada se houver */}
+          {/* PAINEL DA CONTA CONECTADA */}
           {isConnected && (
             <div className="p-4 bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900 border border-emerald-300 flex items-center justify-center font-bold text-emerald-800 dark:text-emerald-200 text-sm overflow-hidden">
+                <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900 border border-emerald-300 flex items-center justify-center font-bold text-emerald-800 dark:text-emerald-200 text-sm overflow-hidden shrink-0">
                   {config.userAvatar ? (
                     <img src={config.userAvatar} alt="" className="w-full h-full object-cover" />
                   ) : (
@@ -207,7 +208,7 @@ export function ClickUpConfigView() {
                 <div>
                   <div className="font-bold text-sm text-foreground flex items-center gap-2">
                     <span>{config.userName || 'Usuário ClickUp'}</span>
-                    <span className="text-xs font-normal text-muted-foreground">({config.userEmail || 'email@clickup.com'})</span>
+                    <span className="text-xs font-normal text-muted-foreground">({config.userEmail || 'conectado via API'})</span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     Quadro Vinculado: <strong className="text-foreground">{config.listName || config.listId}</strong> • Workspace: {config.teamName || config.workspaceId || 'Principal'}
@@ -219,30 +220,31 @@ export function ClickUpConfigView() {
                 <Button 
                   onClick={handleSyncNow} 
                   disabled={isLoadingClickUp}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 text-xs h-9"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 text-xs h-9 font-bold"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${isLoadingClickUp ? 'animate-spin' : ''}`} />
-                  {isLoadingClickUp ? 'Sincronizando...' : 'Sincronizar Tarefas Agora'}
+                  {isLoadingClickUp ? 'Sincronizando...' : 'Sincronizar Dados Reais Agora'}
                 </Button>
                 
                 <Button 
                   variant="outline" 
                   size="sm" 
                   className="text-xs gap-1.5 h-9"
-                  onClick={() => window.open(`https://app.clickup.com/${config.teamId || ''}/v/l/li/${config.listId}`, '_blank')}
+                  onClick={() => window.open(`https://app.clickup.com/${config.teamId || ''}`, '_blank')}
                 >
-                  <ExternalLink className="w-3.5 h-3.5 text-orange-500" /> Abrir no ClickUp
+                  <ExternalLink className="w-3.5 h-3.5 text-orange-500" /> Abrir ClickUp
                 </Button>
               </div>
             </div>
           )}
 
-          <form onSubmit={handleSaveAndSync} className="space-y-5">
-            {/* ETAPA 1: API TOKEN */}
+          {/* FORMULÁRIO RÁPIDO: TOKEN + SELEÇÃO DIRETA */}
+          <div className="space-y-4">
+            {/* 1. INPUT DE TOKEN COM VALIDAÇÃO RÁPIDA */}
             <div className="p-4 border rounded-xl bg-muted/30 space-y-3">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                 <Label className="font-bold text-sm text-foreground flex items-center gap-1.5">
-                  <Key className="w-4 h-4 text-orange-500" /> 1. ClickUp Personal API Token (Obrigatório) *
+                  <Key className="w-4 h-4 text-orange-500" /> 1. ClickUp Personal API Token (pk_...) *
                 </Label>
                 
                 <Button 
@@ -250,11 +252,11 @@ export function ClickUpConfigView() {
                   variant="secondary" 
                   size="sm" 
                   disabled={isDiscovering || !apiToken.trim()}
-                  onClick={handleTestAndDiscover}
-                  className="h-7 text-xs gap-1.5"
+                  onClick={() => discoverAndLoadEverything(apiToken)}
+                  className="h-7 text-xs gap-1.5 bg-orange-100 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 hover:bg-orange-200"
                 >
-                  <Sparkles className="w-3 h-3 text-orange-500" />
-                  {isDiscovering ? 'Validando Token...' : 'Testar & Carregar Listas'}
+                  <Sparkles className="w-3.5 h-3.5 text-orange-500" />
+                  {isDiscovering ? 'Conectando & Carregando...' : 'Conectar & Listar Quadros'}
                 </Button>
               </div>
 
@@ -263,21 +265,26 @@ export function ClickUpConfigView() {
                 placeholder="Ex: pk_948271049_ABCDEFGHIJKLMNOPQRSTUVWXYZ..." 
                 value={apiToken} 
                 onChange={e => setApiToken(e.target.value)}
+                onBlur={() => {
+                  if (apiToken.trim() && teams.length === 0) {
+                    discoverAndLoadEverything(apiToken);
+                  }
+                }}
                 className="font-mono text-xs bg-background"
               />
               <p className="text-[11px] text-muted-foreground">
-                Para obter seu token: Acesse seu perfil no <strong>ClickUp &gt; Settings &gt; Apps &gt; Personal API Token</strong> e clique em <em>Generate</em>.
+                No ClickUp, vá em: <strong>Settings &gt; Apps &gt; Personal API Token</strong> e clique em <em>Generate</em>.
               </p>
             </div>
 
-            {/* ETAPA 2: SELEÇÃO DE WORKSPACE, SPACE E LISTA */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Workspace / Team */}
+            {/* 2. SELEÇÃO DE WORKSPACE E QUADRO/LISTA */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Workspace */}
               <div className="space-y-2">
-                <Label className="font-semibold">Workspace (Team)</Label>
+                <Label className="font-semibold">2. Selecione o Workspace (Empresa)</Label>
                 {teams.length > 0 ? (
                   <Select value={selectedTeamId} onValueChange={handleTeamChange}>
-                    <SelectTrigger className="bg-background">
+                    <SelectTrigger className="bg-background font-semibold">
                       <SelectValue placeholder="Selecione o Workspace" />
                     </SelectTrigger>
                     <SelectContent>
@@ -287,62 +294,39 @@ export function ClickUpConfigView() {
                     </SelectContent>
                   </Select>
                 ) : (
-                  <Input 
-                    placeholder="Workspace ID ou Nome" 
-                    value={selectedTeamId} 
-                    onChange={e => setSelectedTeamId(e.target.value)} 
-                    className="text-xs"
-                  />
+                  <div className="p-2.5 border rounded-lg bg-muted/40 text-muted-foreground text-xs">
+                    Insira o token acima para listar seus Workspaces.
+                  </div>
                 )}
               </div>
 
-              {/* Space */}
+              {/* Quadro / Lista CRM */}
               <div className="space-y-2">
-                <Label className="font-semibold">Space de Vendas</Label>
-                {spaces.length > 0 ? (
-                  <Select value={selectedSpaceId} onValueChange={handleSpaceChange}>
-                    <SelectTrigger className="bg-background">
-                      <SelectValue placeholder="Selecione o Space" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {spaces.map(s => (
-                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <Input 
-                    placeholder="Space ID ou Nome" 
-                    value={selectedSpaceId} 
-                    onChange={e => setSelectedSpaceId(e.target.value)} 
-                    className="text-xs"
-                  />
-                )}
-              </div>
-
-              {/* List / Quadro CRM */}
-              <div className="space-y-2">
-                <Label className="font-semibold">Lista / Quadro CRM (List ID) *</Label>
-                {lists.length > 0 ? (
-                  <Select value={selectedListId} onValueChange={setSelectedListId}>
+                <Label className="font-semibold">3. Selecione o Quadro / Lista do CRM *</Label>
+                {boards.length > 0 ? (
+                  <Select value={selectedBoardId} onValueChange={handleBoardChange}>
                     <SelectTrigger className="bg-background font-bold text-primary">
-                      <SelectValue placeholder="Selecione a Lista" />
+                      <SelectValue placeholder="Selecione o Quadro CRM" />
                     </SelectTrigger>
-                    <SelectContent>
-                      {lists.map(l => (
-                        <SelectItem key={l.id} value={l.id}>
-                          <span className="font-mono text-muted-foreground mr-1">[{l.id}]</span> {l.name}
+                    <SelectContent className="max-h-72">
+                      {boards.map(b => (
+                        <SelectItem key={b.id} value={b.id}>
+                          <span className="font-medium">{b.name}</span>
+                          <span className="text-[10px] font-mono text-muted-foreground ml-1.5">[{b.id}]</span>
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 ) : (
-                  <Input 
-                    placeholder="Ex: 901802934823" 
-                    value={selectedListId} 
-                    onChange={e => setSelectedListId(e.target.value)} 
-                    className="font-mono text-xs"
-                  />
+                  <div className="space-y-1.5">
+                    <Input 
+                      placeholder="Ou cole o ID / URL do Quadro (ex: 6-901323318822-2)" 
+                      value={selectedBoardId} 
+                      onChange={e => setSelectedBoardId(e.target.value)} 
+                      className="font-mono text-xs"
+                    />
+                    <p className="text-[10px] text-muted-foreground">Cole a URL ou o ID do seu quadro/lista no ClickUp.</p>
+                  </div>
                 )}
               </div>
             </div>
@@ -351,22 +335,26 @@ export function ClickUpConfigView() {
               <div className="flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-emerald-600" />
                 <span className="text-muted-foreground text-[11px]">
-                  Criptografia segura. Configuração disponível para todos os usuários do módulo CRM.
+                  Configuração ativa e compartilhada com todos os usuários do módulo CRM.
                 </span>
               </div>
 
-              <div className="flex items-center gap-2">
-                <Button 
-                  type="submit" 
-                  disabled={isLoadingClickUp} 
-                  className="bg-orange-600 hover:bg-orange-700 text-white gap-2 font-bold"
-                >
-                  <RefreshCw className={`w-4 h-4 ${isLoadingClickUp ? 'animate-spin' : ''}`} />
-                  {isLoadingClickUp ? 'Conectando...' : 'Salvar & Sincronizar com ClickUp'}
-                </Button>
-              </div>
+              <Button 
+                onClick={() => {
+                  if (apiToken.trim()) {
+                    discoverAndLoadEverything(apiToken);
+                  } else {
+                    toast.error('Informe o token do ClickUp.');
+                  }
+                }}
+                disabled={isDiscovering || isLoadingClickUp} 
+                className="bg-orange-600 hover:bg-orange-700 text-white gap-2 font-bold"
+              >
+                <RefreshCw className={`w-4 h-4 ${isDiscovering || isLoadingClickUp ? 'animate-spin' : ''}`} />
+                {isDiscovering || isLoadingClickUp ? 'Sincronizando...' : 'Conectar & Sincronizar'}
+              </Button>
             </div>
-          </form>
+          </div>
         </CardContent>
       </Card>
 
@@ -397,7 +385,7 @@ export function ClickUpConfigView() {
               <thead>
                 <tr className="border-b bg-muted/40 text-muted-foreground font-medium">
                   <th className="py-2.5 px-4">Timestamp</th>
-                  <th className="py-2.5 px-4">Task ID</th>
+                  <th className="py-2.5 px-4">Task / View ID</th>
                   <th className="py-2.5 px-4">Entidade</th>
                   <th className="py-2.5 px-4">Ação</th>
                   <th className="py-2.5 px-4">Status</th>
