@@ -4,17 +4,25 @@ export type PrioridadeOportunidade = 'Baixa' | 'Média' | 'Alta' | 'Urgente';
 export interface ClickUpSyncConfig {
   id: string;
   apiToken: string;
-  workspaceId: string;
-  spaceId: string;
-  listId: string;
+  teamId?: string;
+  teamName?: string;
+  workspaceId?: string;
+  spaceId?: string;
+  spaceName?: string;
+  listId?: string;
+  listName?: string;
   autoSync: boolean;
   lastSyncTime: string;
-  statusConexao: 'Conectado ClickUp API' | 'Sincronizando' | 'Desconectado';
+  statusConexao: 'Conectado ClickUp API' | 'Sincronizando' | 'Desconectado' | 'Erro';
+  userEmail?: string;
+  userName?: string;
+  userAvatar?: string;
+  listStatuses?: Array<{ status: string; color: string; orderindex?: number }>;
 }
 
 export interface LeadCrm {
   id: string;
-  clickUpTaskId: string; // Ex: "cu-869201"
+  clickUpTaskId: string; // Ex: "CU-869201"
   nome: string;
   empresa: string;
   telefone: string;
@@ -27,11 +35,12 @@ export interface LeadCrm {
   cidade: string;
   estado: string;
   dataCriacao: string;
+  observacoes?: string;
 }
 
 export interface EmpresaCrm {
   id: string;
-  clickUpTaskId: string;
+  clickUpTaskId?: string;
   razaoSocial: string;
   nomeFantasia: string;
   cnpj: string;
@@ -41,11 +50,12 @@ export interface EmpresaCrm {
   website: string;
   responsavel: string;
   observacoes?: string;
+  receitaEstimada?: number;
 }
 
 export interface ContatoCrm {
   id: string;
-  clickUpTaskId: string;
+  clickUpTaskId?: string;
   nome: string;
   cargo: string;
   empresa: string;
@@ -58,14 +68,17 @@ export interface ContatoCrm {
 
 export interface OportunidadeCrm {
   id: string;
-  clickUpTaskId: string; // ID da tarefa no ClickUp (Ex: "cu-94821")
+  clickUpTaskId: string; // ID da tarefa no ClickUp (Ex: "CU-94821")
   titulo: string;
   empresaId?: string;
   empresaNome: string;
   contatoNome: string;
+  contatoEmail?: string;
+  contatoTelefone?: string;
   valorR$: number;
   probabilidadePercent: number; // 0-100
   responsavel: string;
+  responsavelAvatar?: string;
   pipeline: string; // Ex: "Pipeline Enterprise Vendas 2026"
   etapa: EtapaPipeline;
   prioridade: PrioridadeOportunidade;
@@ -75,11 +88,12 @@ export interface OportunidadeCrm {
   proximaAcao: string;
   statusClickUp: 'synced' | 'pending' | 'error';
   observacoes?: string;
+  clickUpUrl?: string;
 }
 
 export interface AtividadeCrm {
   id: string;
-  clickUpTaskId: string;
+  clickUpTaskId?: string;
   tipo: 'Ligação' | 'WhatsApp' | 'Reunião' | 'Follow-up' | 'Apresentação';
   titulo: string;
   dataHora: string;
