@@ -39,6 +39,79 @@ interface DocumentoAnexoLocal {
   categoria?: string;
 }
 
+function computeDataFinal(dataInicioStr: string, quantidadeStr: string, frequencia: FrequenciaRecorrencia): string {
+  if (!dataInicioStr || !quantidadeStr) return '';
+  const qtd = parseInt(quantidadeStr, 10);
+  if (isNaN(qtd) || qtd <= 0) return '';
+
+  const dataInicio = new Date(dataInicioStr + 'T12:00:00');
+  if (isNaN(dataInicio.getTime())) return '';
+
+  const ano = dataInicio.getFullYear();
+  const mes = dataInicio.getMonth();
+  const dia = dataInicio.getDate();
+
+  let targetYear = ano;
+  let targetMonth = mes;
+
+  switch (frequencia) {
+    case 'Semanal': {
+      const fim = new Date(dataInicio.getTime() + qtd * 7 * 24 * 3600 * 1000);
+      return fim.toISOString().split('T')[0];
+    }
+    case 'Quinzenal': {
+      const fim = new Date(dataInicio.getTime() + qtd * 15 * 24 * 3600 * 1000);
+      return fim.toISOString().split('T')[0];
+    }
+    case 'Trimestral': {
+      targetMonth = mes + (qtd * 3);
+      break;
+    }
+    case 'Semestral': {
+      targetMonth = mes + (qtd * 6);
+      break;
+    }
+    case 'Anual': {
+      targetYear = ano + qtd;
+      break;
+    }
+    case 'Mensal':
+    default: {
+      targetMonth = mes + qtd;
+      break;
+    }
+  }
+
+  const calculated = new Date(targetYear, targetMonth, 1);
+  const finalYear = calculated.getFullYear();
+  const finalMonth = calculated.getMonth();
+  const lastDay = new Date(finalYear, finalMonth + 1, 0).getDate();
+  const safeDay = Math.min(dia, lastDay);
+
+  return `${finalYear}-${String(finalMonth + 1).padStart(2, '0')}-${String(safeDay).padStart(2, '0')}`;
+}
+
+function computeQuantidadeFromDates(dataInicioStr: string, dataFimStr: string, frequencia: FrequenciaRecorrencia): string {
+  if (!dataInicioStr || !dataFimStr) return '';
+  const inicio = new Date(dataInicioStr + 'T12:00:00');
+  const fim = new Date(dataFimStr + 'T12:00:00');
+  if (isNaN(inicio.getTime()) || isNaN(fim.getTime()) || fim <= inicio) return '';
+
+  const months = (fim.getFullYear() - inicio.getFullYear()) * 12 + (fim.getMonth() - inicio.getMonth());
+  if (frequencia === 'Trimestral') return String(Math.max(1, Math.round(months / 3)));
+  if (frequencia === 'Semestral') return String(Math.max(1, Math.round(months / 6)));
+  if (frequencia === 'Anual') return String(Math.max(1, Math.round(months / 12)));
+  if (frequencia === 'Semanal') {
+    const days = Math.round((fim.getTime() - inicio.getTime()) / (7 * 24 * 3600 * 1000));
+    return String(Math.max(1, days));
+  }
+  if (frequencia === 'Quinzenal') {
+    const days = Math.round((fim.getTime() - inicio.getTime()) / (15 * 24 * 3600 * 1000));
+    return String(Math.max(1, days));
+  }
+  return String(Math.max(1, months));
+}
+
 export function NovoClienteSheet({ children, clienteToEdit }: { children: React.ReactNode, clienteToEdit?: Cliente }) {
   const [open, setOpen] = useState(false);
   
@@ -84,7 +157,7 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
   const [recorrenciaValor, setRecorrenciaValor] = useState('');
   const [recorrenciaFrequencia, setRecorrenciaFrequencia] = useState<FrequenciaRecorrencia>('Mensal');
   const [recorrenciaDataInicio, setRecorrenciaDataInicio] = useState('');
-  const [recorrenciaProximaCobranca, setRecorrenciaProximaCobranca] = useState('');
+  const [recorrenciaDataFinal, setRecorrenciaDataFinal] = useState('');
   const [recorrenciaDiaVencimento, setRecorrenciaDiaVencimento] = useState('10');
   const [recorrenciaQuantidade, setRecorrenciaQuantidade] = useState('');
   const [recorrenciaStatus, setRecorrenciaStatus] = useState<StatusRecorrencia>('Ativa');
@@ -149,27 +222,34 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
       setContatoTelefone(principal?.telefone || '');
       setContatoWhatsapp(principal?.whatsapp ?? true);
 
-      // Carregar documentos do DMS vinculados a este cliente
-      if (clienteToEdit?.id) {
-        const todosDocs = dmsService.getDocumentos();
-        const docsDesteCliente = todosDocs.filter(
-          d => d.clienteId === clienteToEdit.id || 
-               (d.caminhoPasta || '').toLowerCase().includes((clienteToEdit.nomeFantasia || clienteToEdit.razaoSocial || '').toLowerCase()) ||
-               (Array.isArray(d.tags) && d.tags.includes(clienteToEdit.id))
-        ).map(d => ({
-          id: d.id,
-          nome: d.nome,
-          tamanho: d.tamanho,
-          tamanhoBytes: d.tamanhoBytes,
-          dataUpload: d.dataUpload,
-          urlConteudo: d.urlConteudo,
-          categoria: d.categoria
-        }));
+      // Carregar documentos do cliente + DMS vinculados a este cliente
+      const docsFromClient: DocumentoAnexoLocal[] = (clienteToEdit as any)?.documentos || [];
+      const todosDocs = dmsService.getDocumentos() || [];
+      const safeClienteNome = (clienteToEdit?.nomeFantasia || clienteToEdit?.razaoSocial || '').toLowerCase();
+      
+      const docsDMS: DocumentoAnexoLocal[] = todosDocs.filter(
+        d => d && (
+             d.clienteId === clienteToEdit?.id || 
+             (d.caminhoPasta || '').toLowerCase().includes(safeClienteNome) ||
+             (Array.isArray(d.tags) && clienteToEdit?.id && d.tags.includes(clienteToEdit.id))
+        )
+      ).map(d => ({
+        id: d.id,
+        nome: d.nome,
+        tamanho: d.tamanho,
+        tamanhoBytes: d.tamanhoBytes,
+        dataUpload: d.dataUpload,
+        urlConteudo: d.urlConteudo,
+        categoria: d.categoria
+      }));
 
-        setDocumentosAnexados(docsDesteCliente);
-      } else {
-        setDocumentosAnexados([]);
-      }
+      const mapDocs = new Map<string, DocumentoAnexoLocal>();
+      docsFromClient.forEach((d: DocumentoAnexoLocal) => mapDocs.set(d.id, d));
+      docsDMS.forEach((d: DocumentoAnexoLocal) => {
+        if (!mapDocs.has(d.id)) mapDocs.set(d.id, d);
+      });
+
+      setDocumentosAnexados(Array.from(mapDocs.values()));
 
       // Carregar recorrência existente se houver
       if (clienteToEdit?.id) {
@@ -181,7 +261,8 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
           setRecorrenciaValor(String(recExistente.valor || ''));
           setRecorrenciaFrequencia(recExistente.frequencia || 'Mensal');
           setRecorrenciaDataInicio(recExistente.dataInicio || '');
-          setRecorrenciaProximaCobranca(recExistente.proximaCobranca || '');
+          const calculatedDataFinal = recExistente.dataFim || recExistente.dataFinal || computeDataFinal(recExistente.dataInicio || '', String(recExistente.quantidade || ''), recExistente.frequencia || 'Mensal');
+          setRecorrenciaDataFinal(calculatedDataFinal);
           setRecorrenciaDiaVencimento(String(recExistente.diaVencimento || '10'));
           setRecorrenciaQuantidade(recExistente.quantidade ? String(recExistente.quantidade) : '');
           setRecorrenciaStatus(recExistente.status || 'Ativa');
@@ -203,11 +284,43 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
     setRecorrenciaValor('');
     setRecorrenciaFrequencia('Mensal');
     setRecorrenciaDataInicio(hoje);
-    setRecorrenciaProximaCobranca(hoje);
+    setRecorrenciaDataFinal('');
     setRecorrenciaDiaVencimento('10');
     setRecorrenciaQuantidade('');
     setRecorrenciaStatus('Ativa');
     setRecorrenciaObservacoes('');
+  };
+
+  const handleDataInicioChange = (newDate: string) => {
+    setRecorrenciaDataInicio(newDate);
+    if (recorrenciaQuantidade) {
+      setRecorrenciaDataFinal(computeDataFinal(newDate, recorrenciaQuantidade, recorrenciaFrequencia));
+    }
+  };
+
+  const handleQuantidadeChange = (newQtd: string) => {
+    setRecorrenciaQuantidade(newQtd);
+    if (newQtd.trim() === '') {
+      setRecorrenciaDataFinal('');
+    } else {
+      setRecorrenciaDataFinal(computeDataFinal(recorrenciaDataInicio, newQtd, recorrenciaFrequencia));
+    }
+  };
+
+  const handleDataFinalChange = (newFinalDate: string) => {
+    setRecorrenciaDataFinal(newFinalDate);
+    if (newFinalDate.trim() === '') {
+      setRecorrenciaQuantidade('');
+    } else {
+      setRecorrenciaQuantidade(computeQuantidadeFromDates(recorrenciaDataInicio, newFinalDate, recorrenciaFrequencia));
+    }
+  };
+
+  const handleFrequenciaChange = (newFreq: FrequenciaRecorrencia) => {
+    setRecorrenciaFrequencia(newFreq);
+    if (recorrenciaQuantidade) {
+      setRecorrenciaDataFinal(computeDataFinal(recorrenciaDataInicio, recorrenciaQuantidade, newFreq));
+    }
   };
 
   // Busca Inteligente de CEP (ViaCEP)
@@ -371,10 +484,6 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
         toast.error("Informe a data de início da recorrência.");
         return;
       }
-      if (!recorrenciaProximaCobranca) {
-        toast.error("Informe a data da próxima cobrança.");
-        return;
-      }
     }
 
     const clienteId = clienteToEdit?.id || crypto.randomUUID();
@@ -398,6 +507,7 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
       porteEmpresa: porte || 'Médio',
       site: site.trim() || undefined,
       observacoes: observacoes.trim() || undefined,
+      documentos: documentosAnexados,
       ultimaAtualizacao: new Date().toISOString(),
       endereco: {
         cep: cep.trim(),
@@ -462,12 +572,14 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
       const novaRecorrencia: RecorrenciaFinanceira = {
         id: recExistente?.id || recId,
         clientId: clienteId,
-        clientName: nomeFinal,
+        clienteNome: nomeFinal,
         descricao: recorrenciaDescricao,
         valor: parseFloat(recorrenciaValor) || 0,
         frequencia: recorrenciaFrequencia,
         dataInicio: recorrenciaDataInicio,
-        proximaCobranca: recorrenciaProximaCobranca,
+        dataFim: recorrenciaDataFinal || undefined,
+        dataFinal: recorrenciaDataFinal || undefined,
+        proximaCobranca: recorrenciaDataInicio,
         diaVencimento: parseInt(recorrenciaDiaVencimento) || 10,
         quantidade: recorrenciaQuantidade ? parseInt(recorrenciaQuantidade) : undefined,
         status: recorrenciaStatus,
@@ -913,7 +1025,7 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
                       <Label htmlFor="rec-freq">Frequência *</Label>
                       <Select 
                         value={recorrenciaFrequencia} 
-                        onValueChange={(v: FrequenciaRecorrencia) => setRecorrenciaFrequencia(v)}
+                        onValueChange={handleFrequenciaChange}
                       >
                         <SelectTrigger id="rec-freq">
                           <SelectValue />
@@ -933,17 +1045,17 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
                         id="rec-ini" 
                         type="date" 
                         value={recorrenciaDataInicio} 
-                        onChange={e => setRecorrenciaDataInicio(e.target.value)} 
+                        onChange={e => handleDataInicioChange(e.target.value)} 
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="rec-prox">Próxima Cobrança *</Label>
+                      <Label htmlFor="rec-fim">Data Final</Label>
                       <Input 
-                        id="rec-prox" 
+                        id="rec-fim" 
                         type="date" 
-                        value={recorrenciaProximaCobranca} 
-                        onChange={e => setRecorrenciaProximaCobranca(e.target.value)} 
+                        value={recorrenciaDataFinal} 
+                        onChange={e => handleDataFinalChange(e.target.value)} 
                       />
                     </div>
                   </div>
@@ -963,13 +1075,13 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="rec-qtd">Quantidade (Vazia = Indefinida)</Label>
+                      <Label htmlFor="rec-qtd">Quantidade de Meses (Vazia = Indefinida)</Label>
                       <Input 
                         id="rec-qtd" 
                         type="number" 
                         placeholder="Indefinida" 
                         value={recorrenciaQuantidade} 
-                        onChange={e => setRecorrenciaQuantidade(e.target.value)} 
+                        onChange={e => handleQuantidadeChange(e.target.value)} 
                       />
                     </div>
 

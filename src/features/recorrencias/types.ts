@@ -18,7 +18,9 @@ export interface RecorrenciaFinanceira {
   valor: number;
   frequencia: FrequenciaRecorrencia;
   dataInicio: string; // YYYY-MM-DD
-  proximaCobranca: string; // YYYY-MM-DD
+  dataFim?: string; // YYYY-MM-DD (Data final calculada ou selecionada)
+  dataFinal?: string; // Alias
+  proximaCobranca?: string; // YYYY-MM-DD
   diaVencimento?: number; // 1 a 31
   quantidade?: number | null; // null/undefined = Indefinida
   status: StatusRecorrencia;

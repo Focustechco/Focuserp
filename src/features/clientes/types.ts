@@ -43,4 +43,14 @@ export interface Cliente {
   contatos: Contato[];
   dataCadastro: string; // ISO Date
   ultimaAtualizacao: string; // ISO Date
+  documentos?: Array<{
+    id: string;
+    nome: string;
+    tamanho: string;
+    tamanhoBytes?: number;
+    dataUpload: string;
+    urlConteudo?: string;
+    categoria?: string;
+  }>;
+  recorrencias?: any[];
 }
