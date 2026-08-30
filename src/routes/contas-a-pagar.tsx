@@ -25,7 +25,7 @@ function ContasPagarPage() {
             <TabsTrigger value="despesas" className="shrink-0">Despesas Emitidas</TabsTrigger>
             <TabsTrigger value="futuros" className="shrink-0 gap-1.5 font-medium">
               <Clock className="w-3.5 h-3.5 text-orange-500" />
-              Pagamentos Futuros (Recorrências & Previsões)
+              Pagamentos Futuros
             </TabsTrigger>
             <TabsTrigger value="relatorios" className="shrink-0">Relatórios</TabsTrigger>
             <TabsTrigger value="dashboard" className="shrink-0">Dashboard</TabsTrigger>

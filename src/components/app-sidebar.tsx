@@ -103,7 +103,7 @@ const groups = [
     label: "Vendas e Operações",
     items: [
       { title: "Comercial Ops", url: "/comercial", icon: ShoppingBag },
-      { title: "CRM Pipeline", url: "/crm", icon: Target },
+      { title: "CRM Focus", url: "/crm", icon: Target },
       { title: "Customer Success (CS)", url: "/customer-success", icon: Heart },
     ],
   },

@@ -28,7 +28,7 @@ function ContasReceberPage() {
             </TabsTrigger>
             <TabsTrigger value="futuros" className="shrink-0 gap-1.5 text-blue-600 dark:text-blue-400 font-semibold data-[state=active]:text-primary">
               <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              Recebimentos Futuros (Recorrências & Previsões)
+              Recebimentos Futuros
             </TabsTrigger>
             <TabsTrigger value="relatorios" className="shrink-0 gap-1.5">
               <BarChart3 className="w-4 h-4" />
