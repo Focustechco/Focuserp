@@ -64,11 +64,11 @@ export function MinhaPerformanceView() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-muted/20 p-4 border rounded-2xl">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-orange-600 text-white font-bold flex items-center justify-center text-sm shadow-xs">
-            {consultor?.nome.split(' ').map(p => p[0]).join('').slice(0, 2) || 'CL'}
+            {(consultor?.nome || 'Consultor').split(' ').map(p => p[0]).join('').slice(0, 2)}
           </div>
           <div>
             <h3 className="font-extrabold text-base text-foreground flex items-center gap-2">
-              <span>{consultor?.nome}</span>
+              <span>{consultor?.nome || 'Consultor'}</span>
               <Badge variant="outline" className="text-[10px] text-orange-600 border-orange-400 bg-orange-50">
                 {consultor?.funcao}
               </Badge>

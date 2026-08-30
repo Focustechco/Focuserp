@@ -90,12 +90,12 @@ export function EquipeComercialView() {
                 <div className="flex justify-between items-start">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-600 text-white font-bold flex items-center justify-center text-sm shadow-xs">
-                      {m.nome.split(' ').map(p => p[0]).join('').slice(0, 2)}
+                      {(m?.nome || 'Consultor').split(' ').map(p => p[0]).join('').slice(0, 2)}
                     </div>
                     <div>
-                      <h4 className="font-bold text-sm text-foreground">{m.nome}</h4>
+                      <h4 className="font-bold text-sm text-foreground">{m?.nome || 'Consultor'}</h4>
                       <Badge variant="outline" className="text-[10px] text-orange-600 border-orange-400 bg-orange-50 mt-0.5">
-                        {m.funcao}
+                        {m?.funcao || 'Consultor Comercial'}
                       </Badge>
                     </div>
                   </div>

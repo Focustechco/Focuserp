@@ -19,8 +19,8 @@ export function ComercialDashboard() {
 
   // Performance da Equipe
   const teamRanking = useMemo(() => {
-    return equipe.map(m => {
-      const userOps = oportunidades.filter(o => o.responsavel === m.nome);
+    return (equipe || []).map(m => {
+      const userOps = oportunidades.filter(o => m?.nome && o.responsavel === m.nome);
       const vendasUser = userOps.filter(o => 
         (o.etapa || '').toLowerCase().includes('ganh') || 
         (o.etapa || '').toLowerCase().includes('won') || 
@@ -28,10 +28,14 @@ export function ComercialDashboard() {
       );
 
       const receitaUser = vendasUser.reduce((acc, o) => acc + (o.valorR$ || 0), 0);
-      const percentualMeta = m.metaMensalR$ > 0 ? ((receitaUser / m.metaMensalR$) * 100).toFixed(1) : '0.0';
+      const percentualMeta = (m?.metaMensalR$ || 0) > 0 ? ((receitaUser / m.metaMensalR$) * 100).toFixed(1) : '0.0';
 
       return {
         ...m,
+        nome: m?.nome || 'Consultor',
+        email: m?.email || '',
+        funcao: m?.funcao || 'Consultor Comercial',
+        metaMensalR$: m?.metaMensalR$ || 0,
         totalOportunidades: userOps.length,
         vendasFechadas: vendasUser.length,
         receitaRealizada: receitaUser,
@@ -43,9 +47,9 @@ export function ComercialDashboard() {
   // Dados para Gráfico de Vendas vs Meta
   const chartVendasVsMeta = useMemo(() => {
     return teamRanking.map(m => ({
-      name: m.nome.split(' ')[0],
+      name: (m?.nome || 'Consultor').split(' ')[0],
       'Receita Fechada': m.receitaRealizada,
-      'Meta Mensal': m.metaMensalR$
+      'Meta Mensal': m.metaMensalR$ || 0
     }));
   }, [teamRanking]);
 
