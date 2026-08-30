@@ -3,7 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dashboard } from "@/features/contas-receber/components/Dashboard";
 import { RecebimentosList } from "@/features/contas-receber/components/RecebimentosList";
 import { RecebimentosFuturosTab } from "@/features/contas-receber/components/RecebimentosFuturosTab";
-import { Sparkles, DollarSign, BarChart3, LineChart } from "lucide-react";
+import { Clock, DollarSign, BarChart3, LineChart } from "lucide-react";
 
 export const Route = createFileRoute("/contas-a-receber")({
   component: ContasReceberPage,
@@ -26,8 +26,8 @@ function ContasReceberPage() {
               <DollarSign className="w-4 h-4" />
               Títulos Emitidos
             </TabsTrigger>
-            <TabsTrigger value="futuros" className="shrink-0 gap-1.5 text-blue-600 dark:text-blue-400 font-semibold data-[state=active]:text-primary">
-              <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <TabsTrigger value="futuros" className="shrink-0 gap-1.5 font-medium">
+              <Clock className="w-3.5 h-3.5 text-orange-500" />
               Recebimentos Futuros
             </TabsTrigger>
             <TabsTrigger value="relatorios" className="shrink-0 gap-1.5">

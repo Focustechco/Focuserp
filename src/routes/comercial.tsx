@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MinhaAgendaComercial } from "@/features/comercial/components/MinhaAgendaComercial";
 import { ComercialDashboard } from "@/features/comercial/components/ComercialDashboard";
 import { MinhaPerformanceView } from "@/features/comercial/components/MinhaPerformanceView";
 import { EquipeComercialView } from "@/features/comercial/components/EquipeComercialView";
@@ -27,24 +26,14 @@ function ModuloComercialOpsPage() {
   const [activeTab, setActiveTab] = useState("dashboard");
 
   return (
-    <div className="flex flex-col gap-6 p-4 sm:p-6 max-w-[1440px] mx-auto w-full animate-fade-in">
-      {/* Cabeçalho do Módulo Comercial Ops */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b pb-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-black tracking-tight text-foreground">COMERCIAL OPS</h1>
-            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-800 border border-orange-300">
-              Sales Operations & RevOps
-            </span>
-          </div>
-          <p className="text-muted-foreground mt-1 text-xs sm:text-sm">
-            Central operacional da equipe comercial para acompanhamento de performance, oportunidades, produtividade e estratégias de vendas.
-          </p>
-        </div>
+    <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full animate-fade-in">
+      {/* Cabeçalho Padrão do Módulo Comercial OS */}
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">Comercial OS</h1>
+        <p className="text-muted-foreground mt-2">
+          Central operacional da equipe comercial para acompanhamento de performance, oportunidades, produtividade e estratégias de vendas.
+        </p>
       </div>
-
-      {/* Widget Operacional Superior: Minha Agenda Comercial de Hoje */}
-      <MinhaAgendaComercial />
 
       {/* Navegação por Abas Operacionais */}
       <Tabs defaultValue="dashboard" className="space-y-6" onValueChange={setActiveTab}>
