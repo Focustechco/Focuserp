@@ -4,6 +4,8 @@ import { Dashboard } from "@/features/plano-contas/components/Dashboard";
 import { PlanoContasList } from "@/features/plano-contas/components/PlanoContasList";
 import { Layers, MapPin, ListTree, Network } from "lucide-react";
 
+import { OrganogramaTree } from "@/features/plano-contas/components/OrganogramaTree";
+
 export const Route = createFileRoute("/categorias")({
   component: PlanoContasPage,
 });
@@ -38,11 +40,7 @@ function PlanoContasPage() {
         </TabsContent>
 
         <TabsContent value="organograma" className="space-y-4 outline-none">
-          <div className="flex flex-col items-center justify-center py-32 text-center border rounded-lg border-dashed bg-muted/10">
-            <Network className="w-12 h-12 text-muted-foreground/50 mb-4" />
-            <h3 className="text-lg font-medium">Organograma Visual</h3>
-            <p className="text-sm text-muted-foreground mt-1">Visão em nós renderizados graficamente sendo projetada para a Fase 2.</p>
-          </div>
+          <OrganogramaTree />
         </TabsContent>
       <TabsContent value="dashboard" className="space-y-4 outline-none">
           <Dashboard />

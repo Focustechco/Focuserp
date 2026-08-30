@@ -51,11 +51,17 @@ export function Dashboard() {
     const cName = (c.nome || c.categoria || '').toLowerCase();
     
     contasReceber.forEach(t => {
-      if ((t.categoria || '').toLowerCase().includes(cName)) rec += t.valorOriginal || 0;
+      const match = (t.centroCustoId && t.centroCustoId === c.id) ||
+                    (t.centroCustoNome && t.centroCustoNome.toLowerCase() === cName) ||
+                    (t.categoria && t.categoria.toLowerCase().includes(cName));
+      if (match) rec += t.valorOriginal || 0;
     });
 
     contasPagar.forEach(cp => {
-      if ((cp.categoria || '').toLowerCase().includes(cName)) desp += cp.valorOriginal || 0;
+      const match = (cp.centroCustoId && cp.centroCustoId === c.id) ||
+                    (cp.centroCustoNome && cp.centroCustoNome.toLowerCase() === cName) ||
+                    (cp.categoria && cp.categoria.toLowerCase().includes(cName));
+      if (match) desp += cp.valorOriginal || 0;
     });
 
     return {
