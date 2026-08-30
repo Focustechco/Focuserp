@@ -166,6 +166,7 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
   // Documentos Anexados (Integrados ao DMS)
   const [documentosAnexados, setDocumentosAnexados] = useState<DocumentoAnexoLocal[]>([]);
   const [isUploadingDoc, setIsUploadingDoc] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   // Modal Rápido de Novo Contrato Vinculado
   const [modalNovoContratoOpen, setModalNovoContratoOpen] = useState(false);
@@ -222,34 +223,39 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
       setContatoTelefone(principal?.telefone || '');
       setContatoWhatsapp(principal?.whatsapp ?? true);
 
-      // Carregar documentos do cliente + DMS vinculados a este cliente
-      const docsFromClient: DocumentoAnexoLocal[] = (clienteToEdit as any)?.documentos || [];
-      const todosDocs = dmsService.getDocumentos() || [];
-      const safeClienteNome = (clienteToEdit?.nomeFantasia || clienteToEdit?.razaoSocial || '').toLowerCase();
-      
-      const docsDMS: DocumentoAnexoLocal[] = todosDocs.filter(
-        d => d && (
-             d.clienteId === clienteToEdit?.id || 
-             (d.caminhoPasta || '').toLowerCase().includes(safeClienteNome) ||
-             (Array.isArray(d.tags) && clienteToEdit?.id && d.tags.includes(clienteToEdit.id))
-        )
-      ).map(d => ({
-        id: d.id,
-        nome: d.nome,
-        tamanho: d.tamanho,
-        tamanhoBytes: d.tamanhoBytes,
-        dataUpload: d.dataUpload,
-        urlConteudo: d.urlConteudo,
-        categoria: d.categoria
-      }));
+      // Carregar documentos estritamente vinculados a este cliente (Isolamento por ID)
+      if (clienteToEdit?.id) {
+        const docsFromClient: DocumentoAnexoLocal[] = (clienteToEdit as any)?.documentos || [];
+        const todosDocs = dmsService.getDocumentos() || [];
+        
+        const docsDMS: DocumentoAnexoLocal[] = todosDocs.filter(
+          d => d && (
+               d.clienteId === clienteToEdit.id || 
+               (Array.isArray(d.tags) && d.tags.includes(clienteToEdit.id))
+          )
+        ).map(d => ({
+          id: d.id,
+          nome: d.nome,
+          tamanho: d.tamanho,
+          tamanhoBytes: d.tamanhoBytes,
+          dataUpload: d.dataUpload,
+          urlConteudo: d.urlConteudo,
+          categoria: d.categoria
+        }));
 
-      const mapDocs = new Map<string, DocumentoAnexoLocal>();
-      docsFromClient.forEach((d: DocumentoAnexoLocal) => mapDocs.set(d.id, d));
-      docsDMS.forEach((d: DocumentoAnexoLocal) => {
-        if (!mapDocs.has(d.id)) mapDocs.set(d.id, d);
-      });
+        const mapDocs = new Map<string, DocumentoAnexoLocal>();
+        docsFromClient.forEach((d: DocumentoAnexoLocal) => {
+          if (d && d.id) mapDocs.set(d.id, d);
+        });
+        docsDMS.forEach((d: DocumentoAnexoLocal) => {
+          if (d && d.id && !mapDocs.has(d.id)) mapDocs.set(d.id, d);
+        });
 
-      setDocumentosAnexados(Array.from(mapDocs.values()));
+        setDocumentosAnexados(Array.from(mapDocs.values()));
+      } else {
+        // Novo cliente começa sempre limpo, sem documentos de outros clientes
+        setDocumentosAnexados([]);
+      }
 
       // Carregar recorrência existente se houver
       if (clienteToEdit?.id) {
@@ -360,14 +366,15 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
 
     setIsUploadingDoc(true);
 
+    const targetId = clienteToEdit?.id || currentClienteId || `cli-${Date.now()}`;
+    const targetNome = clienteNomeOficial || 'Cliente';
+
     Array.from(files).forEach((file) => {
       const sizeInMb = (file.size / (1024 * 1024)).toFixed(2);
       const reader = new FileReader();
 
       reader.onload = (evt) => {
         const dataUrl = evt.target?.result as string;
-        const targetId = currentClienteId || `temp-cli-${Date.now()}`;
-        const targetNome = clienteNomeOficial || 'Novo Cliente';
 
         // 1. Salvar no módulo Gestão de Documentos (DMS) na pasta do cliente
         const savedDoc = dmsService.uploadFileFromModule({
@@ -378,7 +385,7 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
           clienteId: targetId,
           clienteNome: targetNome,
           categoria: file.name.toLowerCase().includes('contrato') ? 'Contratos' : 'Documentos do Cliente',
-          tags: ['Clientes', targetNome],
+          tags: ['Clientes', targetNome, targetId],
           urlConteudo: dataUrl,
         });
 
@@ -393,13 +400,26 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
           categoria: savedDoc.categoria
         };
 
-        setDocumentosAnexados(prev => [newLocalDoc, ...prev]);
-        toast.success(`Documento "${file.name}" anexado e salvo na pasta /Clientes/${targetNome} do DMS!`);
+        setDocumentosAnexados(prev => {
+          const filtered = prev.filter(p => p.id !== newLocalDoc.id);
+          return [newLocalDoc, ...filtered];
+        });
+
+        toast.success(`Documento "${file.name}" anexado e salvo com sucesso!`);
+        setIsUploadingDoc(false);
+      };
+
+      reader.onerror = () => {
+        toast.error(`Erro ao carregar o arquivo "${file.name}".`);
         setIsUploadingDoc(false);
       };
 
       reader.readAsDataURL(file);
     });
+
+    if (e.target) {
+      e.target.value = '';
+    }
   };
 
   const handleRemoveDoc = (docId: string) => {
@@ -1168,22 +1188,24 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
                 <h4 className="font-semibold text-sm">Documentos & Anexos</h4>
                 <p className="text-xs text-muted-foreground">Salvos automaticamente na pasta <code className="text-primary">/Clientes/{clienteNomeOficial}</code> do DMS</p>
               </div>
-              <div className="relative">
+              <div className="flex items-center gap-2">
+                <input 
+                  ref={fileInputRef}
+                  type="file" 
+                  multiple
+                  className="hidden"
+                  onChange={handleFileUpload}
+                />
                 <Button 
                   type="button" 
                   size="sm" 
                   disabled={isUploadingDoc}
-                  className="gap-1.5 text-xs bg-orange-600 hover:bg-orange-700 text-white"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="gap-1.5 text-xs bg-orange-600 hover:bg-orange-700 text-white cursor-pointer"
                 >
                   <UploadCloud className="w-3.5 h-3.5" /> 
                   {isUploadingDoc ? 'Enviando...' : 'Anexar Documento'}
                 </Button>
-                <input 
-                  type="file" 
-                  multiple
-                  className="absolute inset-0 opacity-0 cursor-pointer"
-                  onChange={handleFileUpload}
-                />
               </div>
             </div>
 

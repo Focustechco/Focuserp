@@ -130,16 +130,20 @@ export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: Clie
 
   if (!cliente) return null;
 
-  // 1. Documentos no DMS vinculados a este cliente
+  // 1. Documentos vinculados estritamente a este cliente (Isolamento por ID)
   const todosDocumentos = dmsService.getDocumentos() || [];
-  const documentosDoCliente = todosDocumentos.filter(d => {
+  const docsFromClient: any[] = (cliente as any)?.documentos || [];
+  const docsDMS = todosDocumentos.filter(d => {
     if (!d) return false;
     if (d.clienteId === cliente.id) return true;
-    if (d.clienteNome && String(d.clienteNome).toLowerCase() === safeNome) return true;
-    if (d.caminhoPasta && String(d.caminhoPasta).toLowerCase().includes(safeNome)) return true;
-    if (Array.isArray(d.tags) && (d.tags.includes(cliente.id) || d.tags.includes(nomeOficial))) return true;
+    if (Array.isArray(d.tags) && d.tags.includes(cliente.id)) return true;
     return false;
   });
+
+  const mapDocs = new Map<string, any>();
+  docsFromClient.forEach(d => { if (d?.id) mapDocs.set(d.id, d); });
+  docsDMS.forEach(d => { if (d?.id && !mapDocs.has(d.id)) mapDocs.set(d.id, d); });
+  const documentosDoCliente = Array.from(mapDocs.values());
 
   // 2. Contratos vinculados
   const contratosDoCliente = (contratos || []).filter(c => {
