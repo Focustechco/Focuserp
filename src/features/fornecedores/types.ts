@@ -1,6 +1,24 @@
 export type TipoFornecedor = 'Pessoa Física' | 'Pessoa Jurídica';
-export type StatusFornecedor = 'Ativo' | 'Inativo';
-export type CategoriaFornecedor = 'Desenvolvimento de Software' | 'Cloud' | 'Infraestrutura' | 'Equipamentos' | 'Marketing' | 'Contabilidade' | 'Jurídico' | 'Consultoria' | 'Recursos Humanos' | 'Licenciamento' | 'Hospedagem' | 'Telefonia' | 'Internet' | 'Energia' | 'Financeiro' | 'Outros';
+export type StatusFornecedor = 'Ativo' | 'Inativo' | 'Homologado' | 'Em Análise' | 'Bloqueado';
+export type CategoriaFornecedor = 
+  | 'Desenvolvimento de Software' 
+  | 'Cloud' 
+  | 'Infraestrutura' 
+  | 'Equipamentos' 
+  | 'Marketing' 
+  | 'Contabilidade' 
+  | 'Jurídico' 
+  | 'Consultoria' 
+  | 'Recursos Humanos' 
+  | 'Licenciamento' 
+  | 'Hospedagem' 
+  | 'Telefonia' 
+  | 'Internet' 
+  | 'Energia' 
+  | 'Financeiro' 
+  | 'Serviços'
+  | 'Geral'
+  | 'Outros';
 
 export interface ContatoFornecedor {
   id: string;
@@ -28,9 +46,12 @@ export interface EnderecoFornecedor {
 export interface DadosBancarios {
   id: string;
   banco: string;
+  codigoBanco?: string;
   agencia: string;
   conta: string;
-  tipoConta: 'Corrente' | 'Poupança';
+  digitoConta?: string;
+  tipoConta: 'Corrente' | 'Poupança' | 'Pagamento';
+  tipoChavePix?: 'CNPJ' | 'CPF' | 'E-mail' | 'Telefone' | 'Chave Aleatória';
   chavePix?: string;
   favorecido: string;
   documentoFavorecido: string; // CPF ou CNPJ
@@ -46,7 +67,7 @@ export interface Fornecedor {
   documento: string; // CPF ou CNPJ
   inscricaoEstadual?: string;
   inscricaoMunicipal?: string;
-  categoria: CategoriaFornecedor;
+  categoria: CategoriaFornecedor | string;
   segmento?: string;
   porte?: string;
   status: StatusFornecedor;
@@ -57,7 +78,15 @@ export interface Fornecedor {
   endereco: EnderecoFornecedor;
   dadosBancarios: DadosBancarios[];
 
-  // Financeiro (Consolidado - Mocks para contas a pagar)
+  // Condições Comerciais & Pagamento
+  condicaoPagamentoPadrao?: string;
+  formaPagamentoPadrao?: string;
+  prazoPagamentoDias?: number;
+
+  // Documentos anexados
+  documentos?: any[];
+
+  // Financeiro (Consolidado - Contas a pagar)
   totalContratado: number;
   totalPago: number;
   saldoAberto: number;
@@ -65,3 +94,4 @@ export interface Fornecedor {
   dataCadastro: string; // ISO String
   ultimaAtualizacao: string; // ISO String
 }
+
