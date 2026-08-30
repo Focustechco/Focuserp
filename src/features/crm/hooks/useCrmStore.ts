@@ -375,6 +375,13 @@ export function useCrmStore() {
     toast.info('Dados de demonstração carregados no CRM.');
   };
 
+  // Zerar todos os valores (R$) das oportunidades
+  const zerarValoresOportunidades = () => {
+    const zeroed = oportunidades.map(o => ({ ...o, valorR$: 0 }));
+    saveOportunidades(zeroed);
+    toast.success('Todos os valores do CRM foram zerados com sucesso!');
+  };
+
   // Limpar todos os dados do CRM
   const limparDadosCrm = () => {
     saveOportunidades([]);
@@ -405,6 +412,7 @@ export function useCrmStore() {
     updateOportunidade: updateOpItem,
     addInteracao: addInteracaoItem,
     deleteInteracao: deleteInteracaoItem,
+    zerarValoresOportunidades,
     carregarDadosDemo,
     limparDadosCrm,
     addLeadItem,

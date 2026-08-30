@@ -1,138 +1,277 @@
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ShoppingBag, Target, DollarSign, Award, Users, TrendingUp, Package, Percent } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import React, { useMemo } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { 
+  DollarSign, TrendingUp, Target, Award, Users, FileText, 
+  BarChart3, CheckCircle2, ArrowUpRight, Flame, Clock, Sparkles, Layers
+} from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from 'recharts';
 import { useComercialStore } from '../hooks/useComercialStore';
 
+const formatCurrency = (value?: number | null) => {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
+};
+
 export function ComercialDashboard() {
-  const { propostas, equipe, metas, comissoes } = useComercialStore();
+  const { equipe, metas, oportunidades, propostas, atividades, kpisExecutivos } = useComercialStore();
 
-  const receitaComercialTotal = (propostas || []).filter(p => p?.status === 'Aceita').reduce((acc, p) => acc + (p?.valorTotalR$ || 0), 0);
-  const metaTotalAno = (metas || []).reduce((acc, m) => acc + (m?.valorMetaR$ || 0), 0);
-  const metaRealizadaAno = (metas || []).reduce((acc, m) => acc + (m?.valorRealizadoR$ || 0), 0);
-  const comissaoPrevista = (comissoes || []).reduce((acc, c) => acc + (c?.comissaoPrevistaR$ || 0), 0);
-  const comissaoPaga = (comissoes || []).reduce((acc, c) => acc + (c?.comissaoPagaR$ || 0), 0);
-  const ticketMedio = (propostas || []).length > 0 ? (receitaComercialTotal / ((propostas || []).filter(p => p?.status === 'Aceita').length || 1)) : 0;
+  // Performance da Equipe
+  const teamRanking = useMemo(() => {
+    return equipe.map(m => {
+      const userOps = oportunidades.filter(o => o.responsavel === m.nome);
+      const vendasUser = userOps.filter(o => 
+        (o.etapa || '').toLowerCase().includes('ganh') || 
+        (o.etapa || '').toLowerCase().includes('won') || 
+        (o.etapa || '').toLowerCase().includes('fechad')
+      );
 
-  // Gráfico 1: Meta x Realizado por Trimestre
-  const metaVsRealizadoData = [
-    { periodo: 'Q1 2026', meta: 1500000, realizado: 1280000 },
-    { periodo: 'Q2 2026', meta: 1600000, realizado: 0 },
-    { periodo: 'Q3 2026', meta: 1800000, realizado: 0 },
-    { periodo: 'Q4 2026', meta: 2000000, realizado: 0 },
-  ];
+      const receitaUser = vendasUser.reduce((acc, o) => acc + (o.valorR$ || 0), 0);
+      const percentualMeta = m.metaMensalR$ > 0 ? ((receitaUser / m.metaMensalR$) * 100).toFixed(1) : '0.0';
 
-  // Gráfico 2: Desempenho por Consultor
-  const consultoresData = (equipe || []).map(e => ({
-    nome: (e?.nome || 'Consultor').split(' ')[0],
-    realizado: e?.resultadoRealizadoR$ || 0,
-    meta: e?.metaMensalR$ || 0
-  }));
+      return {
+        ...m,
+        totalOportunidades: userOps.length,
+        vendasFechadas: vendasUser.length,
+        receitaRealizada: receitaUser,
+        percentualMeta: parseFloat(percentualMeta)
+      };
+    }).sort((a, b) => b.receitaRealizada - a.receitaRealizada || b.totalOportunidades - a.totalOportunidades);
+  }, [equipe, oportunidades]);
+
+  // Dados para Gráfico de Vendas vs Meta
+  const chartVendasVsMeta = useMemo(() => {
+    return teamRanking.map(m => ({
+      name: m.nome.split(' ')[0],
+      'Receita Fechada': m.receitaRealizada,
+      'Meta Mensal': m.metaMensalR$
+    }));
+  }, [teamRanking]);
+
+  // Funil de Conversão Comercial
+  const funilConversao = useMemo(() => {
+    const totalOps = oportunidades.length;
+    const diagnosticos = oportunidades.filter(o => (o.etapa || '').toLowerCase().includes('diagnos')).length;
+    const propsEnviadas = propostas.length;
+    const ganhos = kpisExecutivos.vendasFechadas;
+
+    return [
+      { etapa: '1. Oportunidades Criadas', valor: totalOps, fill: '#3b82f6' },
+      { etapa: '2. Diagnósticos / Reuniões', valor: diagnosticos, fill: '#f59e0b' },
+      { etapa: '3. Propostas Comerciais', valor: propsEnviadas, fill: '#8b5cf6' },
+      { etapa: '4. Vendas Fechadas', valor: ganhos, fill: '#10b981' }
+    ];
+  }, [oportunidades, propostas, kpisExecutivos]);
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Cards de Métricas */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="hover:border-primary/50 transition-colors">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-xs font-medium text-muted-foreground">Receita Comercial Aceita</CardTitle>
-            <DollarSign className="w-4 h-4 text-emerald-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-emerald-600">
-              R$ {receitaComercialTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+    <div className="space-y-6 animate-fade-in pt-1">
+      {/* Grid de KPIs Executivos Principais */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
+        <Card className="rounded-2xl border shadow-xs bg-card">
+          <CardContent className="p-4 space-y-1">
+            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">Receita Comercial Fechada</span>
+            <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
+              {formatCurrency(kpisExecutivos.receitaFechada)}
             </div>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Propostas comerciais aprovadas</p>
+            <div className="text-[11px] text-muted-foreground flex items-center justify-between pt-1 border-t">
+              <span>{kpisExecutivos.vendasFechadas} vendas concluídas</span>
+              <span className="text-emerald-600 font-bold">Ganho</span>
+            </div>
           </CardContent>
         </Card>
 
-        <Card className="hover:border-primary/50 transition-colors">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-xs font-medium text-muted-foreground">Atingimento de Meta Q1</CardTitle>
-            <Target className="w-4 h-4 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {((metaRealizadaAno / (metaTotalAno || 1)) * 100).toFixed(1)}%
+        <Card className="rounded-2xl border shadow-xs bg-card">
+          <CardContent className="p-4 space-y-1">
+            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">Meta Comercial do Mês</span>
+            <div className="text-2xl font-black text-foreground">
+              {formatCurrency(kpisExecutivos.metaTotalMes)}
             </div>
-            <p className="text-[11px] text-muted-foreground mt-0.5">R$ {metaRealizadaAno.toLocaleString('pt-BR')} de R$ {metaTotalAno.toLocaleString('pt-BR')}</p>
+            <div className="space-y-1 pt-1 border-t">
+              <div className="flex justify-between text-[10px] text-muted-foreground font-semibold">
+                <span>{kpisExecutivos.percentualMeta}% Atingido</span>
+                <span>Faltam {formatCurrency(kpisExecutivos.valorRestanteMeta)}</span>
+              </div>
+              <Progress value={parseFloat(kpisExecutivos.percentualMeta)} className="h-1.5" />
+            </div>
           </CardContent>
         </Card>
 
-        <Card className="hover:border-primary/50 transition-colors">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-xs font-medium text-muted-foreground">Comissão Paga / Prevista</CardTitle>
-            <Award className="w-4 h-4 text-amber-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-amber-600">
-              R$ {comissaoPaga.toLocaleString('pt-BR')}
+        <Card className="rounded-2xl border shadow-xs bg-card">
+          <CardContent className="p-4 space-y-1">
+            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">Pipeline Total em Negociação</span>
+            <div className="text-2xl font-black text-blue-600 dark:text-blue-400">
+              {formatCurrency(kpisExecutivos.receitaPrevista)}
             </div>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Prevista: R$ {comissaoPrevista.toLocaleString('pt-BR')}</p>
+            <div className="text-[11px] text-muted-foreground flex items-center justify-between pt-1 border-t">
+              <span>{kpisExecutivos.totalOportunidades} deals em aberto</span>
+              <span>Previsto</span>
+            </div>
           </CardContent>
         </Card>
 
-        <Card className="hover:border-primary/50 transition-colors">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-xs font-medium text-muted-foreground">Ticket Médio das Vendas</CardTitle>
-            <TrendingUp className="w-4 h-4 text-purple-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              R$ {ticketMedio.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+        <Card className="rounded-2xl border shadow-xs bg-card">
+          <CardContent className="p-4 space-y-1">
+            <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">Ticket Médio Comercial</span>
+            <div className="text-2xl font-black text-purple-600 dark:text-purple-400">
+              {formatCurrency(kpisExecutivos.ticketMedio)}
             </div>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Valor médio por contrato fechado</p>
+            <div className="text-[11px] text-muted-foreground flex items-center justify-between pt-1 border-t">
+              <span>Taxa Conversão: <strong>{kpisExecutivos.taxaConversaoGeral}%</strong></span>
+              <span>Média Real</span>
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Gráficos do Comercial */}
-      <div className="grid gap-6 md:grid-cols-7">
-        <Card className="col-span-4">
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Target className="w-5 h-5 text-primary" />
-              Meta x Realizado (Trimestral)
+      {/* Gráficos de Gestão Comercial */}
+      <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
+        {/* Gráfico 1: Vendas vs Meta da Equipe */}
+        <Card className="lg:col-span-4 rounded-2xl border shadow-xs">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-bold flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-orange-500" /> Receita Fechada vs Meta Individual
             </CardTitle>
+            <CardDescription className="text-xs">Atingimento de metas por consultor comercial no mês atual.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-[280px]">
+            <div className="h-[270px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={metaVsRealizadoData}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="periodo" fontSize={12} tickLine={false} axisLine={false} />
-                  <YAxis fontSize={12} tickLine={false} axisLine={false} />
-                  <RechartsTooltip />
-                  <Bar dataKey="meta" name="Meta Projetada" fill="#94a3b8" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="realizado" name="Vendas Realizadas" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                <BarChart data={chartVendasVsMeta}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.15} />
+                  <XAxis dataKey="name" fontSize={11} tickLine={false} axisLine={false} />
+                  <YAxis fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `R$ ${(v/1000).toFixed(0)}k`} />
+                  <RechartsTooltip formatter={(v: any) => formatCurrency(v)} />
+                  <Legend />
+                  <Bar dataKey="Receita Fechada" fill="#10b981" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Meta Mensal" fill="#94a3b8" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="col-span-3">
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Users className="w-5 h-5 text-emerald-500" />
-              Desempenho por Consultor (Mês Atual)
+        {/* Gráfico 2: Funil de Conversão Comercial */}
+        <Card className="lg:col-span-3 rounded-2xl border shadow-xs">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-bold flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-primary" /> Eficiência do Funil Comercial
             </CardTitle>
+            <CardDescription className="text-xs">Passagem entre etapas de prospecção e fechamento.</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="h-[280px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={consultoresData} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                  <XAxis type="number" fontSize={10} axisLine={false} tickLine={false} />
-                  <YAxis dataKey="nome" type="category" fontSize={11} axisLine={false} tickLine={false} />
-                  <RechartsTooltip />
-                  <Bar dataKey="realizado" name="Realizado (R$)" fill="#10b981" radius={[0, 4, 4, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+          <CardContent className="space-y-3 pt-2">
+            {funilConversao.map((item, idx) => (
+              <div key={item.etapa} className="space-y-1">
+                <div className="flex justify-between text-xs font-semibold">
+                  <span>{item.etapa}</span>
+                  <span className="font-mono">{item.valor}</span>
+                </div>
+                <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                  <div 
+                    className="h-full rounded-full transition-all" 
+                    style={{ 
+                      backgroundColor: item.fill,
+                      width: `${Math.max(8, (item.valor / (funilConversao[0].valor || 1)) * 100)}%` 
+                    }} 
+                  />
+                </div>
+              </div>
+            ))}
           </CardContent>
         </Card>
       </div>
+
+      {/* RANKING & LEADERBOARD DO TIME COMERCIAL */}
+      <Card className="rounded-2xl border shadow-xs">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-bold flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              <Award className="w-4 h-4 text-orange-500" /> Leaderboard & Produtividade da Equipe
+            </span>
+            <Badge variant="outline" className="text-xs font-semibold">
+              {teamRanking.length} consultores ativos
+            </Badge>
+          </CardTitle>
+          <CardDescription className="text-xs">
+            Acompanhamento em tempo real de oportunidades, propostas, vendas e percentual da meta.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="border rounded-xl overflow-x-auto bg-card text-xs">
+            <table className="w-full text-left border-collapse">
+              <thead className="bg-muted/50 border-b text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">
+                <tr>
+                  <th className="p-3">Posição / Consultor</th>
+                  <th className="p-3">Função</th>
+                  <th className="p-3 text-center">Oportunidades</th>
+                  <th className="p-3 text-center">Vendas Fechadas</th>
+                  <th className="p-3 text-right">Meta Mensal (R$)</th>
+                  <th className="p-3 text-right">Receita Gerada (R$)</th>
+                  <th className="p-3 text-center">% Meta</th>
+                  <th className="p-3 text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {teamRanking.map((m, idx) => {
+                  const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}º`;
+
+                  return (
+                    <tr key={m.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="p-3">
+                        <div className="flex items-center gap-2.5">
+                          <span className="text-sm font-bold">{medal}</span>
+                          <div>
+                            <div className="font-bold text-foreground text-xs">{m.nome}</div>
+                            <div className="text-[10px] text-muted-foreground">{m.email}</div>
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className="p-3 font-medium text-muted-foreground">
+                        <Badge variant="secondary" className="text-[10px]">{m.funcao}</Badge>
+                      </td>
+
+                      <td className="p-3 text-center font-bold text-foreground">
+                        {m.totalOportunidades}
+                      </td>
+
+                      <td className="p-3 text-center">
+                        <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-xs font-bold">
+                          {m.vendasFechadas}
+                        </Badge>
+                      </td>
+
+                      <td className="p-3 text-right text-muted-foreground">
+                        {formatCurrency(m.metaMensalR$)}
+                      </td>
+
+                      <td className="p-3 text-right font-extrabold text-foreground">
+                        {formatCurrency(m.receitaRealizada)}
+                      </td>
+
+                      <td className="p-3 text-center font-bold">
+                        <span className={m.percentualMeta >= 100 ? 'text-emerald-600' : 'text-amber-600'}>
+                          {m.percentualMeta}%
+                        </span>
+                      </td>
+
+                      <td className="p-3 text-center">
+                        <Badge variant="outline" className={
+                          m.percentualMeta >= 100 ? 'bg-emerald-50 text-emerald-700 border-emerald-300' :
+                          m.percentualMeta >= 50 ? 'bg-blue-50 text-blue-700 border-blue-300' :
+                          'bg-amber-50 text-amber-700 border-amber-300'
+                        }>
+                          {m.percentualMeta >= 100 ? 'Meta Atingida' : m.percentualMeta >= 50 ? 'No Ritmo' : 'Em Risco'}
+                        </Badge>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
