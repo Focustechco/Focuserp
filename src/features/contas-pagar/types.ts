@@ -27,6 +27,10 @@ export interface ContaPagar {
   fornecedor: string;
   descricao: string;
   categoria: string;
+  categoriaId?: string;
+  centroCustoId?: string;
+  centroCustoNome?: string;
+  centroCusto?: string;
   valorOriginal: number;
   valorPago: number;
   saldo: number;

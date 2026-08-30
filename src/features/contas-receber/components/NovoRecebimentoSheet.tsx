@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger, SheetFooter } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-import { Plus } from 'lucide-react';
+import { Plus, Tag, FolderTree, RefreshCw, Layers } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { useContasReceberQuery } from '../hooks/useContasReceberQuery';
@@ -17,7 +17,12 @@ import { Usuario } from '@/features/usuarios/types';
 import { INITIAL_USUARIOS } from '@/features/usuarios/data/initialData';
 import { SelectResponsavel } from '@/components/SelectResponsavel';
 import { RecorrenciaFinanceira, FrequenciaRecorrencia } from '@/features/recorrencias/types';
+import { CategoriaFinanceira } from '@/features/plano-contas/types';
+import { INITIAL_CATEGORIAS } from '@/features/plano-contas/mockData';
+import { CentroCusto } from '@/features/centro-de-custos/types';
+import { INITIAL_CENTROS } from '@/features/centro-de-custos/data/initialData';
 import { useNotificacoesStore } from '@/features/notificacoes/useNotificacoesStore';
+import { addDays } from 'date-fns';
 
 export function NovoRecebimentoSheet({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
@@ -26,27 +31,58 @@ export function NovoRecebimentoSheet({ children }: { children: React.ReactNode }
   
   const [clienteId, setClienteId] = useState('');
   const [descricao, setDescricao] = useState('');
-  const [categoria, setCategoria] = useState('Serviços');
+  const [categoria, setCategoria] = useState('');
+  const [centroCusto, setCentroCusto] = useState('');
   const [valorOriginal, setValorOriginal] = useState('');
   const [dataVencimento, setDataVencimento] = useState('');
   const [formaPagamento, setFormaPagamento] = useState<FormaPagamento>('PIX');
   const [responsavel, setResponsavel] = useState('');
   const [observacoes, setObservacoes] = useState('');
 
+  // Parcelamento
+  const [qtdParcelas, setQtdParcelas] = useState('12');
+  const [intervaloDias, setIntervaloDias] = useState('30');
+  const [primeiroVencimento, setPrimeiroVencimento] = useState('');
+
   // Recorrência
   const [frequencia, setFrequencia] = useState<FrequenciaRecorrencia>('Mensal');
   const [dataInicioRec, setDataInicioRec] = useState('');
   const [fimRecorrencia, setFimRecorrencia] = useState('');
+  const [quantidadeRec, setQuantidadeRec] = useState('');
 
   const { saveTitulo } = useContasReceberQuery();
   const { clientes } = useClientesQuery();
   const { data: usuarios } = useLocalStorageState<Usuario>('focus_usuarios', INITIAL_USUARIOS);
+  const { data: planoContas = [] } = useLocalStorageState<CategoriaFinanceira>('focus_plano_contas', INITIAL_CATEGORIAS);
+  const { data: centrosCusto = [] } = useLocalStorageState<CentroCusto>('focus_centro_custos', INITIAL_CENTROS);
   const { data: titulos = [], setAllItems: setAllTitulos } = useLocalStorageState<TituloReceber>('focus_contas_receber');
   const { data: recorrencias = [], setAllItems: setAllRecorrencias } = useLocalStorageState<RecorrenciaFinanceira>('focus_recorrencias');
   const { notificar } = useNotificacoesStore();
 
+  // Categorias de Receita no Plano de Contas
+  const categoriasReceita = useMemo(() => {
+    const ativas = planoContas.filter(c => c && c.status !== 'Inativa');
+    const filtradas = ativas.filter(c => c.tipo === 'Receita' || !c.tipo);
+    return filtradas.length > 0 ? filtradas : ativas;
+  }, [planoContas]);
+
+  // Centros de Custo disponíveis
+  const centrosDisponiveis = useMemo(() => {
+    const ativos = centrosCusto.filter(c => c && c.status !== 'Inativo');
+    const filtrados = ativos.filter(c => c.tipo === 'Receita' || !c.tipo);
+    return filtrados.length > 0 ? filtrados : ativos;
+  }, [centrosCusto]);
+
   const selectedClienteObj = clientes.find(c => c.id === clienteId);
   const clienteNome = selectedClienteObj ? (selectedClienteObj.nomeFantasia || selectedClienteObj.razaoSocial) : '';
+
+  const selectedCategoriaObj = categoriasReceita.find(c => c.nome === categoria || c.id === categoria);
+  const categoriaNome = selectedCategoriaObj ? selectedCategoriaObj.nome : (categoria || 'Receitas Operacionais');
+  const categoriaId = selectedCategoriaObj?.id;
+
+  const selectedCentroObj = centrosDisponiveis.find(c => c.nome === centroCusto || c.id === centroCusto);
+  const centroCustoNome = selectedCentroObj ? selectedCentroObj.nome : centroCusto;
+  const centroCustoId = selectedCentroObj?.id;
 
   const handleSave = () => {
     if (!clienteId || clienteId === 'none') {
@@ -61,33 +97,35 @@ export function NovoRecebimentoSheet({ children }: { children: React.ReactNode }
       toast.error("O Valor Original deve ser maior que zero!");
       return;
     }
-    if (!dataVencimento) {
+    if (!dataVencimento && !primeiroVencimento && !dataInicioRec) {
       toast.error("A Data de Vencimento é obrigatória!");
-      return;
-    }
-    if (!categoria) {
-      toast.error("A Categoria é obrigatória!");
       return;
     }
 
     const val = parseFloat(valorOriginal) || 1500;
+    const baseVencimento = dataVencimento || primeiroVencimento || dataInicioRec || new Date().toISOString().split('T')[0];
     let recId: string | undefined = undefined;
 
-    // Se habilitar recorrência, cadastrar/vincular a RecorrenciaFinanceira
+    // 1. Se for Recorrente, registra a Recorrência Financeira
     if (recorrente) {
       recId = `rec_${crypto.randomUUID()}`;
       const novaRecorrencia: RecorrenciaFinanceira = {
         id: recId,
         clientId: clienteId,
         clienteNome: clienteNome || 'Cliente',
+        tipo: 'Receita',
         descricao: descricao || `Recorrência - ${clienteNome}`,
         valor: val,
         frequencia: frequencia,
-        dataInicio: dataInicioRec || dataVencimento || new Date().toISOString().split('T')[0],
-        proximaCobranca: dataVencimento || new Date().toISOString().split('T')[0],
+        dataInicio: dataInicioRec || baseVencimento,
+        dataFim: fimRecorrencia || undefined,
+        dataFinal: fimRecorrencia || undefined,
+        proximaCobranca: baseVencimento,
+        diaVencimento: parseInt(baseVencimento.split('-')[2], 10) || 10,
+        quantidade: quantidadeRec ? parseInt(quantidadeRec, 10) : null,
         status: 'Ativa',
         origem: 'financeiro',
-        categoria: categoria,
+        categoria: categoriaNome,
         formaPagamento: formaPagamento,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
@@ -95,45 +133,95 @@ export function NovoRecebimentoSheet({ children }: { children: React.ReactNode }
       setAllRecorrencias([novaRecorrencia, ...recorrencias]);
     }
 
-    const novoTitulo: TituloReceber = {
-      id: crypto.randomUUID(),
-      numero: `REC-${Math.floor(1000 + Math.random() * 9000)}`,
-      cliente: clienteNome,
-      clienteId: clienteId,
-      recorrenciaId: recId,
-      origem: recorrente ? 'recorrencia' : 'manual',
-      descricao,
-      categoria: categoria || 'Serviços',
-      valorOriginal: val,
-      valorRecebido: 0,
-      saldo: val,
-      dataEmissao: new Date().toISOString().split('T')[0],
-      dataVencimento: dataVencimento || new Date().toISOString().split('T')[0],
-      formaPagamento: formaPagamento,
-      status: 'Pendente',
-      responsavel: responsavel || 'Financeiro',
-      ultimaAtualizacao: new Date().toISOString(),
-      recorrente: recorrente,
-      recorrenciaFrequencia: recorrente ? frequencia : undefined,
-      recorrenciaFim: fimRecorrencia || undefined,
-      observacoes: observacoes || undefined,
-      historico: [
-        { 
-          id: `h-${Date.now()}`, 
-          data: new Date().toISOString(), 
-          usuario: 'Usuário', 
-          acao: recorrente ? 'Criação de título recorrente' : 'Criação do título' 
-        }
-      ]
-    };
+    // 2. Se for Parcelado
+    if (parcelado) {
+      const numParcelas = Math.max(1, parseInt(qtdParcelas, 10) || 1);
+      const dias = parseInt(intervaloDias, 10) || 30;
+      const valorPorParcela = +(val / numParcelas).toFixed(2);
+      const codBase = Math.floor(1000 + Math.random() * 9000);
 
-    setAllTitulos([novoTitulo, ...titulos.filter(t => t.id !== novoTitulo.id)]);
-    saveTitulo(novoTitulo as any);
+      for (let i = 1; i <= numParcelas; i++) {
+        const dataVencParcela = addDays(new Date(primeiroVencimento || baseVencimento), (i - 1) * dias).toISOString().split('T')[0];
+        const novoTitulo: TituloReceber = {
+          id: crypto.randomUUID(),
+          numero: `REC-${codBase}/${String(i).padStart(2, '0')}`,
+          cliente: clienteNome,
+          clienteId: clienteId,
+          origem: 'parcelamento',
+          descricao: `${descricao} (Parcela ${i}/${numParcelas})`,
+          categoria: categoriaNome,
+          categoriaId: categoriaId,
+          centroCusto: centroCustoNome,
+          centroCustoNome: centroCustoNome,
+          centroCustoId: centroCustoId,
+          valorOriginal: valorPorParcela,
+          valorRecebido: 0,
+          saldo: valorPorParcela,
+          dataEmissao: new Date().toISOString().split('T')[0],
+          dataVencimento: dataVencParcela,
+          formaPagamento: formaPagamento,
+          status: 'Pendente',
+          responsavel: responsavel || 'Financeiro',
+          ultimaAtualizacao: new Date().toISOString(),
+          observacoes: observacoes || undefined,
+          historico: [
+            { 
+              id: `h-${Date.now()}-${i}`, 
+              data: new Date().toISOString(), 
+              usuario: 'Usuário', 
+              acao: `Criação da parcela ${i}/${numParcelas}` 
+            }
+          ]
+        };
+        saveTitulo(novoTitulo as any);
+      }
+      toast.success(`${numParcelas} parcelas de R$ ${valorPorParcela.toLocaleString('pt-BR')} cadastradas com sucesso!`);
+    } else {
+      const novoTitulo: TituloReceber = {
+        id: crypto.randomUUID(),
+        numero: `REC-${Math.floor(1000 + Math.random() * 9000)}`,
+        cliente: clienteNome,
+        clienteId: clienteId,
+        recorrenciaId: recId,
+        origem: recorrente ? 'recorrencia' : 'manual',
+        descricao,
+        categoria: categoriaNome,
+        categoriaId: categoriaId,
+        centroCusto: centroCustoNome,
+        centroCustoNome: centroCustoNome,
+        centroCustoId: centroCustoId,
+        valorOriginal: val,
+        valorRecebido: 0,
+        saldo: val,
+        dataEmissao: new Date().toISOString().split('T')[0],
+        dataVencimento: baseVencimento,
+        formaPagamento: formaPagamento,
+        status: 'Pendente',
+        responsavel: responsavel || 'Financeiro',
+        ultimaAtualizacao: new Date().toISOString(),
+        recorrente: recorrente,
+        recorrenciaFrequencia: recorrente ? frequencia : undefined,
+        recorrenciaFim: fimRecorrencia || undefined,
+        observacoes: observacoes || undefined,
+        historico: [
+          { 
+            id: `h-${Date.now()}`, 
+            data: new Date().toISOString(), 
+            usuario: 'Usuário', 
+            acao: recorrente ? 'Criação de título recorrente' : 'Criação do título' 
+          }
+        ]
+      };
+
+      setAllTitulos([novoTitulo, ...titulos.filter(t => t.id !== novoTitulo.id)]);
+      saveTitulo(novoTitulo as any);
+      toast.success(recorrente ? "Recebimento e recorrência cadastrados com sucesso!" : "Recebimento cadastrado com sucesso!");
+    }
 
     // Disparar Notificação Automática
     notificar({
-      titulo: `Novo Recebimento Cadastrado (${novoTitulo.numero})`,
-      descricao: `Recebimento de R$ ${val.toLocaleString('pt-BR')} para ${clienteNome} com vencimento em ${dataVencimento}.`,
+      titulo: `Novo Recebimento Cadastrado para ${clienteNome}`,
+      descricao: `Recebimento de R$ ${val.toLocaleString('pt-BR')} [${categoriaNome}] com vencimento em ${baseVencimento}.`,
       origem: 'Financeiro',
       tipo: 'Sucesso',
       prioridade: 'Normal',
@@ -141,12 +229,14 @@ export function NovoRecebimentoSheet({ children }: { children: React.ReactNode }
       usuarioDestino: responsavel || 'Você'
     });
 
-    toast.success("Recebimento cadastrado com sucesso!");
     setOpen(false);
     setDescricao('');
     setClienteId('');
     setValorOriginal('');
+    setCategoria('');
+    setCentroCusto('');
     setRecorrente(false);
+    setParcelado(false);
   };
 
   return (
@@ -158,7 +248,7 @@ export function NovoRecebimentoSheet({ children }: { children: React.ReactNode }
         <SheetHeader className="mb-6">
           <SheetTitle>Novo Recebimento</SheetTitle>
           <SheetDescription>
-            Preencha os dados para registrar um novo título a receber.
+            Registre um novo recebimento integrado ao Plano de Contas e Centro de Custos.
           </SheetDescription>
         </SheetHeader>
 
@@ -167,76 +257,110 @@ export function NovoRecebimentoSheet({ children }: { children: React.ReactNode }
             <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
               <TabsTrigger value="geral" className="shrink-0 whitespace-nowrap">Geral</TabsTrigger>
               <TabsTrigger value="financeiro" className="shrink-0 whitespace-nowrap">Financeiro</TabsTrigger>
-              <TabsTrigger value="parcelamento" className="shrink-0 whitespace-nowrap">Parcelas</TabsTrigger>
-              <TabsTrigger value="recorrencia" className="shrink-0 whitespace-nowrap">Recorrência</TabsTrigger>
+              <TabsTrigger value="parcelamento" className="shrink-0 whitespace-nowrap gap-1">
+                <Layers className="w-3 h-3" /> Parcelas
+              </TabsTrigger>
+              <TabsTrigger value="recorrencia" className="shrink-0 whitespace-nowrap gap-1">
+                <RefreshCw className="w-3 h-3" /> Recorrência
+              </TabsTrigger>
             </TabsList>
           </div>
           
           {/* Aba: Geral */}
           <TabsContent value="geral" className="space-y-4">
-            <div className="grid grid-cols-1 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="cliente">Cliente *</Label>
+              <Select value={clienteId} onValueChange={setClienteId}>
+                <SelectTrigger id="cliente">
+                  <SelectValue placeholder="Selecione o cliente cadastrado" />
+                </SelectTrigger>
+                <SelectContent>
+                  {clientes.length === 0 ? (
+                    <SelectItem value="none" disabled>
+                      Nenhum cliente cadastrado. Cadastre no módulo Clientes primeiro.
+                    </SelectItem>
+                  ) : (
+                    clientes.map((c) => {
+                      const name = c.nomeFantasia || c.razaoSocial || 'Cliente Sem Nome';
+                      return (
+                        <SelectItem key={c.id} value={c.id}>
+                          {name} ({c.documento || 'Sem doc'})
+                        </SelectItem>
+                      );
+                    })
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="descricao">Descrição do Recebimento *</Label>
+              <Input 
+                id="descricao" 
+                placeholder="Ex: Mensalidade Plano Enterprise, Consultoria em Cloud..." 
+                value={descricao} 
+                onChange={e => setDescricao(e.target.value)} 
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="cliente">Cliente *</Label>
-                <Select value={clienteId} onValueChange={setClienteId}>
-                  <SelectTrigger id="cliente">
-                    <SelectValue placeholder="Selecione o cliente cadastrado" />
+                <Label htmlFor="categoria" className="flex items-center gap-1.5">
+                  <Tag className="w-3.5 h-3.5 text-primary" /> Categoria (Plano de Contas) *
+                </Label>
+                <Select value={categoria} onValueChange={setCategoria}>
+                  <SelectTrigger id="categoria">
+                    <SelectValue placeholder="Selecione a categoria" />
                   </SelectTrigger>
                   <SelectContent>
-                    {clientes.length === 0 ? (
-                      <SelectItem value="none" disabled>
-                        Nenhum cliente cadastrado. Cadastre no módulo Clientes primeiro.
+                    {categoriasReceita.map(cat => (
+                      <SelectItem key={cat.id} value={cat.nome}>
+                        <span className="font-mono text-muted-foreground mr-1.5 text-[11px]">{cat.codigo}</span>
+                        {cat.nome}
                       </SelectItem>
-                    ) : (
-                      clientes.map((c) => {
-                        const name = c.nomeFantasia || c.razaoSocial || 'Cliente Sem Nome';
-                        return (
-                          <SelectItem key={c.id} value={c.id}>
-                            {name} ({c.documento || 'Sem doc'})
-                          </SelectItem>
-                        );
-                      })
-                    )}
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
+
               <div className="space-y-2">
-                <Label htmlFor="descricao">Descrição *</Label>
-                <Input id="descricao" placeholder="Ex: Referente à consultoria de TI" value={descricao} onChange={e => setDescricao(e.target.value)} />
+                <Label htmlFor="centroCusto" className="flex items-center gap-1.5">
+                  <FolderTree className="w-3.5 h-3.5 text-emerald-500" /> Centro de Custos
+                </Label>
+                <Select value={centroCusto} onValueChange={setCentroCusto}>
+                  <SelectTrigger id="centroCusto">
+                    <SelectValue placeholder="Selecione o Centro de Custo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {centrosDisponiveis.map(cc => (
+                      <SelectItem key={cc.id} value={cc.nome}>
+                        <span className="font-mono text-muted-foreground mr-1.5 text-[11px]">{cc.codigo}</span>
+                        {cc.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="categoria">Categoria *</Label>
-                  <Select value={categoria} onValueChange={setCategoria}>
-                    <SelectTrigger id="categoria">
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Serviços">Serviços</SelectItem>
-                      <SelectItem value="Produtos">Produtos</SelectItem>
-                      <SelectItem value="Mensalidade">Mensalidade</SelectItem>
-                      <SelectItem value="Consultoria">Consultoria</SelectItem>
-                      <SelectItem value="Licenciamento">Licenciamento</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="responsavel">Responsável</Label>
-                  <SelectResponsavel
-                    value={responsavel}
-                    onValueChange={setResponsavel}
-                    placeholder="Selecione o Usuário Responsável"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="observacoes">Observações</Label>
-                <Input 
-                  id="observacoes" 
-                  placeholder="Informações adicionais..." 
-                  value={observacoes} 
-                  onChange={e => setObservacoes(e.target.value)} 
-                />
-              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="responsavel">Responsável / Executivo</Label>
+              <SelectResponsavel
+                usuarios={usuarios}
+                value={responsavel}
+                onChange={setResponsavel}
+                placeholder="Selecione o Responsável"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="observacoes">Observações Internas</Label>
+              <Input 
+                id="observacoes" 
+                placeholder="Informações contratuais, notas de empenho..." 
+                value={observacoes} 
+                onChange={e => setObservacoes(e.target.value)} 
+              />
             </div>
           </TabsContent>
 
@@ -244,33 +368,40 @@ export function NovoRecebimentoSheet({ children }: { children: React.ReactNode }
           <TabsContent value="financeiro" className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="valorOriginal">Valor Original (R$) *</Label>
-                <Input id="valorOriginal" type="number" placeholder="0,00" value={valorOriginal} onChange={e => setValorOriginal(e.target.value)} />
+                <Label htmlFor="valor">Valor do Título (R$) *</Label>
+                <Input 
+                  id="valor" 
+                  type="number" 
+                  placeholder="0,00" 
+                  value={valorOriginal} 
+                  onChange={e => setValorOriginal(e.target.value)} 
+                />
               </div>
+
               <div className="space-y-2">
-                <Label htmlFor="dataVencimento">Data de Vencimento *</Label>
-                <Input id="dataVencimento" type="date" value={dataVencimento} onChange={e => setDataVencimento(e.target.value)} />
+                <Label htmlFor="vencimento">Data de Vencimento *</Label>
+                <Input 
+                  id="vencimento" 
+                  type="date" 
+                  value={dataVencimento} 
+                  onChange={e => setDataVencimento(e.target.value)} 
+                />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="formaPagamento">Forma de Pagamento</Label>
-                <Select value={formaPagamento} onValueChange={(v: FormaPagamento) => setFormaPagamento(v)}>
-                  <SelectTrigger id="formaPagamento">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="PIX">PIX</SelectItem>
-                    <SelectItem value="Boleto">Boleto</SelectItem>
-                    <SelectItem value="Cartão">Cartão de Crédito</SelectItem>
-                    <SelectItem value="Transferência">Transferência</SelectItem>
-                    <SelectItem value="Dinheiro">Dinheiro</SelectItem>
-                    <SelectItem value="Outros">Outros</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="desconto">Desconto (R$)</Label>
-                <Input id="desconto" type="number" placeholder="0,00" />
-              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="forma">Forma de Recebimento</Label>
+              <Select value={formaPagamento} onValueChange={(v: FormaPagamento) => setFormaPagamento(v)}>
+                <SelectTrigger id="forma">
+                  <SelectValue placeholder="Forma" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="PIX">PIX</SelectItem>
+                  <SelectItem value="Boleto">Boleto Bancário</SelectItem>
+                  <SelectItem value="Cartão">Cartão de Crédito</SelectItem>
+                  <SelectItem value="Transferência">TED / Transferência</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </TabsContent>
 
@@ -278,28 +409,25 @@ export function NovoRecebimentoSheet({ children }: { children: React.ReactNode }
           <TabsContent value="parcelamento" className="space-y-4">
             <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/50">
               <div>
-                <h4 className="font-medium text-sm">Habilitar Parcelamento</h4>
-                <p className="text-xs text-muted-foreground">Dividir este recebimento em múltiplas parcelas.</p>
+                <h4 className="font-medium text-sm">Recebimento Parcelado</h4>
+                <p className="text-xs text-muted-foreground">Dividir em várias faturas mensais/periódicas.</p>
               </div>
-              <Switch checked={parcelado} onCheckedChange={setParcelado} />
+              <Switch checked={parcelado} onCheckedChange={(val) => { setParcelado(val); if (val) setRecorrente(false); }} />
             </div>
 
             {parcelado && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 border rounded-lg animate-in fade-in slide-in-from-top-2">
                 <div className="space-y-2">
                   <Label>Quantidade de Parcelas</Label>
-                  <Input type="number" placeholder="Ex: 3" />
+                  <Input type="number" placeholder="Ex: 12" value={qtdParcelas} onChange={e => setQtdParcelas(e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Intervalo (dias)</Label>
-                  <Input type="number" defaultValue="30" />
+                  <Label>Intervalo entre Parcelas (dias)</Label>
+                  <Input type="number" value={intervaloDias} onChange={e => setIntervaloDias(e.target.value)} />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2 col-span-1 sm:col-span-2">
                   <Label>1º Vencimento</Label>
-                  <Input type="date" />
-                </div>
-                <div className="col-span-1 sm:col-span-2 pt-2">
-                  <Button variant="secondary" className="w-full">Simular Parcelas</Button>
+                  <Input type="date" value={primeiroVencimento || dataVencimento} onChange={e => setPrimeiroVencimento(e.target.value)} />
                 </div>
               </div>
             )}
@@ -309,16 +437,16 @@ export function NovoRecebimentoSheet({ children }: { children: React.ReactNode }
           <TabsContent value="recorrencia" className="space-y-4">
             <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/50">
               <div>
-                <h4 className="font-medium text-sm">Habilitar Recorrência</h4>
-                <p className="text-xs text-muted-foreground">Gerar este recebimento periodicamente (ex: assinaturas).</p>
+                <h4 className="font-medium text-sm">Receita Recorrente</h4>
+                <p className="text-xs text-muted-foreground">Cobrança contínua (SaaS, assinaturas, contratos mensais).</p>
               </div>
-              <Switch checked={recorrente} onCheckedChange={setRecorrente} />
+              <Switch checked={recorrente} onCheckedChange={(val) => { setRecorrente(val); if (val) setParcelado(false); }} />
             </div>
 
             {recorrente && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 border rounded-lg animate-in fade-in slide-in-from-top-2">
                 <div className="space-y-2 col-span-1 sm:col-span-2">
-                  <Label>Frequência</Label>
+                  <Label>Frequência da Cobrança</Label>
                   <Select value={frequencia} onValueChange={(v: FrequenciaRecorrencia) => setFrequencia(v)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione a frequência" />
@@ -334,11 +462,11 @@ export function NovoRecebimentoSheet({ children }: { children: React.ReactNode }
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Data de Início</Label>
-                  <Input type="date" value={dataInicioRec} onChange={e => setDataInicioRec(e.target.value)} />
+                  <Label>Data de Início da Cobrança</Label>
+                  <Input type="date" value={dataInicioRec || dataVencimento} onChange={e => setDataInicioRec(e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Fim da Recorrência (Opcional)</Label>
+                  <Label>Data Final (Opcional)</Label>
                   <Input type="date" value={fimRecorrencia} onChange={e => setFimRecorrencia(e.target.value)} />
                 </div>
               </div>

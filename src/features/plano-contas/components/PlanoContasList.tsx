@@ -14,10 +14,12 @@ const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 };
 
+import { INITIAL_CATEGORIAS } from '../mockData';
+
 export function PlanoContasList() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [categoriaParaEditar, setCategoriaParaEditar] = useState<CategoriaFinanceira | null>(null);
-  const { data: planoContas, deleteItem } = useLocalStorageState<CategoriaFinanceira>('focus_plano_contas');
+  const { data: planoContas, deleteItem } = useLocalStorageState<CategoriaFinanceira>('focus_plano_contas', INITIAL_CATEGORIAS);
 
   const openNovaCategoria = () => {
     setCategoriaParaEditar(null);

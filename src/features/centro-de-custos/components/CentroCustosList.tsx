@@ -35,14 +35,22 @@ export function CentroCustosList() {
 
     contasReceber.forEach(t => {
       const tCat = (t.categoria || '').toLowerCase();
-      if (tCat.includes(catName) || catName.includes(tCat) || (deptName && tCat.includes(deptName))) {
+      const isMatch = (t.centroCustoId && t.centroCustoId === c.id) ||
+                      (t.centroCustoNome && t.centroCustoNome.toLowerCase() === c.nome.toLowerCase()) ||
+                      (t.centroCusto && t.centroCusto.toLowerCase() === c.nome.toLowerCase()) ||
+                      tCat.includes(catName) || catName.includes(tCat) || (deptName && tCat.includes(deptName));
+      if (isMatch) {
         receita += t.valorOriginal || 0;
       }
     });
 
     contasPagar.forEach(cp => {
       const cpCat = (cp.categoria || '').toLowerCase();
-      if (cpCat.includes(catName) || catName.includes(cpCat) || (deptName && cpCat.includes(deptName))) {
+      const isMatch = (cp.centroCustoId && cp.centroCustoId === c.id) ||
+                      (cp.centroCustoNome && cp.centroCustoNome.toLowerCase() === c.nome.toLowerCase()) ||
+                      (cp.centroCusto && cp.centroCusto.toLowerCase() === c.nome.toLowerCase()) ||
+                      cpCat.includes(catName) || catName.includes(cpCat) || (deptName && cpCat.includes(deptName));
+      if (isMatch) {
         despesa += cp.valorOriginal || 0;
       }
     });

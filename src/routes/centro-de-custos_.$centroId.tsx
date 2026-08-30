@@ -50,7 +50,11 @@ function PerfilCentroCustoPage() {
 
   contasReceber.forEach(t => {
     const tCat = (t.categoria || '').toLowerCase();
-    if (tCat.includes(cName) || cName.includes(tCat) || (deptName && tCat.includes(deptName))) {
+    const isMatch = (t.centroCustoId && t.centroCustoId === centro.id) ||
+                    (t.centroCustoNome && t.centroCustoNome.toLowerCase() === centro.nome.toLowerCase()) ||
+                    (t.centroCusto && t.centroCusto.toLowerCase() === centro.nome.toLowerCase()) ||
+                    tCat.includes(cName) || cName.includes(tCat) || (deptName && tCat.includes(deptName));
+    if (isMatch) {
       totalReceita += t.valorOriginal || 0;
       numLancamentos++;
     }
@@ -58,7 +62,11 @@ function PerfilCentroCustoPage() {
 
   contasPagar.forEach(cp => {
     const cpCat = (cp.categoria || '').toLowerCase();
-    if (cpCat.includes(cName) || cName.includes(cpCat) || (deptName && cpCat.includes(deptName))) {
+    const isMatch = (cp.centroCustoId && cp.centroCustoId === centro.id) ||
+                    (cp.centroCustoNome && cp.centroCustoNome.toLowerCase() === centro.nome.toLowerCase()) ||
+                    (cp.centroCusto && cp.centroCusto.toLowerCase() === centro.nome.toLowerCase()) ||
+                    cpCat.includes(cName) || cName.includes(cpCat) || (deptName && cpCat.includes(deptName));
+    if (isMatch) {
       totalDespesa += cp.valorOriginal || 0;
       numLancamentos++;
     }

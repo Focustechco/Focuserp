@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger, SheetFooter } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-import { Plus, RefreshCw, Layers } from 'lucide-react';
+import { Plus, RefreshCw, Layers, FolderTree, Building2, Tag } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { useContasPagarQuery } from '../hooks/useContasPagarQuery';
@@ -17,6 +17,10 @@ import { Usuario } from '@/features/usuarios/types';
 import { INITIAL_USUARIOS } from '@/features/usuarios/data/initialData';
 import { SelectResponsavel } from '@/components/SelectResponsavel';
 import { RecorrenciaFinanceira, FrequenciaRecorrencia } from '@/features/recorrencias/types';
+import { CategoriaFinanceira } from '@/features/plano-contas/types';
+import { INITIAL_CATEGORIAS } from '@/features/plano-contas/mockData';
+import { CentroCusto } from '@/features/centro-de-custos/types';
+import { INITIAL_CENTROS } from '@/features/centro-de-custos/data/initialData';
 import { useNotificacoesStore } from '@/features/notificacoes/useNotificacoesStore';
 import { addDays } from 'date-fns';
 
@@ -26,7 +30,8 @@ export function NovaContaSheet({ children }: { children: React.ReactNode }) {
   const [recorrente, setRecorrente] = useState(false);
   const [fornecedor, setFornecedor] = useState('');
   const [descricao, setDescricao] = useState('');
-  const [categoria, setCategoria] = useState('Infraestrutura');
+  const [categoria, setCategoria] = useState('');
+  const [centroCusto, setCentroCusto] = useState('');
   const [valorOriginal, setValorOriginal] = useState('');
   const [dataVencimento, setDataVencimento] = useState('');
   const [formaPagamento, setFormaPagamento] = useState('Boleto');
@@ -46,12 +51,36 @@ export function NovaContaSheet({ children }: { children: React.ReactNode }) {
   const { saveConta } = useContasPagarQuery();
   const { data: fornecedores = [] } = useLocalStorageState<Fornecedor>('focus_fornecedores');
   const { data: usuarios } = useLocalStorageState<Usuario>('focus_usuarios', INITIAL_USUARIOS);
+  const { data: planoContas = [] } = useLocalStorageState<CategoriaFinanceira>('focus_plano_contas', INITIAL_CATEGORIAS);
+  const { data: centrosCusto = [] } = useLocalStorageState<CentroCusto>('focus_centro_custos', INITIAL_CENTROS);
   const { data: recorrencias = [], setAllItems: setAllRecorrencias } = useLocalStorageState<RecorrenciaFinanceira>('focus_recorrencias');
   const { notificar } = useNotificacoesStore();
+
+  // Categorias de Despesa disponíveis no Plano de Contas
+  const categoriasDespesa = useMemo(() => {
+    const ativas = planoContas.filter(c => c && c.status !== 'Inativa');
+    const filtradas = ativas.filter(c => c.tipo === 'Despesa' || !c.tipo);
+    return filtradas.length > 0 ? filtradas : ativas;
+  }, [planoContas]);
+
+  // Centros de Custo disponíveis
+  const centrosDisponiveis = useMemo(() => {
+    const ativos = centrosCusto.filter(c => c && c.status !== 'Inativo');
+    const filtrados = ativos.filter(c => c.tipo === 'Despesa' || !c.tipo);
+    return filtrados.length > 0 ? filtrados : ativos;
+  }, [centrosCusto]);
 
   const selectedFornecedorObj = fornecedores.find(f => f.nomeFantasia === fornecedor || f.razaoSocial === fornecedor || f.id === fornecedor);
   const fornecedorNome = selectedFornecedorObj ? (selectedFornecedorObj.nomeFantasia || selectedFornecedorObj.razaoSocial) : fornecedor;
   const fornecedorId = selectedFornecedorObj?.id || '';
+
+  const selectedCategoriaObj = categoriasDespesa.find(c => c.nome === categoria || c.id === categoria);
+  const categoriaNome = selectedCategoriaObj ? selectedCategoriaObj.nome : (categoria || 'Operacional');
+  const categoriaId = selectedCategoriaObj?.id;
+
+  const selectedCentroObj = centrosDisponiveis.find(c => c.nome === centroCusto || c.id === centroCusto);
+  const centroCustoNome = selectedCentroObj ? selectedCentroObj.nome : centroCusto;
+  const centroCustoId = selectedCentroObj?.id;
 
   const handleSave = () => {
     if (!fornecedor || fornecedor === 'none') {
@@ -68,10 +97,6 @@ export function NovaContaSheet({ children }: { children: React.ReactNode }) {
     }
     if (!dataVencimento && !primeiroVencimento && !dataInicioRec) {
       toast.error("A Data de Vencimento é obrigatória!");
-      return;
-    }
-    if (!categoria) {
-      toast.error("A Categoria é obrigatória!");
       return;
     }
 
@@ -96,7 +121,7 @@ export function NovaContaSheet({ children }: { children: React.ReactNode }) {
         quantidade: quantidadeRec ? parseInt(quantidadeRec, 10) : null,
         status: 'Ativa',
         origem: 'despesa',
-        categoria: categoria,
+        categoria: categoriaNome,
         formaPagamento: formaPagamento,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
@@ -119,7 +144,11 @@ export function NovaContaSheet({ children }: { children: React.ReactNode }) {
           numero: `PAG-${codBase}/${String(i).padStart(2, '0')}`,
           fornecedor: fornecedorNome,
           descricao: `${descricao} (Parcela ${i}/${numParcelas})`,
-          categoria: categoria || 'Operacional',
+          categoria: categoriaNome,
+          categoriaId: categoriaId,
+          centroCusto: centroCustoNome,
+          centroCustoNome: centroCustoNome,
+          centroCustoId: centroCustoId,
           valorOriginal: valorPorParcela,
           valorPago: 0,
           saldo: valorPorParcela,
@@ -144,7 +173,11 @@ export function NovaContaSheet({ children }: { children: React.ReactNode }) {
         numero: `PAG-${Math.floor(100 + Math.random() * 900)}`,
         fornecedor: fornecedorNome,
         descricao: recorrente ? `${descricao} (Recorrência Mensal)` : descricao,
-        categoria: categoria || 'Operacional',
+        categoria: categoriaNome,
+        categoriaId: categoriaId,
+        centroCusto: centroCustoNome,
+        centroCustoNome: centroCustoNome,
+        centroCustoId: centroCustoId,
         valorOriginal: val,
         valorPago: 0,
         saldo: val,
@@ -169,7 +202,7 @@ export function NovaContaSheet({ children }: { children: React.ReactNode }) {
     // Disparar Notificação Automática
     notificar({
       titulo: `Nova Conta a Pagar Lançada para ${fornecedorNome}`,
-      descricao: `Despesa de R$ ${val.toLocaleString('pt-BR')} com vencimento em ${baseVencimento}.`,
+      descricao: `Despesa de R$ ${val.toLocaleString('pt-BR')} [${categoriaNome}] com vencimento em ${baseVencimento}.`,
       origem: 'Financeiro',
       tipo: 'Aviso',
       prioridade: 'Alta',
@@ -181,6 +214,8 @@ export function NovaContaSheet({ children }: { children: React.ReactNode }) {
     setDescricao('');
     setFornecedor('');
     setValorOriginal('');
+    setCategoria('');
+    setCentroCusto('');
     setRecorrente(false);
     setParcelado(false);
   };
@@ -194,7 +229,7 @@ export function NovaContaSheet({ children }: { children: React.ReactNode }) {
         <SheetHeader className="mb-6">
           <SheetTitle>Nova Despesa</SheetTitle>
           <SheetDescription>
-            Registre uma nova obrigação financeira a pagar.
+            Registre uma nova obrigação financeira integrada ao Plano de Contas e Centro de Custos.
           </SheetDescription>
         </SheetHeader>
 
@@ -235,7 +270,7 @@ export function NovaContaSheet({ children }: { children: React.ReactNode }) {
               <Label htmlFor="descricao">Descrição da Despesa *</Label>
               <Input 
                 id="descricao" 
-                placeholder="Ex: Licença Servidor AWS, Aluguel Escritório..." 
+                placeholder="Ex: Licença Servidor AWS, Aluguel Escritório, Google Workspace..." 
                 value={descricao}
                 onChange={e => setDescricao(e.target.value)}
               />
@@ -243,32 +278,51 @@ export function NovaContaSheet({ children }: { children: React.ReactNode }) {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="categoria">Categoria *</Label>
+                <Label htmlFor="categoria" className="flex items-center gap-1.5">
+                  <Tag className="w-3.5 h-3.5 text-primary" /> Categoria (Plano de Contas) *
+                </Label>
                 <Select value={categoria} onValueChange={setCategoria}>
                   <SelectTrigger id="categoria">
-                    <SelectValue placeholder="Categoria" />
+                    <SelectValue placeholder="Selecione a categoria" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Infraestrutura">Infraestrutura & Cloud</SelectItem>
-                    <SelectItem value="Operacional">Operacional</SelectItem>
-                    <SelectItem value="Software">Licenças de Software</SelectItem>
-                    <SelectItem value="Marketing">Marketing & Vendas</SelectItem>
-                    <SelectItem value="Folha de Pagamento">Folha de Pagamento</SelectItem>
-                    <SelectItem value="Impostos">Impostos & Tributos</SelectItem>
-                    <SelectItem value="Serviços Terceiros">Serviços Terceiros</SelectItem>
-                    <SelectItem value="Outros">Outros</SelectItem>
+                    {categoriasDespesa.map(cat => (
+                      <SelectItem key={cat.id} value={cat.nome}>
+                        <span className="font-mono text-muted-foreground mr-1.5 text-[11px]">{cat.codigo}</span>
+                        {cat.nome}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="responsavel">Responsável / Aprovador</Label>
-                <SelectResponsavel 
-                  usuarios={usuarios} 
-                  value={responsavel} 
-                  onChange={setResponsavel} 
-                />
+                <Label htmlFor="centroCusto" className="flex items-center gap-1.5">
+                  <FolderTree className="w-3.5 h-3.5 text-orange-500" /> Centro de Custos
+                </Label>
+                <Select value={centroCusto} onValueChange={setCentroCusto}>
+                  <SelectTrigger id="centroCusto">
+                    <SelectValue placeholder="Selecione o Centro de Custo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {centrosDisponiveis.map(cc => (
+                      <SelectItem key={cc.id} value={cc.nome}>
+                        <span className="font-mono text-muted-foreground mr-1.5 text-[11px]">{cc.codigo}</span>
+                        {cc.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="responsavel">Responsável / Aprovador</Label>
+              <SelectResponsavel 
+                usuarios={usuarios} 
+                value={responsavel} 
+                onChange={setResponsavel} 
+              />
             </div>
           </TabsContent>
 

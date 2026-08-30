@@ -30,6 +30,10 @@ export interface TituloReceber {
   origem?: string;
   descricao: string;
   categoria: string;
+  categoriaId?: string;
+  centroCustoId?: string;
+  centroCustoNome?: string;
+  centroCusto?: string;
   valorOriginal: number;
   valorRecebido: number;
   saldo: number;
