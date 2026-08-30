@@ -306,7 +306,7 @@ export function NovaContaSheet({ children }: { children: React.ReactNode }) {
                   </SelectTrigger>
                   <SelectContent>
                     {centrosDisponiveis.map(cc => (
-                      <SelectItem key={cc.id} value={cc.nome}>
+                      <SelectItem key={cc.id} value={cc.id}>
                         <span className="font-mono text-muted-foreground mr-1.5 text-[11px]">{cc.codigo}</span>
                         {cc.nome}
                       </SelectItem>
