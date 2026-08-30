@@ -17,7 +17,16 @@ const formatCurrency = (value?: number | null) => {
 
 export function ComercialTab() {
   const { 
-    oportunidades, equipe, metas, okrs, kpisExecutivos 
+    oportunidades = [], equipe = [], metas = [], okrs = [], kpisExecutivos = {
+      pipelineTotal: 0,
+      metaTotalMes: 0,
+      percentualMeta: 0,
+      valorRestanteMeta: 0,
+      vendasFechadas: 0,
+      totalOportunidades: 0,
+      ticketMedio: 0,
+      taxaConversaoGeral: 0
+    } 
   } = useComercialStore();
 
   const pipelineEtapasData = useMemo(() => {
@@ -30,8 +39,8 @@ export function ComercialTab() {
       'Ganho / Fechado': { count: 0, valor: 0 }
     };
 
-    oportunidades.forEach(op => {
-      const etapa = op.etapa || 'Lead / Descoberta';
+    (oportunidades || []).forEach(op => {
+      const etapa = op?.etapa || 'Lead / Descoberta';
       let mappedKey = 'Lead / Descoberta';
       const low = etapa.toLowerCase();
 
@@ -45,7 +54,7 @@ export function ComercialTab() {
         etapasMap[mappedKey] = { count: 0, valor: 0 };
       }
       etapasMap[mappedKey].count += 1;
-      etapasMap[mappedKey].valor += (op.valorR$ || 0);
+      etapasMap[mappedKey].valor += (op?.valorR$ || 0);
     });
 
     return Object.entries(etapasMap).map(([etapa, data]) => ({
@@ -56,23 +65,25 @@ export function ComercialTab() {
   }, [oportunidades]);
 
   const performanceConsultores = useMemo(() => {
+    if (!Array.isArray(equipe)) return [];
     return equipe.map(m => {
-      const userOps = oportunidades.filter(o => o.responsavel === m.nome);
-      const vendas = userOps.filter(o => (o.etapa || '').toLowerCase().includes('ganh'));
-      const receitaReal = vendas.reduce((acc, o) => acc + (o.valorR$ || 0), 0);
-      const meta = m.metaMensalR$ || 1;
+      const nome = m?.nome || 'Consultor';
+      const userOps = Array.isArray(oportunidades) ? oportunidades.filter(o => o?.responsavel === nome) : [];
+      const vendas = userOps.filter(o => (o?.etapa || '').toLowerCase().includes('ganh'));
+      const receitaReal = vendas.reduce((acc, o) => acc + (o?.valorR$ || 0), 0);
+      const meta = m?.metaMensalR$ || 1;
       const percMeta = Math.min(100, Math.round((receitaReal / meta) * 100));
 
       return {
-        id: m.id,
-        nome: m.nome,
-        funcao: m.funcao,
+        id: m?.id || `c-${Math.random()}`,
+        nome,
+        funcao: m?.funcao || 'Consultor Comercial',
         oportunidades: userOps.length,
         vendasFechadas: vendas.length,
         metaR$: meta,
         realizadoR$: receitaReal,
         percMeta,
-        comissaoPercent: m.comissaoPercentual
+        comissaoPercent: m?.comissaoPercentual || 0
       };
     });
   }, [equipe, oportunidades]);
@@ -253,11 +264,11 @@ export function ComercialTab() {
                   <tr key={c.id} className="hover:bg-muted/30 transition-colors">
                     <td className="p-3 font-bold text-foreground flex items-center gap-2">
                       <div className="w-6 h-6 rounded-full bg-orange-500 text-white font-bold text-[10px] flex items-center justify-center">
-                        {c.nome.charAt(0)}
+                        {(c?.nome || 'C').charAt(0).toUpperCase()}
                       </div>
-                      {c.nome}
+                      {c?.nome || 'Consultor'}
                     </td>
-                    <td className="p-3 text-muted-foreground">{c.funcao}</td>
+                    <td className="p-3 text-muted-foreground">{c?.funcao || 'Consultor'}</td>
                     <td className="p-3 text-center font-bold text-foreground">{c.oportunidades}</td>
                     <td className="p-3 text-center font-bold text-emerald-600">{c.vendasFechadas}</td>
                     <td className="p-3 text-right text-muted-foreground">{formatCurrency(c.metaR$)}</td>
