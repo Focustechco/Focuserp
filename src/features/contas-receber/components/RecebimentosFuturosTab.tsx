@@ -75,8 +75,8 @@ export function RecebimentosFuturosTab() {
     // Recorrências Ativas
     const recsAtivas = recorrencias.filter(r => r.status === 'Ativa');
     recsAtivas.forEach(rec => {
-      const qtdCiclos = rec.quantidade && rec.quantidade > 0 ? rec.quantidade : 24;
-      const datas = generateRecorrenciaDates(rec, qtdCiclos);
+      const datas = generateRecorrenciaDates(rec, 60);
+      const totalCiclos = rec.quantidade && rec.quantidade > 0 ? rec.quantidade : (rec.dataFim || rec.dataFinal ? datas.length : undefined);
       const safeCli = (rec.clienteNome || '').trim().toLowerCase();
 
       datas.forEach((dataVenc, idx) => {
@@ -96,8 +96,8 @@ export function RecebimentosFuturosTab() {
             dataVencimentoPrevista: dataVenc,
             valorPrevisto: Number(rec.valor) || 0,
             cicloIndex: idx + 1,
-            totalCiclos: rec.quantidade || undefined,
-            cicloLabel: `Ciclo ${idx + 1}${rec.quantidade ? `/${rec.quantidade}` : ''}`,
+            totalCiclos: totalCiclos,
+            cicloLabel: `Ciclo ${idx + 1}${totalCiclos ? `/${totalCiclos}` : ''}`,
             status: 'Programado', // NUNCA Recebido ou Pago
           });
         }
@@ -128,7 +128,8 @@ export function RecebimentosFuturosTab() {
             updatedAt: c.atualizadoEm || new Date().toISOString(),
           };
 
-          const datas = generateRecorrenciaDates(recFake, 12);
+          const datas = generateRecorrenciaDates(recFake, 60);
+          const totalCiclos = recFake.quantidade && recFake.quantidade > 0 ? recFake.quantidade : (recFake.dataFim ? datas.length : undefined);
           const safeCli = (c.clienteNome || c.nome || '').trim().toLowerCase();
 
           datas.forEach((dataVenc, idx) => {
@@ -147,8 +148,8 @@ export function RecebimentosFuturosTab() {
                 dataVencimentoPrevista: dataVenc,
                 valorPrevisto: valorMensal,
                 cicloIndex: idx + 1,
-                totalCiclos: 12,
-                cicloLabel: `Parcela ${idx + 1}/12`,
+                totalCiclos: totalCiclos,
+                cicloLabel: `Parcela ${idx + 1}${totalCiclos ? `/${totalCiclos}` : ''}`,
                 status: 'Programado',
               });
             }

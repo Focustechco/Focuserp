@@ -484,10 +484,19 @@ export function NovoRecebimentoSheet({ children }: { children: React.ReactNode }
                   </Select>
                 </div>
                 <div className="space-y-2">
+                  <Label>Quantidade de Meses / Ciclos</Label>
+                  <Input 
+                    type="number" 
+                    placeholder="Ex: 2 (vazio = contínuo)" 
+                    value={quantidadeRec} 
+                    onChange={e => setQuantidadeRec(e.target.value)} 
+                  />
+                </div>
+                <div className="space-y-2">
                   <Label>Data de Início da Cobrança</Label>
                   <Input type="date" value={dataInicioRec || dataVencimento} onChange={e => setDataInicioRec(e.target.value)} />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2 col-span-1 sm:col-span-2">
                   <Label>Data Final (Opcional)</Label>
                   <Input type="date" value={fimRecorrencia} onChange={e => setFimRecorrencia(e.target.value)} />
                 </div>

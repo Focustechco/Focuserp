@@ -133,7 +133,7 @@ export function calculateClienteFinanceiro(
 }
 
 /**
- * Gera as datas dos títulos de acordo com a frequência, dia de vencimento e vigência.
+ * Gera as datas dos títulos de acordo com a frequência, dia de vencimento, vigência e quantidade de ciclos.
  */
 export function generateRecorrenciaDates(
   recorrencia: RecorrenciaFinanceira,
@@ -142,57 +142,85 @@ export function generateRecorrenciaDates(
   const dates: string[] = [];
   const diaVenc = Math.min(31, Math.max(1, recorrencia.diaVencimento || 10));
   const dataBase = recorrencia.dataInicio ? parseDateSafe(recorrencia.dataInicio) : new Date();
-  const totalCiclos = recorrencia.quantidade && recorrencia.quantidade > 0 ? Math.min(recorrencia.quantidade, maxCiclos) : maxCiclos;
+  
+  // Limite estrito de quantidade se especificado
+  const hasQuantidade = typeof recorrencia.quantidade === 'number' && recorrencia.quantidade > 0;
+  const dataFimLimite = recorrencia.dataFim || recorrencia.dataFinal || (recorrencia as any).recorrenciaFim;
+
+  // Se houver quantidade definida, ela é soberana. Caso contrário, se houver data final, gera até 120 ciclos ou até a data limite.
+  const totalCiclos = hasQuantidade 
+    ? recorrencia.quantidade! 
+    : (dataFimLimite ? 120 : maxCiclos);
 
   let currentYear = dataBase.getFullYear();
   let currentMonth = dataBase.getMonth(); // 0-11
 
   for (let i = 0; i < totalCiclos; i++) {
-    let targetYear = currentYear;
-    let targetMonth = currentMonth;
-    let targetDay = diaVenc;
+    let dateStr = '';
 
     switch (recorrencia.frequencia) {
       case 'Semanal': {
         const d = new Date(dataBase.getTime() + i * 7 * 24 * 60 * 60 * 1000);
-        dates.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
-        continue;
+        dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        break;
       }
       case 'Quinzenal': {
         const d = new Date(dataBase.getTime() + i * 15 * 24 * 60 * 60 * 1000);
-        dates.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
-        continue;
+        dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        break;
       }
       case 'Mensal': {
-        targetMonth = currentMonth + i;
+        const calculatedDate = new Date(currentYear, currentMonth + i, 1);
+        const y = calculatedDate.getFullYear();
+        const m = calculatedDate.getMonth();
+        const lastDay = new Date(y, m + 1, 0).getDate();
+        const d = Math.min(diaVenc, lastDay);
+        dateStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
         break;
       }
       case 'Trimestral': {
-        targetMonth = currentMonth + (i * 3);
+        const calculatedDate = new Date(currentYear, currentMonth + (i * 3), 1);
+        const y = calculatedDate.getFullYear();
+        const m = calculatedDate.getMonth();
+        const lastDay = new Date(y, m + 1, 0).getDate();
+        const d = Math.min(diaVenc, lastDay);
+        dateStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
         break;
       }
       case 'Semestral': {
-        targetMonth = currentMonth + (i * 6);
+        const calculatedDate = new Date(currentYear, currentMonth + (i * 6), 1);
+        const y = calculatedDate.getFullYear();
+        const m = calculatedDate.getMonth();
+        const lastDay = new Date(y, m + 1, 0).getDate();
+        const d = Math.min(diaVenc, lastDay);
+        dateStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
         break;
       }
       case 'Anual': {
-        targetYear = currentYear + i;
+        const calculatedDate = new Date(currentYear + i, currentMonth, 1);
+        const y = calculatedDate.getFullYear();
+        const m = calculatedDate.getMonth();
+        const lastDay = new Date(y, m + 1, 0).getDate();
+        const d = Math.min(diaVenc, lastDay);
+        dateStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
         break;
       }
       default: {
-        targetMonth = currentMonth + i;
+        const calculatedDate = new Date(currentYear, currentMonth + i, 1);
+        const y = calculatedDate.getFullYear();
+        const m = calculatedDate.getMonth();
+        const lastDay = new Date(y, m + 1, 0).getDate();
+        const d = Math.min(diaVenc, lastDay);
+        dateStr = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
         break;
       }
     }
 
-    const calculatedDate = new Date(targetYear, targetMonth, 1);
-    const finalYear = calculatedDate.getFullYear();
-    const finalMonth = calculatedDate.getMonth();
-    // Último dia do mês para não estourar fevereiro ou meses de 30 dias
-    const lastDayOfMonth = new Date(finalYear, finalMonth + 1, 0).getDate();
-    const safeDay = Math.min(targetDay, lastDayOfMonth);
+    // Se houver data limite final estrita, interrompe imediatamente ao ultrapassar
+    if (dataFimLimite && dateStr > dataFimLimite) {
+      break;
+    }
 
-    const dateStr = `${finalYear}-${String(finalMonth + 1).padStart(2, '0')}-${String(safeDay).padStart(2, '0')}`;
     dates.push(dateStr);
   }
 

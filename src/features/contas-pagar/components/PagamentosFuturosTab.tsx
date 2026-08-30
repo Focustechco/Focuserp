@@ -77,8 +77,8 @@ export function PagamentosFuturosTab() {
     );
 
     recsDespesas.forEach(rec => {
-      const qtdCiclos = rec.quantidade && rec.quantidade > 0 ? rec.quantidade : 24;
-      const datas = generateRecorrenciaDates(rec, qtdCiclos);
+      const datas = generateRecorrenciaDates(rec, 60);
+      const totalCiclos = rec.quantidade && rec.quantidade > 0 ? rec.quantidade : (rec.dataFim || rec.dataFinal ? datas.length : undefined);
       const safeForn = (rec.fornecedorNome || rec.clienteNome || 'Fornecedor').trim().toLowerCase();
 
       datas.forEach((dataVenc, idx) => {
@@ -99,8 +99,8 @@ export function PagamentosFuturosTab() {
             dataVencimentoPrevista: dataVenc,
             valorPrevisto: Number(rec.valor) || 0,
             cicloIndex: idx + 1,
-            totalCiclos: rec.quantidade || undefined,
-            cicloLabel: `Ciclo ${idx + 1}${rec.quantidade ? `/${rec.quantidade}` : ''}`,
+            totalCiclos: totalCiclos,
+            cicloLabel: `Ciclo ${idx + 1}${totalCiclos ? `/${totalCiclos}` : ''}`,
             status: 'Programado', // NUNCA Pago ou Liquidado
           });
         }
@@ -124,6 +124,7 @@ export function PagamentosFuturosTab() {
         dataInicio: c.dataVencimento,
         dataFim: c.recorrenciaFim,
         diaVencimento: parseInt((c.dataVencimento || '').split('-')[2], 10) || 10,
+        quantidade: (c as any).recorrenciaQuantidade || (c as any).quantidade || null,
         status: 'Ativa',
         origem: 'despesa',
         categoria: c.categoria,
@@ -132,7 +133,9 @@ export function PagamentosFuturosTab() {
         updatedAt: c.ultimaAtualizacao || new Date().toISOString(),
       };
 
-      const datas = generateRecorrenciaDates(recFake, 12);
+      const datas = generateRecorrenciaDates(recFake, 60);
+      const totalCiclos = recFake.quantidade && recFake.quantidade > 0 ? recFake.quantidade : (recFake.dataFim ? datas.length : undefined);
+
       datas.forEach((dataVenc, idx) => {
         const mesAno = dataVenc.substring(0, 7);
         const jaExiste = contasExistentesMap.has(`${safeForn}|${mesAno}`);
@@ -148,8 +151,8 @@ export function PagamentosFuturosTab() {
             dataVencimentoPrevista: dataVenc,
             valorPrevisto: Number(c.valorOriginal) || 0,
             cicloIndex: idx + 1,
-            totalCiclos: 12,
-            cicloLabel: `Ciclo ${idx + 1}/12`,
+            totalCiclos: totalCiclos,
+            cicloLabel: `Ciclo ${idx + 1}${totalCiclos ? `/${totalCiclos}` : ''}`,
             status: 'Programado',
           });
         }
