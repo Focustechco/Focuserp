@@ -1,0 +1,454 @@
+import React, { useState, useMemo } from 'react';
+import { useLocalStorageState } from '@/hooks/useDataStore';
+import { TituloReceber } from '../types';
+import { RecorrenciaFinanceira } from '@/features/recorrencias/types';
+import { Contrato } from '@/features/contratos/types';
+import { generateRecorrenciaDates } from '@/features/recorrencias/services/recorrenciaEngine';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { 
+  Search, Filter, Calendar, RefreshCw, ArrowUpRight, 
+  DollarSign, Clock, Sparkles, FileText, CheckCircle2, 
+  TrendingUp, Layers, ChevronRight
+} from 'lucide-react';
+import { formatDateBrasilia, parseDateSafe, getBrasiliaTodayIso } from '@/lib/dateUtils';
+import { addMonths, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
+import { toast } from 'sonner';
+import { useNotificacoesStore } from '@/features/notificacoes/useNotificacoesStore';
+import { useContasReceberQuery } from '../hooks/useContasReceberQuery';
+
+export interface RecebimentoFuturoItem {
+  id: string;
+  origemId: string;
+  origemTipo: 'Recorrência' | 'Contrato' | 'Parcelamento';
+  clienteId?: string;
+  clienteNome: string;
+  descricao: string;
+  dataVencimentoPrevista: string;
+  valorPrevisto: number;
+  cicloIndex: number;
+  totalCiclos?: number;
+  cicloLabel: string;
+  status: 'Programado' | 'Previsto';
+}
+
+const formatCurrency = (value?: number | null) => {
+  return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
+};
+
+export function RecebimentosFuturosTab() {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [periodoFilter, setPeriodoFilter] = useState<'30dias' | '3meses' | '6meses' | '12meses' | 'todos'>('12meses');
+  const [origemFilter, setOrigemFilter] = useState<'todas' | 'Recorrência' | 'Contrato'>('todas');
+  const [isEmitindo, setIsEmitindo] = useState<string | null>(null);
+
+  const { data: recorrencias = [] } = useLocalStorageState<RecorrenciaFinanceira>('focus_recorrencias');
+  const { data: contratos = [] } = useLocalStorageState<Contrato>('focus_contratos');
+  const { data: localTitulos = [], saveItem: saveLocalTitulo } = useLocalStorageState<TituloReceber>('focus_contas_receber');
+  const { saveTitulo: saveQueryTitulo } = useContasReceberQuery();
+  const { notificar } = useNotificacoesStore();
+
+  const hojeStr = getBrasiliaTodayIso();
+  const hoje = new Date();
+
+  // 1. Mapeia todos os títulos já emitidos para não duplicar no cronograma futuro
+  const titulosExistentesMap = useMemo(() => {
+    const set = new Set<string>();
+    localTitulos.forEach(t => {
+      if (t && t.dataVencimento) {
+        const mesAno = t.dataVencimento.substring(0, 7); // 'YYYY-MM'
+        const safeCli = (t.cliente || '').trim().toLowerCase();
+        set.add(`${safeCli}|${mesAno}`);
+        if (t.clienteId) set.add(`${t.clienteId}|${mesAno}`);
+      }
+    });
+    return set;
+  }, [localTitulos]);
+
+  // 2. Projeta os meses futuros a partir das Recorrências ativas e Contratos vigentes
+  const todosFuturos = useMemo(() => {
+    const lista: RecebimentoFuturoItem[] = [];
+
+    // Recorrências Ativas
+    const recsAtivas = recorrencias.filter(r => r.status === 'Ativa');
+    recsAtivas.forEach(rec => {
+      const qtdCiclos = rec.quantidade && rec.quantidade > 0 ? rec.quantidade : 24;
+      const datas = generateRecorrenciaDates(rec, qtdCiclos);
+      const safeCli = (rec.clienteNome || '').trim().toLowerCase();
+
+      datas.forEach((dataVenc, idx) => {
+        const mesAno = dataVenc.substring(0, 7);
+        const jaExiste = titulosExistentesMap.has(`${safeCli}|${mesAno}`) || 
+                         (rec.clientId && titulosExistentesMap.has(`${rec.clientId}|${mesAno}`));
+
+        // Apenas lançamentos com data de vencimento futura e que ainda não viraram título emitido
+        if (!jaExiste && dataVenc >= hojeStr) {
+          lista.push({
+            id: `rec-fut-${rec.id}-${dataVenc}`,
+            origemId: rec.id,
+            origemTipo: 'Recorrência',
+            clienteId: rec.clientId,
+            clienteNome: rec.clienteNome || 'Cliente',
+            descricao: rec.descricao || 'Mensalidade Recorrente',
+            dataVencimentoPrevista: dataVenc,
+            valorPrevisto: Number(rec.valor) || 0,
+            cicloIndex: idx + 1,
+            totalCiclos: rec.quantidade || undefined,
+            cicloLabel: `Ciclo ${idx + 1}${rec.quantidade ? `/${rec.quantidade}` : ''}`,
+            status: 'Programado', // NUNCA Recebido ou Pago
+          });
+        }
+      });
+    });
+
+    // Contratos Vigentes sem recorrência cadastrada
+    const clientIdsComRec = new Set(recsAtivas.map(r => r.clientId));
+    contratos.forEach(c => {
+      if (c.clienteId && clientIdsComRec.has(c.clienteId)) return;
+      if (c.status === 'Ativo' || c.status === 'Vigente') {
+        const valorMensal = Number(c.valorMensal || (c as any).valorMensalidade || 0);
+        if (valorMensal > 0 && c.dataInicio) {
+          const recFake: RecorrenciaFinanceira = {
+            id: `rec-contrato-${c.id}`,
+            clientId: c.clienteId || '',
+            clienteNome: c.clienteNome || c.nome || 'Cliente',
+            descricao: `Contrato ${c.numeroContrato || c.nome}`,
+            valor: valorMensal,
+            frequencia: 'Mensal',
+            dataInicio: c.dataInicio,
+            dataFim: c.dataFim,
+            diaVencimento: 10,
+            status: 'Ativa',
+            origem: 'contrato',
+            contratoId: c.id,
+            createdAt: c.criadoEm || new Date().toISOString(),
+            updatedAt: c.atualizadoEm || new Date().toISOString(),
+          };
+
+          const datas = generateRecorrenciaDates(recFake, 12);
+          const safeCli = (c.clienteNome || c.nome || '').trim().toLowerCase();
+
+          datas.forEach((dataVenc, idx) => {
+            const mesAno = dataVenc.substring(0, 7);
+            const jaExiste = titulosExistentesMap.has(`${safeCli}|${mesAno}`) || 
+                             (c.clienteId && titulosExistentesMap.has(`${c.clienteId}|${mesAno}`));
+
+            if (!jaExiste && dataVenc >= hojeStr) {
+              lista.push({
+                id: `ctr-fut-${c.id}-${dataVenc}`,
+                origemId: c.id,
+                origemTipo: 'Contrato',
+                clienteId: c.clienteId,
+                clienteNome: c.clienteNome || c.nome || 'Cliente',
+                descricao: `Mensalidade ${c.numeroContrato || c.nome}`,
+                dataVencimentoPrevista: dataVenc,
+                valorPrevisto: valorMensal,
+                cicloIndex: idx + 1,
+                totalCiclos: 12,
+                cicloLabel: `Parcela ${idx + 1}/12`,
+                status: 'Programado',
+              });
+            }
+          });
+        }
+      }
+    });
+
+    // Ordenação estritamente cronológica por vencimento previsto
+    lista.sort((a, b) => a.dataVencimentoPrevista.localeCompare(b.dataVencimentoPrevista));
+    return lista;
+  }, [recorrencias, contratos, titulosExistentesMap, hojeStr]);
+
+  // 3. Filtragem de Período e Busca
+  const dataLimitePeriodo = useMemo(() => {
+    if (periodoFilter === '30dias') return addMonths(hoje, 1);
+    if (periodoFilter === '3meses') return addMonths(hoje, 3);
+    if (periodoFilter === '6meses') return addMonths(hoje, 6);
+    if (periodoFilter === '12meses') return addMonths(hoje, 12);
+    return null;
+  }, [periodoFilter, hoje]);
+
+  const filtrados = useMemo(() => {
+    return todosFuturos.filter(item => {
+      // Busca
+      const matchesSearch = 
+        item.clienteNome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.descricao.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.cicloLabel.toLowerCase().includes(searchTerm.toLowerCase());
+      if (!matchesSearch) return false;
+
+      // Origem
+      if (origemFilter !== 'todas' && item.origemTipo !== origemFilter) return false;
+
+      // Período
+      if (dataLimitePeriodo) {
+        const itemDate = parseDateSafe(item.dataVencimentoPrevista);
+        if (itemDate > dataLimitePeriodo) return false;
+      }
+
+      return true;
+    });
+  }, [todosFuturos, searchTerm, origemFilter, dataLimitePeriodo]);
+
+  // 4. Métricas de Resumo
+  const totalPrevisto = useMemo(() => {
+    return filtrados.reduce((acc, item) => acc + item.valorPrevisto, 0);
+  }, [filtrados]);
+
+  const totalProximos30Dias = useMemo(() => {
+    const limite30 = addMonths(hoje, 1);
+    return todosFuturos
+      .filter(item => parseDateSafe(item.dataVencimentoPrevista) <= limite30)
+      .reduce((acc, item) => acc + item.valorPrevisto, 0);
+  }, [todosFuturos, hoje]);
+
+  const totalMRRRecorrente = useMemo(() => {
+    return recorrencias
+      .filter(r => r.status === 'Ativa')
+      .reduce((acc, r) => acc + Number(r.valor || 0), 0);
+  }, [recorrencias]);
+
+  // 5. Ação: Emitir / Antecipar Título Oficial no Contas a Receber
+  const handleEmitirTituloAgora = async (item: RecebimentoFuturoItem) => {
+    setIsEmitindo(item.id);
+    try {
+      const numeroOficial = `REC-${Math.floor(1000 + Math.random() * 9000)}`;
+      const novoTitulo: TituloReceber = {
+        id: `rec-ant-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        numero: numeroOficial,
+        cliente: item.clienteNome,
+        clienteId: item.clienteId,
+        descricao: `${item.descricao} (${item.cicloLabel})`,
+        categoria: 'Receita Recorrente',
+        valorOriginal: item.valorPrevisto,
+        valorRecebido: 0,
+        saldo: item.valorPrevisto,
+        dataEmissao: hojeStr,
+        dataVencimento: item.dataVencimentoPrevista,
+        formaPagamento: 'Boleto',
+        status: 'Pendente', // REGRA: Sempre nasce Pendente para quitação posterior
+        responsavel: 'Financeiro Focus ERP',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      saveLocalTitulo(novoTitulo);
+      try { await saveQueryTitulo(novoTitulo); } catch {}
+
+      notificar({
+        titulo: `Título Antecipado: ${novoTitulo.numero}`,
+        descricao: `Lançamento ${novoTitulo.descricao} de ${formatCurrency(novoTitulo.valorOriginal)} gerado no Contas a Receber.`,
+        origem: 'Financeiro',
+        tipo: 'Sucesso',
+        prioridade: 'Normal',
+        targetUrl: '/contas-a-receber'
+      });
+
+      toast.success(`Título ${novoTitulo.numero} emitido com sucesso com status Pendente!`);
+    } catch {
+      toast.error('Erro ao emitir o título.');
+    } finally {
+      setIsEmitindo(null);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* 4 Cards de Métricas em Tempo Real */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="p-4 rounded-xl border bg-card/60 backdrop-blur shadow-xs space-y-1">
+          <div className="flex items-center justify-between text-muted-foreground text-xs">
+            <span className="font-medium">Total Previsto Futuro</span>
+            <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+          </div>
+          <div className="text-2xl font-bold text-foreground">
+            {formatCurrency(totalPrevisto)}
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            {filtrados.length} lançamentos programados no período
+          </p>
+        </div>
+
+        <div className="p-4 rounded-xl border bg-card/60 backdrop-blur shadow-xs space-y-1">
+          <div className="flex items-center justify-between text-muted-foreground text-xs">
+            <span className="font-medium">Próximos 30 Dias</span>
+            <Clock className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+          </div>
+          <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">
+            {formatCurrency(totalProximos30Dias)}
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Previsão do próximo ciclo a vencer
+          </p>
+        </div>
+
+        <div className="p-4 rounded-xl border bg-card/60 backdrop-blur shadow-xs space-y-1">
+          <div className="flex items-center justify-between text-muted-foreground text-xs">
+            <span className="font-medium">MRR Mensal Ativo</span>
+            <TrendingUp className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+            {formatCurrency(totalMRRRecorrente)}
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Base de receita recorrente mensal
+          </p>
+        </div>
+
+        <div className="p-4 rounded-xl border bg-card/60 backdrop-blur shadow-xs space-y-1">
+          <div className="flex items-center justify-between text-muted-foreground text-xs">
+            <span className="font-medium">Contratos & Recorrências</span>
+            <RefreshCw className="w-4 h-4 text-primary" />
+          </div>
+          <div className="text-2xl font-bold text-foreground">
+            {recorrencias.filter(r => r.status === 'Ativa').length}
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Planos recorrentes ativos na base
+          </p>
+        </div>
+      </div>
+
+      {/* Barra de Filtros */}
+      <div className="p-4 rounded-xl border bg-card space-y-3">
+        <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
+          <div className="relative w-full sm:w-80">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input 
+              placeholder="Buscar por cliente, serviço..." 
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="pl-9 text-xs"
+            />
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            {/* Filtro Período */}
+            <Select value={periodoFilter} onValueChange={(v: any) => setPeriodoFilter(v)}>
+              <SelectTrigger className="w-full sm:w-44 text-xs h-9">
+                <Calendar className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
+                <SelectValue placeholder="Período" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="30dias">Próximos 30 dias</SelectItem>
+                <SelectItem value="3meses">Próximos 3 meses</SelectItem>
+                <SelectItem value="6meses">Próximos 6 meses</SelectItem>
+                <SelectItem value="12meses">Próximos 12 meses</SelectItem>
+                <SelectItem value="todos">Todas as Previsões</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Filtro Origem */}
+            <Select value={origemFilter} onValueChange={(v: any) => setOrigemFilter(v)}>
+              <SelectTrigger className="w-full sm:w-40 text-xs h-9">
+                <Filter className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
+                <SelectValue placeholder="Origem" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todas">Todas as Origens</SelectItem>
+                <SelectItem value="Recorrência">Recorrências</SelectItem>
+                <SelectItem value="Contrato">Contratos</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
+
+      {/* Tabela de Recebimentos Futuros */}
+      <div className="border rounded-xl bg-card overflow-hidden">
+        <Table>
+          <TableHeader className="bg-muted/40">
+            <TableRow>
+              <TableHead className="text-xs font-semibold">Ciclo / Parcela</TableHead>
+              <TableHead className="text-xs font-semibold">Cliente</TableHead>
+              <TableHead className="text-xs font-semibold">Descrição / Referência</TableHead>
+              <TableHead className="text-xs font-semibold">Origem</TableHead>
+              <TableHead className="text-xs font-semibold">Vencimento Previsto</TableHead>
+              <TableHead className="text-xs font-semibold text-right">Valor Previsto</TableHead>
+              <TableHead className="text-xs font-semibold text-center">Status</TableHead>
+              <TableHead className="text-xs font-semibold text-right">Ação</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filtrados.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={8} className="text-center py-12 text-muted-foreground text-xs">
+                  <DollarSign className="w-8 h-8 mx-auto mb-2 opacity-30 text-primary" />
+                  Nenhum recebimento futuro programado para os filtros selecionados.
+                </TableCell>
+              </TableRow>
+            ) : (
+              filtrados.map((item) => (
+                <TableRow key={item.id} className="hover:bg-muted/30 transition-colors">
+                  <TableCell className="font-mono text-xs font-semibold text-blue-600 dark:text-blue-400">
+                    <Badge variant="outline" className="font-mono text-[10px] bg-blue-50/50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800">
+                      {item.cicloLabel}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <span className="font-semibold text-xs text-foreground block truncate">
+                      {item.clienteNome}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground max-w-[240px] truncate">
+                    {item.descricao}
+                  </TableCell>
+                  <TableCell>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-muted text-muted-foreground border">
+                      {item.origemTipo === 'Recorrência' ? (
+                        <RefreshCw className="w-2.5 h-2.5 text-orange-500 shrink-0" />
+                      ) : (
+                        <FileText className="w-2.5 h-2.5 text-emerald-500 shrink-0" />
+                      )}
+                      {item.origemTipo}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-xs font-medium text-foreground">
+                    {formatDateBrasilia(item.dataVencimentoPrevista)}
+                  </TableCell>
+                  <TableCell className="text-right font-bold text-xs text-foreground">
+                    {formatCurrency(item.valorPrevisto)}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Badge 
+                      variant="outline"
+                      className="text-[10px] bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800 font-medium"
+                    >
+                      • Programado (Futuro)
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={isEmitindo === item.id}
+                      onClick={() => handleEmitirTituloAgora(item)}
+                      className="h-7 text-[11px] px-2.5 gap-1 text-primary hover:text-primary hover:bg-primary/10 border-primary/30 cursor-pointer"
+                    >
+                      <ArrowUpRight className="w-3.5 h-3.5" />
+                      {isEmitindo === item.id ? 'Emitindo...' : 'Emitir Título'}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Banner Informativo de Regras */}
+      <div className="p-3.5 bg-blue-50/60 dark:bg-blue-950/20 border border-blue-200/60 dark:border-blue-800/40 rounded-xl text-xs text-blue-900 dark:text-blue-200 flex items-start gap-3">
+        <Sparkles className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
+        <div className="space-y-0.5">
+          <p className="font-semibold text-xs">Regra de Previsibilidade Financeira:</p>
+          <p className="text-[11px] text-blue-700/90 dark:text-blue-300/80 leading-relaxed">
+            Os recebimentos futuros são projeções das recorrências e contratos ativos. Eles <strong>não impactam o saldo realizado de caixa</strong> e possuem status estrito de <strong>Programado</strong> até que sejam emitidos ou cheguem ao seu ciclo vigente.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
