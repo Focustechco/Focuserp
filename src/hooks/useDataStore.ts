@@ -43,7 +43,19 @@ const DMS_FOLDER_NAMES = [
 
 function isDmsFolderObject(item: any): boolean {
   if (!item || typeof item !== 'object') return false;
-  if (item.caminhoCompleto || item.parentId !== undefined || item.moduloVinculado) return true;
+  // Categorias do Plano de Contas e Centros de Custo nunca são pastas do DMS
+  if (
+    item.codigo !== undefined || 
+    item.natureza !== undefined || 
+    item.tipo === 'Despesa' || 
+    item.tipo === 'Receita' || 
+    item.saldoAcumuladoMensal !== undefined || 
+    item.departamento !== undefined ||
+    item.responsavel !== undefined
+  ) {
+    return false;
+  }
+  if (item.caminhoCompleto || item.moduloVinculado) return true;
   if (item.nome && DMS_FOLDER_NAMES.includes(item.nome) && !item.codigo && !item.tipo && !item.clienteId && !item.valorContratado && !item.numeroContrato) {
     return true;
   }
@@ -57,6 +69,13 @@ function isValidItem(table: string, item: any): boolean {
   // Rejeitar pastas do DMS injetadas por colisão em outros módulos
   if (table !== 'focus_dms_pastas' && isDmsFolderObject(item)) {
     return false;
+  }
+
+  if (table.includes('plano_contas') || table.includes('categorias')) {
+    return Boolean(item.nome && typeof item.nome === 'string' && item.nome.trim().length > 0);
+  }
+  if (table.includes('centro_custos') || table.includes('centro-de-custos')) {
+    return Boolean(item.nome && typeof item.nome === 'string' && item.nome.trim().length > 0);
   }
 
   if (table.includes('contas_receber') || table.includes('receber')) {

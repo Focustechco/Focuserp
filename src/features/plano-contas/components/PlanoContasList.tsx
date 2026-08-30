@@ -38,13 +38,23 @@ export function PlanoContasList() {
     'cat-desp-2': true,
   });
 
+  const [parentInicialId, setParentInicialId] = useState<string | null>(null);
+
   const openNovaCategoria = () => {
     setCategoriaParaEditar(null);
+    setParentInicialId(null);
+    setSheetOpen(true);
+  };
+
+  const openNovaSubcategoria = (parentCat: CategoriaFinanceira) => {
+    setCategoriaParaEditar(null);
+    setParentInicialId(parentCat.id);
     setSheetOpen(true);
   };
 
   const openEditarCategoria = (cat: CategoriaFinanceira) => {
     setCategoriaParaEditar(cat);
+    setParentInicialId(null);
     setSheetOpen(true);
   };
 
@@ -201,7 +211,7 @@ export function PlanoContasList() {
                     <DropdownMenuItem onClick={() => openEditarCategoria(node)}>
                       <Edit className="w-4 h-4 mr-2" /> Editar Categoria
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={openNovaCategoria}>
+                    <DropdownMenuItem onClick={() => openNovaSubcategoria(node)}>
                       <Plus className="w-4 h-4 mr-2" /> Nova Subcategoria
                     </DropdownMenuItem>
                     <DropdownMenuItem className="text-red-600" onClick={() => {
@@ -284,6 +294,7 @@ export function PlanoContasList() {
         isOpen={sheetOpen} 
         onClose={() => setSheetOpen(false)} 
         categoriaParaEditar={categoriaParaEditar} 
+        parentInicialId={parentInicialId}
       />
 
       <CategoriaLancamentosModal

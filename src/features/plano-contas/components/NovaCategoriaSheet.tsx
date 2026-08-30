@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Sheet,
   SheetContent,
@@ -24,23 +24,79 @@ interface NovaCategoriaSheetProps {
   isOpen: boolean;
   onClose: () => void;
   categoriaParaEditar?: CategoriaFinanceira | null;
+  parentInicialId?: string | null;
 }
 
-export function NovaCategoriaSheet({ isOpen, onClose, categoriaParaEditar }: NovaCategoriaSheetProps) {
+export function NovaCategoriaSheet({ 
+  isOpen, 
+  onClose, 
+  categoriaParaEditar, 
+  parentInicialId 
+}: NovaCategoriaSheetProps) {
   const [activeTab, setActiveTab] = useState("gerais");
   const isEditing = !!categoriaParaEditar;
 
   const { data: planoContas = [], addItem, updateItem } = useLocalStorageState<CategoriaFinanceira>('focus_plano_contas', INITIAL_CATEGORIAS);
   const { data: centrosCusto = [] } = useLocalStorageState<CentroCusto>('focus_centro_custos', INITIAL_CENTROS);
 
-  const [codigo, setCodigo] = useState(categoriaParaEditar?.codigo || '');
-  const [nome, setNome] = useState(categoriaParaEditar?.nome || '');
-  const [tipo, setTipo] = useState<string>(categoriaParaEditar?.tipo || 'Despesa');
-  const [natureza, setNatureza] = useState<string>(categoriaParaEditar?.natureza || 'Operacional');
-  const [setor, setSetor] = useState<string>(categoriaParaEditar?.setor || 'Geral');
-  const [centroCustoPadraoId, setCentroCustoPadraoId] = useState<string>(categoriaParaEditar?.centroCustoPadraoId || 'none');
-  const [parentId, setParentId] = useState<string>(categoriaParaEditar?.parentId || 'raiz');
-  const [statusAtivo, setStatusAtivo] = useState(categoriaParaEditar?.status !== 'Inativa');
+  const [codigo, setCodigo] = useState('');
+  const [nome, setNome] = useState('');
+  const [tipo, setTipo] = useState<string>('Despesa');
+  const [natureza, setNatureza] = useState<string>('Operacional');
+  const [setor, setSetor] = useState<string>('Geral');
+  const [centroCustoPadraoId, setCentroCustoPadraoId] = useState<string>('none');
+  const [parentId, setParentId] = useState<string>('raiz');
+  const [statusAtivo, setStatusAtivo] = useState(true);
+
+  // Calcula código analítico sugerido automaticamente
+  const calcularCodigoSugerido = (selectedParentId: string, currentTipo: string) => {
+    if (selectedParentId && selectedParentId !== 'raiz') {
+      const parentCat = planoContas.find(c => c.id === selectedParentId);
+      if (parentCat) {
+        const parentCode = parentCat.codigo || (parentCat.tipo === 'Receita' ? '1.0' : '2.0');
+        const siblings = planoContas.filter(c => c.parentId === selectedParentId);
+        const nextNum = siblings.length + 1;
+        return `${parentCode}.${nextNum}`;
+      }
+    }
+    // Raiz
+    const prefix = currentTipo === 'Receita' ? '1' : '2';
+    const rootSiblings = planoContas.filter(c => !c.parentId && c.tipo === currentTipo);
+    return `${prefix}.${rootSiblings.length}`;
+  };
+
+  // Carrega ou reinicia os dados do formulário sempre que o modal abre ou a categoria selecionada muda
+  useEffect(() => {
+    if (isOpen) {
+      if (categoriaParaEditar) {
+        setCodigo(categoriaParaEditar.codigo || '');
+        setNome(categoriaParaEditar.nome || '');
+        setTipo(categoriaParaEditar.tipo || 'Despesa');
+        setNatureza(categoriaParaEditar.natureza || 'Operacional');
+        setSetor(categoriaParaEditar.setor || 'Geral');
+        setCentroCustoPadraoId(categoriaParaEditar.centroCustoPadraoId || 'none');
+        setParentId(categoriaParaEditar.parentId || 'raiz');
+        setStatusAtivo(categoriaParaEditar.status !== 'Inativa');
+        setActiveTab('gerais');
+      } else {
+        const initialParent = parentInicialId || 'raiz';
+        const initialTipo = initialParent !== 'raiz' 
+          ? (planoContas.find(c => c.id === initialParent)?.tipo || 'Despesa') 
+          : 'Despesa';
+        
+        const suggestedCode = calcularCodigoSugerido(initialParent, initialTipo);
+        setCodigo(suggestedCode);
+        setNome('');
+        setTipo(initialTipo);
+        setNatureza('Operacional');
+        setSetor('Geral');
+        setCentroCustoPadraoId('none');
+        setParentId(initialParent);
+        setStatusAtivo(true);
+        setActiveTab('gerais');
+      }
+    }
+  }, [isOpen, categoriaParaEditar, parentInicialId]);
 
   // Centros de custo disponíveis
   const centrosDisponiveis = useMemo(() => {
@@ -54,6 +110,26 @@ export function NovaCategoriaSheet({ isOpen, onClose, categoriaParaEditar }: Nov
     return planoContas.filter(c => !categoriaParaEditar || c.id !== categoriaParaEditar.id);
   }, [planoContas, categoriaParaEditar]);
 
+  const handleParentChange = (newParentId: string) => {
+    setParentId(newParentId);
+    if (!isEditing) {
+      const parentCat = planoContas.find(c => c.id === newParentId);
+      if (parentCat) {
+        setTipo(parentCat.tipo);
+        setCodigo(calcularCodigoSugerido(newParentId, parentCat.tipo));
+      } else {
+        setCodigo(calcularCodigoSugerido('raiz', tipo));
+      }
+    }
+  };
+
+  const handleTipoChange = (newTipo: string) => {
+    setTipo(newTipo);
+    if (!isEditing && parentId === 'raiz') {
+      setCodigo(calcularCodigoSugerido('raiz', newTipo));
+    }
+  };
+
   const handleSave = () => {
     if (!nome.trim()) {
       toast.error("Por favor, informe o Nome da Categoria.");
@@ -61,10 +137,11 @@ export function NovaCategoriaSheet({ isOpen, onClose, categoriaParaEditar }: Nov
     }
 
     const selectedCC = centrosDisponiveis.find(cc => cc.id === centroCustoPadraoId);
+    const finalCodigo = codigo.trim() || calcularCodigoSugerido(parentId, tipo);
 
     if (isEditing && categoriaParaEditar) {
       updateItem(categoriaParaEditar.id, {
-        codigo: codigo.trim() || categoriaParaEditar.codigo,
+        codigo: finalCodigo,
         nome: nome.trim(),
         tipo: (tipo as any),
         natureza: (natureza as any),
@@ -74,11 +151,11 @@ export function NovaCategoriaSheet({ isOpen, onClose, categoriaParaEditar }: Nov
         status: statusAtivo ? 'Ativa' : 'Inativa',
         dataAtualizacao: new Date().toISOString()
       });
-      toast.success("Categoria atualizada com sucesso!");
+      toast.success("Categoria contábil atualizada com sucesso!");
     } else {
       const novaCat: CategoriaFinanceira = {
-        id: `cat-${Date.now()}`,
-        codigo: codigo.trim() || `${tipo === 'Receita' ? '1' : '2'}.${Math.floor(1 + Math.random() * 9)}`,
+        id: `cat-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        codigo: finalCodigo,
         nome: nome.trim(),
         tipo: (tipo as any) || 'Despesa',
         natureza: (natureza as any) || 'Operacional',
@@ -92,7 +169,7 @@ export function NovaCategoriaSheet({ isOpen, onClose, categoriaParaEditar }: Nov
         descricao: selectedCC ? `Vinculada ao Centro de Custo ${selectedCC.nome}` : undefined
       };
       addItem(novaCat);
-      toast.success("Categoria criada com sucesso!");
+      toast.success("Nova categoria criada e adicionada ao Plano de Contas!");
     }
 
     onClose();
@@ -148,7 +225,7 @@ export function NovaCategoriaSheet({ isOpen, onClose, categoriaParaEditar }: Nov
                   <div className="space-y-2">
                     <Label>Código Contábil</Label>
                     <Input placeholder="Ex: 2.1.3" value={codigo} onChange={e => setCodigo(e.target.value)} />
-                    <p className="text-[11px] text-muted-foreground">Sugerido automaticamente pela Hierarquia.</p>
+                    <p className="text-[11px] text-muted-foreground">Código gerencial no Plano de Contas.</p>
                   </div>
                   <div className="space-y-2 flex flex-col justify-center">
                     <div className="flex items-center justify-between border rounded-md p-3 bg-background">
@@ -166,7 +243,7 @@ export function NovaCategoriaSheet({ isOpen, onClose, categoriaParaEditar }: Nov
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Tipo Financeiro</Label>
-                    <Select value={tipo} onValueChange={setTipo}>
+                    <Select value={tipo} onValueChange={handleTipoChange}>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione..." />
                       </SelectTrigger>
@@ -249,7 +326,7 @@ export function NovaCategoriaSheet({ isOpen, onClose, categoriaParaEditar }: Nov
                   
                   <div className="space-y-2 bg-background p-4 rounded-md border">
                     <Label>Categoria Pai</Label>
-                    <Select value={parentId} onValueChange={setParentId}>
+                    <Select value={parentId} onValueChange={handleParentChange}>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione a categoria pai..." />
                       </SelectTrigger>
@@ -303,9 +380,9 @@ export function NovaCategoriaSheet({ isOpen, onClose, categoriaParaEditar }: Nov
 
         {/* FOOTER */}
         <div className="p-6 border-t bg-background flex items-center justify-between">
-          <Button variant="outline" onClick={onClose}>Cancelar Cadastro</Button>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
           <Button className="gap-2" onClick={handleSave}>
-            <Save className="w-4 h-4" /> Salvar Definições
+            <Save className="w-4 h-4" /> {isEditing ? 'Salvar Alterações' : 'Salvar Categoria'}
           </Button>
         </div>
       </SheetContent>
