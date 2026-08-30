@@ -82,6 +82,28 @@ export function NovaContaSheet({ children }: { children: React.ReactNode }) {
   const centroCustoNome = selectedCentroObj ? selectedCentroObj.nome : centroCusto;
   const centroCustoId = selectedCentroObj?.id;
 
+  const handleCategoriaSelect = (catValue: string) => {
+    setCategoria(catValue);
+    const foundCat = categoriasDespesa.find(c => c.id === catValue || c.nome === catValue);
+    if (foundCat && foundCat.centroCustoPadraoId && (!centroCusto || centroCusto === 'none')) {
+      const matchCC = centrosDisponiveis.find(cc => cc.id === foundCat.centroCustoPadraoId);
+      if (matchCC) {
+        setCentroCusto(matchCC.id);
+      }
+    }
+  };
+
+  const handleCentroCustoSelect = (ccValue: string) => {
+    setCentroCusto(ccValue);
+    const foundCC = centrosDisponiveis.find(cc => cc.id === ccValue || cc.nome === ccValue);
+    if (foundCC && foundCC.categoria && (!categoria || categoria === 'none')) {
+      const matchCat = categoriasDespesa.find(c => c.nome === foundCC.categoria || c.id === foundCC.categoria);
+      if (matchCat) {
+        setCategoria(matchCat.id);
+      }
+    }
+  };
+
   const handleSave = () => {
     if (!fornecedor || fornecedor === 'none') {
       toast.error("Por favor, selecione um Fornecedor cadastrado no sistema.");
@@ -281,13 +303,13 @@ export function NovaContaSheet({ children }: { children: React.ReactNode }) {
                 <Label htmlFor="categoria" className="flex items-center gap-1.5">
                   <Tag className="w-3.5 h-3.5 text-primary" /> Categoria (Plano de Contas) *
                 </Label>
-                <Select value={categoria} onValueChange={setCategoria}>
+                <Select value={categoria} onValueChange={handleCategoriaSelect}>
                   <SelectTrigger id="categoria">
                     <SelectValue placeholder="Selecione a categoria" />
                   </SelectTrigger>
                   <SelectContent>
                     {categoriasDespesa.map(cat => (
-                      <SelectItem key={cat.id} value={cat.nome}>
+                      <SelectItem key={cat.id} value={cat.id}>
                         <span className="font-mono text-muted-foreground mr-1.5 text-[11px]">{cat.codigo}</span>
                         {cat.nome}
                       </SelectItem>
@@ -300,7 +322,7 @@ export function NovaContaSheet({ children }: { children: React.ReactNode }) {
                 <Label htmlFor="centroCusto" className="flex items-center gap-1.5">
                   <FolderTree className="w-3.5 h-3.5 text-orange-500" /> Centro de Custos
                 </Label>
-                <Select value={centroCusto} onValueChange={setCentroCusto}>
+                <Select value={centroCusto} onValueChange={handleCentroCustoSelect}>
                   <SelectTrigger id="centroCusto">
                     <SelectValue placeholder="Selecione o Centro de Custo" />
                   </SelectTrigger>
