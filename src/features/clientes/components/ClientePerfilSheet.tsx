@@ -14,7 +14,7 @@ import { useLocalStorageState } from '@/hooks/useDataStore';
 import { TituloReceber } from '@/features/contas-receber/types';
 import { RecorrenciaFinanceira } from '@/features/recorrencias/types';
 import { Contrato } from '@/features/contratos/types';
-import { calculateClienteFinanceiro } from '@/features/recorrencias/services/recorrenciaEngine';
+import { calculateClienteFinanceiro, generateRecorrenciaDates } from '@/features/recorrencias/services/recorrenciaEngine';
 import { dmsService } from '@/services/dmsService';
 import { DocumentoDMS } from '@/features/documentos/types';
 import { DmsPreviewModal } from '@/features/documentos/components/DmsPreviewModal';
@@ -27,6 +27,18 @@ interface ClientePerfilSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onEdit?: (cliente: Cliente) => void;
+}
+
+export interface ItemTituloCronograma {
+  id: string;
+  numero: string;
+  descricao: string;
+  dataEmissao?: string;
+  dataVencimento: string;
+  valor: number;
+  status: 'Recebido' | 'Pendente' | 'Atrasado' | 'Programado';
+  isRecorrenciaFutura?: boolean;
+  cicloInfo?: string;
 }
 
 import { formatDateBrasilia, formatDateTimeBrasilia } from '@/lib/dateUtils';
@@ -61,6 +73,62 @@ export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: Clie
   const contatos = Array.isArray(cliente.contatos) ? cliente.contatos : [];
 
   const safeNome = String(nomeOficial || '').toLowerCase();
+
+  // Monta a lista completa de títulos recebidos, pendentes e meses futuros da recorrência
+  const cronogramaRecebimentos = React.useMemo(() => {
+    if (!cliente) return [];
+    const titulosEfetivos: ItemTituloCronograma[] = (financeiro?.titulosDoCliente || []).map(t => ({
+      id: t.id,
+      numero: t.numero,
+      descricao: t.descricao,
+      dataEmissao: t.dataEmissao,
+      dataVencimento: t.dataVencimento,
+      valor: t.valorOriginal || (t as any).valor || 0,
+      status: (t.status === 'Pago' ? 'Recebido' : t.status) as any,
+      isRecorrenciaFutura: false,
+    }));
+
+    const recorrenciasCliente = (financeiro?.recorrenciasDoCliente || []).filter(r => r.status === 'Ativa');
+    const hoje = new Date().toISOString().split('T')[0];
+
+    const datasTitulosExistentes = new Set(
+      titulosEfetivos.map(t => {
+        const v = t.dataVencimento || '';
+        return v.substring(0, 7); // 'YYYY-MM'
+      })
+    );
+
+    const titulosFuturos: ItemTituloCronograma[] = [];
+
+    recorrenciasCliente.forEach(rec => {
+      const qtdCiclos = rec.quantidade && rec.quantidade > 0 ? rec.quantidade : 12;
+      const datas = generateRecorrenciaDates(rec, qtdCiclos);
+
+      datas.forEach((dataVencStr, idx) => {
+        const mesAno = dataVencStr.substring(0, 7);
+        // Se já existe um título para este mês/ano, não duplica como futuro
+        if (!datasTitulosExistentes.has(mesAno) && dataVencStr >= hoje) {
+          titulosFuturos.push({
+            id: `proj-${rec.id}-${dataVencStr}`,
+            numero: `REC-PROG-${dataVencStr.replace(/-/g, '').slice(2, 6)}`,
+            descricao: `${rec.descricao} (Recorrência Programada)`,
+            dataEmissao: dataVencStr,
+            dataVencimento: dataVencStr,
+            valor: rec.valor,
+            status: 'Programado',
+            isRecorrenciaFutura: true,
+            cicloInfo: `Mês ${idx + 1}${rec.quantidade ? `/${rec.quantidade}` : ''}`,
+          });
+        }
+      });
+    });
+
+    const listaUnificada = [...titulosEfetivos, ...titulosFuturos];
+    // Ordenar por data de vencimento crescente
+    listaUnificada.sort((a, b) => (a.dataVencimento || '').localeCompare(b.dataVencimento || ''));
+
+    return listaUnificada;
+  }, [cliente, financeiro]);
 
   // 1. Documentos no DMS vinculados a este cliente
   const todosDocumentos = dmsService.getDocumentos() || [];
@@ -466,50 +534,63 @@ export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: Clie
               </div>
             )}
 
-            {/* Títulos a Receber do Cliente */}
+            {/* Títulos a Receber e Cronograma de Meses da Recorrência */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Títulos a Receber Vinculados ({financeiro?.titulosDoCliente?.length || 0})
+                  Títulos a Receber & Cronograma Recorrente ({cronogramaRecebimentos.length})
                 </span>
                 <Link to="/contas-a-receber" className="text-xs text-primary hover:underline flex items-center gap-1">
                   Ver no Contas a Receber <ExternalLink className="w-3 h-3" />
                 </Link>
               </div>
 
-              {(financeiro?.titulosDoCliente || []).length === 0 ? (
+              {cronogramaRecebimentos.length === 0 ? (
                 <div className="p-8 text-center text-xs text-muted-foreground border border-dashed rounded-lg">
                   <DollarSign className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                  Nenhum título a receber registrado para este cliente.
+                  Nenhum título ou recebimento programado para este cliente.
                 </div>
               ) : (
-                <div className="divide-y border rounded-lg max-h-64 overflow-y-auto bg-card">
-                  {financeiro.titulosDoCliente.map(titulo => (
+                <div className="divide-y border rounded-lg max-h-80 overflow-y-auto bg-card">
+                  {cronogramaRecebimentos.map(titulo => (
                     <div key={titulo.id} className="p-3 flex items-center justify-between text-xs hover:bg-muted/30 transition-colors">
                       <div className="space-y-0.5">
                         <div className="font-medium text-foreground flex items-center gap-2">
-                          <span className="font-mono font-bold text-primary">{titulo.numero}</span>
+                          <span className={`font-mono font-bold ${titulo.isRecorrenciaFutura ? 'text-blue-600 dark:text-blue-400' : 'text-primary'}`}>
+                            {titulo.numero}
+                          </span>
                           <span>• {titulo.descricao}</span>
+                          {titulo.cicloInfo && (
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-normal">
+                              {titulo.cicloInfo}
+                            </Badge>
+                          )}
                         </div>
                         <div className="text-[11px] text-muted-foreground">
-                          Emissão: {formatDateSafe(titulo.dataEmissao)} • Vencimento: <strong className="text-foreground">{formatDateSafe(titulo.dataVencimento)}</strong>
+                          {titulo.dataEmissao && `Emissão: ${formatDateSafe(titulo.dataEmissao)} • `}
+                          Vencimento: <strong className="text-foreground">{formatDateSafe(titulo.dataVencimento)}</strong>
+                          {titulo.isRecorrenciaFutura && (
+                            <span className="text-blue-600 dark:text-blue-400 ml-2 font-medium">• Lançamento Futuro Programado</span>
+                          )}
                         </div>
                       </div>
                       <div className="text-right">
                         <div className="font-bold text-sm text-foreground">
-                          R$ {formatCurrency(titulo.valorOriginal || (titulo as any).valor)}
+                          R$ {formatCurrency(titulo.valor)}
                         </div>
                         <Badge 
                           variant="outline" 
                           className={`text-[10px] mt-0.5 ${
-                            titulo.status === 'Pago' 
+                            titulo.status === 'Recebido' || (titulo as any).status === 'Pago'
                               ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300' 
                               : titulo.status === 'Atrasado'
                               ? 'bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950/40 dark:text-rose-300'
+                              : titulo.status === 'Programado'
+                              ? 'bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950/40 dark:text-blue-300'
                               : 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300'
                           }`}
                         >
-                          {titulo.status}
+                          {titulo.status === 'Programado' ? 'Programado (Futuro)' : titulo.status}
                         </Badge>
                       </div>
                     </div>
