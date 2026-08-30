@@ -40,14 +40,7 @@ export function RhDashboard() {
   ];
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">People & Culture Dashboard</h2>
-          <p className="text-muted-foreground mt-1">Visão executiva do quadro de colaboradores e folha salarial.</p>
-        </div>
-      </div>
-
+    <div className="space-y-6 animate-fade-in pt-1">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
