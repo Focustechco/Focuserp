@@ -11,8 +11,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { 
   Search, Filter, Calendar, RefreshCw, ArrowUpRight, 
   DollarSign, Clock, Sparkles, FileText, CheckCircle2, 
-  TrendingDown, Layers, Building2
+  TrendingDown, Layers, Building2, Trash2
 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { formatDateBrasilia, parseDateSafe, getBrasiliaTodayIso } from '@/lib/dateUtils';
 import { addMonths } from 'date-fns';
 import { toast } from 'sonner';
@@ -44,9 +52,11 @@ export function PagamentosFuturosTab() {
   const [periodoFilter, setPeriodoFilter] = useState<'30dias' | '3meses' | '6meses' | '12meses' | 'todos'>('12meses');
   const [origemFilter, setOrigemFilter] = useState<'todas' | 'Recorrência' | 'Parcelamento'>('todas');
   const [isEmitindo, setIsEmitindo] = useState<string | null>(null);
+  const [itemParaExcluir, setItemParaExcluir] = useState<PagamentoFuturoItem | null>(null);
 
-  const { data: recorrencias = [] } = useLocalStorageState<RecorrenciaFinanceira>('focus_recorrencias');
-  const { data: localContas = [], saveItem: saveLocalConta } = useLocalStorageState<ContaPagar>('focus_contas_pagar');
+  const { data: recorrencias = [], setAllItems: setAllRecorrencias } = useLocalStorageState<RecorrenciaFinanceira>('focus_recorrencias');
+  const { data: localContas = [], setAllItems: setAllContas, saveItem: saveLocalConta } = useLocalStorageState<ContaPagar>('focus_contas_pagar');
+  const { data: dispensados = [], setAllItems: setAllDispensados } = useLocalStorageState<string>('focus_pagamentos_futuros_dispensados', []);
   const { saveConta: saveQueryConta } = useContasPagarQuery();
   const { notificar } = useNotificacoesStore();
 
@@ -77,11 +87,16 @@ export function PagamentosFuturosTab() {
     );
 
     recsDespesas.forEach(rec => {
+      if (dispensados.includes(rec.id)) return;
+
       const datas = generateRecorrenciaDates(rec, 60);
       const totalCiclos = rec.quantidade && rec.quantidade > 0 ? rec.quantidade : (rec.dataFim || rec.dataFinal ? datas.length : undefined);
       const safeForn = (rec.fornecedorNome || rec.clienteNome || 'Fornecedor').trim().toLowerCase();
 
       datas.forEach((dataVenc, idx) => {
+        const itemId = `pag-fut-${rec.id}-${dataVenc}`;
+        if (dispensados.includes(itemId)) return;
+
         const mesAno = dataVenc.substring(0, 7);
         const jaExiste = contasExistentesMap.has(`${safeForn}|${mesAno}`) || 
                          (rec.fornecedorId && contasExistentesMap.has(`${rec.fornecedorId}|${mesAno}`));
@@ -89,7 +104,7 @@ export function PagamentosFuturosTab() {
         // Apenas despesas com vencimento futuro que ainda não viraram título emitido
         if (!jaExiste && dataVenc >= hojeStr) {
           lista.push({
-            id: `pag-fut-${rec.id}-${dataVenc}`,
+            id: itemId,
             origemId: rec.id,
             origemTipo: 'Recorrência',
             fornecedorId: rec.fornecedorId,
@@ -112,6 +127,8 @@ export function PagamentosFuturosTab() {
     const recIdsJaProcessados = new Set(recsDespesas.map(r => (r.fornecedorNome || '').toLowerCase()));
 
     contasRecorrentes.forEach(c => {
+      if (dispensados.includes(c.id) || dispensados.includes(`rec-fake-${c.id}`)) return;
+
       const safeForn = (c.fornecedor || '').trim().toLowerCase();
       if (recIdsJaProcessados.has(safeForn)) return;
 
@@ -137,12 +154,15 @@ export function PagamentosFuturosTab() {
       const totalCiclos = recFake.quantidade && recFake.quantidade > 0 ? recFake.quantidade : (recFake.dataFim ? datas.length : undefined);
 
       datas.forEach((dataVenc, idx) => {
+        const itemId = `pag-c-fut-${c.id}-${dataVenc}`;
+        if (dispensados.includes(itemId)) return;
+
         const mesAno = dataVenc.substring(0, 7);
         const jaExiste = contasExistentesMap.has(`${safeForn}|${mesAno}`);
 
         if (!jaExiste && dataVenc >= hojeStr) {
           lista.push({
-            id: `pag-c-fut-${c.id}-${dataVenc}`,
+            id: itemId,
             origemId: c.id,
             origemTipo: 'Recorrência',
             fornecedorNome: c.fornecedor || 'Fornecedor',
@@ -162,7 +182,7 @@ export function PagamentosFuturosTab() {
     // Ordenação cronológica por vencimento previsto
     lista.sort((a, b) => a.dataVencimentoPrevista.localeCompare(b.dataVencimentoPrevista));
     return lista;
-  }, [recorrencias, localContas, contasExistentesMap, hojeStr]);
+  }, [recorrencias, localContas, contasExistentesMap, hojeStr, dispensados]);
 
   // 3. Filtragem de Período e Busca
   const dataLimitePeriodo = useMemo(() => {
@@ -257,6 +277,35 @@ export function PagamentosFuturosTab() {
     } finally {
       setIsEmitindo(null);
     }
+  };
+
+  // 6. Ação: Excluir / Cancelar Recorrência Completa
+  const handleExcluirRecorrenciaCompleta = (item: PagamentoFuturoItem) => {
+    // Remover de recorrencias
+    const novasRecs = recorrencias.filter(r => r.id !== item.origemId && r.id !== `rec-${item.origemId}`);
+    setAllRecorrencias(novasRecs);
+
+    // Se veio de conta local recorrente, desmarcar a flag ou remover
+    const novasContas = localContas.map(c => {
+      if (c.id === item.origemId || `rec-fake-${c.id}` === item.origemId) {
+        return { ...c, recorrente: false };
+      }
+      return c;
+    });
+    setAllContas(novasContas);
+
+    // Adicionar aos dispensados
+    setAllDispensados([...dispensados, item.origemId, `rec-fake-${item.origemId}`]);
+
+    toast.success(`Recorrência "${item.descricao}" excluída com sucesso!`);
+    setItemParaExcluir(null);
+  };
+
+  // 7. Ação: Dispensar apenas este ciclo específico
+  const handleDispensarApenasEsteCiclo = (item: PagamentoFuturoItem) => {
+    setAllDispensados([...dispensados, item.id]);
+    toast.success(`Ciclo "${item.cicloLabel}" (${formatDateBrasilia(item.dataVencimentoPrevista)}) dispensado da projeção.`);
+    setItemParaExcluir(null);
   };
 
   return (
@@ -425,16 +474,27 @@ export function PagamentosFuturosTab() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={isEmitindo === item.id}
-                      onClick={() => handleEmitirContaAgora(item)}
-                      className="h-7 text-[11px] px-2.5 gap-1 text-primary hover:text-primary hover:bg-primary/10 border-primary/30 cursor-pointer"
-                    >
-                      <ArrowUpRight className="w-3.5 h-3.5" />
-                      {isEmitindo === item.id ? 'Emitindo...' : 'Emitir Despesa'}
-                    </Button>
+                    <div className="flex items-center justify-end gap-1.5">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={isEmitindo === item.id}
+                        onClick={() => handleEmitirContaAgora(item)}
+                        className="h-7 text-[11px] px-2.5 gap-1 text-primary hover:text-primary hover:bg-primary/10 border-primary/30 cursor-pointer"
+                      >
+                        <ArrowUpRight className="w-3.5 h-3.5" />
+                        {isEmitindo === item.id ? 'Emitindo...' : 'Emitir Despesa'}
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => setItemParaExcluir(item)}
+                        title="Excluir ou Dispensar Opção"
+                        className="h-7 w-7 text-muted-foreground hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -442,6 +502,55 @@ export function PagamentosFuturosTab() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Modal de Exclusão / Cancelamento de Recorrência */}
+      <Dialog open={!!itemParaExcluir} onOpenChange={(open) => !open && setItemParaExcluir(null)}>
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-rose-600 dark:text-rose-400">
+              <Trash2 className="w-5 h-5" /> Excluir Opção Futura
+            </DialogTitle>
+            <DialogDescription className="pt-2 text-sm text-foreground">
+              Você selecionou <span className="font-semibold text-foreground">{itemParaExcluir?.descricao}</span> ({itemParaExcluir?.fornecedorNome}) com previsão para <span className="font-semibold text-foreground">{itemParaExcluir && formatDateBrasilia(itemParaExcluir.dataVencimentoPrevista)}</span> no valor de <span className="font-semibold text-rose-600">{itemParaExcluir && formatCurrency(itemParaExcluir.valorPrevisto)}</span>.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="p-3 bg-muted/50 rounded-lg text-xs space-y-2 border">
+            <p className="font-medium text-foreground">Escolha a ação desejada:</p>
+            <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
+              <li><strong className="text-foreground">Excluir Toda a Recorrência:</strong> Remove permanentemente todas as parcelas/ciclos futuros desta recorrência.</li>
+              <li><strong className="text-foreground">Dispensar Apenas Este Ciclo:</strong> Oculta somente este mês ({itemParaExcluir?.cicloLabel}), mantendo os demais.</li>
+            </ul>
+          </div>
+
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setItemParaExcluir(null)}
+              className="w-full sm:w-auto"
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => itemParaExcluir && handleDispensarApenasEsteCiclo(itemParaExcluir)}
+              className="w-full sm:w-auto text-xs"
+            >
+              Dispensar Apenas Este Ciclo
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => itemParaExcluir && handleExcluirRecorrenciaCompleta(itemParaExcluir)}
+              className="w-full sm:w-auto text-xs"
+            >
+              Excluir Toda a Recorrência
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Banner Informativo de Previsibilidade Financeira */}
       <div className="p-3.5 bg-orange-50/60 dark:bg-orange-950/20 border border-orange-200/60 dark:border-orange-800/40 rounded-xl text-xs text-orange-900 dark:text-orange-200 flex items-start gap-3">

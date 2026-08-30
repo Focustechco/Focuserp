@@ -12,8 +12,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { 
   Search, Filter, Calendar, RefreshCw, ArrowUpRight, 
   DollarSign, Clock, Sparkles, FileText, CheckCircle2, 
-  TrendingUp, Layers, ChevronRight
+  TrendingUp, Layers, ChevronRight, Trash2
 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { formatDateBrasilia, parseDateSafe, getBrasiliaTodayIso } from '@/lib/dateUtils';
 import { addMonths, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { toast } from 'sonner';
@@ -44,10 +52,12 @@ export function RecebimentosFuturosTab() {
   const [periodoFilter, setPeriodoFilter] = useState<'30dias' | '3meses' | '6meses' | '12meses' | 'todos'>('12meses');
   const [origemFilter, setOrigemFilter] = useState<'todas' | 'Recorrência' | 'Contrato'>('todas');
   const [isEmitindo, setIsEmitindo] = useState<string | null>(null);
+  const [itemParaExcluir, setItemParaExcluir] = useState<RecebimentoFuturoItem | null>(null);
 
-  const { data: recorrencias = [] } = useLocalStorageState<RecorrenciaFinanceira>('focus_recorrencias');
-  const { data: contratos = [] } = useLocalStorageState<Contrato>('focus_contratos');
-  const { data: localTitulos = [], saveItem: saveLocalTitulo } = useLocalStorageState<TituloReceber>('focus_contas_receber');
+  const { data: recorrencias = [], setAllItems: setAllRecorrencias } = useLocalStorageState<RecorrenciaFinanceira>('focus_recorrencias');
+  const { data: contratos = [], setAllItems: setAllContratos } = useLocalStorageState<Contrato>('focus_contratos');
+  const { data: localTitulos = [], setAllItems: setAllTitulos, saveItem: saveLocalTitulo } = useLocalStorageState<TituloReceber>('focus_contas_receber');
+  const { data: dispensados = [], setAllItems: setAllDispensados } = useLocalStorageState<string>('focus_recebimentos_futuros_dispensados', []);
   const { saveTitulo: saveQueryTitulo } = useContasReceberQuery();
   const { notificar } = useNotificacoesStore();
 
@@ -75,11 +85,16 @@ export function RecebimentosFuturosTab() {
     // Recorrências Ativas
     const recsAtivas = recorrencias.filter(r => r.status === 'Ativa');
     recsAtivas.forEach(rec => {
+      if (dispensados.includes(rec.id)) return;
+
       const datas = generateRecorrenciaDates(rec, 60);
       const totalCiclos = rec.quantidade && rec.quantidade > 0 ? rec.quantidade : (rec.dataFim || rec.dataFinal ? datas.length : undefined);
       const safeCli = (rec.clienteNome || '').trim().toLowerCase();
 
       datas.forEach((dataVenc, idx) => {
+        const itemId = `rec-fut-${rec.id}-${dataVenc}`;
+        if (dispensados.includes(itemId)) return;
+
         const mesAno = dataVenc.substring(0, 7);
         const jaExiste = titulosExistentesMap.has(`${safeCli}|${mesAno}`) || 
                          (rec.clientId && titulosExistentesMap.has(`${rec.clientId}|${mesAno}`));
@@ -87,7 +102,7 @@ export function RecebimentosFuturosTab() {
         // Apenas lançamentos com data de vencimento futura e que ainda não viraram título emitido
         if (!jaExiste && dataVenc >= hojeStr) {
           lista.push({
-            id: `rec-fut-${rec.id}-${dataVenc}`,
+            id: itemId,
             origemId: rec.id,
             origemTipo: 'Recorrência',
             clienteId: rec.clientId,
@@ -107,6 +122,7 @@ export function RecebimentosFuturosTab() {
     // Contratos Vigentes sem recorrência cadastrada
     const clientIdsComRec = new Set(recsAtivas.map(r => r.clientId));
     contratos.forEach(c => {
+      if (dispensados.includes(c.id) || dispensados.includes(`rec-contrato-${c.id}`)) return;
       if (c.clienteId && clientIdsComRec.has(c.clienteId)) return;
       if (c.status === 'Ativo' || c.status === 'Vigente') {
         const valorMensal = Number(c.valorMensal || (c as any).valorMensalidade || 0);
@@ -133,13 +149,16 @@ export function RecebimentosFuturosTab() {
           const safeCli = (c.clienteNome || c.nome || '').trim().toLowerCase();
 
           datas.forEach((dataVenc, idx) => {
+            const itemId = `ctr-fut-${c.id}-${dataVenc}`;
+            if (dispensados.includes(itemId)) return;
+
             const mesAno = dataVenc.substring(0, 7);
             const jaExiste = titulosExistentesMap.has(`${safeCli}|${mesAno}`) || 
                              (c.clienteId && titulosExistentesMap.has(`${c.clienteId}|${mesAno}`));
 
             if (!jaExiste && dataVenc >= hojeStr) {
               lista.push({
-                id: `ctr-fut-${c.id}-${dataVenc}`,
+                id: itemId,
                 origemId: c.id,
                 origemTipo: 'Contrato',
                 clienteId: c.clienteId,
@@ -161,7 +180,7 @@ export function RecebimentosFuturosTab() {
     // Ordenação estritamente cronológica por vencimento previsto
     lista.sort((a, b) => a.dataVencimentoPrevista.localeCompare(b.dataVencimentoPrevista));
     return lista;
-  }, [recorrencias, contratos, titulosExistentesMap, hojeStr]);
+  }, [recorrencias, contratos, titulosExistentesMap, hojeStr, dispensados]);
 
   // 3. Filtragem de Período e Busca
   const dataLimitePeriodo = useMemo(() => {
@@ -256,6 +275,35 @@ export function RecebimentosFuturosTab() {
     }
   };
 
+  // 6. Ação: Excluir / Cancelar Recorrência Completa
+  const handleExcluirRecorrenciaCompleta = (item: RecebimentoFuturoItem) => {
+    // Remover de recorrencias
+    const novasRecs = recorrencias.filter(r => r.id !== item.origemId && r.id !== `rec-${item.origemId}`);
+    setAllRecorrencias(novasRecs);
+
+    // Se for contrato, desativar
+    const novosContratos = contratos.map(c => {
+      if (c.id === item.origemId) {
+        return { ...c, status: 'Encerrado' as const };
+      }
+      return c;
+    });
+    setAllContratos(novosContratos);
+
+    // Adicionar aos dispensados
+    setAllDispensados([...dispensados, item.origemId, `rec-contrato-${item.origemId}`]);
+
+    toast.success(`Recorrência "${item.descricao}" excluída com sucesso!`);
+    setItemParaExcluir(null);
+  };
+
+  // 7. Ação: Dispensar apenas este ciclo específico
+  const handleDispensarApenasEsteCiclo = (item: RecebimentoFuturoItem) => {
+    setAllDispensados([...dispensados, item.id]);
+    toast.success(`Ciclo "${item.cicloLabel}" (${formatDateBrasilia(item.dataVencimentoPrevista)}) dispensado da projeção.`);
+    setItemParaExcluir(null);
+  };
+
   return (
     <div className="space-y-6">
       {/* 4 Cards de Métricas em Tempo Real */}
@@ -301,14 +349,14 @@ export function RecebimentosFuturosTab() {
 
         <div className="p-4 rounded-xl border bg-card/60 backdrop-blur shadow-xs space-y-1">
           <div className="flex items-center justify-between text-muted-foreground text-xs">
-            <span className="font-medium">Contratos & Recorrências</span>
+            <span className="font-medium">Origens Monitoradas</span>
             <RefreshCw className="w-4 h-4 text-primary" />
           </div>
           <div className="text-2xl font-bold text-foreground">
-            {recorrencias.filter(r => r.status === 'Ativa').length}
+            {recorrencias.filter(r => r.status === 'Ativa').length + contratos.filter(c => c.status === 'Ativo' || c.status === 'Vigente').length}
           </div>
           <p className="text-[11px] text-muted-foreground">
-            Planos recorrentes ativos na base
+            Contratos e assinaturas ativas
           </p>
         </div>
       </div>
@@ -319,7 +367,7 @@ export function RecebimentosFuturosTab() {
           <div className="relative w-full sm:w-80">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input 
-              placeholder="Buscar por cliente, serviço..." 
+              placeholder="Buscar por cliente, serviço, contrato..." 
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               className="pl-9 text-xs"
@@ -359,7 +407,7 @@ export function RecebimentosFuturosTab() {
       </div>
 
       {/* Tabela de Recebimentos Futuros */}
-      <div className="border rounded-xl bg-card overflow-hidden">
+      <div className="border rounded-xl bg-card overflow-hidden shadow-xs">
         <Table>
           <TableHeader className="bg-muted/40">
             <TableRow>
@@ -422,16 +470,27 @@ export function RecebimentosFuturosTab() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={isEmitindo === item.id}
-                      onClick={() => handleEmitirTituloAgora(item)}
-                      className="h-7 text-[11px] px-2.5 gap-1 text-primary hover:text-primary hover:bg-primary/10 border-primary/30 cursor-pointer"
-                    >
-                      <ArrowUpRight className="w-3.5 h-3.5" />
-                      {isEmitindo === item.id ? 'Emitindo...' : 'Emitir Título'}
-                    </Button>
+                    <div className="flex items-center justify-end gap-1.5">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={isEmitindo === item.id}
+                        onClick={() => handleEmitirTituloAgora(item)}
+                        className="h-7 text-[11px] px-2.5 gap-1 text-primary hover:text-primary hover:bg-primary/10 border-primary/30 cursor-pointer"
+                      >
+                        <ArrowUpRight className="w-3.5 h-3.5" />
+                        {isEmitindo === item.id ? 'Emitindo...' : 'Emitir Título'}
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => setItemParaExcluir(item)}
+                        title="Excluir ou Dispensar Opção"
+                        className="h-7 w-7 text-muted-foreground hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -439,6 +498,55 @@ export function RecebimentosFuturosTab() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Modal de Exclusão / Cancelamento de Recorrência */}
+      <Dialog open={!!itemParaExcluir} onOpenChange={(open) => !open && setItemParaExcluir(null)}>
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-rose-600 dark:text-rose-400">
+              <Trash2 className="w-5 h-5" /> Excluir Opção Futura
+            </DialogTitle>
+            <DialogDescription className="pt-2 text-sm text-foreground">
+              Você selecionou <span className="font-semibold text-foreground">{itemParaExcluir?.descricao}</span> ({itemParaExcluir?.clienteNome}) com previsão para <span className="font-semibold text-foreground">{itemParaExcluir && formatDateBrasilia(itemParaExcluir.dataVencimentoPrevista)}</span> no valor de <span className="font-semibold text-emerald-600">{itemParaExcluir && formatCurrency(itemParaExcluir.valorPrevisto)}</span>.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="p-3 bg-muted/50 rounded-lg text-xs space-y-2 border">
+            <p className="font-medium text-foreground">Escolha a ação desejada:</p>
+            <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
+              <li><strong className="text-foreground">Excluir Toda a Recorrência:</strong> Remove permanentemente todas as parcelas/ciclos futuros desta recorrência.</li>
+              <li><strong className="text-foreground">Dispensar Apenas Este Ciclo:</strong> Oculta somente este mês ({itemParaExcluir?.cicloLabel}), mantendo os demais.</li>
+            </ul>
+          </div>
+
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setItemParaExcluir(null)}
+              className="w-full sm:w-auto"
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => itemParaExcluir && handleDispensarApenasEsteCiclo(itemParaExcluir)}
+              className="w-full sm:w-auto text-xs"
+            >
+              Dispensar Apenas Este Ciclo
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => itemParaExcluir && handleExcluirRecorrenciaCompleta(itemParaExcluir)}
+              className="w-full sm:w-auto text-xs"
+            >
+              Excluir Toda a Recorrência
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Banner Informativo de Regras */}
       <div className="p-3.5 bg-blue-50/60 dark:bg-blue-950/20 border border-blue-200/60 dark:border-blue-800/40 rounded-xl text-xs text-blue-900 dark:text-blue-200 flex items-start gap-3">
