@@ -2,12 +2,11 @@ import { useState, useCallback } from "react";
 import { useLocalStorageState } from "@/hooks/useDataStore";
 import { 
   ClickUpSyncConfig, LeadCrm, EmpresaCrm, ContatoCrm, OportunidadeCrm, 
-  AtividadeCrm, LogSyncClickUp, EtapaPipeline 
+  AtividadeCrm, LogSyncClickUp, EtapaPipeline, ClickUpStatusItem 
 } from "../types";
 import { 
   INITIAL_CLICKUP_CONFIG, INITIAL_OPORTUNIDADES, INITIAL_LEADS, 
-  INITIAL_EMPRESAS, INITIAL_CONTATOS, INITIAL_ATIVIDADES, INITIAL_SYNC_LOGS,
-  MOCK_DEMO_OPORTUNIDADES 
+  INITIAL_EMPRESAS, INITIAL_CONTATOS, INITIAL_ATIVIDADES, INITIAL_SYNC_LOGS 
 } from "../data/initialData";
 import { 
   testClickUpConnection, fetchClickUpTasks, createClickUpTask, updateClickUpTaskStatus,
@@ -20,7 +19,7 @@ import { toast } from "sonner";
 
 export function useCrmStore() {
   const { data: configList, save: saveConfig } = useLocalStorageState<ClickUpSyncConfig>('focus_crm_clickup_config', [INITIAL_CLICKUP_CONFIG]);
-  const { data: oportunidades, addItem: addOpItem, updateItem: updateOpItem, deleteItem: deleteOpItem, save: saveOportunidades } = useLocalStorageState<OportunidadeCrm>('focus_crm_oportunidades', INITIAL_OPORTUNIDADES);
+  const { data: oportunidades, addItem: addOpItem, updateItem: updateOpItem, deleteItem: deleteOpItem, save: saveOportunidades } = useLocalStorageState<OportunidadeCrm>('focus_crm_oportunidades', []);
   const { data: leads, addItem: addLeadItem, updateItem: updateLeadItem, deleteItem: deleteLeadItem, save: saveLeads } = useLocalStorageState<LeadCrm>('focus_crm_leads', INITIAL_LEADS);
   const { data: empresas, addItem: addEmpresaItem, updateItem: updateEmpresaItem, deleteItem: deleteEmpresaItem, save: saveEmpresas } = useLocalStorageState<EmpresaCrm>('focus_crm_empresas', INITIAL_EMPRESAS);
   const { data: contatos, addItem: addContatoItem, updateItem: updateContatoItem, deleteItem: deleteContatoItem, save: saveContatos } = useLocalStorageState<ContatoCrm>('focus_crm_contatos', INITIAL_CONTATOS);
@@ -46,10 +45,8 @@ export function useCrmStore() {
   ) => {
     setIsLoadingClickUp(true);
     try {
-      // Testar token na API oficial ClickUp
       const userData = await testClickUpConnection(apiToken);
       const user = userData.user;
-
       const cleanListId = extractCleanClickUpId(listId);
 
       const newConfig: ClickUpSyncConfig = {
@@ -94,21 +91,10 @@ export function useCrmStore() {
     }
   };
 
-  // 2. Mapeamento de status do ClickUp para EtapaPipeline
-  const mapClickUpStatusToEtapa = (statusStr?: string): EtapaPipeline => {
-    const s = (statusStr || '').toLowerCase().trim();
-    if (s.includes('diagnos') || s.includes('reuniao') || s.includes('meeting') || s.includes('apresentacao')) return 'Diagnóstico & Reunião';
-    if (s.includes('proposta') || s.includes('proposal') || s.includes('orcamento') || s.includes('quote')) return 'Proposta Apresentada';
-    if (s.includes('negocia') || s.includes('negotiat') || s.includes('analise') || s.includes('revisao')) return 'Em Negociação';
-    if (s.includes('complete') || s.includes('ganho') || s.includes('won') || s.includes('fechado') || s.includes('done') || s.includes('closed')) return 'Fechado Ganho';
-    if (s.includes('lost') || s.includes('perdido') || s.includes('cancel') || s.includes('desqualific')) return 'Perdido';
-    return 'Qualificação';
-  };
-
-  // 3. Buscar tarefas reais da Lista/Quadro do ClickUp
+  // 2. Buscar tarefas reais da Lista/Quadro do ClickUp e extrair status dinâmicos
   const importRealClickUpTasks = async (listId = activeConfig.listId, apiToken = activeConfig.apiToken) => {
     if (!apiToken || !listId) {
-      toast.error('Informe o API Token e o List ID para importar tarefas do ClickUp.');
+      toast.error('Informe o API Token e selecione o Quadro do ClickUp.');
       return;
     }
 
@@ -116,24 +102,44 @@ export function useCrmStore() {
     try {
       const realTasks = await fetchClickUpTasks(listId, apiToken);
       
-      const newOportunidades: OportunidadeCrm[] = realTasks.map((t, idx) => {
-        const etapa = mapClickUpStatusToEtapa(t.status?.status);
+      // Coletar status dinâmicos únicos reais do ClickUp
+      const statusMap = new Map<string, ClickUpStatusItem>();
 
-        // Extrair valor customizado se houver
+      const newOportunidades: OportunidadeCrm[] = realTasks.map((t, idx) => {
+        const rawStatus = t.status?.status || 'Open';
+        const statusColor = t.status?.color || '#94a3b8';
+        const orderIdx = t.status?.orderindex ?? idx;
+
+        if (!statusMap.has(rawStatus.toLowerCase())) {
+          statusMap.set(rawStatus.toLowerCase(), {
+            status: rawStatus,
+            color: statusColor,
+            orderindex: orderIdx,
+            type: t.status?.type
+          });
+        }
+
+        // Verificar se já existe valor manual salvo pelo usuário no CRM
+        const existingOp = oportunidades.find(o => o.clickUpTaskId === `CU-${t.id}` || o.id === `op-cu-${t.id}`);
+
+        // Extrair valor de custom field se existir no ClickUp
         let valorExtracted = 0;
         if (Array.isArray(t.custom_fields)) {
           const valField = t.custom_fields.find(f => 
             f.name.toLowerCase().includes('valor') || 
             f.name.toLowerCase().includes('deal') || 
             f.name.toLowerCase().includes('price') ||
+            f.name.toLowerCase().includes('receita') ||
             f.type === 'currency' || f.type === 'number'
           );
           if (valField && valField.value) {
             valorExtracted = parseFloat(valField.value) || 0;
           }
         }
-        if (valorExtracted === 0) {
-          valorExtracted = Math.floor(15000 + (idx + 1) * 22500);
+
+        // Se não veio do ClickUp, preservar valor manual existente inserido pelo usuário
+        if (valorExtracted === 0 && existingOp && existingOp.valorR$ > 0) {
+          valorExtracted = existingOp.valorR$;
         }
 
         // Extrair nome da empresa
@@ -143,8 +149,17 @@ export function useCrmStore() {
         // Extrair responsável
         const assigneeName = t.assignees && t.assignees.length > 0 
           ? (t.assignees[0].username || t.assignees[0].email) 
-          : 'Equipe de Vendas';
+          : 'Equipe Comercial';
         const assigneeAvatar = t.assignees?.[0]?.profilePicture;
+
+        const isGanho = rawStatus.toLowerCase().includes('ganh') || 
+                        rawStatus.toLowerCase().includes('won') || 
+                        rawStatus.toLowerCase().includes('fechad') || 
+                        rawStatus.toLowerCase().includes('complet');
+
+        const isPerdido = rawStatus.toLowerCase().includes('perdid') || 
+                          rawStatus.toLowerCase().includes('lost') || 
+                          rawStatus.toLowerCase().includes('cancel');
 
         return {
           id: `op-cu-${t.id}`,
@@ -152,27 +167,33 @@ export function useCrmStore() {
           titulo: t.name,
           empresaNome: empresaNome || 'Cliente ClickUp',
           contatoNome: 'Contato Registrado',
-          valorR$: valorExtracted,
-          probabilidadePercent: etapa === 'Fechado Ganho' ? 100 : (etapa === 'Perdido' ? 0 : 60),
+          valorR$: valorExtracted, // Zero dados mockados!
+          probabilidadePercent: isGanho ? 100 : (isPerdido ? 0 : 50),
           responsavel: assigneeName,
           responsavelAvatar: assigneeAvatar,
-          pipeline: activeConfig.listName || 'Pipeline Real ClickUp',
-          etapa,
+          pipeline: activeConfig.listName || 'Quadro Real ClickUp',
+          etapa: rawStatus, // Status dinâmico e real do ClickUp!
+          statusColor: statusColor,
+          statusOrder: orderIdx,
           prioridade: (t.priority?.priority as any) || 'Alta',
-          tags: t.tags?.map(tg => tg.name) || ['ClickUp Real'],
+          tags: t.tags?.map(tg => tg.name) || [],
           dataPrevistaFechamento: t.due_date ? new Date(parseInt(t.due_date)).toISOString().split('T')[0] : new Date(Date.now() + 86400000 * 30).toISOString().split('T')[0],
           dataCriacao: t.date_created ? new Date(parseInt(t.date_created)).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-          proximaAcao: t.text_content || t.description || 'Acompanhar tarefa no ClickUp',
+          proximaAcao: t.text_content || t.description || 'Acompanhar no ClickUp',
           statusClickUp: 'synced',
           clickUpUrl: t.url || `https://app.clickup.com/t/${t.id}`
         };
       });
 
+      // Ordenar status pelo orderindex do ClickUp
+      const listStatuses = Array.from(statusMap.values()).sort((a, b) => (a.orderindex ?? 0) - (b.orderindex ?? 0));
+
       saveOportunidades(newOportunidades);
 
-      // Atualiza timestamp da última sincronização
+      // Salvar status e atualizar timestamp
       saveConfig([{
         ...activeConfig,
+        listStatuses: listStatuses.length > 0 ? listStatuses : undefined,
         lastSyncTime: new Date().toISOString(),
         statusConexao: 'Conectado ClickUp API'
       }]);
@@ -182,12 +203,12 @@ export function useCrmStore() {
         timestamp: new Date().toLocaleTimeString('pt-BR'),
         clickUpTaskId: `BOARD-${listId}`,
         entidade: 'Oportunidade',
-        acao: 'Sincronização de Tarefas',
+        acao: 'Espelho ClickUp Sincronizado',
         status: 'Sucesso',
-        mensagem: `${realTasks.length} tarefas reais do ClickUp sincronizadas no CRM.`
+        mensagem: `${realTasks.length} tarefas reais espelhadas com ${listStatuses.length} status do ClickUp.`
       });
 
-      toast.success(`${realTasks.length} tarefas reais importadas do ClickUp com sucesso!`);
+      toast.success(`${realTasks.length} tarefas reais espelhadas com sucesso do ClickUp!`);
     } catch (err: any) {
       toast.error(`Erro ao importar tarefas: ${err.message}`);
     } finally {
@@ -195,23 +216,38 @@ export function useCrmStore() {
     }
   };
 
+  // 3. Atualizar Valor Manualmente (R$)
+  const updateOportunidadeValor = (id: string, novoValor: number) => {
+    updateOpItem(id, { valorR$: novoValor });
+    toast.success(`Valor de R$ ${novoValor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} atualizado!`);
+  };
+
   // 4. Movimentar Oportunidade no Kanban (Sincronização com ClickUp Real)
-  const moverOportunidadeEtapa = async (id: string, novaEtapa: EtapaPipeline) => {
+  const moverOportunidadeEtapa = async (id: string, novaEtapa: string, statusColor?: string) => {
     const op = oportunidades.find(o => o.id === id);
     if (!op) return;
 
+    const isGanho = novaEtapa.toLowerCase().includes('ganh') || 
+                    novaEtapa.toLowerCase().includes('won') || 
+                    novaEtapa.toLowerCase().includes('fechad') || 
+                    novaEtapa.toLowerCase().includes('complet');
+
+    const isPerdido = novaEtapa.toLowerCase().includes('perdid') || 
+                      novaEtapa.toLowerCase().includes('lost') || 
+                      novaEtapa.toLowerCase().includes('cancel');
+
     updateOpItem(id, { 
       etapa: novaEtapa,
-      probabilidadePercent: novaEtapa === 'Fechado Ganho' ? 100 : (novaEtapa === 'Perdido' ? 0 : op.probabilidadePercent)
+      statusColor: statusColor || op.statusColor,
+      probabilidadePercent: isGanho ? 100 : (isPerdido ? 0 : op.probabilidadePercent)
     });
 
-    // Se tiver Token e Task ID, atualizar na API real do ClickUp!
+    // Atualizar na API oficial do ClickUp!
     if (activeConfig.apiToken && op.clickUpTaskId.startsWith('CU-')) {
       const cleanTaskId = op.clickUpTaskId.replace('CU-', '');
       updateClickUpTaskStatus(cleanTaskId, activeConfig.apiToken, novaEtapa);
     }
 
-    // Registrar log
     addSyncLogItem({
       id: `log-${Date.now()}`,
       timestamp: new Date().toLocaleTimeString('pt-BR'),
@@ -222,10 +258,10 @@ export function useCrmStore() {
       mensagem: `Tarefa ${op.clickUpTaskId} sincronizada na API do ClickUp.`
     });
 
-    if (novaEtapa === 'Fechado Ganho') {
+    if (isGanho && op.valorR$ > 0) {
       converterOportunidadeEmClienteEContrato(op);
     } else {
-      toast.success(`Oportunidade "${op.titulo}" movida para ${novaEtapa}! (Sincronizada no ClickUp)`);
+      toast.success(`Card "${op.titulo}" movido para "${novaEtapa}" no ClickUp!`);
     }
   };
 
@@ -274,25 +310,27 @@ export function useCrmStore() {
       addContratoItem(novoContrato);
     }
 
-    const novoTituloReceber: TituloReceber = {
-      id: crypto.randomUUID(),
-      numero: `REC-${Math.floor(1000 + Math.random() * 9000)}`,
-      descricao: `Recebimento Contrato CRM — ${op.empresaNome}`,
-      cliente: op.empresaNome,
-      clienteId: clienteId || `cli-${Date.now()}`,
-      valorOriginal: op.valorR$,
-      valorRecebido: 0,
-      saldo: op.valorR$,
-      dataEmissao: new Date().toISOString().split('T')[0],
-      dataVencimento: new Date(Date.now() + 86400000 * 30).toISOString().split('T')[0],
-      status: "Pendente",
-      categoria: "Vendas CRM",
-      formaPagamento: "Boleto"
-    };
-    addContaReceberItem(novoTituloReceber);
+    if (op.valorR$ > 0) {
+      const novoTituloReceber: TituloReceber = {
+        id: crypto.randomUUID(),
+        numero: `REC-${Math.floor(1000 + Math.random() * 9000)}`,
+        descricao: `Recebimento Contrato CRM — ${op.empresaNome}`,
+        cliente: op.empresaNome,
+        clienteId: clienteId || `cli-${Date.now()}`,
+        valorOriginal: op.valorR$,
+        valorRecebido: 0,
+        saldo: op.valorR$,
+        dataEmissao: new Date().toISOString().split('T')[0],
+        dataVencimento: new Date(Date.now() + 86400000 * 30).toISOString().split('T')[0],
+        status: "Pendente",
+        categoria: "Vendas CRM",
+        formaPagamento: "Boleto"
+      };
+      addContaReceberItem(novoTituloReceber);
+    }
 
     toast.success(
-      `🎉 Negócio Ganho! Cliente "${op.empresaNome}", Contrato ${numContrato} e Recebimento de R$ ${op.valorR$.toLocaleString('pt-BR')} criados automaticamente no Focus Finance!`,
+      `🎉 Negócio Ganho! Cliente "${op.empresaNome}", Contrato ${numContrato} e Recebimento criados automaticamente no Focus Finance!`,
       { duration: 6000 }
     );
   };
@@ -332,7 +370,7 @@ export function useCrmStore() {
 
   // Carregar dados de teste fictícios (opcional)
   const carregarDadosDemo = () => {
-    saveOportunidades(MOCK_DEMO_OPORTUNIDADES);
+    saveOportunidades(INITIAL_OPORTUNIDADES);
     toast.info('Dados de demonstração carregados no CRM.');
   };
 
@@ -358,6 +396,7 @@ export function useCrmStore() {
     saveAndConnectClickUp,
     importRealClickUpTasks,
     moverOportunidadeEtapa,
+    updateOportunidadeValor,
     converterOportunidadeEmClienteEContrato,
     addOportunidade,
     deleteOportunidade: deleteOpItem,

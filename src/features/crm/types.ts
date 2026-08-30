@@ -1,5 +1,12 @@
-export type EtapaPipeline = 'Qualificação' | 'Diagnóstico & Reunião' | 'Proposta Apresentada' | 'Em Negociação' | 'Fechado Ganho' | 'Perdido';
-export type PrioridadeOportunidade = 'Baixa' | 'Média' | 'Alta' | 'Urgente';
+export type EtapaPipeline = string;
+export type PrioridadeOportunidade = 'Baixa' | 'Média' | 'Alta' | 'Urgente' | string;
+
+export interface ClickUpStatusItem {
+  status: string;
+  color: string;
+  orderindex?: number;
+  type?: string;
+}
 
 export interface ClickUpSyncConfig {
   id: string;
@@ -17,7 +24,7 @@ export interface ClickUpSyncConfig {
   userEmail?: string;
   userName?: string;
   userAvatar?: string;
-  listStatuses?: Array<{ status: string; color: string; orderindex?: number }>;
+  listStatuses?: ClickUpStatusItem[];
 }
 
 export interface LeadCrm {
@@ -75,12 +82,14 @@ export interface OportunidadeCrm {
   contatoNome: string;
   contatoEmail?: string;
   contatoTelefone?: string;
-  valorR$: number;
+  valorR$: number; // Valor real (0 se não informado no ClickUp ou editável manualmente)
   probabilidadePercent: number; // 0-100
   responsavel: string;
   responsavelAvatar?: string;
-  pipeline: string; // Ex: "Pipeline Enterprise Vendas 2026"
-  etapa: EtapaPipeline;
+  pipeline: string; // Nome da lista / quadro ClickUp
+  etapa: string; // Status exato do ClickUp (ex: "TO DO", "IN PROGRESS", etc.)
+  statusColor?: string; // Cor exata do status no ClickUp (#hex)
+  statusOrder?: number;
   prioridade: PrioridadeOportunidade;
   tags: string[];
   dataPrevistaFechamento: string;
