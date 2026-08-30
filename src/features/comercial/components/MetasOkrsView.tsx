@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Target, Award, Plus } from 'lucide-react';
+import { Target, Award, Plus, Calendar, User, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useComercialStore } from '../hooks/useComercialStore';
 import { MetaComercial, OkrComercial } from '../types';
+import { toast } from 'sonner';
 
 export function MetasOkrsView() {
   const { metas, okrs, addMetaItem, addOkrItem } = useComercialStore();
@@ -17,67 +18,99 @@ export function MetasOkrsView() {
   const [openMeta, setOpenMeta] = useState(false);
   const [novaMeta, setNovaMeta] = useState<Partial<MetaComercial>>({
     tipo: 'Mensal',
-    categoriaTarget: 'Meta Financeira',
+    categoriaTarget: 'Receita Total',
     status: 'Em Andamento',
-    valorRealizadoR$: 0
+    valorRealizado: 0,
+    valorMeta: 100000,
+    periodo: 'Março 2026',
+    aplicadaA: 'Equipe Geral'
   });
 
   const [openOkr, setOpenOkr] = useState(false);
   const [novoOkr, setNovoOkr] = useState<Partial<OkrComercial>>({
     status: 'No Prazo',
-    percentualConclusao: 0
+    percentualConclusao: 0,
+    periodo: 'Q1 2026',
+    responsavel: 'Adriano Leal'
   });
 
   const handleAddMeta = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!novaMeta.titulo) {
+      toast.error('Informe o título da meta.');
+      return;
+    }
+
     addMetaItem({
       ...novaMeta,
       id: `m-${Date.now()}`,
-      titulo: novaMeta.titulo || 'Nova Meta',
-      aplicadaA: novaMeta.aplicadaA || 'Equipe',
-      valorMetaR$: Number(novaMeta.valorMetaR$) || 0,
-      periodo: novaMeta.periodo || 'Ms Atual',
+      titulo: novaMeta.titulo,
+      aplicadaA: novaMeta.aplicadaA || 'Equipe Geral',
+      categoriaTarget: novaMeta.categoriaTarget || 'Receita Total',
+      tipo: novaMeta.tipo || 'Mensal',
+      valorMeta: Number(novaMeta.valorMeta) || 0,
+      valorRealizado: Number(novaMeta.valorRealizado) || 0,
+      periodo: novaMeta.periodo || 'Março 2026',
+      status: 'Em Andamento'
     } as MetaComercial);
+
+    toast.success('Meta comercial adicionada com sucesso!');
     setOpenMeta(false);
   };
 
   const handleAddOkr = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!novoOkr.objetivo || !novoOkr.keyResult) {
+      toast.error('Preencha o Objetivo e Key Result.');
+      return;
+    }
+
     addOkrItem({
       ...novoOkr,
       id: `okr-${Date.now()}`,
-      objetivo: novoOkr.objetivo || 'Novo Objetivo',
-      keyResult: novoOkr.keyResult || '',
-      responsavel: novoOkr.responsavel || '',
-      periodo: novoOkr.periodo || 'Trimestre',
+      objetivo: novoOkr.objetivo,
+      keyResult: novoOkr.keyResult,
+      responsavel: novoOkr.responsavel || 'Adriano Leal',
+      periodo: novoOkr.periodo || 'Q1 2026',
+      percentualConclusao: Number(novoOkr.percentualConclusao) || 0,
+      status: novoOkr.status || 'No Prazo'
     } as OkrComercial);
+
+    toast.success('OKR comercial cadastrado!');
     setOpenOkr(false);
   };
 
   return (
-    <div className="space-y-6 animate-fade-in pt-2">
-      {/* SEO 1: METAS COMERCIAIS */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Target className="w-5 h-5 text-primary" /> Metas Comerciais
-          </CardTitle>
+    <div className="space-y-6 animate-fade-in pt-1">
+      {/* SEÇÃO 1: METAS COMERCIAIS */}
+      <Card className="rounded-2xl border shadow-xs">
+        <CardHeader className="flex flex-row items-center justify-between pb-3">
+          <div>
+            <CardTitle className="text-base font-bold flex items-center gap-2">
+              <Target className="w-5 h-5 text-orange-500" /> Metas Comerciais
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Acompanhamento de metas financeiras, contratos e produtividade por consultor e time.
+            </CardDescription>
+          </div>
           <Dialog open={openMeta} onOpenChange={setOpenMeta}>
             <DialogTrigger asChild>
-              <Button size="sm" className="h-8 gap-1"><Plus className="w-4 h-4" /> Nova Meta</Button>
+              <Button size="sm" className="bg-orange-600 hover:bg-orange-700 text-white rounded-xl gap-1 text-xs h-8 font-bold shadow-xs">
+                <Plus className="w-3.5 h-3.5" /> Nova Meta
+              </Button>
             </DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle>Adicionar Nova Meta</DialogTitle></DialogHeader>
-              <form onSubmit={handleAddMeta} className="space-y-4 pt-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2 col-span-2">
-                    <Label>Ttulo da Meta</Label>
-                    <Input required value={novaMeta.titulo || ''} onChange={e => setNovaMeta({...novaMeta, titulo: e.target.value})} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Tipo</Label>
+            <DialogContent className="sm:max-w-md rounded-2xl">
+              <DialogHeader><DialogTitle className="text-base font-bold">Adicionar Nova Meta Comercial</DialogTitle></DialogHeader>
+              <form onSubmit={handleAddMeta} className="space-y-3.5 py-2 text-xs">
+                <div className="space-y-1.5">
+                  <Label className="font-semibold">Título da Meta *</Label>
+                  <Input required placeholder="Ex: Receita Comercial Q1 2026" value={novaMeta.titulo || ''} onChange={e => setNovaMeta({...novaMeta, titulo: e.target.value})} className="rounded-xl" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="font-semibold">Tipo</Label>
                     <Select value={novaMeta.tipo} onValueChange={(val: any) => setNovaMeta({...novaMeta, tipo: val})}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Mensal">Mensal</SelectItem>
                         <SelectItem value="Trimestral">Trimestral</SelectItem>
@@ -86,75 +119,84 @@ export function MetasOkrsView() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Categoria Alvo</Label>
+                  <div className="space-y-1.5">
+                    <Label className="font-semibold">Categoria</Label>
                     <Select value={novaMeta.categoriaTarget} onValueChange={(val: any) => setNovaMeta({...novaMeta, categoriaTarget: val})}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Meta Financeira">Meta Financeira</SelectItem>
-                        <SelectItem value="Meta de Contratos">Meta de Contratos</SelectItem>
-                        <SelectItem value="Meta de Projetos">Meta de Projetos</SelectItem>
-                        <SelectItem value="Meta de Receita Recorrente">Meta de Receita Recorrente</SelectItem>
+                        <SelectItem value="Receita Total">Receita Total</SelectItem>
+                        <SelectItem value="Quantidade de Vendas">Quantidade de Vendas</SelectItem>
+                        <SelectItem value="Contratos Recorrentes">Contratos Recorrentes</SelectItem>
+                        <SelectItem value="Propostas Enviadas">Propostas Enviadas</SelectItem>
+                        <SelectItem value="Contatos / Follow-ups">Contatos / Follow-ups</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Aplicada A (Responsvel/Equipe)</Label>
-                    <Input required value={novaMeta.aplicadaA || ''} onChange={e => setNovaMeta({...novaMeta, aplicadaA: e.target.value})} />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="font-semibold">Aplicada A</Label>
+                    <Input required placeholder="Ex: Equipe Geral ou Adriano" value={novaMeta.aplicadaA || ''} onChange={e => setNovaMeta({...novaMeta, aplicadaA: e.target.value})} className="rounded-xl" />
                   </div>
-                  <div className="space-y-2">
-                    <Label>Perodo (Ex: Q1 2026)</Label>
-                    <Input required value={novaMeta.periodo || ''} onChange={e => setNovaMeta({...novaMeta, periodo: e.target.value})} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Valor da Meta (R$)</Label>
-                    <Input type="number" required min="0" step="0.01" value={novaMeta.valorMetaR$ || ''} onChange={e => setNovaMeta({...novaMeta, valorMetaR$: Number(e.target.value)})} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Valor Realizado Inicial (R$)</Label>
-                    <Input type="number" min="0" step="0.01" value={novaMeta.valorRealizadoR$ || 0} onChange={e => setNovaMeta({...novaMeta, valorRealizadoR$: Number(e.target.value)})} />
+                  <div className="space-y-1.5">
+                    <Label className="font-semibold">Período</Label>
+                    <Input required placeholder="Ex: Março 2026" value={novaMeta.periodo || ''} onChange={e => setNovaMeta({...novaMeta, periodo: e.target.value})} className="rounded-xl" />
                   </div>
                 </div>
-                <div className="flex justify-end pt-4">
-                  <Button type="submit">Salvar Meta</Button>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="font-semibold">Valor Alvo da Meta</Label>
+                    <Input type="number" required min="0" value={novaMeta.valorMeta || ''} onChange={e => setNovaMeta({...novaMeta, valorMeta: Number(e.target.value)})} className="rounded-xl" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="font-semibold">Realizado Inicial</Label>
+                    <Input type="number" min="0" value={novaMeta.valorRealizado || 0} onChange={e => setNovaMeta({...novaMeta, valorRealizado: Number(e.target.value)})} className="rounded-xl" />
+                  </div>
                 </div>
+                <DialogFooter className="pt-2">
+                  <Button type="button" variant="outline" onClick={() => setOpenMeta(false)} className="rounded-xl">Cancelar</Button>
+                  <Button type="submit" className="bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-bold">Salvar Meta</Button>
+                </DialogFooter>
               </form>
             </DialogContent>
           </Dialog>
         </CardHeader>
         <CardContent>
           {metas.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground border rounded-lg bg-muted/20">Nenhuma meta cadastrada.</div>
+            <div className="text-center py-8 text-muted-foreground border rounded-xl bg-muted/20 text-xs">Nenhuma meta cadastrada.</div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {metas.map(meta => {
-                const perc = Math.min(100, Math.round((meta.valorRealizadoR$ / (meta.valorMetaR$ || 1)) * 100));
+                const valMeta = meta.valorMeta || (meta as any).valorMetaR$ || 1;
+                const valReal = meta.valorRealizado || (meta as any).valorRealizadoR$ || 0;
+                const perc = Math.min(100, Math.round((valReal / valMeta) * 100));
+
                 return (
-                  <div key={meta.id} className="p-4 border rounded-lg bg-card space-y-3">
+                  <div key={meta.id} className="p-4 border rounded-2xl bg-card space-y-3 shadow-2xs hover:border-orange-500/40 transition-all">
                     <div className="flex justify-between items-start">
                       <Badge variant="outline" className="text-[10px]">{meta.tipo}</Badge>
                       <Badge 
                         className={
-                          meta.status === 'Atingida' ? 'bg-emerald-100 text-emerald-800 border-emerald-200 text-[10px]' :
-                          meta.status === 'Em Andamento' ? 'bg-blue-100 text-blue-800 border-blue-200 text-[10px]' : 'bg-rose-100 text-rose-800 border-rose-200 text-[10px]'
+                          meta.status === 'Atingida' || meta.status === 'Superada' ? 'bg-emerald-100 text-emerald-800 border-emerald-200 text-[10px]' :
+                          meta.status === 'Em Andamento' ? 'bg-blue-100 text-blue-800 border-blue-200 text-[10px]' : 'bg-amber-100 text-amber-800 border-amber-200 text-[10px]'
                         }
                       >
                         {meta.status}
                       </Badge>
                     </div>
                     <div>
-                      <h4 className="font-bold text-sm leading-tight">{meta.titulo}</h4>
-                      <p className="text-xs text-muted-foreground mt-0.5">Alvo: {meta.aplicadaA}</p>
+                      <h4 className="font-bold text-sm leading-tight text-foreground">{meta.titulo}</h4>
+                      <p className="text-xs text-muted-foreground mt-0.5">Alvo: <strong>{meta.aplicadaA}</strong> ({meta.periodo})</p>
                     </div>
                     <div className="space-y-1 text-xs">
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Progresso:</span>
-                        <span className="font-bold">{perc}%</span>
+                        <span className="font-bold text-foreground">{perc}%</span>
                       </div>
                       <Progress value={perc} className="h-2" />
-                      <div className="flex justify-between text-[11px] pt-1 text-muted-foreground">
-                        <span>R$ {meta.valorRealizadoR$.toLocaleString('pt-BR')}</span>
-                        <span>Meta: R$ {meta.valorMetaR$.toLocaleString('pt-BR')}</span>
+                      <div className="flex justify-between text-[11px] pt-1 text-muted-foreground font-mono">
+                        <span>{valReal.toLocaleString('pt-BR')}</span>
+                        <span>Meta: {valMeta.toLocaleString('pt-BR')}</span>
                       </div>
                     </div>
                   </div>
@@ -165,63 +207,71 @@ export function MetasOkrsView() {
         </CardContent>
       </Card>
 
-      {/* SEO 2: OKRs COMERCIAIS */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Award className="w-5 h-5 text-purple-500" /> OKRs Comerciais
-          </CardTitle>
+      {/* SEÇÃO 2: OKRs COMERCIAIS */}
+      <Card className="rounded-2xl border shadow-xs">
+        <CardHeader className="flex flex-row items-center justify-between pb-3">
+          <div>
+            <CardTitle className="text-base font-bold flex items-center gap-2">
+              <Award className="w-5 h-5 text-purple-500" /> OKRs Comerciais Estratégicos
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Objetivos e Key Results para impulsionar a conversão e eficiência comercial.
+            </CardDescription>
+          </div>
           <Dialog open={openOkr} onOpenChange={setOpenOkr}>
             <DialogTrigger asChild>
-              <Button size="sm" className="h-8 gap-1"><Plus className="w-4 h-4" /> Novo OKR</Button>
+              <Button size="sm" variant="outline" className="rounded-xl gap-1 text-xs h-8 font-semibold">
+                <Plus className="w-3.5 h-3.5" /> Novo OKR
+              </Button>
             </DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle>Adicionar Novo OKR</DialogTitle></DialogHeader>
-              <form onSubmit={handleAddOkr} className="space-y-4 pt-4">
-                <div className="space-y-2">
-                  <Label>Objetivo Maior (O)</Label>
-                  <Input required value={novoOkr.objetivo || ''} onChange={e => setNovoOkr({...novoOkr, objetivo: e.target.value})} />
+            <DialogContent className="sm:max-w-md rounded-2xl">
+              <DialogHeader><DialogTitle className="text-base font-bold">Adicionar Novo OKR Comercial</DialogTitle></DialogHeader>
+              <form onSubmit={handleAddOkr} className="space-y-3.5 py-2 text-xs">
+                <div className="space-y-1.5">
+                  <Label className="font-semibold">Objetivo Maior (O) *</Label>
+                  <Input required placeholder="Ex: Aumentar a eficiência do funil comercial" value={novoOkr.objetivo || ''} onChange={e => setNovoOkr({...novoOkr, objetivo: e.target.value})} className="rounded-xl" />
                 </div>
-                <div className="space-y-2">
-                  <Label>Key Result (KR)</Label>
-                  <Input required value={novoOkr.keyResult || ''} onChange={e => setNovoOkr({...novoOkr, keyResult: e.target.value})} />
+                <div className="space-y-1.5">
+                  <Label className="font-semibold">Key Result (KR) *</Label>
+                  <Input required placeholder="Ex: Aumentar conversão para 25%" value={novoOkr.keyResult || ''} onChange={e => setNovoOkr({...novoOkr, keyResult: e.target.value})} className="rounded-xl" />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Responsvel</Label>
-                    <Input required value={novoOkr.responsavel || ''} onChange={e => setNovoOkr({...novoOkr, responsavel: e.target.value})} />
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="font-semibold">Responsável</Label>
+                    <Input required value={novoOkr.responsavel || ''} onChange={e => setNovoOkr({...novoOkr, responsavel: e.target.value})} className="rounded-xl" />
                   </div>
-                  <div className="space-y-2">
-                    <Label>Perodo</Label>
-                    <Input required value={novoOkr.periodo || ''} onChange={e => setNovoOkr({...novoOkr, periodo: e.target.value})} />
+                  <div className="space-y-1.5">
+                    <Label className="font-semibold">Período</Label>
+                    <Input required value={novoOkr.periodo || ''} onChange={e => setNovoOkr({...novoOkr, periodo: e.target.value})} className="rounded-xl" />
                   </div>
                 </div>
-                <div className="flex justify-end pt-4">
-                  <Button type="submit">Salvar OKR</Button>
-                </div>
+                <DialogFooter className="pt-2">
+                  <Button type="button" variant="outline" onClick={() => setOpenOkr(false)} className="rounded-xl">Cancelar</Button>
+                  <Button type="submit" className="bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-bold">Salvar OKR</Button>
+                </DialogFooter>
               </form>
             </DialogContent>
           </Dialog>
         </CardHeader>
         <CardContent>
           {okrs.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground border rounded-lg bg-muted/20">Nenhum OKR cadastrado.</div>
+            <div className="text-center py-8 text-muted-foreground border rounded-xl bg-muted/20 text-xs">Nenhum OKR cadastrado.</div>
           ) : (
             <div className="space-y-3 text-xs">
               {okrs.map(okr => (
-                <div key={okr.id} className="p-4 border rounded-lg bg-card flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div key={okr.id} className="p-4 border rounded-2xl bg-card flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-2xs hover:border-purple-500/40 transition-all">
                   <div className="space-y-1 flex-1">
                     <div className="flex items-center gap-2">
                       <Badge variant="secondary" className="text-[10px]">{okr.periodo}</Badge>
-                      <span className="font-bold text-sm">{okr.objetivo}</span>
+                      <span className="font-bold text-sm text-foreground">{okr.objetivo}</span>
                     </div>
-                    <p className="text-muted-foreground">Key Result: {okr.keyResult}</p>
-                    <p className="text-[10px] text-muted-foreground">Responsvel: {okr.responsavel}</p>
+                    <p className="text-muted-foreground">🎯 Key Result: <strong>{okr.keyResult}</strong></p>
+                    <p className="text-[11px] text-muted-foreground">Responsável: <strong>{okr.responsavel}</strong></p>
                   </div>
                   <div className="w-full md:w-48 space-y-1">
                     <div className="flex justify-between text-[11px]">
-                      <span>Concluso:</span>
-                      <span className="font-bold">{okr.percentualConclusao}%</span>
+                      <span>Conclusão:</span>
+                      <span className="font-bold text-foreground">{okr.percentualConclusao}%</span>
                     </div>
                     <Progress value={okr.percentualConclusao} className="h-2" />
                   </div>
