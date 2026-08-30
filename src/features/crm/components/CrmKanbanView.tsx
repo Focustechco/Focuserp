@@ -254,38 +254,38 @@ export function CrmKanbanView() {
 
   return (
     <div className="space-y-4 animate-fade-in pt-1">
-      {/* Barra de Status e Ferramentas Responsiva */}
-      <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3 bg-muted/20 p-3.5 sm:p-4 border rounded-2xl shadow-2xs">
-        <div className="flex flex-wrap items-center gap-2.5">
-          {/* Badge ClickUp Status */}
+      {/* Controles Minimalistas do Kanban (Sem container pesado para dar protagonismo ao quadro) */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2.5 pb-1">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          {/* Badge ClickUp Minimalista */}
           {isConnected ? (
-            <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 py-1 px-3 rounded-xl text-xs font-semibold text-emerald-800 dark:text-emerald-200">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="truncate max-w-[220px] sm:max-w-none">
-                Espelho ClickUp: <strong>{config.listName || config.listId}</strong>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/40 px-2.5 py-1 rounded-lg border border-border/50">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+              <span className="truncate max-w-[180px] sm:max-w-none text-[11px] font-medium text-foreground">
+                {config.listName || config.listId || 'ClickUp Conectado'}
               </span>
             </div>
           ) : (
-            <div className="flex items-center gap-2 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 py-1 px-3 rounded-xl text-xs font-semibold text-amber-800 dark:text-amber-200">
-              <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
-              <span>ClickUp Desconectado</span>
+            <div className="flex items-center gap-1.5 text-xs text-amber-600 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20">
+              <AlertCircle className="w-3 h-3 text-amber-600 shrink-0" />
+              <span className="text-[11px] font-medium">ClickUp Desconectado</span>
             </div>
           )}
 
-          {/* Busca */}
-          <div className="relative flex-1 sm:w-64 min-w-[180px]">
-            <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+          {/* Busca Minimalista */}
+          <div className="relative w-full sm:w-56">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input 
               placeholder="Buscar cards ou clientes..." 
-              className="pl-8 h-8 text-xs bg-background rounded-xl"
+              className="pl-8 h-8 text-xs bg-background/90 border-border/60"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
 
-          {/* Filtro de Prioridade */}
+          {/* Filtro de Prioridade Minimalista */}
           <Select value={prioridadeFilter} onValueChange={setPrioridadeFilter}>
-            <SelectTrigger className="w-[130px] h-8 text-xs bg-background rounded-xl">
+            <SelectTrigger className="w-[125px] h-8 text-xs bg-background/90 border-border/60">
               <SelectValue placeholder="Prioridade" />
             </SelectTrigger>
             <SelectContent>
@@ -298,28 +298,28 @@ export function CrmKanbanView() {
           </Select>
         </div>
 
-        <div className="flex items-center gap-2 justify-end pt-1 md:pt-0">
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
           {isConnected && (
             <Button 
               variant="outline" 
               size="sm" 
               disabled={isLoadingClickUp}
               onClick={() => importRealClickUpTasks()}
-              className="gap-1.5 text-xs h-8 font-semibold rounded-xl"
+              className="gap-1.5 text-xs h-8 font-medium border-border/60 hover:bg-muted/40 cursor-pointer"
+              title="Sincronizar tarefas do ClickUp"
             >
               <RefreshCw className={`w-3.5 h-3.5 text-orange-500 ${isLoadingClickUp ? 'animate-spin' : ''}`} />
-              <span className="hidden sm:inline">{isLoadingClickUp ? 'Sincronizando...' : 'Sincronizar ClickUp'}</span>
-              <span className="sm:hidden">Sincronizar</span>
+              <span className="hidden sm:inline">{isLoadingClickUp ? 'Sincronizando...' : 'Sincronizar'}</span>
             </Button>
           )}
 
           <Button 
             onClick={() => setOpenNewModal(true)} 
             size="sm" 
-            className="gap-1.5 h-8 text-xs bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-xl shadow-xs"
+            className="gap-1.5 h-8 text-xs font-semibold bg-orange-600 hover:bg-orange-700 text-white cursor-pointer shadow-none"
           >
             <Plus className="w-3.5 h-3.5" /> 
-            <span>Nova Tarefa / Deal</span>
+            <span>Novo Card</span>
           </Button>
         </div>
       </div>
