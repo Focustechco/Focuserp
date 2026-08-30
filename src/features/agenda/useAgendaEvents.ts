@@ -56,7 +56,7 @@ export function useAgendaEvents() {
     };
   });
 
-  // 2. Projeção de Recorrências do Módulo Clientes / Recorrências no Calendário
+  // 2. Projeção de Recorrências no Calendário (Recebimentos de Clientes & Pagamentos de Fornecedores)
   const mappedRecorrencias: EventoFinanceiro[] = [];
   const currentDate = new Date();
   const currentYear = currentDate.getFullYear();
@@ -65,6 +65,11 @@ export function useAgendaEvents() {
 
   recorrencias.forEach(r => {
     if (!r || r.status === 'Encerrada') return;
+
+    const isDespesa = r.tipo === 'Despesa' || r.origem === 'despesa' || r.origem === 'fornecedor' || Boolean(r.fornecedorNome);
+    const entidadeNome = isDespesa 
+      ? (r.fornecedorNome || r.clienteNome || 'Fornecedor')
+      : (r.clienteNome || (r as any).clientName || 'Cliente');
 
     const dataInicioStr = r.dataInicio || `${currentYear}-01-01`;
     const dataInicio = parseDateSafe(dataInicioStr);
@@ -92,49 +97,88 @@ export function useAgendaEvents() {
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(targetDay).padStart(2, '0')}`;
 
         if (dateStr < dataInicioStr.split('T')[0]) continue;
+        if (r.dataFim && dateStr > r.dataFim.split('T')[0]) continue;
+        if (r.dataFinal && dateStr > r.dataFinal.split('T')[0]) continue;
 
-        const tituloExistente = contasReceber.find(c => 
-          (c.clienteId === r.clientId || (c.cliente && c.cliente.toLowerCase() === (r.clientName || '').toLowerCase())) &&
-          (c.dataVencimento === dateStr || (c.descricao && c.descricao.includes(r.descricao)))
-        );
+        if (isDespesa) {
+          // Despesa Recorrente
+          const tituloExistentePagar = contasPagar.find(c => 
+            (c.fornecedor && c.fornecedor.toLowerCase() === entidadeNome.toLowerCase()) &&
+            (c.dataVencimento === dateStr || (c.descricao && c.descricao.includes(r.descricao)))
+          );
 
-        let statusEvent: StatusAgenda = 'Em Aberto';
-        if (tituloExistente) {
-          if (tituloExistente.status === 'Recebido') statusEvent = 'Recebido';
-          else if (tituloExistente.status === 'Atrasado') statusEvent = 'Vencido';
-          else if (tituloExistente.status === 'Cancelado') statusEvent = 'Cancelado';
-        } else {
-          if (dateStr < todayIso) {
-            statusEvent = 'Vencido';
+          let statusEvent: StatusAgenda = 'Em Aberto';
+          if (tituloExistentePagar) {
+            if (tituloExistentePagar.status === 'Pago') statusEvent = 'Pago';
+            else if (tituloExistentePagar.status === 'Vencido') statusEvent = 'Vencido';
+            else if (tituloExistentePagar.status === 'Cancelado') statusEvent = 'Cancelado';
           } else {
-            statusEvent = 'Previsto';
+            statusEvent = dateStr < todayIso ? 'Vencido' : 'Previsto';
           }
-        }
 
-        const duplicateIndex = mappedReceber.findIndex(m => 
-          (m.clienteId === r.clientId || m.entidadeVinculo?.toLowerCase() === (r.clientName || '').toLowerCase()) &&
-          m.data === dateStr
-        );
+          const dupIndex = mappedPagar.findIndex(m => 
+            m.entidadeVinculo?.toLowerCase() === entidadeNome.toLowerCase() && m.data === dateStr
+          );
 
-        if (duplicateIndex !== -1) {
-          mappedReceber[duplicateIndex].categoria = 'Recorrência';
-          mappedReceber[duplicateIndex].titulo = `[Recorrência] ${r.clientName} - ${r.descricao || 'Mensalidade'}`;
-          mappedReceber[duplicateIndex].observacoes = `Recorrência ${r.frequencia || 'Mensal'} (Todo dia ${diaVenc} do mês)`;
+          if (dupIndex !== -1) {
+            mappedPagar[dupIndex].titulo = `[Recorrência Despesa] ${entidadeNome} - ${r.descricao || 'Despesa Fixa'}`;
+            mappedPagar[dupIndex].observacoes = `Recorrência ${r.frequencia || 'Mensal'} (Dia ${diaVenc} do mês)`;
+          } else {
+            mappedRecorrencias.push({
+              id: `rec-pag-proj-${r.id}-${year}-${month + 1}`,
+              titulo: `[Recorrência Despesa] ${entidadeNome} - ${r.descricao || 'Despesa Fixa'}`,
+              categoria: 'Pagamento',
+              data: dateStr,
+              valor: Number(r.valor || 0),
+              entidadeVinculo: entidadeNome,
+              status: statusEvent,
+              prioridade: 'Alta',
+              moduloOrigem: 'Contas a Pagar',
+              linkOrigem: '/contas-a-pagar',
+              observacoes: `Recorrência ${r.frequencia || 'Mensal'} (Dia ${diaVenc} do mês) • Fornecedor: ${entidadeNome}`
+            });
+          }
         } else {
-          mappedRecorrencias.push({
-            id: `rec-proj-${r.id}-${year}-${month + 1}`,
-            titulo: `[Recorrência] ${r.clientName} - ${r.descricao || 'Mensalidade'}`,
-            categoria: 'Recorrência',
-            data: dateStr,
-            valor: Number(r.valor || 0),
-            entidadeVinculo: r.clientName,
-            clienteId: r.clientId,
-            status: statusEvent,
-            prioridade: 'Alta',
-            moduloOrigem: 'Clientes',
-            linkOrigem: '/clientes',
-            observacoes: `Recorrência ${r.frequencia || 'Mensal'} (Dia ${diaVenc} do mês) • Próxima Cobrança: ${r.proximaCobranca || dateStr}`
-          });
+          // Receita Recorrente
+          const tituloExistente = contasReceber.find(c => 
+            (c.clienteId === r.clientId || (c.cliente && c.cliente.toLowerCase() === entidadeNome.toLowerCase())) &&
+            (c.dataVencimento === dateStr || (c.descricao && c.descricao.includes(r.descricao)))
+          );
+
+          let statusEvent: StatusAgenda = 'Em Aberto';
+          if (tituloExistente) {
+            if (tituloExistente.status === 'Recebido') statusEvent = 'Recebido';
+            else if (tituloExistente.status === 'Atrasado') statusEvent = 'Vencido';
+            else if (tituloExistente.status === 'Cancelado') statusEvent = 'Cancelado';
+          } else {
+            statusEvent = dateStr < todayIso ? 'Vencido' : 'Previsto';
+          }
+
+          const duplicateIndex = mappedReceber.findIndex(m => 
+            (m.clienteId === r.clientId || m.entidadeVinculo?.toLowerCase() === entidadeNome.toLowerCase()) &&
+            m.data === dateStr
+          );
+
+          if (duplicateIndex !== -1) {
+            mappedReceber[duplicateIndex].categoria = 'Recorrência';
+            mappedReceber[duplicateIndex].titulo = `[Recorrência Receita] ${entidadeNome} - ${r.descricao || 'Mensalidade'}`;
+            mappedReceber[duplicateIndex].observacoes = `Recorrência ${r.frequencia || 'Mensal'} (Todo dia ${diaVenc} do mês)`;
+          } else {
+            mappedRecorrencias.push({
+              id: `rec-proj-${r.id}-${year}-${month + 1}`,
+              titulo: `[Recorrência Receita] ${entidadeNome} - ${r.descricao || 'Mensalidade'}`,
+              categoria: 'Recorrência',
+              data: dateStr,
+              valor: Number(r.valor || 0),
+              entidadeVinculo: entidadeNome,
+              clienteId: r.clientId,
+              status: statusEvent,
+              prioridade: 'Alta',
+              moduloOrigem: 'Contas a Receber',
+              linkOrigem: '/contas-a-receber',
+              observacoes: `Recorrência ${r.frequencia || 'Mensal'} (Dia ${diaVenc} do mês) • Próxima Cobrança: ${r.proximaCobranca || dateStr}`
+            });
+          }
         }
       }
     });

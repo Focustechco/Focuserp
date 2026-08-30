@@ -12,8 +12,11 @@ export type StatusRecorrencia = 'Ativa' | 'Pausada' | 'Encerrada';
 
 export interface RecorrenciaFinanceira {
   id: string; // Ex: rec_... ou UUID
-  clientId: string; // Vínculo estrito com o ID do cliente
-  clienteNome: string;
+  clientId?: string; // Vínculo estrito com o ID do cliente
+  clienteNome?: string;
+  fornecedorId?: string; // Vínculo estrito com o ID do fornecedor
+  fornecedorNome?: string;
+  tipo?: 'Receita' | 'Despesa';
   descricao: string;
   valor: number;
   frequencia: FrequenciaRecorrencia;
@@ -25,9 +28,9 @@ export interface RecorrenciaFinanceira {
   quantidade?: number | null; // null/undefined = Indefinida
   status: StatusRecorrencia;
   categoria?: string;
-  formaPagamento?: FormaPagamento;
+  formaPagamento?: FormaPagamento | any;
   observacoes?: string;
-  origem: 'cliente' | 'financeiro' | 'contrato';
+  origem: 'cliente' | 'financeiro' | 'contrato' | 'fornecedor' | 'despesa';
   contratoId?: string;
   createdAt: string; // ISO Date
   updatedAt: string; // ISO Date

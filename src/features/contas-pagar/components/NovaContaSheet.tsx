@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-import { Plus } from 'lucide-react';
+import { Plus, RefreshCw, Layers } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { useContasPagarQuery } from '../hooks/useContasPagarQuery';
@@ -16,8 +16,9 @@ import { Fornecedor } from '@/features/fornecedores/types';
 import { Usuario } from '@/features/usuarios/types';
 import { INITIAL_USUARIOS } from '@/features/usuarios/data/initialData';
 import { SelectResponsavel } from '@/components/SelectResponsavel';
-
+import { RecorrenciaFinanceira, FrequenciaRecorrencia } from '@/features/recorrencias/types';
 import { useNotificacoesStore } from '@/features/notificacoes/useNotificacoesStore';
+import { addDays } from 'date-fns';
 
 export function NovaContaSheet({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
@@ -31,11 +32,27 @@ export function NovaContaSheet({ children }: { children: React.ReactNode }) {
   const [formaPagamento, setFormaPagamento] = useState('Boleto');
   const [responsavel, setResponsavel] = useState('');
 
+  // Parcelamento
+  const [qtdParcelas, setQtdParcelas] = useState('12');
+  const [intervaloDias, setIntervaloDias] = useState('30');
+  const [primeiroVencimento, setPrimeiroVencimento] = useState('');
+
+  // Recorrência
+  const [frequenciaRec, setFrequenciaRec] = useState<FrequenciaRecorrencia>('Mensal');
+  const [dataInicioRec, setDataInicioRec] = useState('');
+  const [dataFimRec, setDataFimRec] = useState('');
+  const [quantidadeRec, setQuantidadeRec] = useState('');
+
   const { saveConta } = useContasPagarQuery();
-  const { data: fornecedores } = useLocalStorageState<Fornecedor>('focus_fornecedores');
+  const { data: fornecedores = [] } = useLocalStorageState<Fornecedor>('focus_fornecedores');
   const { data: usuarios } = useLocalStorageState<Usuario>('focus_usuarios', INITIAL_USUARIOS);
+  const { data: recorrencias = [], setAllItems: setAllRecorrencias } = useLocalStorageState<RecorrenciaFinanceira>('focus_recorrencias');
   const { notificar } = useNotificacoesStore();
-  
+
+  const selectedFornecedorObj = fornecedores.find(f => f.nomeFantasia === fornecedor || f.razaoSocial === fornecedor || f.id === fornecedor);
+  const fornecedorNome = selectedFornecedorObj ? (selectedFornecedorObj.nomeFantasia || selectedFornecedorObj.razaoSocial) : fornecedor;
+  const fornecedorId = selectedFornecedorObj?.id || '';
+
   const handleSave = () => {
     if (!fornecedor || fornecedor === 'none') {
       toast.error("Por favor, selecione um Fornecedor cadastrado no sistema.");
@@ -49,7 +66,7 @@ export function NovaContaSheet({ children }: { children: React.ReactNode }) {
       toast.error("O Valor Original deve ser maior que zero!");
       return;
     }
-    if (!dataVencimento) {
+    if (!dataVencimento && !primeiroVencimento && !dataInicioRec) {
       toast.error("A Data de Vencimento é obrigatória!");
       return;
     }
@@ -59,33 +76,100 @@ export function NovaContaSheet({ children }: { children: React.ReactNode }) {
     }
 
     const val = parseFloat(valorOriginal) || 1000;
+    const baseVencimento = dataVencimento || primeiroVencimento || dataInicioRec || new Date().toISOString().split('T')[0];
 
-    const novaConta: ContaPagar = {
-      id: crypto.randomUUID(),
-      numero: `PAG-${Math.floor(100 + Math.random() * 900)}`,
-      fornecedor,
-      descricao,
-      categoria: categoria || 'Operacional',
-      valorOriginal: val,
-      valorPago: 0,
-      saldo: val,
-      dataEmissao: new Date().toISOString().split('T')[0],
-      dataVencimento: dataVencimento || new Date().toISOString().split('T')[0],
-      formaPagamento: (formaPagamento as any) || 'Boleto',
-      status: 'Pendente',
-      responsavel: responsavel || 'Financeiro',
-      ultimaAtualizacao: new Date().toISOString(),
-      historico: [
-        { id: `h-${Date.now()}`, data: new Date().toISOString(), usuario: 'Usuário', acao: 'Criação da conta' }
-      ]
-    };
+    // 1. Se for Recorrente, registra a Recorrência Financeira de Despesa
+    if (recorrente) {
+      const novaRecorrencia: RecorrenciaFinanceira = {
+        id: `rec-pag-${Date.now()}`,
+        fornecedorId: fornecedorId,
+        fornecedorNome: fornecedorNome,
+        tipo: 'Despesa',
+        descricao: descricao,
+        valor: val,
+        frequencia: frequenciaRec,
+        dataInicio: dataInicioRec || baseVencimento,
+        dataFim: dataFimRec || undefined,
+        dataFinal: dataFimRec || undefined,
+        proximaCobranca: baseVencimento,
+        diaVencimento: parseInt(baseVencimento.split('-')[2], 10) || 10,
+        quantidade: quantidadeRec ? parseInt(quantidadeRec, 10) : null,
+        status: 'Ativa',
+        origem: 'despesa',
+        categoria: categoria,
+        formaPagamento: formaPagamento,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
 
-    saveConta(novaConta as any);
+      setAllRecorrencias([novaRecorrencia, ...recorrencias]);
+    }
+
+    // 2. Se for Parcelada, gera os títulos das parcelas
+    if (parcelado) {
+      const numParcelas = Math.max(1, parseInt(qtdParcelas, 10) || 1);
+      const dias = parseInt(intervaloDias, 10) || 30;
+      const valorPorParcela = +(val / numParcelas).toFixed(2);
+      const codBase = Math.floor(100 + Math.random() * 900);
+
+      for (let i = 1; i <= numParcelas; i++) {
+        const dataVencParcela = addDays(new Date(primeiroVencimento || baseVencimento), (i - 1) * dias).toISOString().split('T')[0];
+        const contaParcela: ContaPagar = {
+          id: crypto.randomUUID(),
+          numero: `PAG-${codBase}/${String(i).padStart(2, '0')}`,
+          fornecedor: fornecedorNome,
+          descricao: `${descricao} (Parcela ${i}/${numParcelas})`,
+          categoria: categoria || 'Operacional',
+          valorOriginal: valorPorParcela,
+          valorPago: 0,
+          saldo: valorPorParcela,
+          dataEmissao: new Date().toISOString().split('T')[0],
+          dataVencimento: dataVencParcela,
+          formaPagamento: (formaPagamento as any) || 'Boleto',
+          status: 'Pendente',
+          responsavel: responsavel || 'Financeiro',
+          ultimaAtualizacao: new Date().toISOString(),
+          historico: [
+            { id: `h-${Date.now()}-${i}`, data: new Date().toISOString(), usuario: 'Usuário', acao: `Criação da parcela ${i}/${numParcelas}` }
+          ]
+        };
+        saveConta(contaParcela as any);
+      }
+
+      toast.success(`${numParcelas} parcelas de R$ ${valorPorParcela.toLocaleString('pt-BR')} cadastradas com sucesso!`);
+    } else {
+      // Conta avulsa ou primeiro ciclo de recorrência
+      const novaConta: ContaPagar = {
+        id: crypto.randomUUID(),
+        numero: `PAG-${Math.floor(100 + Math.random() * 900)}`,
+        fornecedor: fornecedorNome,
+        descricao: recorrente ? `${descricao} (Recorrência Mensal)` : descricao,
+        categoria: categoria || 'Operacional',
+        valorOriginal: val,
+        valorPago: 0,
+        saldo: val,
+        dataEmissao: new Date().toISOString().split('T')[0],
+        dataVencimento: baseVencimento,
+        formaPagamento: (formaPagamento as any) || 'Boleto',
+        status: 'Pendente',
+        responsavel: responsavel || 'Financeiro',
+        recorrente: recorrente,
+        recorrenciaFrequencia: frequenciaRec,
+        recorrenciaFim: dataFimRec,
+        ultimaAtualizacao: new Date().toISOString(),
+        historico: [
+          { id: `h-${Date.now()}`, data: new Date().toISOString(), usuario: 'Usuário', acao: 'Criação da conta' }
+        ]
+      };
+
+      saveConta(novaConta as any);
+      toast.success(recorrente ? "Despesa e plano recorrente cadastrados com sucesso!" : "Despesa cadastrada com sucesso!");
+    }
 
     // Disparar Notificação Automática
     notificar({
-      titulo: `Nova Conta a Pagar Lançada (${novaConta.numero})`,
-      descricao: `Despesa de R$ ${val.toLocaleString('pt-BR')} para ${fornecedor} com vencimento em ${dataVencimento}.`,
+      titulo: `Nova Conta a Pagar Lançada para ${fornecedorNome}`,
+      descricao: `Despesa de R$ ${val.toLocaleString('pt-BR')} com vencimento em ${baseVencimento}.`,
       origem: 'Financeiro',
       tipo: 'Aviso',
       prioridade: 'Alta',
@@ -93,11 +177,12 @@ export function NovaContaSheet({ children }: { children: React.ReactNode }) {
       usuarioDestino: responsavel || 'Você'
     });
 
-    toast.success("Despesa cadastrada com sucesso!");
     setOpen(false);
     setDescricao('');
     setFornecedor('');
     setValorOriginal('');
+    setRecorrente(false);
+    setParcelado(false);
   };
 
   return (
@@ -118,68 +203,71 @@ export function NovaContaSheet({ children }: { children: React.ReactNode }) {
             <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
               <TabsTrigger value="geral" className="shrink-0 whitespace-nowrap">Geral</TabsTrigger>
               <TabsTrigger value="financeiro" className="shrink-0 whitespace-nowrap">Financeiro</TabsTrigger>
-              <TabsTrigger value="parcelamento" className="shrink-0 whitespace-nowrap">Parcelas</TabsTrigger>
-              <TabsTrigger value="recorrencia" className="shrink-0 whitespace-nowrap">Recorrência</TabsTrigger>
+              <TabsTrigger value="parcelamento" className="shrink-0 whitespace-nowrap gap-1">
+                <Layers className="w-3 h-3" /> Parcelas
+              </TabsTrigger>
+              <TabsTrigger value="recorrencia" className="shrink-0 whitespace-nowrap gap-1">
+                <RefreshCw className="w-3 h-3" /> Recorrência
+              </TabsTrigger>
             </TabsList>
           </div>
           
           {/* Aba: Geral */}
           <TabsContent value="geral" className="space-y-4">
-            <div className="grid grid-cols-1 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="fornecedor">Fornecedor / Favorecido *</Label>
+              <Select value={fornecedor} onValueChange={setFornecedor}>
+                <SelectTrigger id="fornecedor">
+                  <SelectValue placeholder="Selecione um fornecedor" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none" disabled>Selecione um fornecedor</SelectItem>
+                  {fornecedores.map(f => (
+                    <SelectItem key={f.id} value={f.nomeFantasia || f.razaoSocial}>
+                      {f.nomeFantasia || f.razaoSocial} ({f.documento || 'Sem CNPJ'})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="descricao">Descrição da Despesa *</Label>
+              <Input 
+                id="descricao" 
+                placeholder="Ex: Licença Servidor AWS, Aluguel Escritório..." 
+                value={descricao}
+                onChange={e => setDescricao(e.target.value)}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="fornecedor">Fornecedor *</Label>
-                <Select value={fornecedor} onValueChange={setFornecedor}>
-                  <SelectTrigger id="fornecedor">
-                    <SelectValue placeholder="Selecione o fornecedor cadastrado" />
+                <Label htmlFor="categoria">Categoria *</Label>
+                <Select value={categoria} onValueChange={setCategoria}>
+                  <SelectTrigger id="categoria">
+                    <SelectValue placeholder="Categoria" />
                   </SelectTrigger>
                   <SelectContent>
-                    {fornecedores.length === 0 ? (
-                      <SelectItem value="none" disabled>
-                        Nenhum fornecedor cadastrado. Cadastre no módulo Fornecedores primeiro.
-                      </SelectItem>
-                    ) : (
-                      fornecedores.map((f) => {
-                        const name = f.nomeFantasia || f.razaoSocial || 'Fornecedor Sem Nome';
-                        return (
-                          <SelectItem key={f.id} value={name}>
-                            {name} ({f.documento || 'Sem doc'})
-                          </SelectItem>
-                        );
-                      })
-                    )}
+                    <SelectItem value="Infraestrutura">Infraestrutura & Cloud</SelectItem>
+                    <SelectItem value="Operacional">Operacional</SelectItem>
+                    <SelectItem value="Software">Licenças de Software</SelectItem>
+                    <SelectItem value="Marketing">Marketing & Vendas</SelectItem>
+                    <SelectItem value="Folha de Pagamento">Folha de Pagamento</SelectItem>
+                    <SelectItem value="Impostos">Impostos & Tributos</SelectItem>
+                    <SelectItem value="Serviços Terceiros">Serviços Terceiros</SelectItem>
+                    <SelectItem value="Outros">Outros</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+
               <div className="space-y-2">
-                <Label htmlFor="descricao">Descrição *</Label>
-                <Input id="descricao" placeholder="Ex: Fatura de Hospedagem Cloud" value={descricao} onChange={e => setDescricao(e.target.value)} />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="categoria">Categoria *</Label>
-                  <Select>
-                    <SelectTrigger id="categoria">
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="tecnologia">Tecnologia</SelectItem>
-                      <SelectItem value="infraestrutura">Infraestrutura</SelectItem>
-                      <SelectItem value="impostos">Impostos</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="responsavel">Aprovador / Responsável</Label>
-                  <SelectResponsavel
-                    value={responsavel}
-                    onValueChange={setResponsavel}
-                    placeholder="Selecione o Responsável"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="observacoes">Observações Internas</Label>
-                <Input id="observacoes" placeholder="Centro de custos, justificativas..." />
+                <Label htmlFor="responsavel">Responsável / Aprovador</Label>
+                <SelectResponsavel 
+                  usuarios={usuarios} 
+                  value={responsavel} 
+                  onChange={setResponsavel} 
+                />
               </div>
             </div>
           </TabsContent>
@@ -188,21 +276,41 @@ export function NovaContaSheet({ children }: { children: React.ReactNode }) {
           <TabsContent value="financeiro" className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="valorOriginal">Valor da Despesa (R$) *</Label>
-                <Input id="valorOriginal" type="number" placeholder="0,00" value={valorOriginal} onChange={e => setValorOriginal(e.target.value)} />
+                <Label htmlFor="valor">Valor Original (R$) *</Label>
+                <Input 
+                  id="valor" 
+                  type="number" 
+                  placeholder="0,00" 
+                  value={valorOriginal}
+                  onChange={e => setValorOriginal(e.target.value)}
+                />
               </div>
+
               <div className="space-y-2">
-                <Label htmlFor="dataVencimento">Vencimento Original *</Label>
-                <Input id="dataVencimento" type="date" value={dataVencimento} onChange={e => setDataVencimento(e.target.value)} />
+                <Label htmlFor="vencimento">Data de Vencimento *</Label>
+                <Input 
+                  id="vencimento" 
+                  type="date" 
+                  value={dataVencimento}
+                  onChange={e => setDataVencimento(e.target.value)}
+                />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="desconto">Desconto Obtido (R$)</Label>
-                <Input id="desconto" type="number" placeholder="0,00" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="multa">Multa/Juros Projetados (R$)</Label>
-                <Input id="multa" type="number" placeholder="0,00" />
-              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="forma">Forma de Pagamento</Label>
+              <Select value={formaPagamento} onValueChange={setFormaPagamento}>
+                <SelectTrigger id="forma">
+                  <SelectValue placeholder="Forma" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Boleto">Boleto Bancário</SelectItem>
+                  <SelectItem value="PIX">PIX</SelectItem>
+                  <SelectItem value="Transferência">TED / Transferência</SelectItem>
+                  <SelectItem value="Cartão">Cartão Corporativo</SelectItem>
+                  <SelectItem value="Débito">Débito Automático</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </TabsContent>
 
@@ -211,27 +319,24 @@ export function NovaContaSheet({ children }: { children: React.ReactNode }) {
             <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/50">
               <div>
                 <h4 className="font-medium text-sm">Despesa Parcelada</h4>
-                <p className="text-xs text-muted-foreground">Dividir este pagamento em várias faturas.</p>
+                <p className="text-xs text-muted-foreground">Dividir este pagamento em várias parcelas/faturas.</p>
               </div>
-              <Switch checked={parcelado} onCheckedChange={setParcelado} />
+              <Switch checked={parcelado} onCheckedChange={(val) => { setParcelado(val); if (val) setRecorrente(false); }} />
             </div>
 
             {parcelado && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 border rounded-lg animate-in fade-in slide-in-from-top-2">
                 <div className="space-y-2">
                   <Label>Quantidade de Parcelas</Label>
-                  <Input type="number" placeholder="Ex: 12" />
+                  <Input type="number" placeholder="Ex: 12" value={qtdParcelas} onChange={e => setQtdParcelas(e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Intervalo (dias)</Label>
-                  <Input type="number" defaultValue="30" />
+                  <Label>Intervalo entre Parcelas (dias)</Label>
+                  <Input type="number" value={intervaloDias} onChange={e => setIntervaloDias(e.target.value)} />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2 col-span-1 sm:col-span-2">
                   <Label>1º Vencimento</Label>
-                  <Input type="date" />
-                </div>
-                <div className="col-span-1 sm:col-span-2 pt-2">
-                  <Button variant="secondary" className="w-full">Simular Parcelas</Button>
+                  <Input type="date" value={primeiroVencimento || dataVencimento} onChange={e => setPrimeiroVencimento(e.target.value)} />
                 </div>
               </div>
             )}
@@ -242,35 +347,36 @@ export function NovaContaSheet({ children }: { children: React.ReactNode }) {
             <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/50">
               <div>
                 <h4 className="font-medium text-sm">Despesa Recorrente</h4>
-                <p className="text-xs text-muted-foreground">Obrigações contínuas (aluguel, folha, licenças).</p>
+                <p className="text-xs text-muted-foreground">Obrigações contínuas (aluguel, licenças, folha, AWS).</p>
               </div>
-              <Switch checked={recorrente} onCheckedChange={setRecorrente} />
+              <Switch checked={recorrente} onCheckedChange={(val) => { setRecorrente(val); if (val) setParcelado(false); }} />
             </div>
 
             {recorrente && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 border rounded-lg animate-in fade-in slide-in-from-top-2">
                 <div className="space-y-2 col-span-1 sm:col-span-2">
                   <Label>Frequência</Label>
-                  <Select>
+                  <Select value={frequenciaRec} onValueChange={(v: FrequenciaRecorrencia) => setFrequenciaRec(v)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione a frequência" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="semanal">Semanal</SelectItem>
-                      <SelectItem value="quinzenal">Quinzenal</SelectItem>
-                      <SelectItem value="mensal">Mensal</SelectItem>
-                      <SelectItem value="semestral">Semestral</SelectItem>
-                      <SelectItem value="anual">Anual</SelectItem>
+                      <SelectItem value="Mensal">Mensal</SelectItem>
+                      <SelectItem value="Semanal">Semanal</SelectItem>
+                      <SelectItem value="Quinzenal">Quinzenal</SelectItem>
+                      <SelectItem value="Trimestral">Trimestral</SelectItem>
+                      <SelectItem value="Semestral">Semestral</SelectItem>
+                      <SelectItem value="Anual">Anual</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
                   <Label>Data de Início</Label>
-                  <Input type="date" />
+                  <Input type="date" value={dataInicioRec || dataVencimento} onChange={e => setDataInicioRec(e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Fim da Recorrência (Opcional)</Label>
-                  <Input type="date" />
+                  <Label>Data Final (Opcional)</Label>
+                  <Input type="date" value={dataFimRec} onChange={e => setDataFimRec(e.target.value)} />
                 </div>
               </div>
             )}
