@@ -1,13 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, RotateCcw, ShieldAlert, FileText } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Trash2, RotateCcw, ShieldAlert, FileText, AlertTriangle } from 'lucide-react';
 import { useDocumentosStore } from '../hooks/useDocumentosStore';
 import { toast } from 'sonner';
 
 export function DmsTrashView() {
-  const { lixeira, restoreFromTrash, deletePermanently } = useDocumentosStore();
+  const { lixeira, restoreFromTrash, deletePermanently, deletePermanentlyBatch } = useDocumentosStore();
+  const [isClearTrashModalOpen, setIsClearTrashModalOpen] = useState(false);
 
   const handleRestore = (docId: string, nome: string) => {
     restoreFromTrash(docId);
@@ -16,17 +18,34 @@ export function DmsTrashView() {
 
   const handleDelete = (docId: string, nome: string) => {
     deletePermanently(docId);
-    toast.success(`Documento "${nome}" excluído permanentemente.`);
+    toast.success(`Documento "${nome}" excluído permanentemente do banco de dados.`);
+  };
+
+  const handleClearAllTrash = () => {
+    const allIds = lixeira.map(d => d.id);
+    deletePermanentlyBatch(allIds);
+    toast.success(`Todos os ${allIds.length} documento(s) da lixeira foram excluídos permanentemente.`);
+    setIsClearTrashModalOpen(false);
   };
 
   return (
     <div className="space-y-6 animate-fade-in pt-2">
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2">
             <Trash2 className="w-5 h-5 text-rose-500" />
             Lixeira Corporativa de Documentos
           </CardTitle>
+          {lixeira.length > 0 && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setIsClearTrashModalOpen(true)}
+              className="text-xs h-8 gap-1.5"
+            >
+              <Trash2 className="w-3.5 h-3.5" /> Esvaziar Lixeira ({lixeira.length})
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
           {lixeira.length === 0 ? (
@@ -82,6 +101,28 @@ export function DmsTrashView() {
           )}
         </CardContent>
       </Card>
+
+      {/* Modal Esvaziar Lixeira */}
+      <Dialog open={isClearTrashModalOpen} onOpenChange={setIsClearTrashModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-semibold flex items-center gap-2 text-rose-600">
+              <AlertTriangle className="w-5 h-5" /> Esvaziar Toda a Lixeira
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground pt-1">
+              Esta ação excluirá permanentemente todos os <strong>{lixeira.length} documento(s)</strong> da lixeira e do banco de dados. Esta operação é irreversível.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0 mt-3">
+            <Button variant="outline" size="sm" onClick={() => setIsClearTrashModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" size="sm" onClick={handleClearAllTrash}>
+              Sim, Esvaziar Lixeira
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

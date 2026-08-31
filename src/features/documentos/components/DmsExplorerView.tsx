@@ -3,12 +3,21 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { 
   Folder, FileText, Image as ImageIcon, Video, FolderPlus, 
   UploadCloud, Search, Star, LayoutGrid, List, ChevronRight, 
-  MoreVertical, Trash2, Eye, Download, Tag, HardDrive, ArrowLeft
+  MoreVertical, Trash2, Eye, Download, Tag, HardDrive, ArrowLeft,
+  CheckCircle2, X
 } from 'lucide-react';
 import { useDocumentosStore } from '../hooks/useDocumentosStore';
 import { PastaDMS, DocumentoDMS } from '../types';
@@ -17,12 +26,25 @@ import { DmsPreviewModal } from './DmsPreviewModal';
 import { toast } from 'sonner';
 
 export function DmsExplorerView() {
-  const { pastas, documentos, createFolder, toggleFavorite, moveToTrash, logAction } = useDocumentosStore();
+  const { 
+    pastas, 
+    documentos, 
+    createFolder, 
+    toggleFavorite, 
+    moveToTrash, 
+    moveToTrashBatch,
+    logAction 
+  } = useDocumentosStore();
 
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [search, setSearch] = useState('');
   const [selectedDoc, setSelectedDoc] = useState<DocumentoDMS | null>(null);
+
+  // Seleção múltipla para exclusão em lote
+  const [selectedDocIds, setSelectedDocIds] = useState<string[]>([]);
+  const [isBatchDeleteDialogOpen, setIsBatchDeleteDialogOpen] = useState(false);
+  const [docToDeleteSingle, setDocToDeleteSingle] = useState<DocumentoDMS | null>(null);
 
   // Modal Criar Pasta
   const [openNewFolderModal, setOpenNewFolderModal] = useState(false);
@@ -103,6 +125,39 @@ export function DmsExplorerView() {
     setOpenNewFolderModal(false);
   };
 
+  const handleToggleSelectDoc = (docId: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setSelectedDocIds(prev => 
+      prev.includes(docId) ? prev.filter(id => id !== docId) : [...prev, docId]
+    );
+  };
+
+  const handleSelectAllVisible = (checked: boolean) => {
+    if (checked) {
+      setSelectedDocIds(Array.from(new Set([...selectedDocIds, ...visibleDocs.map(d => d.id)])));
+    } else {
+      const visibleSet = new Set(visibleDocs.map(d => d.id));
+      setSelectedDocIds(prev => prev.filter(id => !visibleSet.has(id)));
+    }
+  };
+
+  const isAllVisibleSelected = visibleDocs.length > 0 && visibleDocs.every(d => selectedDocIds.includes(d.id));
+
+  const handleConfirmBatchDelete = () => {
+    if (selectedDocIds.length === 0) return;
+    moveToTrashBatch(selectedDocIds);
+    toast.success(`${selectedDocIds.length} documento(s) movido(s) para a lixeira!`);
+    setSelectedDocIds([]);
+    setIsBatchDeleteDialogOpen(false);
+  };
+
+  const handleConfirmSingleDelete = () => {
+    if (!docToDeleteSingle) return;
+    moveToTrash(docToDeleteSingle.id);
+    toast.success(`"${docToDeleteSingle.nome}" movido para a lixeira!`);
+    setDocToDeleteSingle(null);
+  };
+
   const renderFileIcon = (ext: string) => {
     switch (ext) {
       case 'png': case 'jpg': case 'jpeg': case 'svg':
@@ -134,7 +189,7 @@ export function DmsExplorerView() {
           <div className="relative flex-1 sm:w-80">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input 
-              placeholder="Pesquisa Full-Text em todo o DMS..." 
+              placeholder="Pesquisar por nome, código, pasta ou tag..." 
               className="pl-8 text-xs"
               value={search}
               onChange={e => setSearch(e.target.value)}
@@ -149,6 +204,7 @@ export function DmsExplorerView() {
               size="sm" 
               onClick={() => setViewMode('grid')} 
               className="h-8 px-2"
+              title="Visualização em Grade"
             >
               <LayoutGrid className="w-4 h-4" />
             </Button>
@@ -157,6 +213,7 @@ export function DmsExplorerView() {
               size="sm" 
               onClick={() => setViewMode('list')} 
               className="h-8 px-2"
+              title="Visualização em Lista"
             >
               <List className="w-4 h-4" />
             </Button>
@@ -179,6 +236,39 @@ export function DmsExplorerView() {
         </div>
       </div>
 
+      {/* BARRA DE AÇÃO EM LOTE QUANDO HÁ SELEÇÃO */}
+      {selectedDocIds.length > 0 && (
+        <div className="bg-primary/10 border border-primary/30 rounded-lg p-3 flex items-center justify-between animate-fade-in">
+          <div className="flex items-center gap-3">
+            <Badge variant="default" className="bg-primary text-primary-foreground text-xs font-bold">
+              {selectedDocIds.length} selecionado(s)
+            </Badge>
+            <span className="text-xs text-muted-foreground hidden sm:inline">
+              Documentos prontos para ações em massa
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSelectedDocIds([])}
+              className="h-8 text-xs gap-1"
+            >
+              <X className="w-3.5 h-3.5" /> Limpar Seleção
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setIsBatchDeleteDialogOpen(true)}
+              className="h-8 text-xs gap-1.5"
+            >
+              <Trash2 className="w-3.5 h-3.5" /> Excluir Selecionados
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Estrutura Principal: Navegador & Conteúdo */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {/* Painel Esquerdo: Árvore de Pastas Raiz */}
@@ -188,7 +278,7 @@ export function DmsExplorerView() {
             <HardDrive className="w-3.5 h-3.5 text-primary" />
           </div>
 
-          <div className="space-y-1 text-xs">
+          <div className="space-y-1 text-xs max-h-[550px] overflow-y-auto">
             <div 
               onClick={() => setCurrentFolderId(null)}
               className={`p-2 rounded-md cursor-pointer flex items-center justify-between font-medium ${currentFolderId === null ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-muted/50'}`}
@@ -202,19 +292,21 @@ export function DmsExplorerView() {
             </div>
 
             {pastas.filter(p => p.parentId === null).map(p => {
-              const docCount = countDocsInFolder(p);
+              const count = countDocsInFolder(p);
+              const isSelected = currentFolderId === p.id;
+
               return (
                 <div 
                   key={p.id}
                   onClick={() => setCurrentFolderId(p.id)}
-                  className={`p-2 rounded-md cursor-pointer flex items-center justify-between text-xs transition-colors ${currentFolderId === p.id ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-muted/50 text-muted-foreground'}`}
+                  className={`p-2 rounded-md cursor-pointer flex items-center justify-between ${isSelected ? 'bg-primary/10 text-primary font-bold' : 'hover:bg-muted/50'}`}
                 >
                   <div className="flex items-center gap-2 truncate">
-                    <Folder className="w-4 h-4 text-amber-500" />
+                    <Folder className="w-4 h-4 text-amber-500 shrink-0" />
                     <span className="truncate">{p.nome}</span>
                   </div>
-                  <Badge variant="outline" className="text-[9px] px-1">
-                    {docCount}
+                  <Badge variant="outline" className="text-[9px] px-1 shrink-0">
+                    {count}
                   </Badge>
                 </div>
               );
@@ -222,35 +314,43 @@ export function DmsExplorerView() {
           </div>
         </Card>
 
-        {/* Painel Direito: Conteúdo da Pasta Selecionada */}
-        <Card className="md:col-span-3 p-4">
-          {/* Breadcrumbs do Caminho */}
-          <div className="flex items-center justify-between pb-3 mb-4 border-b">
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              {currentFolder && (
+        {/* Painel Direito: Conteúdo da Pasta Atual */}
+        <Card className="md:col-span-3 p-4 space-y-4 bg-card min-h-[500px]">
+          {/* Breadcrumb e Cabeçalho da Pasta */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-3">
+            <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground flex-wrap">
+              {currentFolderId !== null && (
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  onClick={() => setCurrentFolderId(currentFolder.parentId || null)} 
-                  className="h-6 px-1.5 text-[11px] gap-1 mr-1 text-primary"
+                  onClick={() => setCurrentFolderId(currentFolder?.parentId || null)} 
+                  className="h-6 px-1.5 text-xs gap-1"
                 >
-                  <ArrowLeft className="w-3 h-3" /> Voltar
+                  <ArrowLeft className="w-3.5 h-3.5" /> Voltar
                 </Button>
               )}
-              <span className="cursor-pointer hover:text-primary font-medium" onClick={() => setCurrentFolderId(null)}>DMS</span>
-              {currentFolder && (
-                <>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                  <span className="font-bold text-foreground">{currentFolder.caminhoCompleto}</span>
-                </>
-              )}
+              <span className="font-semibold text-foreground flex items-center gap-1">
+                <Folder className="w-4 h-4 text-amber-500 inline" /> {currentPath}
+              </span>
             </div>
 
-            {currentFolder && (
+            <div className="flex items-center gap-3">
+              {visibleDocs.length > 0 && (
+                <div className="flex items-center gap-2 text-xs">
+                  <Checkbox 
+                    checked={isAllVisibleSelected} 
+                    onCheckedChange={handleSelectAllVisible}
+                    id="select-all-docs"
+                  />
+                  <Label htmlFor="select-all-docs" className="text-xs cursor-pointer text-muted-foreground">
+                    Selecionar Todos
+                  </Label>
+                </div>
+              )}
               <Badge variant="secondary" className="text-xs">
                 {visibleDocs.length} arquivo(s)
               </Badge>
-            )}
+            </div>
           </div>
 
           {/* VISUALIZAÇÃO EM GRADE (GRID) */}
@@ -267,7 +367,7 @@ export function DmsExplorerView() {
                         <div 
                           key={p.id}
                           onClick={() => setCurrentFolderId(p.id)}
-                          className="p-3 border rounded-lg hover:border-primary/50 cursor-pointer flex items-center justify-between bg-card transition-all group hover:shadow-sm"
+                          className="p-3 border rounded-lg hover:border-primary/50 cursor-pointer flex items-center justify-between bg-card transition-all group hover:shadow-xs"
                         >
                           <div className="flex items-center gap-2.5 truncate">
                             <Folder className="w-6 h-6 text-amber-500 shrink-0 group-hover:scale-105 transition-transform" />
@@ -293,79 +393,92 @@ export function DmsExplorerView() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                    {visibleDocs.map(doc => (
-                      <div 
-                        key={doc.id}
-                        className="p-3 border rounded-lg hover:border-primary/50 bg-card transition-all flex flex-col justify-between space-y-3 group hover:shadow-md"
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            {renderFileIcon(doc.extensao)}
-                            <div className="min-w-0">
-                              <p className="font-semibold text-xs truncate" title={doc.nome}>{doc.nome}</p>
-                              <p className="text-[10px] text-muted-foreground">{doc.tamanho} • {new Date(doc.dataUpload).toLocaleDateString('pt-BR')}</p>
-                            </div>
-                          </div>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-6 w-6 shrink-0" 
-                            onClick={() => toggleFavorite(doc.id)}
-                          >
-                            <Star className={`w-3.5 h-3.5 ${doc.favorito ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground'}`} />
-                          </Button>
-                        </div>
+                    {visibleDocs.map(doc => {
+                      const isSelected = selectedDocIds.includes(doc.id);
 
-                        <div className="flex items-center justify-between pt-2 border-t text-xs">
-                          <Badge variant="outline" className="text-[10px] bg-secondary/50 font-normal">
-                            {doc.moduloOrigem}
-                          </Badge>
-                          <div className="flex items-center gap-1">
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-7 text-xs px-2 gap-1"
-                              onClick={() => {
-                                setSelectedDoc(doc);
-                                logAction(doc.id, doc.nome, 'Visualizacao', 'Preview aberto pelo usuário');
-                              }}
-                            >
-                              <Eye className="w-3.5 h-3.5" /> Abrir
-                            </Button>
-                            {doc.urlConteudo && (
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-7 w-7 text-primary" 
-                                asChild
-                              >
-                                <a href={doc.urlConteudo} download={doc.nome} title="Baixar">
-                                  <Download className="w-3.5 h-3.5" />
-                                </a>
-                              </Button>
-                            )}
+                      return (
+                        <div 
+                          key={doc.id}
+                          className={`p-3 border rounded-lg bg-card transition-all flex flex-col justify-between space-y-3 group hover:shadow-md cursor-pointer ${
+                            isSelected ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:border-primary/50'
+                          }`}
+                          onClick={() => handleToggleSelectDoc(doc.id)}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <Checkbox 
+                                checked={isSelected} 
+                                onCheckedChange={() => handleToggleSelectDoc(doc.id)}
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                              {renderFileIcon(doc.extensao)}
+                              <div className="min-w-0">
+                                <p className="font-semibold text-xs truncate" title={doc.nome}>{doc.nome}</p>
+                                <p className="text-[10px] text-muted-foreground">{doc.tamanho} • {new Date(doc.dataUpload).toLocaleDateString('pt-BR')}</p>
+                              </div>
+                            </div>
                             <Button 
                               variant="ghost" 
                               size="icon" 
-                              className="h-7 w-7 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30"
-                              onClick={() => {
-                                moveToTrash(doc.id);
-                                toast.info(`"${doc.nome}" movido para a Lixeira do DMS.`);
+                              className="h-6 w-6 shrink-0" 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleFavorite(doc.id);
                               }}
                             >
-                              <Trash2 className="w-3.5 h-3.5" />
+                              <Star className={`w-3.5 h-3.5 ${doc.favorito ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground'}`} />
                             </Button>
                           </div>
+
+                          <div className="flex items-center justify-between pt-2 border-t text-xs" onClick={(e) => e.stopPropagation()}>
+                            <Badge variant="outline" className="text-[10px] bg-secondary/50 font-normal">
+                              {doc.moduloOrigem}
+                            </Badge>
+                            <div className="flex items-center gap-1">
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-7 text-xs px-2 gap-1"
+                                onClick={() => {
+                                  setSelectedDoc(doc);
+                                  logAction(doc.id, doc.nome, 'Visualizacao', 'Preview aberto pelo usuário');
+                                }}
+                              >
+                                <Eye className="w-3.5 h-3.5" /> Abrir
+                              </Button>
+                              {doc.urlConteudo && (
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-7 w-7 text-primary" 
+                                  asChild
+                                >
+                                  <a href={doc.urlConteudo} download={doc.nome} title="Baixar">
+                                    <Download className="w-3.5 h-3.5" />
+                                  </a>
+                                </Button>
+                              )}
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-7 w-7 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                                onClick={() => setDocToDeleteSingle(doc)}
+                                title="Excluir documento"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
             </div>
           ) : (
             /* VISUALIZAÇÃO EM LISTA */
-            <div className="space-y-4">
+            <div className="space-y-2">
               {visibleFolders.map(p => (
                 <div 
                   key={p.id}
@@ -380,59 +493,72 @@ export function DmsExplorerView() {
                 </div>
               ))}
 
-              {visibleDocs.map(doc => (
-                <div 
-                  key={doc.id}
-                  className="flex items-center justify-between p-2.5 border rounded-md hover:bg-muted/40 text-xs transition-colors"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    {renderFileIcon(doc.extensao)}
-                    <div className="min-w-0">
-                      <p className="font-semibold truncate">{doc.nome}</p>
-                      <p className="text-[10px] text-muted-foreground flex items-center gap-2">
-                        <span>{doc.codigo}</span>
-                        <span>• {doc.tamanho}</span>
-                        <span>• {new Date(doc.dataUpload).toLocaleDateString('pt-BR')}</span>
-                        <span className="bg-secondary px-1 py-0.5 rounded text-[9px]">{doc.moduloOrigem}</span>
-                      </p>
-                    </div>
-                  </div>
+              {visibleDocs.map(doc => {
+                const isSelected = selectedDocIds.includes(doc.id);
 
-                  <div className="flex items-center gap-1">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-7 text-xs px-2 gap-1"
-                      onClick={() => {
-                        setSelectedDoc(doc);
-                        logAction(doc.id, doc.nome, 'Visualizacao');
-                      }}
-                    >
-                      <Eye className="w-3.5 h-3.5" /> Abrir
-                    </Button>
-                    {doc.urlConteudo && (
+                return (
+                  <div 
+                    key={doc.id}
+                    className={`flex items-center justify-between p-2.5 border rounded-md text-xs transition-colors cursor-pointer ${
+                      isSelected ? 'border-primary bg-primary/5' : 'hover:bg-muted/40'
+                    }`}
+                    onClick={() => handleToggleSelectDoc(doc.id)}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <Checkbox 
+                        checked={isSelected} 
+                        onCheckedChange={() => handleToggleSelectDoc(doc.id)}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      {renderFileIcon(doc.extensao)}
+                      <div className="min-w-0">
+                        <p className="font-semibold truncate">{doc.nome}</p>
+                        <p className="text-[10px] text-muted-foreground flex items-center gap-2">
+                          <span>{doc.codigo}</span>
+                          <span>• {doc.tamanho}</span>
+                          <span>• {new Date(doc.dataUpload).toLocaleDateString('pt-BR')}</span>
+                          <span className="bg-secondary px-1 py-0.5 rounded text-[9px]">{doc.moduloOrigem}</span>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-7 text-xs px-2 gap-1"
+                        onClick={() => {
+                          setSelectedDoc(doc);
+                          logAction(doc.id, doc.nome, 'Visualizacao');
+                        }}
+                      >
+                        <Eye className="w-3.5 h-3.5" /> Abrir
+                      </Button>
+                      {doc.urlConteudo && (
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-7 w-7 text-primary" 
+                          asChild
+                        >
+                          <a href={doc.urlConteudo} download={doc.nome} title="Baixar">
+                            <Download className="w-3.5 h-3.5" />
+                          </a>
+                        </Button>
+                      )}
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        className="h-7 w-7 text-primary" 
-                        asChild
+                        className="h-7 w-7 text-rose-500"
+                        onClick={() => setDocToDeleteSingle(doc)}
+                        title="Excluir documento"
                       >
-                        <a href={doc.urlConteudo} download={doc.nome} title="Baixar">
-                          <Download className="w-3.5 h-3.5" />
-                        </a>
+                        <Trash2 className="w-3.5 h-3.5" />
                       </Button>
-                    )}
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-7 w-7 text-rose-500"
-                      onClick={() => moveToTrash(doc.id)}
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
 
               {visibleFolders.length === 0 && visibleDocs.length === 0 && (
                 <div className="p-8 text-center text-muted-foreground text-xs">
@@ -448,40 +574,79 @@ export function DmsExplorerView() {
       <Dialog open={openNewFolderModal} onOpenChange={setOpenNewFolderModal}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-base">Criar Nova Subpasta</DialogTitle>
+            <DialogTitle className="text-sm font-semibold">Criar Nova Pasta no DMS</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              A pasta será criada no diretório: <strong className="text-foreground">{currentPath}</strong>
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3 py-2 text-xs">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Caminho Pai</Label>
-              <Input disabled value={currentPath} className="text-xs h-8 bg-muted" />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Nome da Pasta</Label>
-              <Input 
-                placeholder="Ex: Contratos 2026 / Comprovantes" 
-                value={folderName} 
-                onChange={e => setFolderName(e.target.value)} 
-                className="text-xs h-8"
-              />
-            </div>
+          <div className="space-y-3 py-2">
+            <Label className="text-xs">Nome da Pasta</Label>
+            <Input 
+              placeholder="Ex: Contratos 2026, Minutas, Balancetes..." 
+              value={folderName}
+              onChange={e => setFolderName(e.target.value)}
+              className="text-xs"
+              autoFocus
+            />
           </div>
           <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setOpenNewFolderModal(false)} className="text-xs">
+            <Button variant="outline" size="sm" onClick={() => setOpenNewFolderModal(false)}>Cancelar</Button>
+            <Button size="sm" onClick={handleCreateFolder} className="bg-orange-600 hover:bg-orange-700 text-white">Criar Pasta</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Confirmação: Exclusão Única */}
+      <Dialog open={!!docToDeleteSingle} onOpenChange={(open) => !open && setDocToDeleteSingle(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-semibold flex items-center gap-2 text-rose-600">
+              <Trash2 className="w-5 h-5" /> Confirmar Exclusão de Documento
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground pt-1">
+              Tem certeza de que deseja excluir o documento <strong>{docToDeleteSingle?.nome}</strong>?
+              O arquivo será enviado para a lixeira corporativa e removido da visualização ativa.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0 mt-3">
+            <Button variant="outline" size="sm" onClick={() => setDocToDeleteSingle(null)}>
               Cancelar
             </Button>
-            <Button size="sm" onClick={handleCreateFolder} className="text-xs bg-orange-600 hover:bg-orange-700 text-white">
-              Criar Pasta
+            <Button variant="destructive" size="sm" onClick={handleConfirmSingleDelete}>
+              Confirmar Exclusão
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Modal Preview de Documento */}
+      {/* Modal de Confirmação: Exclusão em Lote */}
+      <Dialog open={isBatchDeleteDialogOpen} onOpenChange={setIsBatchDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-semibold flex items-center gap-2 text-rose-600">
+              <Trash2 className="w-5 h-5" /> Excluir {selectedDocIds.length} documento(s)
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground pt-1">
+              Esta ação moverá todos os <strong>{selectedDocIds.length} documentos selecionados</strong> para a lixeira do DMS.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0 mt-3">
+            <Button variant="outline" size="sm" onClick={() => setIsBatchDeleteDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" size="sm" onClick={handleConfirmBatchDelete}>
+              Excluir {selectedDocIds.length} Itens
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Visualização Preview do Documento */}
       {selectedDoc && (
         <DmsPreviewModal 
-          doc={selectedDoc} 
-          open={!!selectedDoc} 
-          onOpenChange={(open) => !open && setSelectedDoc(null)} 
+          documento={selectedDoc} 
+          isOpen={!!selectedDoc} 
+          onClose={() => setSelectedDoc(null)} 
         />
       )}
     </div>

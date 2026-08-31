@@ -7,8 +7,9 @@ import { dmsService } from "@/services/dmsService";
 export function useDocumentosStore() {
   const { data: rawPastas, addItem: addPastaItem, updateItem: updatePastaItem, removeItem: removePastaItem, save: savePastas } = useLocalStorageState<PastaDMS>('focus_dms_pastas', INITIAL_PASTAS);
   const { data: rawDocumentos, addItem: addDocItem, updateItem: updateDocItem, removeItem: removeDocItem, save: saveDocumentos } = useLocalStorageState<DocumentoDMS>('focus_dms_documentos', INITIAL_DOCUMENTOS);
-  const { data: lixeira, addItem: addTrashItem, removeItem: removeTrashItem } = useLocalStorageState<DocumentoDMS>('focus_dms_lixeira');
-  const { data: auditLogs, addItem: addAuditItem } = useLocalStorageState<AuditLogDocumento>('focus_dms_audit');
+  const { data: lixeira, addItem: addTrashItem, removeItem: removeTrashItem, save: saveLixeira } = useLocalStorageState<DocumentoDMS>('focus_dms_lixeira', []);
+  const { data: auditLogs, addItem: addAuditItem } = useLocalStorageState<AuditLogDocumento>('focus_dms_audit', []);
+  const { data: deletedDocIds, addItem: addDeletedId, save: saveDeletedIds } = useLocalStorageState<string>('focus_dms_deleted_ids', []);
 
   // Leitura de entidades para sincronização automática de pastas e documentos
   const { data: clientes } = useLocalStorageState<any>('focus_clientes', []);
@@ -158,17 +159,22 @@ export function useDocumentosStore() {
     }
   }, [pastas, rawPastas, savePastas]);
 
-  // 2. Consolidação e Auto-Indexação Universal de Documentos de Todos os Módulos
+  // 2. Consolidação e Auto-Indexação Universal de Documentos Reais (excluindo os deletados)
   const documentos = useMemo(() => {
     const docMap = new Map<string, DocumentoDMS>();
+    const deletedSet = new Set(deletedDocIds || []);
 
-    // 2.1 Documentos Salvos no DMS
-    (rawDocumentos || []).forEach((d) => docMap.set(d.id, d));
+    // 2.1 Documentos Salvos no Banco de Dados DMS
+    (rawDocumentos || []).forEach((d) => {
+      if (d && d.id && !deletedSet.has(d.id)) {
+        docMap.set(d.id, d);
+      }
+    });
 
-    // 2.2 Auto-indexar Relatórios Gerados (focus_relatorios_history)
+    // 2.2 Auto-indexar Relatórios Gerados Reais (focus_relatorios_history)
     (relatoriosHistorico || []).forEach((rel: any) => {
       const docId = `doc-rel-${rel.id}`;
-      if (!docMap.has(docId)) {
+      if (!docMap.has(docId) && !deletedSet.has(docId) && !deletedSet.has(rel.id)) {
         let pastaTargetId = 'p-rel-geral';
         if (rel.category === 'Financeiro' || rel.reportTitle?.includes('DRE')) pastaTargetId = 'p-rel-dre';
         else if (rel.reportTitle?.includes('Fluxo')) pastaTargetId = 'p-rel-fluxo';
@@ -209,10 +215,10 @@ export function useDocumentosStore() {
       }
     });
 
-    // 2.3 Auto-indexar Contratos (focus_contratos)
+    // 2.3 Auto-indexar Contratos Reais (focus_contratos)
     (contratos || []).forEach((ctr: any) => {
       const docId = `doc-ctr-${ctr.id}`;
-      if (!docMap.has(docId)) {
+      if (!docMap.has(docId) && !deletedSet.has(docId) && !deletedSet.has(ctr.id)) {
         const clienteNome = ctr.clienteNome || 'Cliente';
         const clientFolderId = ctr.clienteId ? `p-cli-${ctr.clienteId}` : 'p-ctr';
         const numContrato = ctr.numeroContrato || `CTR-${ctr.id?.slice(0, 6)}`;
@@ -252,10 +258,10 @@ export function useDocumentosStore() {
       }
     });
 
-    // 2.4 Auto-indexar Assinaturas Digitais (focus_assinaturas_docs)
+    // 2.4 Auto-indexar Assinaturas Digitais Reais (focus_assinaturas_docs)
     (assinaturasDocs || []).forEach((ass: any) => {
       const docId = `doc-ass-${ass.id}`;
-      if (!docMap.has(docId)) {
+      if (!docMap.has(docId) && !deletedSet.has(docId) && !deletedSet.has(ass.id)) {
         docMap.set(docId, {
           id: docId,
           codigo: `ASS-${ass.id?.slice(0, 6)?.toUpperCase() || 'DIG'}`,
@@ -287,10 +293,10 @@ export function useDocumentosStore() {
       }
     });
 
-    // 2.5 Auto-indexar Documentos Fiscais (focus_fiscal_documentos)
+    // 2.5 Auto-indexar Documentos Fiscais Reais (focus_fiscal_documentos)
     (fiscalDocs || []).forEach((fisc: any) => {
       const docId = `doc-fisc-${fisc.id}`;
-      if (!docMap.has(docId)) {
+      if (!docMap.has(docId) && !deletedSet.has(docId) && !deletedSet.has(fisc.id)) {
         const tipoNota = fisc.tipo || 'NFS-e';
         const nomeEntidade = fisc.entidade?.nome || 'Tomador';
         docMap.set(docId, {
@@ -325,7 +331,7 @@ export function useDocumentosStore() {
     });
 
     return Array.from(docMap.values());
-  }, [rawDocumentos, relatoriosHistorico, contratos, assinaturasDocs, fiscalDocs]);
+  }, [rawDocumentos, relatoriosHistorico, contratos, assinaturasDocs, fiscalDocs, deletedDocIds]);
 
   const logAction = (docId: string, docName: string, acao: AuditLogDocumento['acao'], detalhes?: string) => {
     const newLog: AuditLogDocumento = {
@@ -496,26 +502,63 @@ export function useDocumentosStore() {
     });
   };
 
+  // Mover para Lixeira
   const moveToTrash = (docId: string) => {
     const doc = documentos.find((d) => d.id === docId);
-    if (!doc) return;
+    if (doc) {
+      addTrashItem(doc);
+      logAction(doc.id, doc.nome, 'Exclusão', 'Documento movido para a lixeira.');
+    }
 
     removeDocItem(docId);
-    addTrashItem(doc);
-    logAction(doc.id, doc.nome, 'Exclusão', 'Documento movido para a lixeira.');
+    if (!deletedDocIds.includes(docId)) {
+      addDeletedId(docId);
+    }
   };
 
+  const moveToTrashBatch = (docIds: string[]) => {
+    const docsToTrash = documentos.filter((d) => docIds.includes(d.id));
+    saveLixeira([...(lixeira || []), ...docsToTrash]);
+    saveDocumentos(rawDocumentos.filter((d) => !docIds.includes(d.id)));
+
+    const newDeleted = Array.from(new Set([...(deletedDocIds || []), ...docIds]));
+    saveDeletedIds(newDeleted);
+
+    docsToTrash.forEach((d) => {
+      logAction(d.id, d.nome, 'Exclusão', 'Documento movido para a lixeira (em lote).');
+    });
+  };
+
+  // Restaurar da Lixeira
   const restoreFromTrash = (docId: string) => {
     const doc = (lixeira || []).find((d) => d.id === docId);
     if (!doc) return;
 
     removeTrashItem(docId);
     addDocItem(doc);
+    saveDeletedIds((deletedDocIds || []).filter((id) => id !== docId));
     logAction(doc.id, doc.nome, 'Restauração', 'Documento restaurado da lixeira.');
   };
 
+  // Excluir Permanentemente
   const deletePermanently = (docId: string) => {
     removeTrashItem(docId);
+    removeDocItem(docId);
+    if (!deletedDocIds.includes(docId)) {
+      addDeletedId(docId);
+    }
+    dmsService.deleteDocumento(docId);
+  };
+
+  const deletePermanentlyBatch = (docIds: string[]) => {
+    const idSet = new Set(docIds);
+    saveLixeira((lixeira || []).filter((d) => !idSet.has(d.id)));
+    saveDocumentos((rawDocumentos || []).filter((d) => !idSet.has(d.id)));
+
+    const newDeleted = Array.from(new Set([...(deletedDocIds || []), ...docIds]));
+    saveDeletedIds(newDeleted);
+
+    dmsService.deleteDocumentosBatch(docIds);
   };
 
   const updateDocument = (docId: string, updates: Partial<DocumentoDMS>) => {
@@ -534,8 +577,10 @@ export function useDocumentosStore() {
     renameDocument,
     toggleFavorite,
     moveToTrash,
+    moveToTrashBatch,
     restoreFromTrash,
     deletePermanently,
+    deletePermanentlyBatch,
     updateDocument,
     logAction,
   };

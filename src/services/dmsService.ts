@@ -373,6 +373,32 @@ export const dmsService = {
     return newDoc;
   },
 
+  async deleteDocumento(id: string): Promise<void> {
+    const list = this.getDocumentos();
+    const docToDelete = list.find((d) => d.id === id);
+    const updated = list.filter((d) => d.id !== id);
+    await this.saveDocumentos(updated);
+
+    try {
+      await supabase.from('focus_dms_documentos').delete().eq('id', id);
+    } catch {}
+
+    if (docToDelete) {
+      this.logAction(docToDelete.id, docToDelete.nome, 'Exclusão', `Documento excluído permanentemente.`);
+    }
+  },
+
+  async deleteDocumentosBatch(ids: string[]): Promise<void> {
+    const idSet = new Set(ids);
+    const list = this.getDocumentos();
+    const updated = list.filter((d) => !idSet.has(d.id));
+    await this.saveDocumentos(updated);
+
+    try {
+      await supabase.from('focus_dms_documentos').delete().in('id', ids);
+    } catch {}
+  },
+
   // ---------------------------------------------------------------------------
   // Auditoria
   // ---------------------------------------------------------------------------
