@@ -205,6 +205,38 @@ export function EquipamentosView() {
     setIsNovoModalOpen(false);
   };
 
+  const handleConfirmTransfer = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedEquipamento) return;
+
+    transferirEquipamento(
+      selectedEquipamento.id,
+      transfForm.novoResponsavel,
+      transfForm.novoDepartamento,
+      transfForm.novaLocalizacao,
+      transfForm.observacao
+    );
+
+    setIsTransferModalOpen(false);
+    setSelectedEquipamento(null);
+  };
+
+  const handleAbrirManutencaoSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedEquipamento) return;
+
+    abrirManutencao(
+      selectedEquipamento.id,
+      manutForm.tipo,
+      manutForm.descricao,
+      Number(manutForm.valor),
+      manutForm.responsavel
+    );
+
+    setIsManutencaoModalOpen(false);
+    setSelectedEquipamento(null);
+  };
+
   const renderCategoryIcon = (categoria: CategoriaEquipamento) => {
     switch (categoria) {
       case 'Notebook':
