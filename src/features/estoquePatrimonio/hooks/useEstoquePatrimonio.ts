@@ -9,6 +9,8 @@ import {
   Manutencao,
   EquipamentoTimelineEvent,
 } from '../types';
+import { ContaPagar } from '@/features/contas-pagar/types';
+import { TituloReceber } from '@/features/contas-receber/types';
 
 const INITIAL_EQUIPAMENTOS: Equipamento[] = [];
 const INITIAL_ESTOQUE_ITENS: EstoqueItem[] = [];
@@ -27,11 +29,21 @@ export function useEstoquePatrimonio() {
   } = useLocalStorageState<Equipamento>('focus_itam_equipamentos', INITIAL_EQUIPAMENTOS);
 
   const {
-    data: estoqueItens,
+    data: estoqueItensRaw,
     addItem: addEstoqueItem,
     updateItem: updateEstoqueItem,
     deleteItem: deleteEstoqueItem,
   } = useLocalStorageState<EstoqueItem>('focus_itam_estoque_itens', INITIAL_ESTOQUE_ITENS);
+
+  // Higienizar itens para evitar itens fantasmas ou NaN
+  const estoqueItens = (Array.isArray(estoqueItensRaw) ? estoqueItensRaw : [])
+    .filter(item => item && (item.nome || item.codigo))
+    .map(item => ({
+      ...item,
+      quantidade: Number(item.quantidade) || 0,
+      quantidadeMinima: Number(item.quantidadeMinima) || 0,
+      valorUnitario: Number(item.valorUnitario) || 0,
+    }));
 
   const {
     data: licencas,
@@ -66,31 +78,108 @@ export function useEstoquePatrimonio() {
     deleteItem: deleteManutencao,
   } = useLocalStorageState<Manutencao>('focus_itam_manutencoes', INITIAL_MANUTENCOES);
 
-  // Helper para vincular compra ao Contas a Pagar (Integração Financeira)
-  const vincularDespesaFinanceira = (itemNome: string, valor: number, centroCusto: string) => {
-    try {
-      const contasPagarKey = 'focus_contas_pagar';
-      const existing = JSON.parse(window.localStorage.getItem(contasPagarKey) || '[]');
-      const novaDespesa = {
-        id: 'cp_itam_' + Date.now(),
-        descricao: `Compra de Ativo TI: ${itemNome}`,
-        fornecedor: 'Fornecedor TI / Eletrônicos',
-        valor: valor,
-        vencimento: new Date().toISOString().split('T')[0],
-        status: 'Pendente',
-        categoria: 'Investimento em Ativos / TI',
-        centroCusto: centroCusto || 'TI / Tecnologia',
-        createdAt: new Date().toISOString(),
-      };
-      window.localStorage.setItem(contasPagarKey, JSON.stringify([novaDespesa, ...existing]));
-      window.dispatchEvent(new Event('focus_store_update_' + contasPagarKey));
-    } catch (e) {
-      console.error('Erro ao vincular despesa financeira:', e);
-    }
+  // Integração com Contas a Pagar e Contas a Receber
+  const { addItem: addContaPagar } = useLocalStorageState<ContaPagar>('focus_contas_pagar', []);
+  const { addItem: addContaReceber } = useLocalStorageState<TituloReceber>('focus_contas_receber', []);
+
+  // Helper para gerar Conta a Pagar
+  const lancarContaPagar = (params: {
+    fornecedor?: string;
+    descricao: string;
+    valor: number;
+    vencimento?: string;
+    categoria?: string;
+    centroCustoNome?: string;
+    centroCustoId?: string;
+    formaPagamento?: any;
+    observacoes?: string;
+  }) => {
+    const id = 'pag-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+    const numero = `PAG-${Math.floor(1000 + Math.random() * 9000)}`;
+    const novaConta: ContaPagar = {
+      id,
+      numero,
+      fornecedor: params.fornecedor || 'Fornecedor de TI / Almoxarifado',
+      descricao: params.descricao,
+      categoria: params.categoria || 'Estoque & Suprimentos TI',
+      centroCustoNome: params.centroCustoNome || 'Almoxarifado TI',
+      centroCustoId: params.centroCustoId,
+      valorOriginal: params.valor,
+      valorPago: 0,
+      saldo: params.valor,
+      valorFinal: params.valor,
+      dataEmissao: new Date().toISOString().split('T')[0],
+      dataVencimento: params.vencimento || new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
+      formaPagamento: params.formaPagamento || 'Boleto',
+      status: 'Pendente',
+      responsavel: 'Módulo Estoque & Patrimônio',
+      ultimaAtualizacao: new Date().toISOString(),
+      observacoes: params.observacoes || 'Lançamento financeiro gerado automaticamente pelo módulo de Estoque & Patrimônio.',
+      historico: [
+        {
+          id: 'h-' + Date.now(),
+          data: new Date().toISOString(),
+          usuario: 'Módulo Estoque & Patrimônio',
+          acao: 'Criação',
+          observacao: `Gerado a partir de operação no estoque/patrimônio: ${params.descricao}`
+        }
+      ]
+    };
+    addContaPagar(novaConta);
+    return novaConta;
+  };
+
+  // Helper para gerar Conta a Receber
+  const lancarContaReceber = (params: {
+    cliente?: string;
+    clienteId?: string;
+    descricao: string;
+    valor: number;
+    vencimento?: string;
+    categoria?: string;
+    centroCustoNome?: string;
+    centroCustoId?: string;
+    formaPagamento?: any;
+    observacoes?: string;
+  }) => {
+    const id = 'rec-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+    const numero = `REC-${Math.floor(1000 + Math.random() * 9000)}`;
+    const novoTitulo: TituloReceber = {
+      id,
+      numero,
+      cliente: params.cliente || 'Cliente Corporativo',
+      clienteId: params.clienteId,
+      descricao: params.descricao,
+      categoria: params.categoria || 'Venda de Materiais & Insumos',
+      centroCustoNome: params.centroCustoNome || 'Almoxarifado & Vendas',
+      centroCustoId: params.centroCustoId,
+      valorOriginal: params.valor,
+      valorRecebido: 0,
+      saldo: params.valor,
+      valorLiquido: params.valor,
+      dataEmissao: new Date().toISOString().split('T')[0],
+      dataVencimento: params.vencimento || new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
+      formaPagamento: params.formaPagamento || 'PIX',
+      status: 'Pendente',
+      responsavel: 'Módulo Estoque & Patrimônio',
+      ultimaAtualizacao: new Date().toISOString(),
+      observacoes: params.observacoes || 'Lançamento financeiro gerado automaticamente pelo módulo de Estoque & Patrimônio.',
+      historico: [
+        {
+          id: 'h-' + Date.now(),
+          data: new Date().toISOString(),
+          usuario: 'Módulo Estoque & Patrimônio',
+          acao: 'Criação',
+          observacao: `Gerado a partir de saída de estoque/faturamento: ${params.descricao}`
+        }
+      ]
+    };
+    addContaReceber(novoTitulo);
+    return novoTitulo;
   };
 
   // Operação: Novo Equipamento
-  const registrarNovoEquipamento = (eq: Omit<Equipamento, 'id' | 'createdAt'>, gerarDespesa: boolean = false) => {
+  const registrarNovoEquipamento = (eq: Omit<Equipamento, 'id' | 'createdAt'>, gerarDespesa: boolean = false, vencimentoDespesa?: string) => {
     const id = 'eq-' + Date.now();
     const newEq: Equipamento = {
       ...eq,
@@ -141,7 +230,14 @@ export function useEstoquePatrimonio() {
     });
 
     if (gerarDespesa && eq.valorCompra > 0) {
-      vincularDespesaFinanceira(`${eq.marca} ${eq.modelo}`, eq.valorCompra, eq.departamento || 'TI');
+      lancarContaPagar({
+        fornecedor: eq.marca ? `Fornecedor ${eq.marca}` : 'Fornecedor TI',
+        descricao: `Aquisição de Ativo TI: ${eq.marca} ${eq.modelo} (${eq.codigoPatrimonial})`,
+        valor: eq.valorCompra,
+        vencimento: vencimentoDespesa,
+        categoria: 'Investimento em Ativos / TI',
+        centroCustoNome: eq.departamento || 'TI / Tecnologia',
+      });
     }
   };
 
@@ -193,78 +289,118 @@ export function useEstoquePatrimonio() {
     });
   };
 
-  // Operação: Entrada / Saída de Estoque Físico
-  const ajustarEstoqueItem = (
-    itemId: string,
-    quantidadeMudanca: number,
-    tipoOperacao: 'Entrada' | 'Saída' | 'Ajuste',
-    motivo: string
-  ) => {
-    const item = estoqueItens.find((i) => i.id === itemId);
+  // Operação Completa: Entrada / Saída de Estoque Físico COM Integração Financeira
+  const ajustarEstoqueItemComFinanceiro = (params: {
+    itemId: string;
+    quantidadeMudanca: number;
+    tipoOperacao: 'Entrada' | 'Saída' | 'Ajuste';
+    motivo: string;
+    gerarFinanceiro: boolean;
+    valorTotal: number;
+    entidadeNome?: string; // Fornecedor (Entrada) ou Cliente (Saída)
+    vencimento?: string;
+    formaPagamento?: any;
+  }) => {
+    const item = estoqueItens.find((i) => i.id === params.itemId);
     if (!item) return;
 
     let novaQtd = item.quantidade;
-    if (tipoOperacao === 'Entrada') novaQtd += quantidadeMudanca;
-    else if (tipoOperacao === 'Saída') novaQtd = Math.max(0, novaQtd - quantidadeMudanca);
-    else novaQtd = quantidadeMudanca;
+    if (params.tipoOperacao === 'Entrada') novaQtd += params.quantidadeMudanca;
+    else if (params.tipoOperacao === 'Saída') novaQtd = Math.max(0, novaQtd - params.quantidadeMudanca);
+    else novaQtd = params.quantidadeMudanca;
 
-    updateEstoqueItem(itemId, {
+    updateEstoqueItem(params.itemId, {
       quantidade: novaQtd,
       status: novaQtd === 0 ? 'Reservado' : 'Disponível',
     });
 
+    // Lançamento Financeiro
+    if (params.gerarFinanceiro && params.valorTotal > 0) {
+      if (params.tipoOperacao === 'Entrada') {
+        lancarContaPagar({
+          fornecedor: params.entidadeNome || 'Fornecedor de Almoxarifado',
+          descricao: `Compra/Entrada de Estoque: ${params.quantidadeMudanca}x ${item.nome} (${item.codigo})`,
+          valor: params.valorTotal,
+          vencimento: params.vencimento,
+          categoria: 'Estoque & Insumos Almoxarifado',
+          centroCustoNome: 'Almoxarifado TI',
+          formaPagamento: params.formaPagamento || 'Boleto',
+          observacoes: `Motivo: ${params.motivo}`,
+        });
+      } else if (params.tipoOperacao === 'Saída') {
+        lancarContaReceber({
+          cliente: params.entidadeNome || 'Cliente Faturado',
+          descricao: `Venda/Faturamento de Estoque: ${params.quantidadeMudanca}x ${item.nome} (${item.codigo})`,
+          valor: params.valorTotal,
+          vencimento: params.vencimento,
+          categoria: 'Venda de Materiais & Insumos',
+          centroCustoNome: 'Almoxarifado & Vendas',
+          formaPagamento: params.formaPagamento || 'PIX',
+          observacoes: `Motivo: ${params.motivo}`,
+        });
+      }
+    }
+
+    // Registro na Timeline de Movimentações
     addMovimentacao({
       id: 'mov-' + Date.now(),
-      tipo: tipoOperacao === 'Entrada' ? 'Entrada' : tipoOperacao === 'Saída' ? 'Saída' : 'Transferência',
-      estoqueItemId: itemId,
+      tipo: params.tipoOperacao === 'Entrada' ? 'Entrada' : params.tipoOperacao === 'Saída' ? 'Saída' : 'Transferência',
+      estoqueItemId: params.itemId,
       estoqueItemNome: item.nome,
       usuarioId: 'usr-admin',
       usuarioNome: 'Administrador',
       dataHora: new Date().toLocaleString('pt-BR'),
       origem: item.localizacao,
-      destino: motivo,
-      observacoes: `${tipoOperacao} de ${quantidadeMudanca} unidade(s). Nova Qtd: ${novaQtd}. Motivo: ${motivo}`,
+      destino: params.motivo,
+      observacoes: `${params.tipoOperacao} de ${params.quantidadeMudanca} unidade(s). Nova Qtd: ${novaQtd}. Motivo: ${params.motivo}${
+        params.gerarFinanceiro ? ` • Gerado lançamento financeiro de R$ ${params.valorTotal.toFixed(2)}` : ''
+      }`,
     });
   };
 
-  // Operação: Abertura de Manutenção
-  const abrirManutencao = (
-    equipamentoId: string,
-    tipo: 'Preventiva' | 'Corretiva' | 'Upgrade' | 'Troca',
-    descricao: string,
-    valor: number,
-    responsavel: string
-  ) => {
-    const eq = equipamentos.find((e) => e.id === equipamentoId);
+  // Operação: Abertura de Manutenção COM Integração Financeira
+  const abrirManutencaoComFinanceiro = (params: {
+    equipamentoId: string;
+    tipo: 'Preventiva' | 'Corretiva' | 'Upgrade' | 'Troca';
+    descricao: string;
+    valor: number;
+    responsavel: string;
+    prestador?: string;
+    gerarContaPagar?: boolean;
+    gerarContaReceber?: boolean;
+    clienteNome?: string;
+    vencimento?: string;
+  }) => {
+    const eq = equipamentos.find((e) => e.id === params.equipamentoId);
     const eqNome = eq ? `${eq.marca} ${eq.modelo}` : 'Equipamento';
     const eqCod = eq ? eq.codigoPatrimonial : '';
 
     const newManut: Manutencao = {
       id: 'manut-' + Date.now(),
-      equipamentoId,
+      equipamentoId: params.equipamentoId,
       equipamentoCodigo: eqCod,
       equipamentoNome: eqNome,
-      tipo,
+      tipo: params.tipo,
       data: new Date().toISOString().split('T')[0],
-      descricao,
-      valor,
+      descricao: params.descricao,
+      valor: params.valor,
       responsavelId: 'tech-01',
-      responsavelNome: responsavel,
+      responsavelNome: params.responsavel,
       status: 'Em Execução',
     };
 
     addManutencao(newManut);
 
     if (eq) {
-      updateEquipamento(equipamentoId, {
+      updateEquipamento(params.equipamentoId, {
         situacao: 'Manutenção',
         timeline: [
           {
             id: 'tm-' + Date.now(),
             dataHora: new Date().toLocaleString('pt-BR'),
             tipo: 'Manutenção',
-            descricao: `Ordem de manutenção [${tipo}] aberta. Descrição: ${descricao}`,
-            responsavel: responsavel,
+            descricao: `Ordem de manutenção [${params.tipo}] aberta. Descrição: ${params.descricao}`,
+            responsavel: params.responsavel,
             usuarioRegistro: 'Administrador',
           },
           ...(eq.timeline || []),
@@ -272,17 +408,85 @@ export function useEstoquePatrimonio() {
       });
     }
 
+    // Gera Conta a Pagar para o Prestador/Assistência se solicitado
+    if (params.gerarContaPagar && params.valor > 0) {
+      lancarContaPagar({
+        fornecedor: params.prestador || params.responsavel || 'Assistência Técnica Especializada',
+        descricao: `Serviço de Manutenção [${params.tipo}]: ${eqNome} (${eqCod})`,
+        valor: params.valor,
+        vencimento: params.vencimento,
+        categoria: 'Manutenção de Equipamentos & TI',
+        centroCustoNome: 'Manutenção TI',
+      });
+    }
+
+    // Gera Conta a Receber se repassado/faturado para Cliente
+    if (params.gerarContaReceber && params.valor > 0 && params.clienteNome) {
+      lancarContaReceber({
+        cliente: params.clienteNome,
+        descricao: `Faturamento de Manutenção [${params.tipo}]: ${eqNome} (${eqCod})`,
+        valor: params.valor,
+        vencimento: params.vencimento,
+        categoria: 'Serviços de Manutenção & Suporte',
+        centroCustoNome: 'Operações & Serviços',
+      });
+    }
+
     addMovimentacao({
       id: 'mov-' + Date.now(),
       tipo: 'Manutenção',
-      equipamentoId,
+      equipamentoId: params.equipamentoId,
       equipamentoNome: `${eqNome} (${eqCod})`,
       usuarioId: 'usr-admin',
       usuarioNome: 'Administrador',
       dataHora: new Date().toLocaleString('pt-BR'),
-      destino: `Assistência / Tech: ${responsavel}`,
-      observacoes: `Manutenção ${tipo}. Custo estimado: R$ ${valor}`,
+      destino: `Assistência / Tech: ${params.responsavel}`,
+      observacoes: `Manutenção ${params.tipo}. Custo: R$ ${params.valor}${
+        params.gerarContaPagar ? ' • Conta a Pagar gerada' : ''
+      }${params.gerarContaReceber ? ' • Conta a Receber gerada' : ''}`,
     });
+  };
+
+  // Operação: Cadastro de Licença COM Integração Financeira
+  const criarLicencaComFinanceiro = (params: {
+    licenca: Omit<Licenca, 'id'>;
+    gerarContaPagar?: boolean;
+    gerarContaReceber?: boolean;
+    clienteNome?: string;
+    vencimentoFinanceiro?: string;
+  }) => {
+    const id = 'lic-' + Date.now();
+    const novaLicenca: Licenca = {
+      ...params.licenca,
+      id,
+    };
+    addLicenca(novaLicenca);
+
+    // Despesa em Contas a Pagar
+    if (params.gerarContaPagar && params.licenca.valor > 0) {
+      lancarContaPagar({
+        fornecedor: params.licenca.fabricante || 'Fornecedor de Software / SaaS',
+        descricao: `Assinatura de Software/Licença: ${params.licenca.nome} (${params.licenca.plano})`,
+        valor: params.licenca.valor,
+        vencimento: params.vencimentoFinanceiro || params.licenca.vencimento,
+        categoria: 'Licenças de Software & SaaS',
+        centroCustoNome: params.licenca.centroCustoNome || 'TI / Infraestrutura',
+      });
+    }
+
+    // Faturamento em Contas a Receber (se repassado a cliente)
+    if (params.gerarContaReceber && params.licenca.valor > 0 && params.clienteNome) {
+      lancarContaReceber({
+        cliente: params.clienteNome,
+        descricao: `Repasse de Licença de Software: ${params.licenca.nome} (${params.licenca.plano})`,
+        valor: params.licenca.valor,
+        vencimento: params.vencimentoFinanceiro || params.licenca.vencimento,
+        categoria: 'Repasse de Licenças & Serviços',
+        centroCustoNome: 'Comercial & Faturamento',
+      });
+    }
+
+    return novaLicenca;
   };
 
   return {
@@ -301,10 +505,11 @@ export function useEstoquePatrimonio() {
     addEstoqueItem,
     updateEstoqueItem,
     deleteEstoqueItem,
-    ajustarEstoqueItem,
+    ajustarEstoqueItemComFinanceiro,
     addLicenca,
     updateLicenca,
     deleteLicenca,
+    criarLicencaComFinanceiro,
     addPatrimonio,
     updatePatrimonio,
     deletePatrimonio,
@@ -314,7 +519,8 @@ export function useEstoquePatrimonio() {
     addManutencao,
     updateManutencao,
     deleteManutencao,
-    abrirManutencao,
-    vincularDespesaFinanceira,
+    abrirManutencaoComFinanceiro,
+    lancarContaPagar,
+    lancarContaReceber,
   };
 }

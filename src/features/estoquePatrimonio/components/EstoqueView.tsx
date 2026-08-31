@@ -16,6 +16,12 @@ import {
   Boxes,
   LayoutList,
   LayoutGrid,
+  DollarSign,
+  Building2,
+  Calendar,
+  CheckCircle2,
+  Receipt,
+  FileText
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,13 +37,18 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useEstoquePatrimonio } from '../hooks/useEstoquePatrimonio';
+import { useLocalStorageState } from '@/hooks/useDataStore';
 import { EstoqueItem } from '../types';
 import { InventarioView } from './InventarioView';
+import { toast } from 'sonner';
 
 export function EstoqueView() {
-  const { estoqueItens, addEstoqueItem, ajustarEstoqueItem, deleteEstoqueItem } = useEstoquePatrimonio();
+  const { estoqueItens, addEstoqueItem, ajustarEstoqueItemComFinanceiro, deleteEstoqueItem } = useEstoquePatrimonio();
+  const { data: clientes = [] } = useLocalStorageState<any>('focus_clientes', []);
+  const { data: fornecedores = [] } = useLocalStorageState<any>('focus_fornecedores', []);
 
   const [subTab, setSubTab] = useState<'itens' | 'inventario'>('itens');
   const [searchTerm, setSearchTerm] = useState('');
@@ -62,15 +73,22 @@ export function EstoqueView() {
     observacoes: '',
   });
 
-  // Form: Movimentar (Entrada / Saída / Ajuste)
+  // Form: Movimentar (Entrada / Saída / Ajuste) com Financeiro
   const [movForm, setMovForm] = useState({
     tipo: 'Entrada' as 'Entrada' | 'Saída' | 'Ajuste',
     quantidade: 1,
     motivo: 'Abastecimento de Estoque',
+    gerarFinanceiro: true,
+    valorUnitario: 0,
+    valorTotal: 0,
+    entidadeNome: '',
+    vencimento: new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
+    formaPagamento: 'Boleto',
+    finalidadeSaida: 'venda' as 'venda' | 'interno',
   });
 
   const filteredItens = estoqueItens.filter((item) => {
-    if (!item) return false;
+    if (!item || (!item.nome && !item.codigo)) return false;
     const search = searchTerm.toLowerCase();
     const matchesSearch =
       (item.nome || '').toLowerCase().includes(search) ||
@@ -80,7 +98,44 @@ export function EstoqueView() {
     return matchesSearch && matchesCat;
   });
 
-  const categoriasUnicas = Array.from(new Set(estoqueItens.map((i) => i.categoria)));
+  const categoriasUnicas = Array.from(new Set(estoqueItens.map((i) => i.categoria).filter(Boolean)));
+  const totalUnidadesEstoque = estoqueItens.reduce((acc, i) => acc + (Number(i.quantidade) || 0), 0);
+
+  const handleOpenEntrada = (item: EstoqueItem) => {
+    setSelectedItem(item);
+    const vlrUnit = Number(item.valorUnitario) || 0;
+    setMovForm({
+      tipo: 'Entrada',
+      quantidade: 1,
+      motivo: 'Compra / Reposição de Estoque',
+      gerarFinanceiro: true,
+      valorUnitario: vlrUnit,
+      valorTotal: vlrUnit * 1,
+      entidadeNome: fornecedores.length > 0 ? (fornecedores[0].nomeFantasia || fornecedores[0].razaoSocial) : 'Fornecedor de Almoxarifado',
+      vencimento: new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
+      formaPagamento: 'Boleto',
+      finalidadeSaida: 'venda',
+    });
+    setIsMovimentarOpen(true);
+  };
+
+  const handleOpenSaida = (item: EstoqueItem) => {
+    setSelectedItem(item);
+    const vlrUnit = Number(item.valorUnitario) || 0;
+    setMovForm({
+      tipo: 'Saída',
+      quantidade: 1,
+      motivo: 'Venda / Faturamento para Cliente',
+      gerarFinanceiro: true,
+      valorUnitario: vlrUnit,
+      valorTotal: vlrUnit * 1,
+      entidadeNome: clientes.length > 0 ? (clientes[0].nomeFantasia || clientes[0].razaoSocial) : 'Cliente Corporativo',
+      vencimento: new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
+      formaPagamento: 'PIX',
+      finalidadeSaida: 'venda',
+    });
+    setIsMovimentarOpen(true);
+  };
 
   const handleCreateItem = (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,17 +146,18 @@ export function EstoqueView() {
       codigo: novoItem.codigo,
       nome: novoItem.nome,
       categoria: novoItem.categoria,
-      quantidade: Number(novoItem.quantidade),
-      quantidadeMinima: Number(novoItem.quantidadeMinima),
+      quantidade: Number(novoItem.quantidade) || 0,
+      quantidadeMinima: Number(novoItem.quantidadeMinima) || 0,
       localizacao: novoItem.localizacao,
       status: Number(novoItem.quantidade) > 0 ? 'Disponível' : 'Reservado',
-      valorUnitario: Number(novoItem.valorUnitario),
+      valorUnitario: Number(novoItem.valorUnitario) || 0,
       responsavelNome: novoItem.responsavelNome,
       observacoes: novoItem.observacoes,
       createdAt: new Date().toISOString(),
     });
 
     setIsNovoItemOpen(false);
+    toast.success(`Item "${novoItem.nome}" cadastrado com sucesso!`);
     setNovoItem({
       codigo: '',
       nome: '',
@@ -119,47 +175,76 @@ export function EstoqueView() {
     e.preventDefault();
     if (!selectedItem) return;
 
-    ajustarEstoqueItem(selectedItem.id, Number(movForm.quantidade), movForm.tipo, movForm.motivo);
+    const qtd = Number(movForm.quantidade) || 1;
+    const vlrTot = Number(movForm.valorTotal) || (qtd * (Number(movForm.valorUnitario) || 0));
+    const shouldGenFinancial = movForm.tipo !== 'Ajuste' && movForm.gerarFinanceiro && (movForm.tipo === 'Entrada' || movForm.finalidadeSaida === 'venda');
+
+    ajustarEstoqueItemComFinanceiro({
+      itemId: selectedItem.id,
+      quantidadeMudanca: qtd,
+      tipoOperacao: movForm.tipo,
+      motivo: movForm.motivo,
+      gerarFinanceiro: shouldGenFinancial,
+      valorTotal: vlrTot,
+      entidadeNome: movForm.entidadeNome,
+      vencimento: movForm.vencimento,
+      formaPagamento: movForm.formaPagamento,
+    });
+
+    if (shouldGenFinancial) {
+      if (movForm.tipo === 'Entrada') {
+        toast.success(`Entrada de ${qtd} un realizada! Conta a Pagar de R$ ${vlrTot.toFixed(2)} gerada com sucesso.`);
+      } else {
+        toast.success(`Saída de ${qtd} un realizada! Conta a Receber de R$ ${vlrTot.toFixed(2)} gerada para ${movForm.entidadeNome}.`);
+      }
+    } else {
+      toast.success(`Movimentação de ${movForm.tipo} (${qtd} un) registrada no estoque!`);
+    }
+
     setIsMovimentarOpen(false);
     setSelectedItem(null);
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       {/* HEADER DA SEÇÃO */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-foreground">Itens e Estoque</h2>
+          <h2 className="text-xl font-bold tracking-tight text-foreground">Itens e Almoxarifado</h2>
           <p className="text-xs text-muted-foreground">
-            Controle de saldos físicos de almoxarifado, níveis de reposição e auditorias
+            Controle de saldos físicos de almoxarifado integrado automaticamente a Contas a Pagar e Contas a Receber
           </p>
         </div>
       </div>
 
       {/* SUB-NAVEGAÇÃO: ESTOQUE FÍSICO / INVENTÁRIO */}
       <div className="flex items-center justify-between border-b pb-3 flex-wrap gap-3">
-        <div className="flex items-center gap-1.5 bg-muted/40 p-1 rounded-lg border">
+        <div className="flex items-center gap-2">
           <Button
             variant={subTab === 'itens' ? 'default' : 'ghost'}
             size="sm"
             onClick={() => setSubTab('itens')}
-            className={`text-xs gap-1.5 h-8 ${subTab === 'itens' ? 'bg-background text-foreground shadow-sm' : ''}`}
+            className={`text-xs gap-1.5 ${subTab === 'itens' ? 'bg-orange-600 hover:bg-orange-700 text-white' : ''}`}
           >
-            <Package className="h-3.5 w-3.5" /> Saldos e Itens de Almoxarifado
+            <Boxes className="h-4 w-4" /> Almoxarifado ({filteredItens.length})
           </Button>
           <Button
             variant={subTab === 'inventario' ? 'default' : 'ghost'}
             size="sm"
             onClick={() => setSubTab('inventario')}
-            className={`text-xs gap-1.5 h-8 ${subTab === 'inventario' ? 'bg-background text-foreground shadow-sm' : ''}`}
+            className={`text-xs gap-1.5 ${subTab === 'inventario' ? 'bg-orange-600 hover:bg-orange-700 text-white' : ''}`}
           >
-            <ClipboardList className="h-3.5 w-3.5" /> Auditorias de Inventário
+            <ClipboardList className="h-4 w-4" /> Inventários & Auditorias
           </Button>
         </div>
 
         {subTab === 'itens' && (
-          <Button onClick={() => setIsNovoItemOpen(true)} className="gap-2 text-xs h-8">
-            <Plus className="h-3.5 w-3.5" /> Novo Item de Estoque
+          <Button
+            size="sm"
+            onClick={() => setIsNovoItemOpen(true)}
+            className="text-xs bg-orange-600 hover:bg-orange-700 text-white gap-1 font-semibold"
+          >
+            <Plus className="h-4 w-4" /> Novo Item de Estoque
           </Button>
         )}
       </div>
@@ -168,25 +253,26 @@ export function EstoqueView() {
         <InventarioView />
       ) : (
         <>
-          {/* BARRA DE FILTROS E MODO DE VISUALIZAÇÃO */}
-          <Card>
-            <CardContent className="p-4 flex flex-col sm:flex-row gap-3 items-center">
-              <div className="relative flex-1 w-full">
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por código, nome do item ou localização..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9 text-xs"
-                />
-              </div>
-              <div className="w-full sm:w-56">
+          {/* BARRA DE FILTROS */}
+          <Card className="p-3 bg-card border shadow-2xs">
+            <CardContent className="p-0 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto flex-1">
+                <div className="relative w-full sm:w-72">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar código, item ou localização..."
+                    className="pl-8 text-xs h-9"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+
                 <Select value={categoriaFilter} onValueChange={setCategoriaFilter}>
-                  <SelectTrigger className="text-xs">
-                    <SelectValue placeholder="Todas as Categorias" />
+                  <SelectTrigger className="w-[180px] text-xs h-9">
+                    <SelectValue placeholder="Todas Categorias" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todas as Categorias</SelectItem>
+                  <SelectContent className="text-xs">
+                    <SelectItem value="todos">Todas Categorias</SelectItem>
                     {categoriasUnicas.map((cat) => (
                       <SelectItem key={cat} value={cat}>
                         {cat}
@@ -195,24 +281,25 @@ export function EstoqueView() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex items-center gap-1 bg-muted/50 p-1 rounded-lg border shrink-0">
+
+              <div className="flex items-center border rounded-md p-0.5 bg-muted/40 shrink-0">
                 <Button
-                  variant={viewMode === 'table' ? 'default' : 'ghost'}
+                  variant={viewMode === 'table' ? 'secondary' : 'ghost'}
                   size="sm"
-                  className="h-7 px-2 text-xs"
+                  className="h-8 px-2 text-xs gap-1"
                   onClick={() => setViewMode('table')}
                   title="Visualização em Lista"
                 >
-                  <LayoutList className="h-3.5 w-3.5" />
+                  <LayoutList className="h-3.5 w-3.5" /> Tabela
                 </Button>
                 <Button
-                  variant={viewMode === 'cards' ? 'default' : 'ghost'}
+                  variant={viewMode === 'cards' ? 'secondary' : 'ghost'}
                   size="sm"
-                  className="h-7 px-2 text-xs"
+                  className="h-8 px-2 text-xs gap-1"
                   onClick={() => setViewMode('cards')}
                   title="Visualização em Cards"
                 >
-                  <LayoutGrid className="h-3.5 w-3.5" />
+                  <LayoutGrid className="h-3.5 w-3.5 text-orange-600" /> Cards
                 </Button>
               </div>
             </CardContent>
@@ -223,18 +310,19 @@ export function EstoqueView() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredItens.length === 0 ? (
                 <div className="col-span-full text-center py-12 text-muted-foreground text-xs border rounded-xl bg-card">
-                  Nenhum item de estoque encontrado.
+                  <Package className="w-8 h-8 opacity-30 mx-auto mb-2" />
+                  <p className="font-semibold text-foreground text-sm">Nenhum item de estoque encontrado</p>
                 </div>
               ) : (
                 filteredItens.map((item) => {
                   const isAbaixoMinimo = item.quantidade <= item.quantidadeMinima;
                   return (
-                    <Card key={item.id} className="rounded-xl border shadow-xs hover:border-primary/40 transition-all bg-card flex flex-col justify-between">
+                    <Card key={item.id} className="rounded-xl border shadow-xs hover:border-orange-500/50 transition-all bg-card flex flex-col justify-between">
                       <CardHeader className="p-4 pb-2">
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
-                            <h4 className="font-bold text-xs text-foreground truncate">{item.nome}</h4>
-                            <span className="text-[10px] font-mono text-primary font-semibold block">{item.codigo}</span>
+                            <h4 className="font-bold text-sm text-foreground truncate">{item.nome}</h4>
+                            <span className="text-[11px] font-mono text-orange-600 font-semibold block">{item.codigo}</span>
                           </div>
                           <Badge variant="secondary" className="text-[10px] shrink-0">
                             {item.categoria}
@@ -285,24 +373,16 @@ export function EstoqueView() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => {
-                              setSelectedItem(item);
-                              setMovForm({ tipo: 'Entrada', quantidade: 1, motivo: 'Abastecimento de Estoque' });
-                              setIsMovimentarOpen(true);
-                            }}
-                            className="h-7 text-[11px] px-2.5 gap-1 text-emerald-600 hover:text-emerald-700"
+                            onClick={() => handleOpenEntrada(item)}
+                            className="h-7 text-[11px] px-2.5 gap-1 text-emerald-600 hover:text-emerald-700 bg-emerald-500/5 hover:bg-emerald-500/10 border-emerald-500/20"
                           >
                             <ArrowDownLeft className="h-3 w-3" /> Entrada
                           </Button>
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => {
-                              setSelectedItem(item);
-                              setMovForm({ tipo: 'Saída', quantidade: 1, motivo: 'Entrega para Colaborador' });
-                              setIsMovimentarOpen(true);
-                            }}
-                            className="h-7 text-[11px] px-2.5 gap-1 text-amber-600 hover:text-amber-700"
+                            onClick={() => handleOpenSaida(item)}
+                            className="h-7 text-[11px] px-2.5 gap-1 text-amber-600 hover:text-amber-700 bg-amber-500/5 hover:bg-amber-500/10 border-amber-500/20"
                           >
                             <ArrowUpRight className="h-3 w-3" /> Saída
                           </Button>
@@ -310,7 +390,10 @@ export function EstoqueView() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => deleteEstoqueItem(item.id)}
+                          onClick={() => {
+                            deleteEstoqueItem(item.id);
+                            toast.success(`Item "${item.nome}" excluído!`);
+                          }}
                           className="h-7 w-7 text-muted-foreground hover:text-destructive"
                           title="Excluir item"
                         >
@@ -324,17 +407,17 @@ export function EstoqueView() {
             </div>
           ) : (
             <Card>
-              <CardHeader className="py-4">
+              <CardHeader className="py-4 border-b">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-sm font-semibold">Itens em Almoxarifado ({filteredItens.length})</CardTitle>
-                  <Badge variant="outline" className="text-[10px] font-mono">
-                    Total Itens: {estoqueItens.reduce((acc, i) => acc + i.quantidade, 0)} unidades
+                  <Badge variant="outline" className="text-[11px] font-mono">
+                    Total Itens: {totalUnidadesEstoque} unidades
                   </Badge>
                 </div>
               </CardHeader>
               <CardContent className="p-0">
                 <Table>
-                  <TableHeader>
+                  <TableHeader className="bg-muted/40">
                     <TableRow className="hover:bg-transparent">
                       <TableHead className="text-xs">Código / Item</TableHead>
                       <TableHead className="text-xs">Categoria</TableHead>
@@ -348,7 +431,7 @@ export function EstoqueView() {
                   <TableBody>
                     {filteredItens.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8 text-xs text-muted-foreground">
+                        <TableCell colSpan={7} className="text-center py-10 text-xs text-muted-foreground">
                           Nenhum item de estoque encontrado com os filtros aplicados.
                         </TableCell>
                       </TableRow>
@@ -356,11 +439,11 @@ export function EstoqueView() {
                       filteredItens.map((item) => {
                         const isAbaixoMinimo = item.quantidade <= item.quantidadeMinima;
                         return (
-                          <TableRow key={item.id} className="hover:bg-muted/50">
+                          <TableRow key={item.id} className="hover:bg-muted/50 transition-colors">
                             <TableCell>
                               <div className="flex flex-col">
                                 <span className="font-semibold text-xs text-foreground">{item.nome}</span>
-                                <span className="text-[10px] font-mono text-muted-foreground">{item.codigo}</span>
+                                <span className="text-[10px] font-mono text-orange-600 font-bold">{item.codigo}</span>
                               </div>
                             </TableCell>
                             <TableCell className="text-xs">
@@ -369,7 +452,7 @@ export function EstoqueView() {
                               </Badge>
                             </TableCell>
                             <TableCell className="text-center font-bold text-xs">
-                              <span className={isAbaixoMinimo ? 'text-rose-600 dark:text-rose-400 font-extrabold' : ''}>
+                              <span className={isAbaixoMinimo ? 'text-rose-600 dark:text-rose-400 font-extrabold' : 'text-foreground'}>
                                 {item.quantidade} un
                               </span>
                             </TableCell>
@@ -378,8 +461,8 @@ export function EstoqueView() {
                             </TableCell>
                             <TableCell className="text-xs">
                               <div className="flex items-center gap-1.5 text-muted-foreground">
-                                <MapPin className="h-3.5 w-3.5" />
-                                <span>{item.localizacao}</span>
+                                <MapPin className="h-3.5 w-3.5 shrink-0" />
+                                <span className="truncate">{item.localizacao}</span>
                               </div>
                             </TableCell>
                             <TableCell className="text-xs">
@@ -394,35 +477,30 @@ export function EstoqueView() {
                               )}
                             </TableCell>
                             <TableCell className="text-right">
-                              <div className="flex items-center justify-end gap-1">
+                              <div className="flex items-center justify-end gap-1.5">
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => {
-                                    setSelectedItem(item);
-                                    setMovForm({ tipo: 'Entrada', quantidade: 1, motivo: 'Abastecimento de Estoque' });
-                                    setIsMovimentarOpen(true);
-                                  }}
-                                  className="h-7 text-[11px] px-2 gap-1 text-emerald-600 hover:text-emerald-700"
+                                  onClick={() => handleOpenEntrada(item)}
+                                  className="h-7 text-[11px] px-2.5 gap-1 text-emerald-600 hover:text-emerald-700 bg-emerald-500/5 hover:bg-emerald-500/10 border-emerald-500/20 font-semibold"
                                 >
                                   <ArrowDownLeft className="h-3 w-3" /> Entrada
                                 </Button>
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => {
-                                    setSelectedItem(item);
-                                    setMovForm({ tipo: 'Saída', quantidade: 1, motivo: 'Entrega para Colaborador' });
-                                    setIsMovimentarOpen(true);
-                                  }}
-                                  className="h-7 text-[11px] px-2 gap-1 text-amber-600 hover:text-amber-700"
+                                  onClick={() => handleOpenSaida(item)}
+                                  className="h-7 text-[11px] px-2.5 gap-1 text-amber-600 hover:text-amber-700 bg-amber-500/5 hover:bg-amber-500/10 border-amber-500/20 font-semibold"
                                 >
                                   <ArrowUpRight className="h-3 w-3" /> Saída
                                 </Button>
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  onClick={() => deleteEstoqueItem(item.id)}
+                                  onClick={() => {
+                                    deleteEstoqueItem(item.id);
+                                    toast.success(`Item "${item.nome}" excluído!`);
+                                  }}
                                   className="h-7 w-7 text-muted-foreground hover:text-destructive"
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
@@ -486,7 +564,7 @@ export function EstoqueView() {
                     <SelectTrigger className="text-xs h-8">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="text-xs">
                       <SelectItem value="Periféricos e Cabos">Periféricos e Cabos</SelectItem>
                       <SelectItem value="Componentes e Peças">Componentes e Peças</SelectItem>
                       <SelectItem value="Adaptadores e Fontes">Adaptadores e Fontes</SelectItem>
@@ -553,67 +631,189 @@ export function EstoqueView() {
         </DialogContent>
       </Dialog>
 
-      {/* MODAL: MOVIMENTAÇÃO (ENTRADA / SAÍDA / AJUSTE) */}
+      {/* MODAL: MOVIMENTAÇÃO (ENTRADA / SAÍDA COM GERAÇÃO FINANCEIRA) */}
       <Dialog open={isMovimentarOpen} onOpenChange={setIsMovimentarOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <form onSubmit={handleMovimentar}>
             <DialogHeader>
-              <DialogTitle className="text-base">
-                Registrar Movimentação: {selectedItem?.nome}
-              </DialogTitle>
+              <div className="flex items-center gap-2">
+                {movForm.tipo === 'Entrada' ? (
+                  <Badge className="bg-emerald-600 text-white text-xs">Entrada no Estoque</Badge>
+                ) : (
+                  <Badge className="bg-amber-600 text-white text-xs">Saída do Estoque</Badge>
+                )}
+                <DialogTitle className="text-base">
+                  {selectedItem?.nome}
+                </DialogTitle>
+              </div>
               <DialogDescription className="text-xs">
-                Saldo Atual: <strong>{selectedItem?.quantidade} unidades</strong> ({selectedItem?.codigo})
+                Código: <strong className="font-mono text-primary">{selectedItem?.codigo}</strong> • Saldo Atual: <strong>{selectedItem?.quantidade} unidades</strong>
               </DialogDescription>
             </DialogHeader>
 
             <div className="grid gap-3 py-3 text-xs">
-              <div className="space-y-1">
-                <Label className="text-xs">Tipo de Movimentação</Label>
-                <Select
-                  value={movForm.tipo}
-                  onValueChange={(val: 'Entrada' | 'Saída' | 'Ajuste') => setMovForm({ ...movForm, tipo: val })}
-                >
-                  <SelectTrigger className="text-xs h-8">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Entrada">Entrada (Adicionar ao Saldo)</SelectItem>
-                    <SelectItem value="Saída">Saída (Retirar do Saldo)</SelectItem>
-                    <SelectItem value="Ajuste">Ajuste de Balanço / Inventário</SelectItem>
-                  </SelectContent>
-                </Select>
+              {/* Quantidade e Motivo */}
+              <div className="grid grid-cols-3 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-xs font-semibold">Quantidade *</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max={movForm.tipo === 'Saída' ? selectedItem?.quantidade : undefined}
+                    required
+                    value={movForm.quantidade}
+                    onChange={(e) => {
+                      const q = Number(e.target.value) || 1;
+                      setMovForm({
+                        ...movForm,
+                        quantidade: q,
+                        valorTotal: q * (Number(movForm.valorUnitario) || 0)
+                      });
+                    }}
+                    className="text-xs h-8 font-bold"
+                  />
+                </div>
+
+                <div className="col-span-2 space-y-1">
+                  <Label className="text-xs font-semibold">Motivo / Justificativa *</Label>
+                  <Input
+                    required
+                    placeholder={movForm.tipo === 'Entrada' ? "Ex: Compra NF 123 / Reposição" : "Ex: Venda para cliente / Baixa de uso"}
+                    value={movForm.motivo}
+                    onChange={(e) => setMovForm({ ...movForm, motivo: e.target.value })}
+                    className="text-xs h-8"
+                  />
+                </div>
               </div>
 
-              <div className="space-y-1">
-                <Label className="text-xs">Quantidade</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  required
-                  value={movForm.quantidade}
-                  onChange={(e) => setMovForm({ ...movForm, quantidade: Number(e.target.value) })}
-                  className="text-xs h-8"
-                />
-              </div>
+              {/* Se for Saída, perguntar se é Venda (receita) ou Uso Interno */}
+              {movForm.tipo === 'Saída' && (
+                <div className="space-y-1 bg-muted/40 p-2.5 rounded-lg border">
+                  <Label className="text-xs font-semibold">Destinação da Saída</Label>
+                  <Select
+                    value={movForm.finalidadeSaida}
+                    onValueChange={(val: 'venda' | 'interno') => setMovForm({ ...movForm, finalidadeSaida: val })}
+                  >
+                    <SelectTrigger className="text-xs h-8 bg-card">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="text-xs">
+                      <SelectItem value="venda">Venda / Faturamento Comercial (Gera Conta a Receber)</SelectItem>
+                      <SelectItem value="interno">Consumo Interno / Baixa Operacional (Sem Cobrança)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
-              <div className="space-y-1">
-                <Label className="text-xs">Motivo / Justificativa</Label>
-                <Input
-                  required
-                  placeholder="Ex: Entrega de boas-vindas colaborador / Compra NF 123"
-                  value={movForm.motivo}
-                  onChange={(e) => setMovForm({ ...movForm, motivo: e.target.value })}
-                  className="text-xs h-8"
-                />
-              </div>
+              {/* PAINEL DE INTEGRAÇÃO FINANCEIRA */}
+              {(movForm.tipo === 'Entrada' || (movForm.tipo === 'Saída' && movForm.finalidadeSaida === 'venda')) && (
+                <div className="space-y-3 p-3 rounded-lg border bg-orange-500/5 dark:bg-orange-950/20 border-orange-500/20">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-orange-700 dark:text-orange-300">
+                      <Receipt className="w-4 h-4" />
+                      {movForm.tipo === 'Entrada' ? 'Gerar Despesa em Contas a Pagar' : 'Gerar Título em Contas a Receber'}
+                    </div>
+                    <Switch
+                      checked={movForm.gerarFinanceiro}
+                      onCheckedChange={(checked) => setMovForm({ ...movForm, gerarFinanceiro: checked })}
+                    />
+                  </div>
+
+                  {movForm.gerarFinanceiro && (
+                    <div className="space-y-2.5 pt-1">
+                      <div className="space-y-1">
+                        <Label className="text-[11px] font-medium">
+                          {movForm.tipo === 'Entrada' ? 'Fornecedor / Emitente *' : 'Cliente / Pagador *'}
+                        </Label>
+                        <Input
+                          required={movForm.gerarFinanceiro}
+                          placeholder={movForm.tipo === 'Entrada' ? "Nome do Fornecedor ou Razão Social" : "Nome do Cliente"}
+                          value={movForm.entidadeNome}
+                          onChange={(e) => setMovForm({ ...movForm, entidadeNome: e.target.value })}
+                          className="text-xs h-8 bg-card"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-[11px] font-medium">Valor Unitário (R$)</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={movForm.valorUnitario}
+                            onChange={(e) => {
+                              const vu = Number(e.target.value) || 0;
+                              setMovForm({
+                                ...movForm,
+                                valorUnitario: vu,
+                                valorTotal: vu * (Number(movForm.quantidade) || 1)
+                              });
+                            }}
+                            className="text-xs h-8 bg-card"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label className="text-[11px] font-bold text-foreground">Valor Total (R$) *</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0.01"
+                            required
+                            value={movForm.valorTotal}
+                            onChange={(e) => setMovForm({ ...movForm, valorTotal: Number(e.target.value) || 0 })}
+                            className="text-xs h-8 bg-card font-bold text-orange-600"
+                          />
+                        </div>
+
+                        <div className="space-y-1 col-span-2 sm:col-span-1">
+                          <Label className="text-[11px] font-medium">Vencimento</Label>
+                          <Input
+                            type="date"
+                            required
+                            value={movForm.vencimento}
+                            onChange={(e) => setMovForm({ ...movForm, vencimento: e.target.value })}
+                            className="text-xs h-8 bg-card"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label className="text-[11px] font-medium">Forma de Pagamento Prevista</Label>
+                        <Select
+                          value={movForm.formaPagamento}
+                          onValueChange={(val) => setMovForm({ ...movForm, formaPagamento: val })}
+                        >
+                          <SelectTrigger className="text-xs h-8 bg-card">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="text-xs">
+                            <SelectItem value="PIX">PIX</SelectItem>
+                            <SelectItem value="Boleto">Boleto Bancário</SelectItem>
+                            <SelectItem value="Transferência">Transferência / TED</SelectItem>
+                            <SelectItem value="Cartão">Cartão Corporativo</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <DialogFooter className="pt-2">
               <Button type="button" variant="outline" size="sm" onClick={() => setIsMovimentarOpen(false)} className="text-xs">
                 Cancelar
               </Button>
-              <Button type="submit" size="sm" className="text-xs bg-orange-600 hover:bg-orange-700 text-white font-semibold">
-                Confirmar Movimentação
+              <Button 
+                type="submit" 
+                size="sm" 
+                className={`text-xs text-white font-semibold ${
+                  movForm.tipo === 'Entrada' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-amber-600 hover:bg-amber-700'
+                }`}
+              >
+                {movForm.tipo === 'Entrada' ? 'Confirmar Entrada & Gerar Pagamento' : 'Confirmar Saída & Faturar'}
               </Button>
             </DialogFooter>
           </form>
