@@ -6,18 +6,22 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Trash2, Upload, FileText, Calendar as CalendarIcon, CheckCircle2, UserPlus, Clock } from 'lucide-react';
+import { 
+  Briefcase, 
+  Target, 
+  DollarSign, 
+  UploadCloud, 
+  FileText, 
+  CheckCircle2, 
+  Calendar,
+  Layers
+} from 'lucide-react';
 import { useProjetosQuery } from '../hooks/useProjetosQuery';
 import { useClientesQuery } from '@/features/clientes/hooks/useClientesQuery';
-import { useLocalStorageState } from '@/hooks/useDataStore';
 import { useDocumentosStore } from '@/features/documentos/hooks/useDocumentosStore';
 import { FormatoArquivo } from '@/features/documentos/types';
 import { toast } from 'sonner';
-import { Projeto } from '../types';
-import { Usuario } from '@/features/usuarios/types';
-import { INITIAL_USUARIOS } from '@/features/usuarios/data/initialData';
 import { SelectResponsavel } from '@/components/SelectResponsavel';
-
 import { useNotificacoesStore } from "@/features/notificacoes/useNotificacoesStore";
 import { dmsService } from "@/services/dmsService";
 
@@ -25,14 +29,14 @@ export function NovoProjetoSheet({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [nome, setNome] = useState('');
   const [idCliente, setIdCliente] = useState('');
-  const [tipo, setTipo] = useState('');
+  const [tipo, setTipo] = useState('Software Sob Medida');
   const [responsavel, setResponsavel] = useState('');
   const [status, setStatus] = useState('Planejamento');
-  const [prioridade, setPrioridade] = useState('');
-  const [dataInicio, setDataInicio] = useState('');
+  const [prioridade, setPrioridade] = useState('Média');
+  const [dataInicio, setDataInicio] = useState(new Date().toISOString().split('T')[0]);
   const [dataFinal, setDataFinal] = useState('');
   const [valorContratado, setValorContratado] = useState('');
-  const [horasPlanejadas, setHorasPlanejadas] = useState('100');
+  const [horasPlanejadas, setHorasPlanejadas] = useState('120');
   const [descricao, setDescricao] = useState('');
 
   // Escopo
@@ -40,24 +44,22 @@ export function NovoProjetoSheet({ children }: { children: React.ReactNode }) {
   const [escopoIncluido, setEscopoIncluido] = useState('');
   const [escopoExcluido, setEscopoExcluido] = useState('');
 
-  // Documentos anexados durante a criao
+  // Documentos anexados durante a criação
   const [documentosAnexados, setDocumentosAnexados] = useState<Array<{ nome: string; tamanho: string }>>([]);
 
   const { saveProjeto } = useProjetosQuery();
   const { clientes } = useClientesQuery();
-  const { data: usuarios } = useLocalStorageState<Usuario>('focus_usuarios', INITIAL_USUARIOS);
   const { uploadDocument, pastas, createFolder } = useDocumentosStore();
   const { notificar } = useNotificacoesStore();
 
-  // Handler de upload de arquivo real com integrao ao DMS
+  // Handler de upload de arquivo com integração ao DMS
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, categoria: string) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
     const file = files[0];
-    const ext = file.name.split('.').pop()?.toLowerCase() as FormatoArquivo || 'pdf';
+    const ext = (file.name.split('.').pop()?.toLowerCase() as FormatoArquivo) || 'pdf';
 
-    // Garante que exista uma pasta de Projetos no DMS
     let targetFolder = pastas.find(p => p.moduloVinculado === 'Projetos' || p.nome === 'Projetos');
     if (!targetFolder) {
       createFolder('Projetos', null, 'Projetos');
@@ -82,51 +84,27 @@ export function NovoProjetoSheet({ children }: { children: React.ReactNode }) {
 
     setDocumentosAnexados(prev => [...prev, { nome: file.name, tamanho: `${(file.size / 1024 / 1024).toFixed(2)} MB` }]);
     toast.success("Documento anexado com sucesso!", {
-      description: `O arquivo "${file.name}" foi salvo automaticamente no mdulo de Documentos (DMS).`
+      description: `O arquivo "${file.name}" foi salvo automaticamente na pasta de Projetos no DMS.`
     });
   };
 
   const handleSave = () => {
     if (!nome.trim()) {
-      toast.error("Erro de Validao", { description: "Por favor, preencha o Nome do Projeto." });
+      toast.error("Erro de Validação", { description: "Por favor, preencha o Nome do Projeto." });
       return;
     }
     if (!idCliente) {
-      toast.error("Erro de Validao", { description: "Selecione o Cliente do projeto." });
+      toast.error("Erro de Validação", { description: "Selecione o Cliente vinculado ao projeto." });
       return;
     }
     if (!responsavel.trim()) {
-      toast.error("Erro de Validao", { description: "O Responsvel (PM)  obrigatrio." });
-      return;
-    }
-    if (!tipo) {
-      toast.error("Erro de Validao", { description: "Selecione o Tipo de Projeto." });
-      return;
-    }
-    if (!prioridade) {
-      toast.error("Erro de Validao", { description: "Selecione a Prioridade do projeto." });
-      return;
-    }
-    if (!dataInicio) {
-      toast.error("Erro de Validao", { description: "A Data de Incio  obrigatria." });
-      return;
-    }
-    if (!dataFinal) {
-      toast.error("Erro de Validao", { description: "A Data Final (Prevista)  obrigatria." });
-      return;
-    }
-    if (!valorContratado || parseFloat(valorContratado) <= 0) {
-      toast.error("Erro de Validao", { description: "O Valor Contratado  obrigatrio e deve ser maior que zero!" });
+      toast.error("Erro de Validação", { description: "O Responsável (PM) é obrigatório." });
       return;
     }
 
-    const val = parseFloat(valorContratado);
-    if (isNaN(val)) {
-      toast.error("Erro de Validao", { description: "O Valor Contratado deve ser um nmero vlido." });
-      return;
-    }
+    const val = parseFloat(valorContratado.replace(/[^0-9,-]+/g, "").replace(",", ".")) || 0;
 
-    const novoProjeto: Projeto = {
+    const novoProjeto = {
       id: crypto.randomUUID(),
       codigo: `PRJ-${Math.floor(100 + Math.random() * 900)}`,
       nome,
@@ -134,38 +112,41 @@ export function NovoProjetoSheet({ children }: { children: React.ReactNode }) {
       tipo: tipo as any,
       categoria: 'Desenvolvimento Core',
       responsavelPrincipal: responsavel,
-      prioridade: (prioridade as any),
-      status: (status as any),
-      dataInicio,
-      dataFinal,
-      descricaoGeral: descricao || 'Projeto criado pelo formulário.',
+      prioridade: prioridade as any,
+      status: status as any,
+      dataInicio: dataInicio || new Date().toISOString().split('T')[0],
+      dataFinal: dataFinal || new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      descricaoGeral: descricao || 'Projeto corporativo Focus ERP.',
+      objetivo: objetivo || '',
+      escopoIncluido: escopoIncluido || '',
+      escopoExcluido: escopoExcluido || '',
       valorContratado: val,
       valorRecebido: 0,
       saldoRestante: val,
       progressoGlobal: 0,
-      horasPlanejadas: parseInt(horasPlanejadas) || 100,
+      horasPlanejadas: parseInt(horasPlanejadas) || 120,
       horasRealizadas: 0,
       ultimaAtualizacao: new Date().toISOString()
     };
 
     saveProjeto(novoProjeto as any);
     
-    // Auto-gerar pasta específica do projeto no módulo Gestão de Documentação (DMS)
+    // Auto-gerar pasta específica do projeto no módulo Gestão de Documentos (DMS)
     dmsService.ensureProjectFolder({
       id: novoProjeto.id,
       nome: novoProjeto.nome,
       codigo: novoProjeto.codigo,
     });
     
-    // Disparar Notificao Automtica no Sistema de Notificaes ERP com usuarioDestino
+    // Notificação do Sistema
     notificar({
-      titulo: `Voc foi designado como responsvel pelo projeto "${nome}"`,
-      descricao: `Projeto ${novoProjeto.codigo} atribudo a ${responsavel || 'Usurio'} com oramento de R$ ${val.toLocaleString('pt-BR')} e prazo at ${dataFinal}.`,
+      titulo: `Você foi designado como responsável pelo projeto "${nome}"`,
+      descricao: `Projeto ${novoProjeto.codigo} atribuído a ${responsavel} com orçamento de R$ ${val.toLocaleString('pt-BR')}.`,
       origem: 'Projetos',
-      tipo: 'Informao',
-      prioridade: (prioridade === 'Urgente' || prioridade === 'Alta') ? 'Alta' : 'Normal',
-      targetUrl: '/projetos',
-      usuarioDestino: responsavel || 'Voc'
+      tipo: 'Informação',
+      prioridade: (prioridade === 'Crítica' || prioridade === 'Alta') ? 'Alta' : 'Normal',
+      targetUrl: `/projetos/${novoProjeto.id}`,
+      usuarioDestino: responsavel
     });
 
     toast.success("Projeto cadastrado com sucesso!");
@@ -174,13 +155,13 @@ export function NovoProjetoSheet({ children }: { children: React.ReactNode }) {
     // Limpar campos
     setNome('');
     setIdCliente('');
-    setTipo('');
+    setTipo('Software Sob Medida');
     setResponsavel('');
-    setPrioridade('');
-    setDataInicio('');
+    setPrioridade('Média');
+    setDataInicio(new Date().toISOString().split('T')[0]);
     setDataFinal('');
     setValorContratado('');
-    setHorasPlanejadas('100');
+    setHorasPlanejadas('120');
     setDescricao('');
     setObjetivo('');
     setEscopoIncluido('');
@@ -193,40 +174,52 @@ export function NovoProjetoSheet({ children }: { children: React.ReactNode }) {
       <SheetTrigger asChild>
         {children}
       </SheetTrigger>
-      <SheetContent className="sm:max-w-4xl overflow-y-auto">
-        <SheetHeader className="mb-6">
-          <SheetTitle>Gesto do Projeto</SheetTitle>
-          <SheetDescription>
-            Configure escopo, horas, equipe e marcos do projeto de ponta a ponta.
+      <SheetContent className="sm:max-w-3xl overflow-y-auto bg-card border-l shadow-2xl">
+        <SheetHeader className="mb-6 border-b pb-4">
+          <SheetTitle className="text-xl font-bold flex items-center gap-2 text-foreground">
+            <Briefcase className="w-5 h-5 text-orange-500" /> Cadastro de Novo Projeto
+          </SheetTitle>
+          <SheetDescription className="text-xs text-muted-foreground">
+            Preencha os dados institucionais, escopo e orçamento inicial. Marcos, cronograma detalhado e equipe serão geridos no painel do projeto.
           </SheetDescription>
         </SheetHeader>
 
-        <Tabs defaultValue="geral" className="w-full">
-          <div className="overflow-x-auto pb-2 mb-4 scrollbar-hide">
-            <TabsList className="w-max inline-flex">
-              <TabsTrigger value="geral">Dados Gerais</TabsTrigger>
-              <TabsTrigger value="escopo">Escopo</TabsTrigger>
-              <TabsTrigger value="cronograma">Cronograma</TabsTrigger>
-              <TabsTrigger value="marcos">Marcos</TabsTrigger>
-              <TabsTrigger value="docs">Documentos</TabsTrigger>
-              <TabsTrigger value="equipe">Equipe</TabsTrigger>
-              <TabsTrigger value="horas">Horas</TabsTrigger>
-              <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
-              <TabsTrigger value="historico">Timeline</TabsTrigger>
+        <Tabs defaultValue="geral" className="w-full space-y-4">
+          <div className="border-b pb-2">
+            <TabsList className="bg-muted/50 p-1 flex w-max gap-1">
+              <TabsTrigger value="geral" className="gap-1.5 text-xs font-semibold">
+                <Briefcase className="w-3.5 h-3.5" /> Dados Gerais
+              </TabsTrigger>
+              <TabsTrigger value="escopo" className="gap-1.5 text-xs font-semibold">
+                <Target className="w-3.5 h-3.5" /> Escopo & Objetivos
+              </TabsTrigger>
+              <TabsTrigger value="financeiro" className="gap-1.5 text-xs font-semibold">
+                <DollarSign className="w-3.5 h-3.5" /> Orçamento & Horas
+              </TabsTrigger>
+              <TabsTrigger value="docs" className="gap-1.5 text-xs font-semibold">
+                <UploadCloud className="w-3.5 h-3.5" /> Documentos Iniciais
+              </TabsTrigger>
             </TabsList>
           </div>
           
           {/* 1. DADOS GERAIS */}
-          <TabsContent value="geral" className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Nome do Projeto *</Label>
-                <Input placeholder="Ex: ERP Integrado V2" value={nome} onChange={e => setNome(e.target.value)} />
+          <TabsContent value="geral" className="space-y-4 pt-1 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="font-semibold">Nome do Projeto *</Label>
+                <Input 
+                  placeholder="Ex: ERP Integrado Focus Tech V2" 
+                  value={nome} 
+                  onChange={e => setNome(e.target.value)} 
+                  className="rounded-xl h-9 text-xs"
+                />
               </div>
-              <div className="space-y-2">
-                <Label>Cliente Vinculado *</Label>
+              <div className="space-y-1.5">
+                <Label className="font-semibold">Cliente Vinculado *</Label>
                 <Select value={idCliente} onValueChange={setIdCliente}>
-                  <SelectTrigger><SelectValue placeholder="Selecione o Cliente" /></SelectTrigger>
+                  <SelectTrigger className="rounded-xl h-9 text-xs">
+                    <SelectValue placeholder="Selecione o Cliente" />
+                  </SelectTrigger>
                   <SelectContent>
                     {clientes.length === 0 ? (
                       <SelectItem value="cli-none" disabled>Nenhum cliente cadastrado</SelectItem>
@@ -240,165 +233,192 @@ export function NovoProjetoSheet({ children }: { children: React.ReactNode }) {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label>Responsável (PM) *</Label>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="space-y-1.5">
+                <Label className="font-semibold">Responsável (Project Manager) *</Label>
                 <SelectResponsavel 
                   value={responsavel} 
                   onValueChange={setResponsavel} 
-                  placeholder="Selecione o Usuário" 
+                  placeholder="Selecione o PM" 
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Valor Contratado (R$) *</Label>
-                <Input type="number" placeholder="Ex: 50000" value={valorContratado} onChange={e => setValorContratado(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Horas Planejadas</Label>
-                <Input type="number" placeholder="Ex: 100" value={horasPlanejadas} onChange={e => setHorasPlanejadas(e.target.value)} />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label>Data de Incio *</Label>
-                <Input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Data Final (Prevista) *</Label>
-                <Input type="date" value={dataFinal} onChange={e => setDataFinal(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Tipo de Projeto *</Label>
+              <div className="space-y-1.5">
+                <Label className="font-semibold">Tipo de Solução</Label>
                 <Select value={tipo} onValueChange={setTipo}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectTrigger className="rounded-xl h-9 text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="Software Sob Medida">Software Sob Medida</SelectItem>
                     <SelectItem value="Sistema Web">Sistema Web</SelectItem>
                     <SelectItem value="Aplicativo Mobile">Aplicativo Mobile</SelectItem>
-                    <SelectItem value="Business Intelligence">Business Intelligence</SelectItem>
-                    <SelectItem value="API">API / Integrao</SelectItem>
-                    <SelectItem value="Website">Website Institucional</SelectItem>
+                    <SelectItem value="Automação">Automação & RPA</SelectItem>
+                    <SelectItem value="Business Intelligence">Business Intelligence (BI)</SelectItem>
+                    <SelectItem value="Inteligência Artificial">Inteligência Artificial (IA)</SelectItem>
+                    <SelectItem value="API">API & Integração</SelectItem>
+                    <SelectItem value="Consultoria">Consultoria</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Prioridade *</Label>
+              <div className="space-y-1.5">
+                <Label className="font-semibold">Prioridade</Label>
                 <Select value={prioridade} onValueChange={setPrioridade}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent className="z-[9999]">
+                  <SelectTrigger className="rounded-xl h-9 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
                     <SelectItem value="Baixa">Baixa</SelectItem>
                     <SelectItem value="Média">Média</SelectItem>
                     <SelectItem value="Alta">Alta</SelectItem>
-                    <SelectItem value="Crítica">Crítica</SelectItem>
+                    <SelectItem value="Crítica">Crítica (Urgente)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label>Status</Label>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="space-y-1.5">
+                <Label className="font-semibold">Status Inicial</Label>
                 <Select value={status} onValueChange={setStatus}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent className="z-[9999]">
+                  <SelectTrigger className="rounded-xl h-9 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
                     <SelectItem value="Planejamento">Planejamento</SelectItem>
                     <SelectItem value="Kickoff">Kickoff</SelectItem>
                     <SelectItem value="Em Desenvolvimento">Em Desenvolvimento</SelectItem>
                     <SelectItem value="Em Homologação">Em Homologação</SelectItem>
-                    <SelectItem value="Aguardando Cliente">Aguardando Cliente</SelectItem>
-                    <SelectItem value="Em Revisão">Em Revisão</SelectItem>
-                    <SelectItem value="Implantação">Implantação</SelectItem>
-                    <SelectItem value="Concluído">Concluído</SelectItem>
-                    <SelectItem value="Suspenso">Suspenso</SelectItem>
-                    <SelectItem value="Cancelado">Cancelado</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-1.5">
+                <Label className="font-semibold">Data de Início</Label>
+                <Input 
+                  type="date" 
+                  value={dataInicio} 
+                  onChange={e => setDataInicio(e.target.value)} 
+                  className="rounded-xl h-9 text-xs"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="font-semibold">Previsão de Conclusão</Label>
+                <Input 
+                  type="date" 
+                  value={dataFinal} 
+                  onChange={e => setDataFinal(e.target.value)} 
+                  className="rounded-xl h-9 text-xs"
+                />
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Descrição Geral / Resumo</Label>
-              <Textarea placeholder="Descreva brevemente do que se trata o projeto..." value={descricao} onChange={e => setDescricao(e.target.value)} />
+            <div className="space-y-1.5">
+              <Label className="font-semibold">Descrição Geral do Projeto</Label>
+              <Textarea 
+                placeholder="Breve resumo da finalidade do projeto e necessidades do cliente..." 
+                value={descricao} 
+                onChange={e => setDescricao(e.target.value)} 
+                className="rounded-xl h-20 text-xs resize-none"
+              />
             </div>
           </TabsContent>
 
           {/* 2. ESCOPO */}
-          <TabsContent value="escopo" className="space-y-4">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Documento de Escopo (Anexo no DMS)</Label>
-                <label className="border rounded p-4 flex items-center justify-between border-dashed bg-muted/10 hover:bg-muted/30 transition-colors cursor-pointer block">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
-                      <Upload className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-medium">Anexar Arquivo de Escopo</h4>
-                      <p className="text-xs text-muted-foreground">PDF, Word ou Excel (Salva automaticamente em Documentos DMS)</p>
-                    </div>
-                  </div>
-                  <input type="file" className="hidden" onChange={e => handleFileUpload(e, 'Escopo')} />
-                  <Button variant="outline" size="sm" asChild>
-                    <span>Selecionar Arquivo</span>
-                  </Button>
-                </label>
-              </div>
+          <TabsContent value="escopo" className="space-y-4 pt-1 text-xs">
+            <div className="space-y-1.5">
+              <Label className="font-semibold">Objetivo Principal do Projeto</Label>
+              <Input 
+                placeholder="Ex: Otimizar o controle de estoque e integrar vendas com emissão fiscal..." 
+                value={objetivo} 
+                onChange={e => setObjetivo(e.target.value)} 
+                className="rounded-xl h-9 text-xs"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="font-semibold">Escopo Incluído (In Scope)</Label>
+              <Textarea 
+                className="rounded-xl h-24 text-xs resize-none" 
+                placeholder="Liste as funcionalidades, módulos e entregas que fazem parte deste projeto..." 
+                value={escopoIncluido} 
+                onChange={e => setEscopoIncluido(e.target.value)} 
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="font-semibold">Escopo Excluído (Out of Scope)</Label>
+              <Textarea 
+                className="rounded-xl h-24 text-xs resize-none" 
+                placeholder="Deixe claro o que NÃO faz parte da entrega deste projeto para alinhar expectativas..." 
+                value={escopoExcluido} 
+                onChange={e => setEscopoExcluido(e.target.value)} 
+              />
+            </div>
+          </TabsContent>
 
-              <div className="space-y-2">
-                <Label>Objetivo Principal</Label>
-                <Input placeholder="Qual a meta deste projeto?" value={objetivo} onChange={e => setObjetivo(e.target.value)} />
+          {/* 3. FINANCEIRO & ORÇAMENTO */}
+          <TabsContent value="financeiro" className="space-y-4 pt-1 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="font-semibold">Valor Contratado (R$)</Label>
+                <Input 
+                  placeholder="Ex: 45.000,00" 
+                  value={valorContratado} 
+                  onChange={e => setValorContratado(e.target.value)} 
+                  className="rounded-xl h-9 text-xs font-semibold"
+                />
               </div>
-              <div className="space-y-2">
-                <Label>Escopo Includo (In Scope)</Label>
-                <Textarea className="h-24" placeholder="Liste as funcionalidades, mdulos e entregas que fazem parte do projeto..." value={escopoIncluido} onChange={e => setEscopoIncluido(e.target.value)} />
+              <div className="space-y-1.5">
+                <Label className="font-semibold">Horas Planejadas Totais</Label>
+                <Input 
+                  type="number" 
+                  placeholder="Ex: 120" 
+                  value={horasPlanejadas} 
+                  onChange={e => setHorasPlanejadas(e.target.value)} 
+                  className="rounded-xl h-9 text-xs"
+                />
               </div>
-              <div className="space-y-2">
-                <Label>Escopo Excludo (Out of Scope)</Label>
-                <Textarea className="h-24" placeholder="Deixe claro o que NO faz parte da entrega deste projeto para evitar gargalos..." value={escopoExcluido} onChange={e => setEscopoExcluido(e.target.value)} />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-2xl border bg-muted/20 mt-4">
+              <div className="space-y-1">
+                <span className="text-[11px] text-muted-foreground font-medium">Orçamento Total</span>
+                <p className="text-base font-bold text-foreground">
+                  {valorContratado ? `R$ ${valorContratado}` : 'R$ 0,00'}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <span className="text-[11px] text-muted-foreground font-medium">Capacidade Estimada</span>
+                <p className="text-base font-bold text-orange-600">
+                  {horasPlanejadas || 0} horas
+                </p>
+              </div>
+              <div className="space-y-1">
+                <span className="text-[11px] text-muted-foreground font-medium">Valor Médio / Hora</span>
+                <p className="text-base font-bold text-emerald-600">
+                  {horasPlanejadas && valorContratado ? (
+                    `R$ ${(parseFloat(valorContratado.replace(/[^0-9,-]+/g, "").replace(",", ".")) / (parseInt(horasPlanejadas) || 1)).toFixed(2)}/h`
+                  ) : 'R$ 0,00/h'}
+                </p>
               </div>
             </div>
           </TabsContent>
 
-          {/* 3. CRONOGRAMA */}
-          <TabsContent value="cronograma" className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h4 className="font-medium text-sm">Etapas do Projeto</h4>
-            </div>
-            <p className="text-xs text-muted-foreground">As etapas do cronograma sero configuradas aps a criao inicial do projeto.</p>
-          </TabsContent>
-
-          {/* 4. MARCOS */}
-          <TabsContent value="marcos" className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h4 className="font-medium text-sm">Milestones (Marcos)</h4>
-            </div>
-            <p className="text-xs text-muted-foreground">Os marcos de entrega podero ser gerenciados no painel do projeto aps a gravao.</p>
-          </TabsContent>
-
-          {/* 5. DOCUMENTOS */}
-          <TabsContent value="docs" className="space-y-4">
-            <label className="border rounded p-6 flex flex-col items-center justify-center border-dashed cursor-pointer hover:bg-muted/20 transition-colors">
-              <Upload className="w-8 h-8 text-muted-foreground mb-2" />
-              <h4 className="font-medium">Repositrio do Projeto (DMS Integrado)</h4>
-              <p className="text-sm text-muted-foreground mb-4 text-center">
-                Clique para selecionar Briefings, Contratos, Diagramas ou PDFs. Todos sero arquivados automaticamente na pasta "Projetos" do mdulo Documentos.
+          {/* 4. DOCUMENTOS INICIAIS */}
+          <TabsContent value="docs" className="space-y-4 pt-1 text-xs">
+            <label className="border-2 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer hover:bg-muted/20 transition-colors text-center">
+              <UploadCloud className="w-8 h-8 text-orange-500 mb-2" />
+              <h4 className="font-bold text-sm text-foreground">Anexar Documentos Iniciais (DMS Integrado)</h4>
+              <p className="text-xs text-muted-foreground mb-3 max-w-md">
+                Selecione Briefings, RFPs, Contratos ou Diagramas de Arquitetura. Serão salvos automaticamente na pasta de Projetos do DMS.
               </p>
-              <input type="file" className="hidden" onChange={e => handleFileUpload(e, 'Documentos do Projeto')} />
-              <Button variant="secondary" size="sm" asChild>
-                <span>Selecionar Arquivo</span>
+              <input type="file" className="hidden" onChange={e => handleFileUpload(e, 'Documentos Iniciais')} />
+              <Button type="button" variant="secondary" size="sm" className="rounded-xl h-8 text-xs font-semibold">
+                Selecionar Arquivo do Computador
               </Button>
             </label>
 
             {documentosAnexados.length > 0 && (
               <div className="space-y-2 mt-4">
-                <Label className="text-xs font-semibold">Arquivos Anexados nesta Sesso (Salvos no DMS):</Label>
+                <Label className="text-xs font-bold text-foreground">Arquivos Anexados nesta Sessão:</Label>
                 {documentosAnexados.map((doc, idx) => (
-                  <div key={idx} className="flex items-center justify-between border p-3 rounded bg-muted/10">
+                  <div key={idx} className="flex items-center justify-between border p-3 rounded-xl bg-card shadow-2xs">
                     <div className="flex items-center gap-3">
-                      <FileText className="w-5 h-5 text-blue-500" />
+                      <FileText className="w-5 h-5 text-orange-500" />
                       <div>
-                        <div className="font-medium text-sm">{doc.nome}</div>
-                        <div className="text-xs text-muted-foreground">{doc.tamanho} " Salvo na pasta Projetos (DMS)</div>
+                        <div className="font-bold text-xs text-foreground">{doc.nome}</div>
+                        <div className="text-[11px] text-muted-foreground">{doc.tamanho} • Salvo no DMS</div>
                       </div>
                     </div>
                     <CheckCircle2 className="w-4 h-4 text-emerald-500" />
@@ -407,77 +427,18 @@ export function NovoProjetoSheet({ children }: { children: React.ReactNode }) {
               </div>
             )}
           </TabsContent>
-
-          {/* 6. EQUIPE */}
-          <TabsContent value="equipe" className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h4 className="font-medium text-sm">Membros do Projeto</h4>
-            </div>
-            <p className="text-xs text-muted-foreground">A equipe e recursos sero alocados no painel completo do projeto.</p>
-          </TabsContent>
-
-          {/* 7. HORAS */}
-          <TabsContent value="horas" className="space-y-4">
-             <div className="grid grid-cols-3 gap-4 text-center mb-6">
-                <div className="border rounded p-4 bg-muted/10">
-                  <div className="text-xs text-muted-foreground">Horas Planejadas Totais</div>
-                  <div className="text-2xl font-bold">{horasPlanejadas || 0}h</div>
-                </div>
-                <div className="border rounded p-4 bg-blue-50/50 dark:bg-blue-900/20">
-                  <div className="text-xs text-blue-600 dark:text-blue-400">Horas Realizadas</div>
-                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">0h</div>
-                </div>
-                <div className="border rounded p-4 bg-emerald-50/50 dark:bg-emerald-900/20">
-                  <div className="text-xs text-emerald-600 dark:text-emerald-400">Saldo Restante</div>
-                  <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{horasPlanejadas || 0}h</div>
-                </div>
-              </div>
-          </TabsContent>
-
-          {/* 8. FINANCEIRO */}
-          <TabsContent value="financeiro" className="space-y-4">
-            <div className="rounded-md border border-dashed p-6 text-center">
-              <h3 className="font-semibold mb-2">Sade Financeira do Projeto</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Projeo inicial baseada no Valor Contratado.
-              </p>
-              <div className="grid grid-cols-3 gap-4 text-left">
-                <div className="border rounded p-4">
-                  <div className="text-xs text-muted-foreground">Valor Contratado</div>
-                  <div className="font-bold text-lg">
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(valorContratado) || 0)}
-                  </div>
-                </div>
-                <div className="border rounded p-4">
-                  <div className="text-xs text-muted-foreground">Total Recebido</div>
-                  <div className="font-bold text-emerald-600 text-lg">R$ 0,00</div>
-                </div>
-                <div className="border rounded p-4">
-                  <div className="text-xs text-muted-foreground">Saldo Restante</div>
-                  <div className="font-bold text-red-600 text-lg">
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(valorContratado) || 0)}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </TabsContent>
-
-          {/* 9. HISTRICO */}
-          <TabsContent value="historico" className="space-y-4">
-             <div className="relative border-l border-muted ml-4 pl-6 space-y-6">
-              <div className="relative">
-                <div className="absolute -left-[31px] bg-emerald-500 rounded-full w-4 h-4 border-4 border-background" />
-                <div className="text-sm font-medium">Projeto Criado</div>
-                <div className="text-xs text-muted-foreground">Sistema " Hoje</div>
-              </div>
-            </div>
-          </TabsContent>
-
         </Tabs>
 
-        <SheetFooter className="mt-8">
-          <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-          <Button onClick={handleSave}>Salvar Projeto</Button>
+        <SheetFooter className="mt-8 border-t pt-4 flex sm:flex-row justify-end gap-2">
+          <Button variant="outline" onClick={() => setOpen(false)} className="rounded-xl text-xs h-9">
+            Cancelar
+          </Button>
+          <Button 
+            onClick={handleSave} 
+            className="bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-bold text-xs h-9 shadow-xs cursor-pointer"
+          >
+            Salvar Projeto
+          </Button>
         </SheetFooter>
       </SheetContent>
     </Sheet>
