@@ -108,19 +108,19 @@ const groups = [
     ],
   },
   {
-    label: "Análises e Relatórios",
-    items: [
-      { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
-      { title: "DRE Gerencial", url: "/dre", icon: PieChart },
-      { title: "Indicadores / KPIs", url: "/indicadores", icon: LineChart },
-    ],
-  },
-  {
     label: "Documentos e Contratos",
     items: [
       { title: "Gestão de Documentos", url: "/documentos", icon: FolderOpen },
       { title: "Assinaturas Digitais", url: "/assinaturas", icon: FileText },
       { title: "Contratos", url: "/contratos", icon: FileText },
+    ],
+  },
+  {
+    label: "Análises e Relatórios",
+    items: [
+      { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
+      { title: "DRE Gerencial", url: "/dre", icon: PieChart },
+      { title: "Indicadores / KPIs", url: "/indicadores", icon: LineChart },
     ],
   },
   {
