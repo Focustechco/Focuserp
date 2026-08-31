@@ -19,7 +19,7 @@ interface TimelineItemComCobranca extends EventoTimeline {
 }
 
 export function HistoricoInteracoes() {
-  const { data: cobrancasData } = useLocalStorageState<Cobranca>('focus_cobrancas', INITIAL_COBRANCAS);
+  const { data: cobrancasData } = useLocalStorageState<Cobranca>('focus_cobrancas', []);
   const cobrancas = Array.isArray(cobrancasData) ? cobrancasData : [];
   
   const [searchTerm, setSearchTerm] = useState('');

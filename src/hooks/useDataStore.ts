@@ -112,6 +112,9 @@ function isValidItem(table: string, item: any): boolean {
   if (table.includes('notificacoes')) {
     return Boolean(item.titulo && typeof item.titulo === 'string' && item.titulo.trim().length > 0);
   }
+  if (table.includes('cobrancas') || table.includes('cobranca')) {
+    return Boolean(item.id && (item.cliente || item.valor !== undefined || item.tituloReferencia));
+  }
   return true;
 }
 
@@ -124,7 +127,7 @@ function readLocalCache<T>(table: string, fallback: T[]): T[] {
     const keysToTry = [`focus_app_${table}`, table, `focus_${table}`];
     for (const k of keysToTry) {
       const raw = safeGetItem(k);
-      if (raw) {
+      if (raw !== null && raw !== undefined) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) {
           // Auto-heal: se o cache foi contaminado por pastas do DMS, expurgar a chave
@@ -134,7 +137,7 @@ function readLocalCache<T>(table: string, fallback: T[]): T[] {
           }
 
           const valid = parsed.filter(it => isValidItem(table, it));
-          if (valid.length > 0) return valid;
+          return valid;
         }
       }
     }

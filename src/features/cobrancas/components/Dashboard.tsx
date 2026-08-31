@@ -14,7 +14,7 @@ const formatCurrency = (value?: number | null) => {
 };
 
 export function Dashboard() {
-  const { data: cobrancasData } = useLocalStorageState<Cobranca>('focus_cobrancas', INITIAL_COBRANCAS);
+  const { data: cobrancasData } = useLocalStorageState<Cobranca>('focus_cobrancas', []);
   const cobrancas = Array.isArray(cobrancasData) ? cobrancasData : [];
 
   const {

@@ -41,7 +41,7 @@ export function NovaCobrancaSheet({ children }: { children?: React.ReactNode }) 
 
   const { data: contasReceber = [] } = useLocalStorageState<TituloReceber>('focus_contas_receber');
   const { data: clientes = [] } = useLocalStorageState<Cliente>('focus_clientes');
-  const { addItem } = useLocalStorageState<Cobranca>('focus_cobrancas', INITIAL_COBRANCAS);
+  const { addItem } = useLocalStorageState<Cobranca>('focus_cobrancas', []);
   const { notificar } = useNotificacoesStore();
 
   // Títulos em aberto ou pendentes
