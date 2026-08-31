@@ -259,30 +259,30 @@ export function NovoContratoSheet({
       toast.success(`Contrato adicionado à aba "${titularidade === 'Focus Tecnologia' ? 'Focus Tecnologia Ltda' : 'Clientes'}" com sucesso!`);
     }
 
-    // 2. Se houver novo arquivo, integrar com Módulo de Documentos (DMS) na pasta correta
-    if (arquivo && arquivo.url && arquivo.url.startsWith('data:')) {
+    // 2. Se houver arquivo anexo, integrar com Módulo de Documentos (DMS) na pasta correta
+    if (arquivo && arquivo.url) {
       const pastaContratos = pastas.find(
-        p => p.nome.toLowerCase().includes(titularidade === 'Focus Tecnologia' ? 'focus' : 'contrato') || p.moduloVinculado === 'Contratos'
+        p => (titularidade === 'Cliente' && clienteId && p.entidadeId === clienteId) ||
+             p.id === 'p-ctr' ||
+             p.nome.toLowerCase().includes('contrato')
       ) || pastas[0];
 
-      if (pastaContratos) {
-        uploadDocument({
-          nome: arquivo.nome,
-          extensao: arquivo.nome.endsWith('.pdf') ? 'PDF' : 'DOCX',
-          tamanho: arquivo.tamanho,
-          tamanhoBytes: arquivo.bytes,
-          pastaId: pastaContratos.id,
-          caminhoPasta: titularidade === 'Focus Tecnologia' ? '/Contratos/Focus Tecnologia Ltda' : '/Contratos/Clientes',
-          moduloOrigem: 'Contratos',
-          categoria: titularidade === 'Focus Tecnologia' ? 'Contrato Corporativo Focus' : 'Contrato Comercial Cliente',
-          tags: ['Contrato', titularidade, contratoData.numeroContrato, contratoData.nome],
-          contratoId: contratoData.id,
-          contratoNumero: contratoData.numeroContrato,
-          clienteId: titularidade === 'Cliente' ? (clienteId || undefined) : undefined,
-          clienteNome: titularidade === 'Cliente' ? nomeClienteFinal : 'Focus Tecnologia Ltda',
-          conteudoDataUrl: arquivo.url
-        });
-      }
+      uploadDocument({
+        nome: arquivo.nome,
+        extensao: (arquivo.nome.toLowerCase().endsWith('.pdf') ? 'pdf' : 'docx') as any,
+        tamanho: arquivo.tamanho,
+        tamanhoBytes: arquivo.bytes,
+        pastaId: pastaContratos?.id || 'p-ctr',
+        caminhoPasta: pastaContratos?.caminhoCompleto || '/Contratos',
+        moduloOrigem: 'Contratos',
+        categoria: titularidade === 'Focus Tecnologia' ? 'Contrato Corporativo Focus' : 'Contrato Comercial Cliente',
+        tags: ['Contrato', titularidade, contratoData.numeroContrato, contratoData.nome],
+        contratoId: contratoData.id,
+        contratoNumero: contratoData.numeroContrato,
+        clienteId: titularidade === 'Cliente' ? (clienteId || undefined) : undefined,
+        clienteNome: titularidade === 'Cliente' ? nomeClienteFinal : 'Focus Tecnologia Ltda',
+        urlConteudo: arquivo.url
+      });
     }
 
     // 3. Disparar Notificação Real no Sistema

@@ -296,13 +296,15 @@ export function useDocumentosStore() {
 
     const newDocId = `doc-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
-    if (params.urlConteudo && (params.urlConteudo.startsWith('data:') || params.urlConteudo.length > 2000)) {
-      dmsBlobStore.saveBlob(newDocId, params.urlConteudo);
+    const filePayload = params.urlConteudo || (params as any).conteudoDataUrl || (params as any).arquivoUrl;
+
+    if (filePayload && (filePayload.startsWith('data:') || filePayload.length > 2000)) {
+      dmsBlobStore.saveBlob(newDocId, filePayload);
     }
 
-    const storedUrl = params.urlConteudo && (params.urlConteudo.startsWith('data:') || params.urlConteudo.length > 2000)
+    const storedUrl = filePayload && (filePayload.startsWith('data:') || filePayload.length > 2000)
       ? `indexeddb:${newDocId}`
-      : params.urlConteudo;
+      : filePayload;
 
     const newDoc: DocumentoDMS = {
       id: newDocId,

@@ -94,9 +94,20 @@ export function DmsPreviewModal({ documento: propDocumento, doc: propDoc, isOpen
 
   if (!documento) return null;
 
-  const effectiveUrl = resolvedUrl || documento.urlConteudo;
-  const isDataImage = effectiveUrl?.startsWith('data:image/');
-  const isDataPdf = effectiveUrl?.startsWith('data:application/pdf') || effectiveUrl?.startsWith('blob:') || (effectiveUrl?.startsWith('http') && documento.nome.endsWith('.pdf'));
+  // Fallback inteligente: se o documento foi gerado pelo módulo de Contratos e tem arquivo anexo
+  const linkedContract = contratos.find((c: any) => 
+    (documento.contratoId && c.id === documento.contratoId) ||
+    (documento.contratoNumero && (c.numeroContrato === documento.contratoNumero || c.numero === documento.contratoNumero)) ||
+    (documento.nome && c.arquivoNome && c.arquivoNome.toLowerCase() === documento.nome.toLowerCase()) ||
+    (documento.nome && c.nome && c.nome.toLowerCase() === documento.nome.toLowerCase())
+  );
+
+  const contractFileUrl = linkedContract?.arquivoUrl;
+  const effectiveUrl = resolvedUrl || (documento.urlConteudo && !documento.urlConteudo.startsWith('indexeddb:') ? documento.urlConteudo : null) || contractFileUrl;
+
+  const ext = (documento.extensao || documento.nome.split('.').pop() || '').toLowerCase();
+  const isDataImage = !!effectiveUrl && (effectiveUrl.startsWith('data:image/') || ['png', 'jpg', 'jpeg', 'svg', 'webp', 'gif'].includes(ext));
+  const isDataPdf = !!effectiveUrl && (ext === 'pdf' || effectiveUrl.startsWith('data:application/pdf') || effectiveUrl.startsWith('data:application/octet-stream') || effectiveUrl.startsWith('blob:') || (effectiveUrl.startsWith('http') && documento.nome.toLowerCase().endsWith('.pdf')));
 
   const handleOpenInNewTab = () => {
     if (effectiveUrl) {
