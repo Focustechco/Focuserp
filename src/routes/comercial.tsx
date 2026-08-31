@@ -5,17 +5,13 @@ import { ComercialDashboard } from "@/features/comercial/components/ComercialDas
 import { MinhaPerformanceView } from "@/features/comercial/components/MinhaPerformanceView";
 import { EquipeComercialView } from "@/features/comercial/components/EquipeComercialView";
 import { AtividadesContatosView } from "@/features/comercial/components/AtividadesContatosView";
-import { PropostasComerciaisView } from "@/features/comercial/components/PropostasComerciaisView";
 import { MetasOkrsView } from "@/features/comercial/components/MetasOkrsView";
-import { ComissoesView } from "@/features/comercial/components/ComissoesView";
-import { ScriptsVendaView } from "@/features/comercial/components/ScriptsVendaView";
-import { EstrategiasVendaView } from "@/features/comercial/components/EstrategiasVendaView";
-import { PlaybooksView } from "@/features/comercial/components/PlaybooksView";
+import { DocumentacaoComercialView } from "@/features/comercial/components/DocumentacaoComercialView";
 import { CatalogosPrecosView } from "@/features/comercial/components/CatalogosPrecosView";
 import { RelatoriosComerciaisView } from "@/features/comercial/components/RelatoriosComerciaisView";
 import { 
-  LayoutGrid, User, Users, Phone, FileText, Target, DollarSign, 
-  Sparkles, BookOpen, Package, FileSpreadsheet, Layers, Award
+  LayoutGrid, User, Users, Phone, Target, 
+  Package, FileSpreadsheet, FolderOpen 
 } from "lucide-react";
 
 export const Route = createFileRoute("/comercial")({
@@ -48,26 +44,14 @@ function ModuloComercialOpsPage() {
             <TabsTrigger value="atividades" className="gap-2 shrink-0 font-medium">
               <Phone className="w-4 h-4" /> Atividades & Contatos
             </TabsTrigger>
-            <TabsTrigger value="propostas" className="gap-2 shrink-0 font-medium">
-              <FileText className="w-4 h-4" /> Propostas Comerciais
-            </TabsTrigger>
             <TabsTrigger value="equipe" className="gap-2 shrink-0 font-medium">
               <Users className="w-4 h-4" /> Time Comercial
             </TabsTrigger>
             <TabsTrigger value="metas" className="gap-2 shrink-0 font-medium">
               <Target className="w-4 h-4" /> Metas & OKRs
             </TabsTrigger>
-            <TabsTrigger value="comissoes" className="gap-2 shrink-0 font-medium">
-              <DollarSign className="w-4 h-4" /> Comissões
-            </TabsTrigger>
-            <TabsTrigger value="scripts" className="gap-2 shrink-0 font-medium">
-              <Sparkles className="w-4 h-4" /> Scripts de Venda
-            </TabsTrigger>
-            <TabsTrigger value="estrategias" className="gap-2 shrink-0 font-medium">
-              <Layers className="w-4 h-4" /> Estratégias Comerciais
-            </TabsTrigger>
-            <TabsTrigger value="playbooks" className="gap-2 shrink-0 font-medium">
-              <BookOpen className="w-4 h-4" /> Playbooks
+            <TabsTrigger value="documentacao" className="gap-2 shrink-0 font-medium">
+              <FolderOpen className="w-4 h-4" /> Documentação
             </TabsTrigger>
             <TabsTrigger value="catalogos" className="gap-2 shrink-0 font-medium">
               <Package className="w-4 h-4" /> Produtos & Serviços
@@ -90,10 +74,6 @@ function ModuloComercialOpsPage() {
           <AtividadesContatosView />
         </TabsContent>
 
-        <TabsContent value="propostas" className="space-y-4 outline-none">
-          <PropostasComerciaisView />
-        </TabsContent>
-
         <TabsContent value="equipe" className="space-y-4 outline-none">
           <EquipeComercialView />
         </TabsContent>
@@ -102,20 +82,8 @@ function ModuloComercialOpsPage() {
           <MetasOkrsView />
         </TabsContent>
 
-        <TabsContent value="comissoes" className="space-y-4 outline-none">
-          <ComissoesView />
-        </TabsContent>
-
-        <TabsContent value="scripts" className="space-y-4 outline-none">
-          <ScriptsVendaView />
-        </TabsContent>
-
-        <TabsContent value="estrategias" className="space-y-4 outline-none">
-          <EstrategiasVendaView />
-        </TabsContent>
-
-        <TabsContent value="playbooks" className="space-y-4 outline-none">
-          <PlaybooksView />
+        <TabsContent value="documentacao" className="space-y-4 outline-none">
+          <DocumentacaoComercialView />
         </TabsContent>
 
         <TabsContent value="catalogos" className="space-y-4 outline-none">
