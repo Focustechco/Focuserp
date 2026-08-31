@@ -19,7 +19,7 @@ function triggerSyncEvent() {
 
 /**
  * Service Central de Gestão Eletrônica de Documentos (DMS / ECM)
- * Integração universal com Clientes, CRM, Projetos, RH, Produtos, Relatórios e Financeiro.
+ * Integração universal com Clientes, CRM, Projetos, RH, Produtos, Relatórios, Contratos, Assinaturas, Fiscal e Financeiro.
  */
 export const dmsService = {
   // ---------------------------------------------------------------------------
@@ -81,7 +81,7 @@ export const dmsService = {
     // Verificar se a pasta já existe
     const existing = pastas.find((p) => {
       if (customId && p.id === customId) return true;
-      if (entidadeId && p.entidadeId === entidadeId) return true;
+      if (entidadeId && p.entidadeId === entidadeId && p.moduloVinculado === moduloVinculado) return true;
       if (p.parentId === parentId && p.nome.toLowerCase().trim() === nome.toLowerCase().trim()) return true;
       return false;
     });
@@ -93,7 +93,7 @@ export const dmsService = {
       const parent = pastas.find((p) => p.id === parentId);
       if (parent) parentPath = parent.caminhoCompleto;
     }
-    const caminhoCompleto = `${parentPath}/${nome}`.replace('//', '/');
+    const caminhoCompleto = `${parentPath}/${nome}`.replace(/\/\/+/g, '/');
 
     const folderId = customId || (entidadeId ? `p-${moduloVinculado.toLowerCase().replace(/\s+/g, '-')}-${entidadeId}` : `p-${Date.now()}-${Math.floor(Math.random() * 1000)}`);
 
@@ -121,7 +121,15 @@ export const dmsService = {
     return this.ensureFolder(nomeCliente, rootFolder.id, 'Clientes', cliente.id, folderId);
   },
 
-  // 2. Projetos: Cria automaticamente /Projetos e /Projetos/[Nome do Projeto]
+  // 2. Fornecedores: Cria automaticamente /Fornecedores e /Fornecedores/[Nome do Fornecedor]
+  ensureSupplierFolder(fornecedor: { id: string; nome?: string; nomeFantasia?: string; razaoSocial?: string }): PastaDMS {
+    const rootFolder = this.ensureFolder('Fornecedores', null, 'Fornecedores', undefined, 'p-forn');
+    const nomeForn = fornecedor.nomeFantasia || fornecedor.razaoSocial || fornecedor.nome || 'Fornecedor Sem Nome';
+    const folderId = `p-forn-${fornecedor.id}`;
+    return this.ensureFolder(nomeForn, rootFolder.id, 'Fornecedores', fornecedor.id, folderId);
+  },
+
+  // 3. Projetos: Cria automaticamente /Projetos e /Projetos/[Nome do Projeto]
   ensureProjectFolder(projeto: { id: string; nome?: string; codigo?: string }): PastaDMS {
     const rootFolder = this.ensureFolder('Projetos', null, 'Projetos', undefined, 'p-prj');
     const nomeProjeto = projeto.codigo ? `${projeto.codigo} - ${projeto.nome || 'Projeto'}` : projeto.nome || 'Projeto Sem Nome';
@@ -129,16 +137,16 @@ export const dmsService = {
     return this.ensureFolder(nomeProjeto, rootFolder.id, 'Projetos', projeto.id, folderId);
   },
 
-  // 3. RH: Cria automaticamente /RH e /RH/Colaboradores/[Nome do Colaborador]
-  ensureRhFolder(colaborador: { id: string; nome?: string; nomeExibicao?: string }): PastaDMS {
+  // 4. RH: Cria automaticamente /RH e /RH/Colaboradores/[Nome do Colaborador]
+  ensureRhFolder(colaborador: { id: string; nome?: string; nomeExibicao?: string; nomeCompleto?: string }): PastaDMS {
     const rootFolder = this.ensureFolder('RH', null, 'RH', undefined, 'p-rh');
     const colabRoot = this.ensureFolder('Colaboradores', rootFolder.id, 'RH', undefined, 'p-rh-colab');
-    const nomeColaborador = colaborador.nome || colaborador.nomeExibicao || 'Colaborador';
+    const nomeColaborador = colaborador.nome || colaborador.nomeExibicao || colaborador.nomeCompleto || 'Colaborador';
     const folderId = `p-rh-colab-${colaborador.id}`;
     return this.ensureFolder(nomeColaborador, colabRoot.id, 'RH', colaborador.id, folderId);
   },
 
-  // 4. Produtos Focus: Cria automaticamente /Produtos Focus e /Produtos Focus/[Nome do Produto]
+  // 5. Produtos Focus: Cria automaticamente /Produtos Focus e /Produtos Focus/[Nome do Produto]
   ensureProductFolder(produto: { id: string; nome?: string }): PastaDMS {
     const rootFolder = this.ensureFolder('Produtos Focus', null, 'Produtos Focus', undefined, 'p-prod');
     const nomeProduto = produto.nome || 'Produto Focus';
@@ -146,23 +154,78 @@ export const dmsService = {
     return this.ensureFolder(nomeProduto, rootFolder.id, 'Produtos Focus', produto.id, folderId);
   },
 
-  // 5. Relatórios: Cria automaticamente /Relatórios e subpastas temáticas
-  ensureReportFolder(tipo: 'DRE Gerencial' | 'Fluxo de Caixa' | 'Faturamento e Vendas' | 'Auditoria e Compliance' | 'Geral' = 'Geral'): PastaDMS {
+  // 6. Relatórios: Cria automaticamente /Relatórios e subpastas temáticas
+  ensureReportFolder(tipo: string = 'Geral'): PastaDMS {
     const rootFolder = this.ensureFolder('Relatórios', null, 'Relatórios', undefined, 'p-rel');
     
-    if (tipo.includes('DRE')) {
+    if (tipo.includes('DRE') || tipo.includes('Demonstrativo')) {
       return this.ensureFolder('DRE Gerencial', rootFolder.id, 'Relatórios', undefined, 'p-rel-dre');
     }
-    if (tipo.includes('Fluxo')) {
+    if (tipo.includes('Fluxo') || tipo.includes('Caixa')) {
       return this.ensureFolder('Fluxo de Caixa', rootFolder.id, 'Relatórios', undefined, 'p-rel-fluxo');
     }
-    if (tipo.includes('Vendas') || tipo.includes('Faturamento')) {
+    if (tipo.includes('Vendas') || tipo.includes('Faturamento') || tipo.includes('Comercial')) {
       return this.ensureFolder('Faturamento e Vendas', rootFolder.id, 'Relatórios', undefined, 'p-rel-faturam');
     }
-    if (tipo.includes('Auditoria') || tipo.includes('Compliance')) {
+    if (tipo.includes('Auditoria') || tipo.includes('Compliance') || tipo.includes('Fiscal')) {
       return this.ensureFolder('Auditoria e Compliance', rootFolder.id, 'Relatórios', undefined, 'p-rel-audit');
     }
+    if (tipo.includes('RH') || tipo.includes('Pessoal')) {
+      return this.ensureFolder('Recursos Humanos', rootFolder.id, 'Relatórios', undefined, 'p-rel-rh');
+    }
     
+    return this.ensureFolder('Geral', rootFolder.id, 'Relatórios', undefined, 'p-rel-geral');
+  },
+
+  // 7. Contratos: Cria automaticamente /Contratos e subpasta de contratos
+  ensureContractsFolder(cliente?: { id: string; nome?: string }): PastaDMS {
+    if (cliente && cliente.id) {
+      const clientFolder = this.ensureClientFolder(cliente);
+      return this.ensureFolder('Contratos', clientFolder.id, 'Contratos', `${cliente.id}-ctr`, `p-cli-${cliente.id}-ctr`);
+    }
+    const rootFolder = this.ensureFolder('Contratos', null, 'Contratos', undefined, 'p-ctr');
+    return rootFolder;
+  },
+
+  // 8. Assinaturas Digitais: Cria automaticamente /Assinaturas Digitais
+  ensureSignaturesFolder(): PastaDMS {
+    const rootFolder = this.ensureFolder('Assinaturas Digitais', null, 'Contratos', undefined, 'p-ass');
+    return rootFolder;
+  },
+
+  // 9. Fiscal: Cria automaticamente /Fiscal e subpastas de notas fiscais
+  ensureFiscalFolder(tipo: 'NFS-e' | 'NF-e' | 'Geral' = 'Geral'): PastaDMS {
+    const rootFolder = this.ensureFolder('Fiscal', null, 'Fiscal', undefined, 'p-fisc');
+    if (tipo === 'NFS-e') {
+      return this.ensureFolder('Serviços (NFS-e)', rootFolder.id, 'Fiscal', undefined, 'p-fisc-nfse');
+    }
+    if (tipo === 'NF-e') {
+      return this.ensureFolder('Mercadorias (NF-e)', rootFolder.id, 'Fiscal', undefined, 'p-fisc-nfe');
+    }
+    return rootFolder;
+  },
+
+  // 10. Financeiro: Cria automaticamente /Financeiro e subpastas de comprovantes
+  ensureFinancialFolder(tipo: 'Contas a Pagar' | 'Contas a Receber' | 'Comprovantes' = 'Comprovantes'): PastaDMS {
+    const rootFolder = this.ensureFolder('Financeiro', null, 'Financeiro', undefined, 'p-fin');
+    if (tipo === 'Contas a Pagar') {
+      return this.ensureFolder('Contas a Pagar', rootFolder.id, 'Financeiro', undefined, 'p-fin-pagar');
+    }
+    if (tipo === 'Contas a Receber') {
+      return this.ensureFolder('Contas a Receber', rootFolder.id, 'Financeiro', undefined, 'p-fin-receber');
+    }
+    return this.ensureFolder('Comprovantes Bancários', rootFolder.id, 'Financeiro', undefined, 'p-fin-comp');
+  },
+
+  // 11. Comercial OS & CRM
+  ensureComercialFolder(tipo: 'Propostas' | 'Ordens de Servico' | 'Geral' = 'Propostas'): PastaDMS {
+    const rootFolder = this.ensureFolder('Comercial', null, 'Comercial', undefined, 'p-com');
+    if (tipo === 'Propostas') {
+      return this.ensureFolder('Propostas Comerciais', rootFolder.id, 'Comercial', undefined, 'p-com-prop');
+    }
+    if (tipo === 'Ordens de Servico') {
+      return this.ensureFolder('Ordens de Serviço (OS)', rootFolder.id, 'Comercial', undefined, 'p-com-os');
+    }
     return rootFolder;
   },
 
@@ -215,20 +278,31 @@ export const dmsService = {
     // Vínculos
     clienteId?: string;
     clienteNome?: string;
+    fornecedorId?: string;
+    fornecedorNome?: string;
     projetoId?: string;
     projetoNome?: string;
+    contratoId?: string;
+    contratoNumero?: string;
     colaboradorId?: string;
     colaboradorNome?: string;
     produtoId?: string;
     produtoNome?: string;
     relatorioTipo?: string;
     responsavelUpload?: string;
+    status?: 'Ativo' | 'Arquivado' | 'Em Revisão';
   }): DocumentoDMS {
     let targetFolder: PastaDMS;
 
     // Roteamento inteligente para a pasta correta da entidade
     if (params.clienteId) {
-      targetFolder = this.ensureClientFolder({ id: params.clienteId, nome: params.clienteNome });
+      if (params.moduloOrigem === 'Contratos') {
+        targetFolder = this.ensureContractsFolder({ id: params.clienteId, nome: params.clienteNome });
+      } else {
+        targetFolder = this.ensureClientFolder({ id: params.clienteId, nome: params.clienteNome });
+      }
+    } else if (params.fornecedorId) {
+      targetFolder = this.ensureSupplierFolder({ id: params.fornecedorId, nome: params.fornecedorNome });
     } else if (params.projetoId) {
       targetFolder = this.ensureProjectFolder({ id: params.projetoId, nome: params.projetoNome });
     } else if (params.colaboradorId) {
@@ -236,12 +310,21 @@ export const dmsService = {
     } else if (params.produtoId) {
       targetFolder = this.ensureProductFolder({ id: params.produtoId, nome: params.produtoNome });
     } else if (params.moduloOrigem === 'Relatórios') {
-      targetFolder = this.ensureReportFolder((params.relatorioTipo as any) || 'Geral');
+      targetFolder = this.ensureReportFolder(params.relatorioTipo || 'Geral');
+    } else if (params.moduloOrigem === 'Contratos') {
+      targetFolder = this.ensureContractsFolder();
+    } else if (params.moduloOrigem === 'Fiscal') {
+      targetFolder = this.ensureFiscalFolder((params.categoria?.includes('NFS-e') ? 'NFS-e' : 'NF-e') as any);
+    } else if (params.moduloOrigem === 'Financeiro') {
+      targetFolder = this.ensureFinancialFolder();
+    } else if (params.moduloOrigem === 'Comercial') {
+      targetFolder = this.ensureComercialFolder();
     } else {
       targetFolder = this.ensureFolder(params.moduloOrigem, null, params.moduloOrigem);
     }
 
-    const ext = (params.extensao || params.nome.split('.').pop()?.toLowerCase() || 'pdf') as FormatoArquivo;
+    const rawExt = (params.extensao || params.nome.split('.').pop()?.toLowerCase() || 'pdf').toLowerCase();
+    const ext = (rawExt === 'pdf' ? 'pdf' : rawExt === 'xlsx' || rawExt === 'xls' ? 'xlsx' : rawExt === 'csv' ? 'csv' : rawExt === 'docx' || rawExt === 'doc' ? 'docx' : rawExt === 'xml' ? 'xml' : rawExt === 'png' || rawExt === 'jpg' ? 'png' : 'outros') as FormatoArquivo;
     const codigo = `DOC-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
     const newDoc: DocumentoDMS = {
@@ -249,8 +332,8 @@ export const dmsService = {
       codigo,
       nome: params.nome,
       extensao: ext,
-      tamanho: params.tamanho || '1.0 MB',
-      tamanhoBytes: params.tamanhoBytes || 1048576,
+      tamanho: params.tamanho || '1.2 MB',
+      tamanhoBytes: params.tamanhoBytes || 1258291,
       pastaId: targetFolder.id,
       caminhoPasta: targetFolder.caminhoCompleto,
       moduloOrigem: params.moduloOrigem,
@@ -258,27 +341,29 @@ export const dmsService = {
       clienteNome: params.clienteNome,
       projetoId: params.projetoId,
       projetoNome: params.projetoNome,
+      contratoId: params.contratoId,
+      contratoNumero: params.contratoNumero,
       colaboradorId: params.colaboradorId,
       colaboradorNome: params.colaboradorNome,
       produtoId: params.produtoId,
       produtoNome: params.produtoNome,
       relatorioTipo: params.relatorioTipo,
-      tags: params.tags || [params.moduloOrigem, 'Anexo'],
-      categoria: params.categoria || 'Documentos Anexados',
-      responsavelUpload: params.responsavelUpload || 'Usuário do Sistema',
+      tags: params.tags || [params.moduloOrigem, 'Integrado'],
+      categoria: params.categoria || `Documento ${params.moduloOrigem}`,
+      responsavelUpload: params.responsavelUpload || 'Sistema Integrado Focus ERP',
       dataUpload: new Date().toISOString(),
       dataUltimaAlteracao: new Date().toISOString(),
       versaoAtual: '1.0',
       favorito: false,
-      status: 'Ativo',
+      status: params.status || 'Ativo',
       urlConteudo: params.urlConteudo,
       historicoVersoes: [
         {
           numeroVersao: '1.0',
-          alteradoPor: params.responsavelUpload || 'Usuário do Sistema',
+          alteradoPor: params.responsavelUpload || 'Sistema Integrado Focus ERP',
           dataAlteracao: new Date().toISOString(),
-          descricaoAlteracao: `Arquivo recebido via módulo ${params.moduloOrigem}.`,
-          tamanhoArquivo: params.tamanho || '1.0 MB',
+          descricaoAlteracao: `Arquivo gerado e sincronizado automaticamente via módulo ${params.moduloOrigem}.`,
+          tamanhoArquivo: params.tamanho || '1.2 MB',
           urlDownload: params.urlConteudo,
         },
       ],

@@ -6,27 +6,54 @@ import { dmsService } from "@/services/dmsService";
 
 export function useDocumentosStore() {
   const { data: rawPastas, addItem: addPastaItem, updateItem: updatePastaItem, removeItem: removePastaItem, save: savePastas } = useLocalStorageState<PastaDMS>('focus_dms_pastas', INITIAL_PASTAS);
-  const { data: documentos, addItem: addDocItem, updateItem: updateDocItem, removeItem: removeDocItem } = useLocalStorageState<DocumentoDMS>('focus_dms_documentos', INITIAL_DOCUMENTOS);
+  const { data: rawDocumentos, addItem: addDocItem, updateItem: updateDocItem, removeItem: removeDocItem, save: saveDocumentos } = useLocalStorageState<DocumentoDMS>('focus_dms_documentos', INITIAL_DOCUMENTOS);
   const { data: lixeira, addItem: addTrashItem, removeItem: removeTrashItem } = useLocalStorageState<DocumentoDMS>('focus_dms_lixeira');
   const { data: auditLogs, addItem: addAuditItem } = useLocalStorageState<AuditLogDocumento>('focus_dms_audit');
 
-  // Leitura de entidades para sincronização automática de pastas
+  // Leitura de entidades para sincronização automática de pastas e documentos
   const { data: clientes } = useLocalStorageState<any>('focus_clientes', []);
+  const { data: fornecedores } = useLocalStorageState<any>('focus_fornecedores', []);
   const { data: projetos } = useLocalStorageState<any>('focus_projetos', []);
-  const { data: colaboradores } = useLocalStorageState<any>('focus_colaboradores', []);
+  const { data: colaboradores } = useLocalStorageState<any>('focus_rh_colaboradores', []);
   const { data: produtos } = useLocalStorageState<any>('focus_produtos', []);
+  const { data: contratos } = useLocalStorageState<any>('focus_contratos', []);
+  const { data: relatoriosHistorico } = useLocalStorageState<any>('focus_relatorios_history', []);
+  const { data: assinaturasDocs } = useLocalStorageState<any>('focus_assinaturas_docs', []);
+  const { data: fiscalDocs } = useLocalStorageState<any>('focus_fiscal_documentos', []);
 
-  // Pastas consolidadas com auto-geração para cada Cliente, Projeto, RH e Produto
+  // 1. Pastas consolidadas com auto-geração para cada Módulo e Entidade
   const pastas = useMemo(() => {
     const map = new Map<string, PastaDMS>();
 
-    // 1. Pastas Padrão do Sistema
+    // 1.1 Pastas Padrão do Sistema
     INITIAL_PASTAS.forEach((p) => map.set(p.id, p));
 
-    // 2. Pastas salvas pelo usuário
+    // Pastas Raízes Obrigatórias de Módulos
+    const defaultRoots: PastaDMS[] = [
+      { id: 'p-cli', nome: 'Clientes', parentId: null, caminhoCompleto: '/Clientes', moduloVinculado: 'Clientes', dataCriacao: '2026-01-01', criadoPor: 'Sistema' },
+      { id: 'p-forn', nome: 'Fornecedores', parentId: null, caminhoCompleto: '/Fornecedores', moduloVinculado: 'Fornecedores', dataCriacao: '2026-01-01', criadoPor: 'Sistema' },
+      { id: 'p-prj', nome: 'Projetos', parentId: null, caminhoCompleto: '/Projetos', moduloVinculado: 'Projetos', dataCriacao: '2026-01-01', criadoPor: 'Sistema' },
+      { id: 'p-rh', nome: 'RH', parentId: null, caminhoCompleto: '/RH', moduloVinculado: 'RH', dataCriacao: '2026-01-01', criadoPor: 'Sistema' },
+      { id: 'p-rh-colab', nome: 'Colaboradores', parentId: 'p-rh', caminhoCompleto: '/RH/Colaboradores', moduloVinculado: 'RH', dataCriacao: '2026-01-01', criadoPor: 'Sistema' },
+      { id: 'p-prod', nome: 'Produtos Focus', parentId: null, caminhoCompleto: '/Produtos Focus', moduloVinculado: 'Produtos Focus', dataCriacao: '2026-01-01', criadoPor: 'Sistema' },
+      { id: 'p-rel', nome: 'Relatórios', parentId: null, caminhoCompleto: '/Relatórios', moduloVinculado: 'Relatórios', dataCriacao: '2026-01-01', criadoPor: 'Sistema' },
+      { id: 'p-rel-dre', nome: 'DRE Gerencial', parentId: 'p-rel', caminhoCompleto: '/Relatórios/DRE Gerencial', moduloVinculado: 'Relatórios', dataCriacao: '2026-01-01', criadoPor: 'Sistema' },
+      { id: 'p-rel-fluxo', nome: 'Fluxo de Caixa', parentId: 'p-rel', caminhoCompleto: '/Relatórios/Fluxo de Caixa', moduloVinculado: 'Relatórios', dataCriacao: '2026-01-01', criadoPor: 'Sistema' },
+      { id: 'p-rel-faturam', nome: 'Faturamento e Vendas', parentId: 'p-rel', caminhoCompleto: '/Relatórios/Faturamento e Vendas', moduloVinculado: 'Relatórios', dataCriacao: '2026-01-01', criadoPor: 'Sistema' },
+      { id: 'p-rel-audit', nome: 'Auditoria e Compliance', parentId: 'p-rel', caminhoCompleto: '/Relatórios/Auditoria e Compliance', moduloVinculado: 'Relatórios', dataCriacao: '2026-01-01', criadoPor: 'Sistema' },
+      { id: 'p-rel-rh', nome: 'Recursos Humanos', parentId: 'p-rel', caminhoCompleto: '/Relatórios/Recursos Humanos', moduloVinculado: 'Relatórios', dataCriacao: '2026-01-01', criadoPor: 'Sistema' },
+      { id: 'p-ctr', nome: 'Contratos', parentId: null, caminhoCompleto: '/Contratos', moduloVinculado: 'Contratos', dataCriacao: '2026-01-01', criadoPor: 'Sistema' },
+      { id: 'p-ass', nome: 'Assinaturas Digitais', parentId: null, caminhoCompleto: '/Assinaturas Digitais', moduloVinculado: 'Contratos', dataCriacao: '2026-01-01', criadoPor: 'Sistema' },
+      { id: 'p-fisc', nome: 'Fiscal', parentId: null, caminhoCompleto: '/Fiscal', moduloVinculado: 'Fiscal', dataCriacao: '2026-01-01', criadoPor: 'Sistema' },
+      { id: 'p-fin', nome: 'Financeiro', parentId: null, caminhoCompleto: '/Financeiro', moduloVinculado: 'Financeiro', dataCriacao: '2026-01-01', criadoPor: 'Sistema' },
+      { id: 'p-com', nome: 'Comercial', parentId: null, caminhoCompleto: '/Comercial', moduloVinculado: 'Comercial', dataCriacao: '2026-01-01', criadoPor: 'Sistema' },
+    ];
+    defaultRoots.forEach((p) => map.set(p.id, p));
+
+    // 1.2 Pastas salvas pelo usuário
     (rawPastas || []).forEach((p) => map.set(p.id, p));
 
-    // 3. Auto-sincronizar subpastas de Clientes
+    // 1.3 Auto-sincronizar subpastas de Clientes
     (clientes || []).forEach((c: any) => {
       if (c && c.id) {
         const folderId = `p-cli-${c.id}`;
@@ -45,7 +72,26 @@ export function useDocumentosStore() {
       }
     });
 
-    // 4. Auto-sincronizar subpastas de Projetos
+    // 1.4 Auto-sincronizar subpastas de Fornecedores
+    (fornecedores || []).forEach((f: any) => {
+      if (f && f.id) {
+        const folderId = `p-forn-${f.id}`;
+        const nomeForn = f.nomeFantasia || f.razaoSocial || f.nome || 'Fornecedor';
+        map.set(folderId, {
+          id: folderId,
+          nome: nomeForn,
+          parentId: 'p-forn',
+          caminhoCompleto: `/Fornecedores/${nomeForn}`,
+          moduloVinculado: 'Fornecedores',
+          entidadeId: f.id,
+          dataCriacao: f.dataCadastro || new Date().toISOString(),
+          criadoPor: 'Sistema Integrado (Fornecedores)',
+          corIcone: '#64748B',
+        });
+      }
+    });
+
+    // 1.5 Auto-sincronizar subpastas de Projetos
     (projetos || []).forEach((prj: any) => {
       if (prj && prj.id) {
         const folderId = `p-prj-${prj.id}`;
@@ -64,11 +110,11 @@ export function useDocumentosStore() {
       }
     });
 
-    // 5. Auto-sincronizar subpastas de RH (Colaboradores)
+    // 1.6 Auto-sincronizar subpastas de RH (Colaboradores)
     (colaboradores || []).forEach((colab: any) => {
       if (colab && colab.id) {
         const folderId = `p-rh-colab-${colab.id}`;
-        const nomeColab = colab.nome || colab.nomeCompleto || 'Colaborador';
+        const nomeColab = colab.nome || colab.nomeCompleto || colab.nomeExibicao || 'Colaborador';
         map.set(folderId, {
           id: folderId,
           nome: nomeColab,
@@ -83,7 +129,7 @@ export function useDocumentosStore() {
       }
     });
 
-    // 6. Auto-sincronizar subpastas de Produtos Focus
+    // 1.7 Auto-sincronizar subpastas de Produtos Focus
     (produtos || []).forEach((prod: any) => {
       if (prod && prod.id) {
         const folderId = `p-prod-${prod.id}`;
@@ -103,7 +149,7 @@ export function useDocumentosStore() {
     });
 
     return Array.from(map.values());
-  }, [rawPastas, clientes, projetos, colaboradores, produtos]);
+  }, [rawPastas, clientes, fornecedores, projetos, colaboradores, produtos]);
 
   // Persistir pastas sincronizadas se houver novas
   useEffect(() => {
@@ -111,6 +157,175 @@ export function useDocumentosStore() {
       savePastas(pastas);
     }
   }, [pastas, rawPastas, savePastas]);
+
+  // 2. Consolidação e Auto-Indexação Universal de Documentos de Todos os Módulos
+  const documentos = useMemo(() => {
+    const docMap = new Map<string, DocumentoDMS>();
+
+    // 2.1 Documentos Salvos no DMS
+    (rawDocumentos || []).forEach((d) => docMap.set(d.id, d));
+
+    // 2.2 Auto-indexar Relatórios Gerados (focus_relatorios_history)
+    (relatoriosHistorico || []).forEach((rel: any) => {
+      const docId = `doc-rel-${rel.id}`;
+      if (!docMap.has(docId)) {
+        let pastaTargetId = 'p-rel-geral';
+        if (rel.category === 'Financeiro' || rel.reportTitle?.includes('DRE')) pastaTargetId = 'p-rel-dre';
+        else if (rel.reportTitle?.includes('Fluxo')) pastaTargetId = 'p-rel-fluxo';
+        else if (rel.category === 'Comercial' || rel.reportTitle?.includes('Vendas')) pastaTargetId = 'p-rel-faturam';
+        else if (rel.category === 'RH') pastaTargetId = 'p-rel-rh';
+        else if (rel.category === 'Auditoria') pastaTargetId = 'p-rel-audit';
+
+        const ext = (rel.format?.toLowerCase() || 'pdf') as FormatoArquivo;
+        docMap.set(docId, {
+          id: docId,
+          codigo: `REL-${new Date(rel.generatedAt || Date.now()).getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+          nome: `${rel.reportTitle || 'Relatório Executivo'}.${ext}`,
+          extensao: ext,
+          tamanho: rel.fileSize || '1.4 MB',
+          tamanhoBytes: 1468006,
+          pastaId: pastaTargetId,
+          caminhoPasta: `/Relatórios/${rel.category || 'Geral'}`,
+          moduloOrigem: 'Relatórios',
+          relatorioTipo: rel.reportTitle,
+          categoria: `Relatório Executivo - ${rel.category || 'Geral'}`,
+          tags: ['Relatórios', rel.category || 'Geral', 'Gerado Automaticamente'],
+          responsavelUpload: rel.generatedBy || 'Sistema Integrado (Relatórios)',
+          dataUpload: rel.generatedAt || new Date().toISOString(),
+          dataUltimaAlteracao: rel.generatedAt || new Date().toISOString(),
+          versaoAtual: '1.0',
+          favorito: false,
+          status: 'Ativo',
+          historicoVersoes: [
+            {
+              numeroVersao: '1.0',
+              alteradoPor: rel.generatedBy || 'Sistema Integrado (Relatórios)',
+              dataAlteracao: rel.generatedAt || new Date().toISOString(),
+              descricaoAlteracao: `Relatório oficial emitido com filtros: ${rel.filtersSummary || 'Geral'}`,
+              tamanhoArquivo: rel.fileSize || '1.4 MB',
+            },
+          ],
+        });
+      }
+    });
+
+    // 2.3 Auto-indexar Contratos (focus_contratos)
+    (contratos || []).forEach((ctr: any) => {
+      const docId = `doc-ctr-${ctr.id}`;
+      if (!docMap.has(docId)) {
+        const clienteNome = ctr.clienteNome || 'Cliente';
+        const clientFolderId = ctr.clienteId ? `p-cli-${ctr.clienteId}` : 'p-ctr';
+        const numContrato = ctr.numeroContrato || `CTR-${ctr.id?.slice(0, 6)}`;
+
+        docMap.set(docId, {
+          id: docId,
+          codigo: numContrato,
+          nome: `Contrato_${numContrato}_${clienteNome.replace(/\s+/g, '_')}.pdf`,
+          extensao: 'pdf',
+          tamanho: '2.1 MB',
+          tamanhoBytes: 2202009,
+          pastaId: clientFolderId,
+          caminhoPasta: ctr.clienteId ? `/Clientes/${clienteNome}` : '/Contratos',
+          moduloOrigem: 'Contratos',
+          clienteId: ctr.clienteId,
+          clienteNome: clienteNome,
+          contratoId: ctr.id,
+          contratoNumero: numContrato,
+          categoria: 'Contrato de Prestação de Serviços',
+          tags: ['Contratos', ctr.status || 'Ativo', clienteNome],
+          responsavelUpload: 'Módulo Contratos',
+          dataUpload: ctr.created_at || ctr.dataInicio || new Date().toISOString(),
+          dataUltimaAlteracao: ctr.updated_at || new Date().toISOString(),
+          versaoAtual: '1.0',
+          favorito: false,
+          status: 'Ativo',
+          historicoVersoes: [
+            {
+              numeroVersao: '1.0',
+              alteradoPor: 'Módulo Contratos',
+              dataAlteracao: ctr.created_at || new Date().toISOString(),
+              descricaoAlteracao: `Objeto: ${ctr.objetoContrato || 'Prestação de Serviços'}. Valor: R$ ${(ctr.valorTotal || 0).toLocaleString('pt-BR')}`,
+              tamanhoArquivo: '2.1 MB',
+            },
+          ],
+        });
+      }
+    });
+
+    // 2.4 Auto-indexar Assinaturas Digitais (focus_assinaturas_docs)
+    (assinaturasDocs || []).forEach((ass: any) => {
+      const docId = `doc-ass-${ass.id}`;
+      if (!docMap.has(docId)) {
+        docMap.set(docId, {
+          id: docId,
+          codigo: `ASS-${ass.id?.slice(0, 6)?.toUpperCase() || 'DIG'}`,
+          nome: `${ass.titulo || 'Documento Assinado'}.pdf`,
+          extensao: 'pdf',
+          tamanho: ass.tamanho || '1.8 MB',
+          tamanhoBytes: 1887436,
+          pastaId: 'p-ass',
+          caminhoPasta: '/Assinaturas Digitais',
+          moduloOrigem: 'Contratos',
+          categoria: `Assinatura Digital (${ass.tipoDocumento || 'Geral'})`,
+          tags: ['Assinaturas Digitais', ass.status || 'Em Assinatura', 'ICP-Brasil / Focus IAM'],
+          responsavelUpload: ass.remetente || 'Módulo Assinaturas Digitais',
+          dataUpload: ass.dataCriacao || new Date().toISOString(),
+          dataUltimaAlteracao: ass.dataConclusao || new Date().toISOString(),
+          versaoAtual: '1.0',
+          favorito: false,
+          status: 'Ativo',
+          historicoVersoes: [
+            {
+              numeroVersao: '1.0',
+              alteradoPor: ass.remetente || 'Módulo Assinaturas Digitais',
+              dataAlteracao: ass.dataCriacao || new Date().toISOString(),
+              descricaoAlteracao: `Assinaturas: ${ass.assinantes?.length || 0} signatários vinculados. Hash SHA-256 verificado.`,
+              tamanhoArquivo: ass.tamanho || '1.8 MB',
+            },
+          ],
+        });
+      }
+    });
+
+    // 2.5 Auto-indexar Documentos Fiscais (focus_fiscal_documentos)
+    (fiscalDocs || []).forEach((fisc: any) => {
+      const docId = `doc-fisc-${fisc.id}`;
+      if (!docMap.has(docId)) {
+        const tipoNota = fisc.tipo || 'NFS-e';
+        const nomeEntidade = fisc.entidade?.nome || 'Tomador';
+        docMap.set(docId, {
+          id: docId,
+          codigo: `NF-${fisc.numero || fisc.id?.slice(0, 5)}`,
+          nome: `DANFE_${tipoNota}_${fisc.numero || '000'}_${nomeEntidade.replace(/\s+/g, '_')}.pdf`,
+          extensao: 'pdf',
+          tamanho: '350 KB',
+          tamanhoBytes: 358400,
+          pastaId: 'p-fisc',
+          caminhoPasta: '/Fiscal',
+          moduloOrigem: 'Fiscal',
+          categoria: `Nota Fiscal (${tipoNota})`,
+          tags: ['Fiscal', tipoNota, `NF-${fisc.numero}`, nomeEntidade],
+          responsavelUpload: 'Módulo Fiscal',
+          dataUpload: fisc.dataEmissao || new Date().toISOString(),
+          dataUltimaAlteracao: fisc.dataAtualizacao || new Date().toISOString(),
+          versaoAtual: '1.0',
+          favorito: false,
+          status: 'Ativo',
+          historicoVersoes: [
+            {
+              numeroVersao: '1.0',
+              alteradoPor: 'Módulo Fiscal',
+              dataAlteracao: fisc.dataEmissao || new Date().toISOString(),
+              descricaoAlteracao: `Valor Total: R$ ${(fisc.valorTotal || 0).toLocaleString('pt-BR')}. Chave: ${fisc.chaveAcesso || 'N/A'}`,
+              tamanhoArquivo: '350 KB',
+            },
+          ],
+        });
+      }
+    });
+
+    return Array.from(docMap.values());
+  }, [rawDocumentos, relatoriosHistorico, contratos, assinaturasDocs, fiscalDocs]);
 
   const logAction = (docId: string, docName: string, acao: AuditLogDocumento['acao'], detalhes?: string) => {
     const newLog: AuditLogDocumento = {
@@ -132,7 +347,7 @@ export function useDocumentosStore() {
       const parentFolder = pastas.find((p) => p.id === parentId);
       if (parentFolder) parentPath = parentFolder.caminhoCompleto;
     }
-    const caminhoCompleto = `${parentPath}/${nome}`.replace('//', '/');
+    const caminhoCompleto = `${parentPath}/${nome}`.replace(/\/\/+/g, '/');
 
     const newFolder: PastaDMS = {
       id: `p-${Date.now()}`,
@@ -159,8 +374,12 @@ export function useDocumentosStore() {
     tags: string[];
     clienteId?: string;
     clienteNome?: string;
+    fornecedorId?: string;
+    fornecedorNome?: string;
     projetoId?: string;
     projetoNome?: string;
+    contratoId?: string;
+    contratoNumero?: string;
     colaboradorId?: string;
     colaboradorNome?: string;
     produtoId?: string;
@@ -184,8 +403,12 @@ export function useDocumentosStore() {
       moduloOrigem: params.moduloOrigem,
       clienteId: params.clienteId,
       clienteNome: params.clienteNome,
+      fornecedorId: params.fornecedorId,
+      fornecedorNome: params.fornecedorNome,
       projetoId: params.projetoId,
       projetoNome: params.projetoNome,
+      contratoId: params.contratoId,
+      contratoNumero: params.contratoNumero,
       colaboradorId: params.colaboradorId,
       colaboradorNome: params.colaboradorNome,
       produtoId: params.produtoId,
@@ -215,6 +438,7 @@ export function useDocumentosStore() {
     addDocItem(newDoc);
     dmsService.saveDocumento(newDoc);
     logAction(newDoc.id, newDoc.nome, 'Upload', `Arquivo indexado na pasta ${caminhoPasta}`);
+    return newDoc;
   };
 
   const uploadFileFromModule = (params: Parameters<typeof dmsService.uploadFileFromModule>[0]) => {
@@ -248,7 +472,28 @@ export function useDocumentosStore() {
       historicoVersoes: updatedVersoes,
     });
 
-    logAction(docId, doc.nome, 'Versão Criada', `Nova versão ${newVersion} adicionada: ${descricaoAlteracao}`);
+    logAction(doc.id, doc.nome, 'Versão Criada', `Nova versão ${newVersion} adicionada: ${descricaoAlteracao}`);
+  };
+
+  const renameDocument = (docId: string, novoNome: string) => {
+    const doc = documentos.find((d) => d.id === docId);
+    if (!doc) return;
+
+    updateDocItem(docId, {
+      nome: novoNome,
+      dataUltimaAlteracao: new Date().toISOString(),
+    });
+
+    logAction(docId, novoNome, 'Renomeação', `Documento renomeado de '${doc.nome}' para '${novoNome}'`);
+  };
+
+  const toggleFavorite = (docId: string) => {
+    const doc = documentos.find((d) => d.id === docId);
+    if (!doc) return;
+
+    updateDocItem(docId, {
+      favorito: !doc.favorito,
+    });
   };
 
   const moveToTrash = (docId: string) => {
@@ -257,68 +502,40 @@ export function useDocumentosStore() {
 
     removeDocItem(docId);
     addTrashItem(doc);
-    logAction(docId, doc.nome, 'Exclusão', 'Documento movido para a Lixeira');
+    logAction(doc.id, doc.nome, 'Exclusão', 'Documento movido para a lixeira.');
   };
 
   const restoreFromTrash = (docId: string) => {
-    const doc = lixeira.find((d) => d.id === docId);
+    const doc = (lixeira || []).find((d) => d.id === docId);
     if (!doc) return;
 
     removeTrashItem(docId);
     addDocItem(doc);
-    logAction(docId, doc.nome, 'Restauração', 'Documento restaurado da Lixeira');
+    logAction(doc.id, doc.nome, 'Restauração', 'Documento restaurado da lixeira.');
   };
 
   const deletePermanently = (docId: string) => {
-    const doc = lixeira.find((d) => d.id === docId);
-    if (!doc) return;
-
     removeTrashItem(docId);
-    logAction(docId, doc.nome, 'Exclusão', 'Documento excluído permanentemente');
   };
 
-  const toggleFavorite = (docId: string) => {
-    const doc = documentos.find((d) => d.id === docId);
-    if (!doc) return;
-
-    updateDocItem(docId, { favorito: !doc.favorito });
-  };
-
-  const moveDocument = (docId: string, newFolderId: string) => {
-    const doc = documentos.find((d) => d.id === docId);
-    const targetFolder = pastas.find((p) => p.id === newFolderId);
-    if (!doc || !targetFolder) return;
-
-    updateDocItem(docId, {
-      pastaId: targetFolder.id,
-      caminhoPasta: targetFolder.caminhoCompleto,
-    });
-
-    logAction(docId, doc.nome, 'Renomeação', `Documento movido para ${targetFolder.caminhoCompleto}`);
-  };
-
-  const updateDocument = (docId: string, patch: Partial<DocumentoDMS>) => {
-    updateDocItem(docId, patch);
-    const current = documentos.find(d => d.id === docId);
-    if (current) {
-      dmsService.saveDocumento({ ...current, ...patch });
-    }
+  const updateDocument = (docId: string, updates: Partial<DocumentoDMS>) => {
+    updateDocItem(docId, updates);
   };
 
   return {
     pastas,
     documentos,
-    lixeira,
-    auditLogs,
+    lixeira: lixeira || [],
+    auditLogs: auditLogs || [],
     createFolder,
     uploadDocument,
     uploadFileFromModule,
     addVersion,
+    renameDocument,
+    toggleFavorite,
     moveToTrash,
     restoreFromTrash,
     deletePermanently,
-    toggleFavorite,
-    moveDocument,
     updateDocument,
     logAction,
   };

@@ -1,18 +1,36 @@
 import { useLocalStorageState } from '@/hooks/useDataStore';
 import { DocumentoAssinatura, ModeloDocumento, CertificadoDigital, TrilhaAuditoria } from '../types';
 import { INITIAL_DOCUMENTOS_ASSINATURA, INITIAL_MODELOS_DOCUMENTOS, INITIAL_CERTIFICADOS } from '../data/initialData';
+import { dmsService } from '@/services/dmsService';
 import { toast } from 'sonner';
 
 export function useAssinaturasStore() {
   const { 
     data: documentos, 
-    addItem: addDocumento, 
+    addItem: addDocumentoRaw, 
     updateItem: updateDocumento, 
     deleteItem: deleteDocumento 
   } = useLocalStorageState<DocumentoAssinatura>('focus_assinaturas_docs', INITIAL_DOCUMENTOS_ASSINATURA);
 
   const { data: modelos, addItem: addModelo } = useLocalStorageState<ModeloDocumento>('focus_assinaturas_modelos', INITIAL_MODELOS_DOCUMENTOS);
   const { data: certificados, addItem: addCertificado } = useLocalStorageState<CertificadoDigital>('focus_assinaturas_certificados', INITIAL_CERTIFICADOS);
+
+  const addDocumento = (doc: DocumentoAssinatura) => {
+    addDocumentoRaw(doc);
+    try {
+      dmsService.uploadFileFromModule({
+        nome: `${doc.titulo || 'Documento Assinatura'}.pdf`,
+        extensao: 'pdf',
+        tamanho: doc.tamanho || '1.8 MB',
+        tamanhoBytes: 1887436,
+        moduloOrigem: 'Contratos',
+        categoria: `Assinatura Digital (${doc.tipoDocumento || 'Geral'})`,
+        tags: ['Assinaturas Digitais', doc.status, doc.tipoDocumento || 'Geral'],
+        responsavelUpload: doc.remetente || 'Módulo Assinaturas Digitais',
+        urlConteudo: doc.urlArquivo,
+      });
+    } catch {}
+  };
 
   // Registrar assinatura em um documento
   const assinarDocumento = (
@@ -57,13 +75,30 @@ export function useAssinaturasStore() {
       detalhes: `Assinatura digital efetuada via ${metodo}. Carimbo de tempo atrelado à chave privada.`
     };
 
+    const novoStatus = todosAssinados ? 'Assinado' : 'Aguardando Assinatura';
+
     updateDocumento(docId, {
-      status: todosAssinados ? 'Assinado' : 'Aguardando Assinatura',
+      status: novoStatus,
       hashSHA256Assinado: novoHashDoc,
       carimboTempo: todosAssinados ? dataHoraNow : doc.carimboTempo,
       assinantes: assinantesAtualizados,
       auditoria: [novoLogAuditoria, ...(doc.auditoria || [])]
     });
+
+    // Auto-sincronizar documento assinado com o DMS
+    try {
+      dmsService.uploadFileFromModule({
+        nome: `${doc.titulo || 'Documento_Assinado'}_ASSINADO.pdf`,
+        extensao: 'pdf',
+        tamanho: doc.tamanho || '1.8 MB',
+        tamanhoBytes: 1887436,
+        moduloOrigem: 'Contratos',
+        categoria: `Assinatura Digital (${novoStatus})`,
+        tags: ['Assinaturas Digitais', novoStatus, metodo],
+        responsavelUpload: atorEncontrado?.nome || 'Assinante',
+        urlConteudo: doc.urlArquivo,
+      });
+    } catch {}
 
     toast.success('Assinatura registrada com sucesso!', {
       description: `O documento foi assinado via ${metodo}.`

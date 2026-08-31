@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabaseClient';
 import { contratoSchema, ContratoDTO } from '@/schemas/contratoSchema';
+import { dmsService } from '@/services/dmsService';
 
 export const contratoService = {
   /**
@@ -92,6 +93,24 @@ export const contratoService = {
       console.error('[contratoService.saveContrato] Erro ao salvar contrato:', error);
       throw new Error(`Falha ao salvar contrato: ${error.message}`);
     }
+
+    // Auto-sincronizar no repositório central de Gestão de Documentos (DMS)
+    try {
+      dmsService.uploadFileFromModule({
+        nome: `Contrato_${validated.numeroContrato}_${(validated.clienteNome || 'Cliente').replace(/\s+/g, '_')}.pdf`,
+        extensao: 'pdf',
+        tamanho: '2.1 MB',
+        tamanhoBytes: 2202009,
+        moduloOrigem: 'Contratos',
+        clienteId: validated.clienteId,
+        clienteNome: validated.clienteNome,
+        contratoId: id,
+        contratoNumero: validated.numeroContrato,
+        categoria: `Contrato (${validated.tipoContrato})`,
+        tags: ['Contratos', validated.status, validated.clienteNome || 'Cliente'],
+        responsavelUpload: 'Módulo Contratos',
+      });
+    } catch {}
 
     return { ...validated, id };
   },
