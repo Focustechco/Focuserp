@@ -167,7 +167,7 @@ export function ExpansaoPipelineView({
                             className="h-7 text-xs text-primary"
                             onClick={() => onSelectClient(client.id)}
                           >
-                            Ver 360°
+                            Ver Perfil
                           </Button>
                         )}
                       </TableCell>

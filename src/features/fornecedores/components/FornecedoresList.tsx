@@ -394,7 +394,7 @@ export function FornecedoresList() {
                         className="w-full text-xs h-8 gap-1.5 font-medium hover:bg-primary hover:text-primary-foreground transition-colors cursor-pointer"
                       >
                         <Eye className="w-3.5 h-3.5" />
-                        Ver Perfil 360°
+                        Ver Perfil
                       </Button>
 
                       <DropdownMenu>

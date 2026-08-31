@@ -178,7 +178,7 @@ export function NpsSurveysView({
                       className="text-xs text-primary self-end md:self-center"
                       onClick={() => onSelectClient(client.id)}
                     >
-                      Ver Cliente 360°
+                      Ver Perfil
                     </Button>
                   )}
                 </div>

@@ -88,7 +88,7 @@ export function ModalWorkspace360({
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/30 font-semibold">
-                  Workspace 360°
+                  Workspace
                 </Badge>
                 <Badge
                   variant="outline"

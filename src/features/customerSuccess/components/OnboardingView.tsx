@@ -132,7 +132,7 @@ export function OnboardingView({
                 className="text-xs h-8"
                 onClick={() => onSelectClient(selectedClient.id)}
               >
-                Abrir Workspace 360°
+                Abrir Workspace
               </Button>
             )}
           </CardHeader>

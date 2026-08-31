@@ -288,7 +288,7 @@ export function CarteiraClientesView({
                   </CardContent>
 
                   <div className="p-3 border-t bg-muted/20 flex items-center justify-between text-xs text-primary font-semibold rounded-b-xl group-hover:bg-primary/5 transition-colors">
-                    <span>Abrir Workspace 360°</span>
+                    <span>Abrir Workspace</span>
                     <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </Card>
@@ -398,7 +398,7 @@ export function CarteiraClientesView({
                             className="h-7 text-xs text-primary gap-1"
                             onClick={() => onSelectClient(client.id)}
                           >
-                            <Sparkles className="w-3.5 h-3.5" /> 360°
+                            <Sparkles className="w-3.5 h-3.5" /> Workspace
                           </Button>
                         </TableCell>
                       </TableRow>
