@@ -447,7 +447,7 @@ export function NovaContaSheet({ children }: { children: React.ReactNode }) {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Quantidade de Meses / Ciclos</Label>
+                  <Label>Prazo</Label>
                   <Input 
                     type="number" 
                     placeholder="Ex: 2 (vazio = contínuo)" 

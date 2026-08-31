@@ -1,5 +1,7 @@
 import React, { useState, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useContasPagarQuery } from '../hooks/useContasPagarQuery';
+import { financeiroService } from '@/services/financeiroService';
 import { useLocalStorageState } from '@/hooks/useDataStore';
 import { ContaPagar } from '../types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -9,10 +11,18 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Search, Filter, MoreHorizontal, Download, Plus, Calendar, 
-  CheckCircle2, X, ArrowDownRight, Clock, AlertTriangle
+  CheckCircle2, X, ArrowDownRight, Clock, AlertTriangle, Trash2
 } from 'lucide-react';
 import { NovaContaSheet } from './NovaContaSheet';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { formatDateBrasilia, parseDateSafe, getBrasiliaTodayIso } from '@/lib/dateUtils';
 import { 
   startOfDay, endOfDay, startOfWeek, endOfWeek, 
@@ -69,7 +79,10 @@ export function ContasList() {
   const [datePreset, setDatePreset] = useState<DatePreset>('todos');
   const [dataInicio, setDataInicio] = useState<string>('');
   const [dataFim, setDataFim] = useState<string>('');
+  const [contaParaExcluir, setContaParaExcluir] = useState<ContaPagar | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
+  const queryClient = useQueryClient();
   const { data: localContas = [], saveItem: saveLocalConta, removeItem: deleteLocalConta } = useLocalStorageState<ContaPagar>('focus_contas_pagar');
   const { contas: queryContas = [], saveConta: saveQueryConta, deleteConta: deleteQueryConta } = useContasPagarQuery();
 
@@ -88,9 +101,34 @@ export function ContasList() {
     try { await saveQueryConta(conta); } catch {}
   };
 
-  const deleteConta = async (id: string) => {
-    deleteLocalConta(id);
-    try { await deleteQueryConta(id); } catch {}
+  const handleConfirmarExclusao = async () => {
+    if (!contaParaExcluir) return;
+    const id = contaParaExcluir.id;
+    setIsDeleting(true);
+    try {
+      // 1. Remove do estado local imediato
+      deleteLocalConta(id);
+      
+      // 2. Atualiza cache do React Query imediatamente
+      queryClient.setQueryData(['contas_pagar'], (old: any) => {
+        if (!Array.isArray(old)) return [];
+        return old.filter((item: any) => item.id !== id);
+      });
+
+      // 3. Remove no banco/service
+      await financeiroService.deleteContaPagar(id);
+      
+      // 4. Invalida cache para sincronizar
+      queryClient.invalidateQueries({ queryKey: ['contas_pagar'] });
+
+      toast.success('Conta a pagar excluída com sucesso!');
+    } catch (err: any) {
+      console.error('Erro ao excluir conta:', err);
+      toast.error('Erro ao excluir conta: ' + (err?.message || 'Tente novamente.'));
+    } finally {
+      setIsDeleting(false);
+      setContaParaExcluir(null);
+    }
   };
 
   // Calcular limites de data baseados no preset selecionado
@@ -430,6 +468,15 @@ export function ContasList() {
                           Pagar
                         </Button>
                       )}
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        className="h-7 w-7 p-0 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-md transition-all"
+                        onClick={() => setContaParaExcluir(conta)}
+                        title="Excluir conta"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" className="h-7 w-7 p-0 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200">
@@ -444,19 +491,10 @@ export function ContasList() {
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuItem
-                            className="text-red-600 cursor-pointer focus:bg-red-500/10 focus:text-red-600"
-                            onSelect={async (e) => {
-                              e.preventDefault();
-                              if (window.confirm(`Tem certeza que deseja excluir a conta "${conta.descricao || conta.numero}"?`)) {
-                                try {
-                                  await deleteConta(conta.id);
-                                  toast.success('Conta excluída com sucesso!');
-                                } catch (err) {
-                                  console.error('Erro ao excluir conta a pagar:', err);
-                                }
-                              }
-                            }}
+                            className="text-rose-600 cursor-pointer focus:bg-rose-500/10 focus:text-rose-600"
+                            onClick={() => setContaParaExcluir(conta)}
                           >
+                            <Trash2 className="w-4 h-4 mr-2" />
                             Excluir conta
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -469,6 +507,30 @@ export function ContasList() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Diálogo de Confirmação de Exclusão */}
+      <Dialog open={!!contaParaExcluir} onOpenChange={(open) => !open && setContaParaExcluir(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-rose-600">
+              <Trash2 className="w-5 h-5" /> Excluir Conta a Pagar
+            </DialogTitle>
+            <DialogDescription className="text-xs pt-2 text-muted-foreground">
+              Tem certeza que deseja excluir a conta <strong>"{contaParaExcluir?.descricao || contaParaExcluir?.numero}"</strong> no valor de <strong>{formatCurrency(contaParaExcluir?.valorOriginal)}</strong>?
+              <br /><br />
+              Esta ação removerá este registro do sistema financeiro.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0 mt-4">
+            <Button variant="outline" size="sm" onClick={() => setContaParaExcluir(null)} disabled={isDeleting}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" size="sm" onClick={handleConfirmarExclusao} disabled={isDeleting}>
+              {isDeleting ? 'Excluindo...' : 'Confirmar Exclusão'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
