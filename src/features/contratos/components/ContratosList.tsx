@@ -13,7 +13,6 @@ import {
   DialogDescription,
   DialogFooter
 } from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Search, 
   Filter, 
@@ -35,6 +34,9 @@ import {
   CheckCircle2,
   Lock,
   Layers,
+  LayoutGrid,
+  List as ListIcon,
+  ArrowRight,
   X
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
@@ -46,6 +48,17 @@ const formatCurrency = (value?: number | null) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
 };
 
+const formatDateSafe = (dateStr?: string) => {
+  if (!dateStr) return '-';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString('pt-BR');
+  } catch {
+    return dateStr;
+  }
+};
+
 interface ContratosListProps {
   filterTitularidade?: 'Cliente' | 'Focus Tecnologia' | 'Todos';
   filterEntidade?: string[];
@@ -54,6 +67,7 @@ interface ContratosListProps {
 export function ContratosList({ filterTitularidade = 'Todos', filterEntidade }: ContratosListProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('todos');
+  const [viewMode, setViewMode] = useState<'tabela' | 'cards'>('cards');
   
   const { data: contratos = [], deleteItem } = useLocalStorageState<Contrato>('focus_contratos', []);
   const { data: clientes = [] } = useLocalStorageState<any>('focus_clientes', []);
@@ -159,15 +173,15 @@ export function ContratosList({ filterTitularidade = 'Todos', filterEntidade }: 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'Vigente':
-        return <Badge className="bg-emerald-600 text-white font-semibold">Vigente</Badge>;
+        return <Badge className="bg-emerald-600 text-white font-semibold text-[11px]">Vigente</Badge>;
       case 'Encerrado':
-        return <Badge variant="secondary">Encerrado</Badge>;
+        return <Badge variant="secondary" className="text-[11px]">Encerrado</Badge>;
       case 'Cancelado':
-        return <Badge variant="destructive">Cancelado</Badge>;
+        return <Badge variant="destructive" className="text-[11px]">Cancelado</Badge>;
       case 'Aguardando Assinatura':
-        return <Badge variant="outline" className="text-orange-600 border-orange-200 bg-orange-50 dark:bg-orange-950/30">Aguardando Assinatura</Badge>;
+        return <Badge variant="outline" className="text-orange-700 bg-orange-50 border-orange-300 dark:bg-orange-950/40 dark:text-orange-400 text-[11px] font-semibold">Aguardando Assinatura</Badge>;
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return <Badge variant="outline" className="text-[11px]">{status}</Badge>;
     }
   };
 
@@ -201,6 +215,28 @@ export function ContratosList({ filterTitularidade = 'Todos', filterEntidade }: 
         </div>
         
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
+          {/* Seletor de Modo de Visualização: Cards Detalhados vs Tabela */}
+          <div className="flex items-center border rounded-md p-0.5 bg-muted/40">
+            <Button 
+              variant={viewMode === 'cards' ? 'secondary' : 'ghost'} 
+              size="sm" 
+              className="h-8 gap-1 text-xs"
+              onClick={() => setViewMode('cards')}
+              title="Visualização em Cards Detalhados"
+            >
+              <LayoutGrid className="w-3.5 h-3.5 text-orange-600" /> Cards
+            </Button>
+            <Button 
+              variant={viewMode === 'tabela' ? 'secondary' : 'ghost'} 
+              size="sm" 
+              className="h-8 gap-1 text-xs"
+              onClick={() => setViewMode('tabela')}
+              title="Visualização em Tabela"
+            >
+              <ListIcon className="w-3.5 h-3.5" /> Tabela
+            </Button>
+          </div>
+
           <Button 
             variant="outline" 
             size="sm"
@@ -223,176 +259,344 @@ export function ContratosList({ filterTitularidade = 'Todos', filterEntidade }: 
         </div>
       </div>
 
-      {/* TABELA DE CONTRATOS */}
-      <div className="rounded-lg border bg-card overflow-x-auto shadow-xs">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-muted/40 text-xs">
-              <TableHead className="w-[320px]">Contrato & Titularidade</TableHead>
-              <TableHead>Vínculo / Contraparte</TableHead>
-              <TableHead>Responsável Interno</TableHead>
-              <TableHead>Vigência</TableHead>
-              <TableHead className="text-right">Valor Total</TableHead>
-              <TableHead className="text-center">Status</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredData.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-12 text-muted-foreground text-xs space-y-2">
-                  <Landmark className="w-8 h-8 opacity-30 mx-auto" />
-                  <p className="font-semibold text-foreground text-sm">Nenhum contrato encontrado</p>
-                  <p>
-                    {filterTitularidade === 'Focus Tecnologia' 
-                      ? 'Nenhum contrato corporativo da Focus Tecnologia Ltda registrado nesta categoria.'
-                      : filterTitularidade === 'Cliente'
-                      ? 'Nenhum contrato de cliente registrado.'
-                      : 'Clique em "Novo Contrato" para cadastrar seu primeiro contrato.'}
-                  </p>
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredData.map((contrato) => {
-                let isVencendo = false;
-                let dias = 0;
-                if (contrato.dataFinal && contrato.status === 'Vigente') {
-                   dias = differenceInDays(new Date(contrato.dataFinal), hoje);
-                   isVencendo = dias > 0 && dias <= 90;
-                }
+      {/* MODO CARDS DETALHADOS */}
+      {viewMode === 'cards' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredData.length === 0 ? (
+            <div className="col-span-full py-12 text-center text-muted-foreground text-xs bg-card rounded-lg border">
+              <Landmark className="w-8 h-8 opacity-30 mx-auto mb-2" />
+              <p className="font-semibold text-foreground text-sm">Nenhum contrato encontrado</p>
+              <p className="mt-1">
+                {filterTitularidade === 'Focus Tecnologia' 
+                  ? 'Nenhum contrato corporativo da Focus Tecnologia Ltda registrado nesta categoria.'
+                  : filterTitularidade === 'Cliente'
+                  ? 'Nenhum contrato com clientes cadastrado.'
+                  : 'Clique em "Novo Contrato" para adicionar seu primeiro contrato.'}
+              </p>
+            </div>
+          ) : (
+            filteredData.map((contrato) => {
+              let isVencendo = false;
+              let dias = 0;
+              if (contrato.dataFinal && contrato.status === 'Vigente') {
+                 dias = differenceInDays(new Date(contrato.dataFinal), hoje);
+                 isVencendo = dias > 0 && dias <= 90;
+              }
 
-                const isFocus = isContratoFocus(contrato);
-                const clienteRelacionado = clientes.find((c: any) => c.id === contrato.clienteId);
-                const fornecedorRelacionado = fornecedores.find((f: any) => f.id === contrato.fornecedorId);
+              const isFocus = isContratoFocus(contrato);
+              const clienteRelacionado = clientes.find((c: any) => c.id === contrato.clienteId);
+              const fornecedorRelacionado = fornecedores.find((f: any) => f.id === contrato.fornecedorId);
 
-                const nomeContraparte = isFocus 
-                  ? (contrato.fornecedorNome || contrato.contraparteNome || fornecedorRelacionado?.nomeFantasia || fornecedorRelacionado?.razaoSocial || 'Fornecedor / Parceiro Focus')
-                  : (contrato.clienteNome || clienteRelacionado?.nomeFantasia || clienteRelacionado?.razaoSocial || 'Cliente Corporativo');
+              const nomeContraparte = isFocus 
+                ? (contrato.fornecedorNome || contrato.contraparteNome || fornecedorRelacionado?.nomeFantasia || fornecedorRelacionado?.razaoSocial || 'Fornecedor / Parceiro Focus')
+                : (contrato.clienteNome || clienteRelacionado?.nomeFantasia || clienteRelacionado?.razaoSocial || 'Cliente Corporativo');
 
-                return (
-                  <TableRow 
-                    key={contrato.id} 
-                    className="group cursor-pointer hover:bg-muted/40 transition-colors"
-                    onClick={() => handleOpenDetails(contrato)}
-                  >
-                    {/* Contrato & Titularidade */}
-                    <TableCell>
-                      <div className="flex flex-col space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-xs sm:text-sm text-foreground hover:text-orange-600 transition-colors">
-                            {contrato.numeroContrato} - {contrato.nome}
+              return (
+                <div 
+                  key={contrato.id} 
+                  className="bg-card border rounded-xl p-5 hover:border-orange-500/50 hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer"
+                  onClick={() => handleOpenDetails(contrato)}
+                >
+                  {/* Topo do Card */}
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
+                          <span className="font-mono text-[10px] font-bold text-foreground bg-muted px-1.5 py-0.5 rounded">
+                            {contrato.codigo}
                           </span>
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+                          
                           {/* Badge de Titularidade */}
                           {isFocus ? (
                             <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 font-semibold gap-1">
-                              <Building2 className="w-3 h-3" /> Focus Tecnologia Ltda
+                              <Building2 className="w-3 h-3" /> Focus Tecnologia
                             </Badge>
                           ) : (
                             <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 font-semibold gap-1">
                               <User className="w-3 h-3" /> Cliente
                             </Badge>
                           )}
-                          
-                          <span className="font-mono text-[10px] bg-muted px-1.5 py-0.2 rounded font-bold">{contrato.codigo}</span>
-                          <span>•</span>
-                          <span className="truncate">{contrato.tipoServico}</span>
                         </div>
+
+                        <h3 className="font-bold text-sm sm:text-base text-foreground group-hover:text-orange-600 transition-colors line-clamp-1">
+                          {contrato.numeroContrato} - {contrato.nome}
+                        </h3>
                       </div>
-                    </TableCell>
 
-                    {/* Vínculo / Contraparte */}
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <div className={`p-1.5 rounded-md shrink-0 ${isFocus ? 'bg-purple-500/10 text-purple-600' : 'bg-blue-500/10 text-blue-600'}`}>
-                          {isFocus ? <Building2 className="w-3.5 h-3.5" /> : <User className="w-3.5 h-3.5" />}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="font-semibold text-xs text-foreground truncate">{nomeContraparte}</p>
-                          <p className="text-[10px] text-muted-foreground">{isFocus ? 'Contraparte Focus' : 'Cliente'}</p>
-                        </div>
+                      <div className="flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
+                        {getStatusBadge(contrato.status)}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48 text-xs">
+                            <DropdownMenuItem onClick={() => handleOpenDetails(contrato)} className="gap-2 cursor-pointer">
+                              <Eye className="w-3.5 h-3.5 text-primary" /> Visualizar Detalhes
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => handleOpenEdit(contrato, e)} className="gap-2 cursor-pointer text-blue-600">
+                              <Edit3 className="w-3.5 h-3.5" /> Editar Contrato
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => handleDownload(contrato, e)} className="gap-2 cursor-pointer text-emerald-600">
+                              <Download className="w-3.5 h-3.5" /> Baixar Documento
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => setContratoToDelete(contrato)} className="gap-2 cursor-pointer text-rose-600 focus:text-rose-600">
+                              <Trash2 className="w-3.5 h-3.5" /> Excluir Contrato
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
-                    </TableCell>
+                    </div>
 
-                    {/* Responsável Interno */}
-                    <TableCell>
-                      <span className="text-xs text-muted-foreground">{contrato.responsavelInterno || 'Gestor Interno'}</span>
-                    </TableCell>
+                    {/* Vínculo de Contraparte */}
+                    <div className="space-y-1 bg-muted/30 p-2.5 rounded-lg border text-xs">
+                      <div className="flex items-center gap-1.5 text-foreground font-semibold truncate">
+                        {isFocus ? <Building2 className="w-3.5 h-3.5 text-purple-600 shrink-0" /> : <User className="w-3.5 h-3.5 text-blue-600 shrink-0" />}
+                        <span className="truncate">{nomeContraparte}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-0.5">
+                        <span className="truncate">{contrato.tipoServico}</span>
+                        <span>Resp: <strong>{contrato.responsavelInterno || 'Gestor'}</strong></span>
+                      </div>
+                    </div>
 
-                    {/* Vigência */}
-                    <TableCell>
-                      <div className="flex flex-col text-xs">
-                        <span className="font-medium text-foreground">
-                          Até {contrato.dataFinal ? new Date(contrato.dataFinal).toLocaleDateString('pt-BR') : 'Indeterminado'}
+                    {/* Dados Financeiros */}
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t text-xs">
+                      <div>
+                        <span className="text-[10px] text-muted-foreground uppercase font-bold block">Valor Global</span>
+                        <span className="font-bold text-xs sm:text-sm text-foreground">
+                          {formatCurrency(contrato.valorTotal)}
                         </span>
-                        {isVencendo && (
-                          <span className="text-[10px] text-orange-600 font-semibold flex items-center gap-1 mt-0.5">
-                            <CalendarClock className="w-3 h-3" /> Vence em {dias} dias
-                          </span>
-                        )}
-                        {!isVencendo && dias > 90 && (
-                          <span className="text-[10px] text-muted-foreground mt-0.5">
-                            {dias} dias restantes
-                          </span>
-                        )}
                       </div>
-                    </TableCell>
 
-                    {/* Valor Total */}
-                    <TableCell className="text-right">
-                      <span className="font-bold text-xs sm:text-sm text-foreground">
-                        {formatCurrency(contrato.valorTotal || 0)}
-                      </span>
-                      {contrato.valorMensalidade > 0 && (
-                        <div className="text-[10px] text-muted-foreground">
-                          {formatCurrency(contrato.valorMensalidade)}/mês
+                      <div className="text-right">
+                        <span className="text-[10px] text-muted-foreground uppercase font-bold block">Mensalidade</span>
+                        <span className="font-semibold text-xs sm:text-sm text-emerald-600">
+                          {contrato.valorMensalidade > 0 ? `${formatCurrency(contrato.valorMensalidade)}/mês` : '-'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Arquivo Anexo se houver */}
+                    {contrato.arquivoUrl && (
+                      <div className="flex items-center justify-between bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1.5 rounded-md text-[11px]">
+                        <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300 truncate">
+                          <FileText className="w-3.5 h-3.5 shrink-0" />
+                          <span className="truncate">{contrato.arquivoNome || 'Documento Anexado'}</span>
                         </div>
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          className="h-6 px-1.5 text-[10px] text-emerald-700 hover:text-emerald-800 dark:text-emerald-300 gap-1 font-semibold"
+                          onClick={(e) => handleDownload(contrato, e)}
+                        >
+                          <Download className="w-3 h-3" /> Baixar
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Rodapé do Card com Ação */}
+                  <div className="pt-4 mt-3 border-t flex items-center justify-between gap-2">
+                    <div className="text-[11px] text-muted-foreground flex flex-col">
+                      <span>Vigência: Até {formatDateSafe(contrato.dataFinal)}</span>
+                      {isVencendo && (
+                        <span className="text-[10px] text-orange-600 font-semibold flex items-center gap-0.5">
+                          <CalendarClock className="w-3 h-3" /> Vence em {dias} dias
+                        </span>
                       )}
-                    </TableCell>
+                    </div>
 
-                    {/* Status */}
-                    <TableCell className="text-center">
-                      {getStatusBadge(contrato.status)}
-                    </TableCell>
+                    <Button 
+                      size="sm" 
+                      variant="ghost" 
+                      className="h-7 px-2.5 text-xs text-orange-600 hover:text-orange-700 hover:bg-orange-50 dark:hover:bg-orange-950/30 gap-1 font-semibold"
+                      onClick={() => handleOpenDetails(contrato)}
+                    >
+                      Ver Detalhes <ArrowRight className="w-3 h-3" />
+                    </Button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
 
-                    {/* Ações */}
-                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48 text-xs">
-                          <DropdownMenuItem onClick={() => handleOpenDetails(contrato)} className="gap-2 cursor-pointer">
-                            <Eye className="w-3.5 h-3.5 text-primary" /> Visualizar Detalhes
-                          </DropdownMenuItem>
+      {/* MODO TABELA */}
+      {viewMode === 'tabela' && (
+        <div className="rounded-lg border bg-card overflow-x-auto shadow-xs">
+          <Table>
+            <TableHeader className="bg-muted/40 text-xs">
+              <TableRow>
+                <TableHead className="w-[320px]">Contrato & Titularidade</TableHead>
+                <TableHead>Vínculo / Contraparte</TableHead>
+                <TableHead>Responsável Interno</TableHead>
+                <TableHead>Vigência</TableHead>
+                <TableHead className="text-right">Valor Total</TableHead>
+                <TableHead className="text-center">Status</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredData.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-12 text-muted-foreground text-xs space-y-2">
+                    <Landmark className="w-8 h-8 opacity-30 mx-auto" />
+                    <p className="font-semibold text-foreground text-sm">Nenhum contrato encontrado</p>
+                    <p>
+                      {filterTitularidade === 'Focus Tecnologia' 
+                        ? 'Nenhum contrato corporativo da Focus Tecnologia Ltda registrado nesta categoria.'
+                        : filterTitularidade === 'Cliente'
+                        ? 'Nenhum contrato de cliente registrado.'
+                        : 'Clique em "Novo Contrato" para cadastrar seu primeiro contrato.'}
+                    </p>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredData.map((contrato) => {
+                  let isVencendo = false;
+                  let dias = 0;
+                  if (contrato.dataFinal && contrato.status === 'Vigente') {
+                     dias = differenceInDays(new Date(contrato.dataFinal), hoje);
+                     isVencendo = dias > 0 && dias <= 90;
+                  }
 
-                          <DropdownMenuItem onClick={(e) => handleOpenEdit(contrato, e)} className="gap-2 cursor-pointer text-blue-600">
-                            <Edit3 className="w-3.5 h-3.5" /> Editar Contrato
-                          </DropdownMenuItem>
+                  const isFocus = isContratoFocus(contrato);
+                  const clienteRelacionado = clientes.find((c: any) => c.id === contrato.clienteId);
+                  const fornecedorRelacionado = fornecedores.find((f: any) => f.id === contrato.fornecedorId);
 
-                          <DropdownMenuItem onClick={(e) => handleDownload(contrato, e)} className="gap-2 cursor-pointer text-emerald-600">
-                            <Download className="w-3.5 h-3.5" /> Baixar Documento
-                          </DropdownMenuItem>
+                  const nomeContraparte = isFocus 
+                    ? (contrato.fornecedorNome || contrato.contraparteNome || fornecedorRelacionado?.nomeFantasia || fornecedorRelacionado?.razaoSocial || 'Fornecedor / Parceiro Focus')
+                    : (contrato.clienteNome || clienteRelacionado?.nomeFantasia || clienteRelacionado?.razaoSocial || 'Cliente Corporativo');
 
-                          <DropdownMenuSeparator />
+                  return (
+                    <TableRow 
+                      key={contrato.id} 
+                      className="group cursor-pointer hover:bg-muted/40 transition-colors"
+                      onClick={() => handleOpenDetails(contrato)}
+                    >
+                      {/* Contrato & Titularidade */}
+                      <TableCell>
+                        <div className="flex flex-col space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-xs sm:text-sm text-foreground hover:text-orange-600 transition-colors">
+                              {contrato.numeroContrato} - {contrato.nome}
+                            </span>
+                          </div>
 
-                          <DropdownMenuItem onClick={() => setContratoToDelete(contrato)} className="gap-2 cursor-pointer text-rose-600 focus:text-rose-600">
-                            <Trash2 className="w-3.5 h-3.5" /> Excluir Contrato
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-      </div>
+                          <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+                            {/* Badge de Titularidade */}
+                            {isFocus ? (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 font-semibold gap-1">
+                                <Building2 className="w-3 h-3" /> Focus Tecnologia Ltda
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 font-semibold gap-1">
+                                <User className="w-3 h-3" /> Cliente
+                              </Badge>
+                            )}
+                            
+                            <span className="font-mono text-[10px] bg-muted px-1.5 py-0.2 rounded font-bold">{contrato.codigo}</span>
+                            <span>•</span>
+                            <span className="truncate">{contrato.tipoServico}</span>
+                          </div>
+                        </div>
+                      </TableCell>
+
+                      {/* Vínculo / Contraparte */}
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div className={`p-1.5 rounded-md shrink-0 ${isFocus ? 'bg-purple-500/10 text-purple-600' : 'bg-blue-500/10 text-blue-600'}`}>
+                            {isFocus ? <Building2 className="w-3.5 h-3.5" /> : <User className="w-3.5 h-3.5" />}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-semibold text-xs text-foreground truncate">{nomeContraparte}</p>
+                            <p className="text-[10px] text-muted-foreground">{isFocus ? 'Contraparte Focus' : 'Cliente'}</p>
+                          </div>
+                        </div>
+                      </TableCell>
+
+                      {/* Responsável Interno */}
+                      <TableCell>
+                        <span className="text-xs text-muted-foreground">{contrato.responsavelInterno || 'Gestor Interno'}</span>
+                      </TableCell>
+
+                      {/* Vigência */}
+                      <TableCell>
+                        <div className="flex flex-col text-xs">
+                          <span className="font-medium text-foreground">
+                            Até {formatDateSafe(contrato.dataFinal)}
+                          </span>
+                          {isVencendo && (
+                            <span className="text-[10px] text-orange-600 font-semibold flex items-center gap-1 mt-0.5">
+                              <CalendarClock className="w-3 h-3" /> Vence em {dias} dias
+                            </span>
+                          )}
+                          {!isVencendo && dias > 90 && (
+                            <span className="text-[10px] text-muted-foreground mt-0.5">
+                              {dias} dias restantes
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+
+                      {/* Valor Total */}
+                      <TableCell className="text-right">
+                        <span className="font-bold text-xs sm:text-sm text-foreground">
+                          {formatCurrency(contrato.valorTotal || 0)}
+                        </span>
+                        {contrato.valorMensalidade > 0 && (
+                          <div className="text-[10px] text-muted-foreground">
+                            {formatCurrency(contrato.valorMensalidade)}/mês
+                          </div>
+                        )}
+                      </TableCell>
+
+                      {/* Status */}
+                      <TableCell className="text-center">
+                        {getStatusBadge(contrato.status)}
+                      </TableCell>
+
+                      {/* Ações */}
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48 text-xs">
+                            <DropdownMenuItem onClick={() => handleOpenDetails(contrato)} className="gap-2 cursor-pointer">
+                              <Eye className="w-3.5 h-3.5 text-primary" /> Visualizar Detalhes
+                            </DropdownMenuItem>
+
+                            <DropdownMenuItem onClick={(e) => handleOpenEdit(contrato, e)} className="gap-2 cursor-pointer text-blue-600">
+                              <Edit3 className="w-3.5 h-3.5" /> Editar Contrato
+                            </DropdownMenuItem>
+
+                            <DropdownMenuItem onClick={(e) => handleDownload(contrato, e)} className="gap-2 cursor-pointer text-emerald-600">
+                              <Download className="w-3.5 h-3.5" /> Baixar Documento
+                            </DropdownMenuItem>
+
+                            <DropdownMenuSeparator />
+
+                            <DropdownMenuItem onClick={() => setContratoToDelete(contrato)} className="gap-2 cursor-pointer text-rose-600 focus:text-rose-600">
+                              <Trash2 className="w-3.5 h-3.5" /> Excluir Contrato
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      )}
 
       {/* MODAL DE DETALHES COMPLETOS DO CONTRATO */}
       <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
