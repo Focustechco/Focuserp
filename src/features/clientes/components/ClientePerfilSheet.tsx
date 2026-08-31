@@ -594,7 +594,7 @@ export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: Clie
                               : 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300'
                           }`}
                         >
-                          {titulo.status === 'Programado' ? 'Programado (Futuro)' : titulo.status}
+                          {titulo.status}
                         </Badge>
                       </div>
                     </div>

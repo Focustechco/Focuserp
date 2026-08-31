@@ -115,7 +115,7 @@ export function PagamentosFuturosTab() {
             valorPrevisto: Number(rec.valor) || 0,
             cicloIndex: idx + 1,
             totalCiclos: totalCiclos,
-            cicloLabel: `Ciclo ${idx + 1}${totalCiclos ? `/${totalCiclos}` : ''}`,
+            cicloLabel: `Parcela ${idx + 1}${totalCiclos ? `/${totalCiclos}` : ''}`,
             status: 'Programado', // NUNCA Pago ou Liquidado
           });
         }
@@ -172,7 +172,7 @@ export function PagamentosFuturosTab() {
             valorPrevisto: Number(c.valorOriginal) || 0,
             cicloIndex: idx + 1,
             totalCiclos: totalCiclos,
-            cicloLabel: `Ciclo ${idx + 1}${totalCiclos ? `/${totalCiclos}` : ''}`,
+            cicloLabel: `Parcela ${idx + 1}${totalCiclos ? `/${totalCiclos}` : ''}`,
             status: 'Programado',
           });
         }
@@ -415,7 +415,7 @@ export function PagamentosFuturosTab() {
         <Table>
           <TableHeader className="bg-muted/40">
             <TableRow>
-              <TableHead className="text-xs font-semibold">Ciclo / Parcela</TableHead>
+              <TableHead className="text-xs font-semibold">Parcela</TableHead>
               <TableHead className="text-xs font-semibold">Fornecedor / Favorecido</TableHead>
               <TableHead className="text-xs font-semibold">Descrição da Obrigação</TableHead>
               <TableHead className="text-xs font-semibold">Categoria</TableHead>
@@ -470,7 +470,7 @@ export function PagamentosFuturosTab() {
                       variant="outline"
                       className="text-[10px] bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/40 dark:text-orange-300 dark:border-orange-800 font-medium"
                     >
-                      • Programado (Futuro)
+                      • Programado
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">

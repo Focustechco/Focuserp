@@ -112,7 +112,7 @@ export function RecebimentosFuturosTab() {
             valorPrevisto: Number(rec.valor) || 0,
             cicloIndex: idx + 1,
             totalCiclos: totalCiclos,
-            cicloLabel: `Ciclo ${idx + 1}${totalCiclos ? `/${totalCiclos}` : ''}`,
+            cicloLabel: `Parcela ${idx + 1}${totalCiclos ? `/${totalCiclos}` : ''}`,
             status: 'Programado', // NUNCA Recebido ou Pago
           });
         }
@@ -411,7 +411,7 @@ export function RecebimentosFuturosTab() {
         <Table>
           <TableHeader className="bg-muted/40">
             <TableRow>
-              <TableHead className="text-xs font-semibold">Ciclo / Parcela</TableHead>
+              <TableHead className="text-xs font-semibold">Parcela</TableHead>
               <TableHead className="text-xs font-semibold">Cliente</TableHead>
               <TableHead className="text-xs font-semibold">Descrição / Referência</TableHead>
               <TableHead className="text-xs font-semibold">Origem</TableHead>
@@ -466,7 +466,7 @@ export function RecebimentosFuturosTab() {
                       variant="outline"
                       className="text-[10px] bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800 font-medium"
                     >
-                      • Programado (Futuro)
+                      • Programado
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
