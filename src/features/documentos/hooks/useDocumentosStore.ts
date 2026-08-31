@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useCallback } from 'react';
 import { useLocalStorageState } from "@/hooks/useDataStore";
 import { PastaDMS, DocumentoDMS, AuditLogDocumento, FormatoArquivo, ModuloOrigemDMS } from "../types";
 import { INITIAL_PASTAS, INITIAL_DOCUMENTOS } from "../data/initialData";
@@ -11,342 +11,193 @@ export function useDocumentosStore() {
   const { data: auditLogs, addItem: addAuditItem } = useLocalStorageState<AuditLogDocumento>('focus_dms_audit', []);
   const { data: deletedDocIds, addItem: addDeletedId, save: saveDeletedIds } = useLocalStorageState<string>('focus_dms_deleted_ids', []);
 
-  // Leitura de entidades para sincronização automática de pastas e documentos
+  // Leitura de entidades para sincronização automática de pastas
   const { data: clientes } = useLocalStorageState<any>('focus_clientes', []);
   const { data: fornecedores } = useLocalStorageState<any>('focus_fornecedores', []);
   const { data: projetos } = useLocalStorageState<any>('focus_projetos', []);
   const { data: colaboradores } = useLocalStorageState<any>('focus_rh_colaboradores', []);
   const { data: produtos } = useLocalStorageState<any>('focus_produtos', []);
-  const { data: contratos } = useLocalStorageState<any>('focus_contratos', []);
-  const { data: relatoriosHistorico } = useLocalStorageState<any>('focus_relatorios_history', []);
-  const { data: assinaturasDocs } = useLocalStorageState<any>('focus_assinaturas_docs', []);
-  const { data: fiscalDocs } = useLocalStorageState<any>('focus_fiscal_documentos', []);
 
-  // 1. Pastas consolidadas com auto-geração para cada Módulo e Entidade
+  // 1. Pastas Oficiais e Subpastas Consolidadas (Deduplicação Estrita por Caminho e ID)
   const pastas = useMemo(() => {
     const map = new Map<string, PastaDMS>();
+    const pathMap = new Map<string, string>(); // caminhoNormalizado -> idOficial
 
-    // 1.1 Pastas Padrão do Sistema
-    INITIAL_PASTAS.forEach((p) => map.set(p.id, p));
+    // 1.1 Pastas Oficiais Raízes e Subpastas Padrão
+    INITIAL_PASTAS.forEach((p) => {
+      map.set(p.id, p);
+      pathMap.set(p.caminhoCompleto.toLowerCase().trim(), p.id);
+    });
 
-    // Pastas Raízes Obrigatórias de Módulos
-    const defaultRoots: PastaDMS[] = [
-      { id: 'p-cli', nome: 'Clientes', parentId: null, caminhoCompleto: '/Clientes', moduloVinculado: 'Clientes', dataCriacao: '2026-01-01', criadoPor: 'Sistema' },
-      { id: 'p-forn', nome: 'Fornecedores', parentId: null, caminhoCompleto: '/Fornecedores', moduloVinculado: 'Fornecedores', dataCriacao: '2026-01-01', criadoPor: 'Sistema' },
-      { id: 'p-prj', nome: 'Projetos', parentId: null, caminhoCompleto: '/Projetos', moduloVinculado: 'Projetos', dataCriacao: '2026-01-01', criadoPor: 'Sistema' },
-      { id: 'p-rh', nome: 'RH', parentId: null, caminhoCompleto: '/RH', moduloVinculado: 'RH', dataCriacao: '2026-01-01', criadoPor: 'Sistema' },
-      { id: 'p-rh-colab', nome: 'Colaboradores', parentId: 'p-rh', caminhoCompleto: '/RH/Colaboradores', moduloVinculado: 'RH', dataCriacao: '2026-01-01', criadoPor: 'Sistema' },
-      { id: 'p-prod', nome: 'Produtos Focus', parentId: null, caminhoCompleto: '/Produtos Focus', moduloVinculado: 'Produtos Focus', dataCriacao: '2026-01-01', criadoPor: 'Sistema' },
-      { id: 'p-rel', nome: 'Relatórios', parentId: null, caminhoCompleto: '/Relatórios', moduloVinculado: 'Relatórios', dataCriacao: '2026-01-01', criadoPor: 'Sistema' },
-      { id: 'p-rel-dre', nome: 'DRE Gerencial', parentId: 'p-rel', caminhoCompleto: '/Relatórios/DRE Gerencial', moduloVinculado: 'Relatórios', dataCriacao: '2026-01-01', criadoPor: 'Sistema' },
-      { id: 'p-rel-fluxo', nome: 'Fluxo de Caixa', parentId: 'p-rel', caminhoCompleto: '/Relatórios/Fluxo de Caixa', moduloVinculado: 'Relatórios', dataCriacao: '2026-01-01', criadoPor: 'Sistema' },
-      { id: 'p-rel-faturam', nome: 'Faturamento e Vendas', parentId: 'p-rel', caminhoCompleto: '/Relatórios/Faturamento e Vendas', moduloVinculado: 'Relatórios', dataCriacao: '2026-01-01', criadoPor: 'Sistema' },
-      { id: 'p-rel-audit', nome: 'Auditoria e Compliance', parentId: 'p-rel', caminhoCompleto: '/Relatórios/Auditoria e Compliance', moduloVinculado: 'Relatórios', dataCriacao: '2026-01-01', criadoPor: 'Sistema' },
-      { id: 'p-rel-rh', nome: 'Recursos Humanos', parentId: 'p-rel', caminhoCompleto: '/Relatórios/Recursos Humanos', moduloVinculado: 'Relatórios', dataCriacao: '2026-01-01', criadoPor: 'Sistema' },
-      { id: 'p-ctr', nome: 'Contratos', parentId: null, caminhoCompleto: '/Contratos', moduloVinculado: 'Contratos', dataCriacao: '2026-01-01', criadoPor: 'Sistema' },
-      { id: 'p-ass', nome: 'Assinaturas Digitais', parentId: null, caminhoCompleto: '/Assinaturas Digitais', moduloVinculado: 'Contratos', dataCriacao: '2026-01-01', criadoPor: 'Sistema' },
-      { id: 'p-fisc', nome: 'Fiscal', parentId: null, caminhoCompleto: '/Fiscal', moduloVinculado: 'Fiscal', dataCriacao: '2026-01-01', criadoPor: 'Sistema' },
-      { id: 'p-fin', nome: 'Financeiro', parentId: null, caminhoCompleto: '/Financeiro', moduloVinculado: 'Financeiro', dataCriacao: '2026-01-01', criadoPor: 'Sistema' },
-      { id: 'p-com', nome: 'Comercial', parentId: null, caminhoCompleto: '/Comercial', moduloVinculado: 'Comercial', dataCriacao: '2026-01-01', criadoPor: 'Sistema' },
-    ];
-    defaultRoots.forEach((p) => map.set(p.id, p));
-
-    // 1.2 Pastas salvas pelo usuário
-    (rawPastas || []).forEach((p) => map.set(p.id, p));
-
-    // 1.3 Auto-sincronizar subpastas de Clientes
+    // 1.2 Auto-sincronizar subpastas de Clientes Cadastrados
     (clientes || []).forEach((c: any) => {
       if (c && c.id) {
         const folderId = `p-cli-${c.id}`;
         const nomeCliente = c.nomeFantasia || c.razaoSocial || c.nome || 'Cliente';
-        map.set(folderId, {
+        const caminhoCompleto = `/Clientes/${nomeCliente}`;
+        const pastaCliente: PastaDMS = {
           id: folderId,
           nome: nomeCliente,
           parentId: 'p-cli',
-          caminhoCompleto: `/Clientes/${nomeCliente}`,
+          caminhoCompleto,
           moduloVinculado: 'Clientes',
           entidadeId: c.id,
           dataCriacao: c.dataCadastro || new Date().toISOString(),
           criadoPor: 'Sistema Integrado (Clientes)',
-          corIcone: '#3B82F6',
-        });
+        };
+        map.set(folderId, pastaCliente);
+        pathMap.set(caminhoCompleto.toLowerCase().trim(), folderId);
       }
     });
 
-    // 1.4 Auto-sincronizar subpastas de Fornecedores
+    // 1.3 Auto-sincronizar subpastas de Fornecedores Cadastrados
     (fornecedores || []).forEach((f: any) => {
       if (f && f.id) {
         const folderId = `p-forn-${f.id}`;
         const nomeForn = f.nomeFantasia || f.razaoSocial || f.nome || 'Fornecedor';
-        map.set(folderId, {
+        const caminhoCompleto = `/Fornecedores/${nomeForn}`;
+        const pastaForn: PastaDMS = {
           id: folderId,
           nome: nomeForn,
           parentId: 'p-forn',
-          caminhoCompleto: `/Fornecedores/${nomeForn}`,
+          caminhoCompleto,
           moduloVinculado: 'Fornecedores',
           entidadeId: f.id,
           dataCriacao: f.dataCadastro || new Date().toISOString(),
           criadoPor: 'Sistema Integrado (Fornecedores)',
-          corIcone: '#64748B',
-        });
+        };
+        map.set(folderId, pastaForn);
+        pathMap.set(caminhoCompleto.toLowerCase().trim(), folderId);
       }
     });
 
-    // 1.5 Auto-sincronizar subpastas de Projetos
+    // 1.4 Auto-sincronizar subpastas de Projetos Cadastrados
     (projetos || []).forEach((prj: any) => {
       if (prj && prj.id) {
         const folderId = `p-prj-${prj.id}`;
         const nomePrj = prj.codigo ? `${prj.codigo} - ${prj.nome || 'Projeto'}` : prj.nome || 'Projeto';
-        map.set(folderId, {
+        const caminhoCompleto = `/Projetos/${nomePrj}`;
+        const pastaPrj: PastaDMS = {
           id: folderId,
           nome: nomePrj,
           parentId: 'p-prj',
-          caminhoCompleto: `/Projetos/${nomePrj}`,
+          caminhoCompleto,
           moduloVinculado: 'Projetos',
           entidadeId: prj.id,
           dataCriacao: prj.dataCriacao || new Date().toISOString(),
           criadoPor: 'Sistema Integrado (Projetos)',
-          corIcone: '#10B981',
-        });
+        };
+        map.set(folderId, pastaPrj);
+        pathMap.set(caminhoCompleto.toLowerCase().trim(), folderId);
       }
     });
 
-    // 1.6 Auto-sincronizar subpastas de RH (Colaboradores)
+    // 1.5 Auto-sincronizar subpastas de RH (Colaboradores / Funcionários)
     (colaboradores || []).forEach((colab: any) => {
       if (colab && colab.id) {
         const folderId = `p-rh-colab-${colab.id}`;
         const nomeColab = colab.nome || colab.nomeCompleto || colab.nomeExibicao || 'Colaborador';
-        map.set(folderId, {
+        const caminhoCompleto = `/RH/Colaboradores/${nomeColab}`;
+        const pastaColab: PastaDMS = {
           id: folderId,
           nome: nomeColab,
           parentId: 'p-rh-colab',
-          caminhoCompleto: `/RH/Colaboradores/${nomeColab}`,
+          caminhoCompleto,
           moduloVinculado: 'RH',
           entidadeId: colab.id,
           dataCriacao: colab.dataAdmissao || new Date().toISOString(),
           criadoPor: 'Sistema Integrado (RH)',
-          corIcone: '#8B5CF6',
-        });
+        };
+        map.set(folderId, pastaColab);
+        pathMap.set(caminhoCompleto.toLowerCase().trim(), folderId);
       }
     });
 
-    // 1.7 Auto-sincronizar subpastas de Produtos Focus
+    // 1.6 Auto-sincronizar subpastas de Produtos Focus
     (produtos || []).forEach((prod: any) => {
       if (prod && prod.id) {
         const folderId = `p-prod-${prod.id}`;
         const nomeProd = prod.nome || 'Produto Focus';
-        map.set(folderId, {
+        const caminhoCompleto = `/Produtos Focus/${nomeProd}`;
+        const pastaProd: PastaDMS = {
           id: folderId,
           nome: nomeProd,
           parentId: 'p-prod',
-          caminhoCompleto: `/Produtos Focus/${nomeProd}`,
+          caminhoCompleto,
           moduloVinculado: 'Produtos Focus',
           entidadeId: prod.id,
           dataCriacao: new Date().toISOString(),
           criadoPor: 'Sistema Integrado (Produtos)',
-          corIcone: '#FF6A00',
-        });
+        };
+        map.set(folderId, pastaProd);
+        pathMap.set(caminhoCompleto.toLowerCase().trim(), folderId);
+      }
+    });
+
+    // 1.7 Pastas criadas pelo usuário (somente se não forem duplicatas de caminhos oficiais)
+    (rawPastas || []).forEach((p) => {
+      if (!p || !p.nome) return;
+      const normalizedPath = (p.caminhoCompleto || `/${p.nome}`).toLowerCase().trim();
+      
+      // Se a pasta é oficial ou já foi mapeada, não duplicar
+      if (pathMap.has(normalizedPath)) {
+        return;
+      }
+
+      // Se for uma pasta válida customizada criada pelo usuário
+      if (!map.has(p.id)) {
+        map.set(p.id, p);
+        pathMap.set(normalizedPath, p.id);
       }
     });
 
     return Array.from(map.values());
   }, [rawPastas, clientes, fornecedores, projetos, colaboradores, produtos]);
 
-  // Persistir pastas sincronizadas se houver novas
+  // Persistir pastas sincronizadas se houver alteração
   useEffect(() => {
     if (pastas.length !== (rawPastas || []).length) {
       savePastas(pastas);
     }
   }, [pastas, rawPastas, savePastas]);
 
-  // 2. Consolidação e Auto-Indexação Universal de Documentos Reais (excluindo os deletados)
+  // 2. Documentos Reais e Persistentes (Sem oscilações ou documentos fantasmas)
   const documentos = useMemo(() => {
-    const docMap = new Map<string, DocumentoDMS>();
     const deletedSet = new Set(deletedDocIds || []);
+    const trashSet = new Set((lixeira || []).map((t) => t.id));
+    const docMap = new Map<string, DocumentoDMS>();
 
-    // 2.1 Documentos Salvos no Banco de Dados DMS
+    // Criar mapa de pastas canônicas para normalização de IDs
+    const folderPathToId = new Map<string, string>();
+    pastas.forEach((p) => {
+      folderPathToId.set(p.caminhoCompleto.toLowerCase().trim(), p.id);
+      folderPathToId.set(p.nome.toLowerCase().trim(), p.id);
+    });
+
     (rawDocumentos || []).forEach((d) => {
-      if (d && d.id && !deletedSet.has(d.id)) {
-        docMap.set(d.id, d);
+      if (!d || !d.id || deletedSet.has(d.id) || trashSet.has(d.id)) return;
+
+      // Normalizar pastaId se apontar para ID antigo ou duplicado
+      let correctedPastaId = d.pastaId;
+      if (d.caminhoPasta) {
+        const canonicalId = folderPathToId.get(d.caminhoPasta.toLowerCase().trim());
+        if (canonicalId) {
+          correctedPastaId = canonicalId;
+        }
       }
-    });
 
-    // 2.2 Auto-indexar Relatórios Gerados Reais (focus_relatorios_history) apenas se não houver no docMap
-    const existingDocNames = new Set(Array.from(docMap.values()).map(d => (d.nome || '').toLowerCase().replace(/[^a-z0-9]/g, '')));
-
-    (relatoriosHistorico || []).forEach((rel: any) => {
-      const docId = `doc-rel-${rel.id}`;
-      const ext = (rel.format?.toLowerCase() || 'pdf') as FormatoArquivo;
-      const reportTitle = rel.reportTitle || 'Relatório Executivo';
-      const normalizedTitle = reportTitle.toLowerCase().replace(/[^a-z0-9]/g, '');
-
-      // Evitar duplicatas se já foi salvo no DMS diretamente com urlConteudo ou mesmo nome
-      const isAlreadyInDms = Array.from(docMap.values()).some(d => 
-        d.id === docId || 
-        (d.nome || '').toLowerCase().replace(/[^a-z0-9]/g, '').includes(normalizedTitle)
-      );
-
-      if (!isAlreadyInDms && !docMap.has(docId) && !deletedSet.has(docId) && !deletedSet.has(rel.id)) {
-        let pastaTargetId = 'p-rel-geral';
-        if (rel.category === 'Financeiro' || reportTitle.includes('DRE')) pastaTargetId = 'p-rel-dre';
-        else if (reportTitle.includes('Fluxo')) pastaTargetId = 'p-rel-fluxo';
-        else if (rel.category === 'Comercial' || reportTitle.includes('Vendas')) pastaTargetId = 'p-rel-faturam';
-        else if (rel.category === 'RH') pastaTargetId = 'p-rel-rh';
-        else if (rel.category === 'Auditoria') pastaTargetId = 'p-rel-audit';
-
-        docMap.set(docId, {
-          id: docId,
-          codigo: `REL-${new Date(rel.generatedAt || Date.now()).getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
-          nome: `${reportTitle}.${ext}`,
-          extensao: ext,
-          tamanho: rel.fileSize || '1.4 MB',
-          tamanhoBytes: 1468006,
-          pastaId: pastaTargetId,
-          caminhoPasta: `/Relatórios/${rel.category || 'Geral'}`,
-          moduloOrigem: 'Relatórios',
-          relatorioTipo: reportTitle,
-          categoria: `Relatório Executivo - ${rel.category || 'Geral'}`,
-          tags: ['Relatórios', rel.category || 'Geral', 'Gerado Automaticamente'],
-          responsavelUpload: rel.generatedBy || 'Sistema Integrado (Relatórios)',
-          dataUpload: rel.generatedAt || new Date().toISOString(),
-          dataUltimaAlteracao: rel.generatedAt || new Date().toISOString(),
-          versaoAtual: '1.0',
-          favorito: false,
-          status: 'Ativo',
-          historicoVersoes: [
-            {
-              numeroVersao: '1.0',
-              alteradoPor: rel.generatedBy || 'Sistema Integrado (Relatórios)',
-              dataAlteracao: rel.generatedAt || new Date().toISOString(),
-              descricaoAlteracao: `Relatório oficial emitido com filtros: ${rel.filtersSummary || 'Geral'}`,
-              tamanhoArquivo: rel.fileSize || '1.4 MB',
-            },
-          ],
-        });
-      }
-    });
-
-    // 2.3 Auto-indexar Contratos Reais (focus_contratos)
-    (contratos || []).forEach((ctr: any) => {
-      const docId = `doc-ctr-${ctr.id}`;
-      if (!docMap.has(docId) && !deletedSet.has(docId) && !deletedSet.has(ctr.id)) {
-        const clienteNome = ctr.clienteNome || 'Cliente';
-        const clientFolderId = ctr.clienteId ? `p-cli-${ctr.clienteId}` : 'p-ctr';
-        const numContrato = ctr.numeroContrato || `CTR-${ctr.id?.slice(0, 6)}`;
-
-        docMap.set(docId, {
-          id: docId,
-          codigo: numContrato,
-          nome: `Contrato_${numContrato}_${clienteNome.replace(/\s+/g, '_')}.pdf`,
-          extensao: 'pdf',
-          tamanho: '2.1 MB',
-          tamanhoBytes: 2202009,
-          pastaId: clientFolderId,
-          caminhoPasta: ctr.clienteId ? `/Clientes/${clienteNome}` : '/Contratos',
-          moduloOrigem: 'Contratos',
-          clienteId: ctr.clienteId,
-          clienteNome: clienteNome,
-          contratoId: ctr.id,
-          contratoNumero: numContrato,
-          categoria: 'Contrato de Prestação de Serviços',
-          tags: ['Contratos', ctr.status || 'Ativo', clienteNome],
-          responsavelUpload: 'Módulo Contratos',
-          dataUpload: ctr.created_at || ctr.dataInicio || new Date().toISOString(),
-          dataUltimaAlteracao: ctr.updated_at || new Date().toISOString(),
-          versaoAtual: '1.0',
-          favorito: false,
-          status: 'Ativo',
-          historicoVersoes: [
-            {
-              numeroVersao: '1.0',
-              alteradoPor: 'Módulo Contratos',
-              dataAlteracao: ctr.created_at || new Date().toISOString(),
-              descricaoAlteracao: `Objeto: ${ctr.objetoContrato || 'Prestação de Serviços'}. Valor: R$ ${(ctr.valorTotal || 0).toLocaleString('pt-BR')}`,
-              tamanhoArquivo: '2.1 MB',
-            },
-          ],
-        });
-      }
-    });
-
-    // 2.4 Auto-indexar Assinaturas Digitais Reais (focus_assinaturas_docs)
-    (assinaturasDocs || []).forEach((ass: any) => {
-      const docId = `doc-ass-${ass.id}`;
-      if (!docMap.has(docId) && !deletedSet.has(docId) && !deletedSet.has(ass.id)) {
-        docMap.set(docId, {
-          id: docId,
-          codigo: `ASS-${ass.id?.slice(0, 6)?.toUpperCase() || 'DIG'}`,
-          nome: `${ass.titulo || 'Documento Assinado'}.pdf`,
-          extensao: 'pdf',
-          tamanho: ass.tamanho || '1.8 MB',
-          tamanhoBytes: 1887436,
-          pastaId: 'p-ass',
-          caminhoPasta: '/Assinaturas Digitais',
-          moduloOrigem: 'Contratos',
-          categoria: `Assinatura Digital (${ass.tipoDocumento || 'Geral'})`,
-          tags: ['Assinaturas Digitais', ass.status || 'Em Assinatura', 'ICP-Brasil / Focus IAM'],
-          responsavelUpload: ass.remetente || 'Módulo Assinaturas Digitais',
-          dataUpload: ass.dataCriacao || new Date().toISOString(),
-          dataUltimaAlteracao: ass.dataConclusao || new Date().toISOString(),
-          versaoAtual: '1.0',
-          favorito: false,
-          status: 'Ativo',
-          historicoVersoes: [
-            {
-              numeroVersao: '1.0',
-              alteradoPor: ass.remetente || 'Módulo Assinaturas Digitais',
-              dataAlteracao: ass.dataCriacao || new Date().toISOString(),
-              descricaoAlteracao: `Assinaturas: ${ass.assinantes?.length || 0} signatários vinculados. Hash SHA-256 verificado.`,
-              tamanhoArquivo: ass.tamanho || '1.8 MB',
-            },
-          ],
-        });
-      }
-    });
-
-    // 2.5 Auto-indexar Documentos Fiscais Reais (focus_fiscal_documentos)
-    (fiscalDocs || []).forEach((fisc: any) => {
-      const docId = `doc-fisc-${fisc.id}`;
-      if (!docMap.has(docId) && !deletedSet.has(docId) && !deletedSet.has(fisc.id)) {
-        const tipoNota = fisc.tipo || 'NFS-e';
-        const nomeEntidade = fisc.entidade?.nome || 'Tomador';
-        docMap.set(docId, {
-          id: docId,
-          codigo: `NF-${fisc.numero || fisc.id?.slice(0, 5)}`,
-          nome: `DANFE_${tipoNota}_${fisc.numero || '000'}_${nomeEntidade.replace(/\s+/g, '_')}.pdf`,
-          extensao: 'pdf',
-          tamanho: '350 KB',
-          tamanhoBytes: 358400,
-          pastaId: 'p-fisc',
-          caminhoPasta: '/Fiscal',
-          moduloOrigem: 'Fiscal',
-          categoria: `Nota Fiscal (${tipoNota})`,
-          tags: ['Fiscal', tipoNota, `NF-${fisc.numero}`, nomeEntidade],
-          responsavelUpload: 'Módulo Fiscal',
-          dataUpload: fisc.dataEmissao || new Date().toISOString(),
-          dataUltimaAlteracao: fisc.dataAtualizacao || new Date().toISOString(),
-          versaoAtual: '1.0',
-          favorito: false,
-          status: 'Ativo',
-          historicoVersoes: [
-            {
-              numeroVersao: '1.0',
-              alteradoPor: 'Módulo Fiscal',
-              dataAlteracao: fisc.dataEmissao || new Date().toISOString(),
-              descricaoAlteracao: `Valor Total: R$ ${(fisc.valorTotal || 0).toLocaleString('pt-BR')}. Chave: ${fisc.chaveAcesso || 'N/A'}`,
-              tamanhoArquivo: '350 KB',
-            },
-          ],
-        });
-      }
+      docMap.set(d.id, {
+        ...d,
+        pastaId: correctedPastaId || d.pastaId,
+      });
     });
 
     return Array.from(docMap.values());
-  }, [rawDocumentos, relatoriosHistorico, contratos, assinaturasDocs, fiscalDocs, deletedDocIds]);
+  }, [rawDocumentos, lixeira, deletedDocIds, pastas]);
 
-  const logAction = (docId: string, docName: string, acao: AuditLogDocumento['acao'], detalhes?: string) => {
+  const logAction = useCallback((docId: string, docName: string, acao: AuditLogDocumento['acao'], detalhes?: string) => {
     const newLog: AuditLogDocumento = {
-      id: `log-${Date.now()}`,
+      id: `log-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       documentoId: docId,
       nomeDocumento: docName,
       usuario: 'Usuário do Sistema',
@@ -356,7 +207,7 @@ export function useDocumentosStore() {
       detalhes,
     };
     addAuditItem(newLog);
-  };
+  }, [addAuditItem]);
 
   const createFolder = (nome: string, parentId: string | null = null, moduloVinculado: ModuloOrigemDMS = 'Geral') => {
     let parentPath = '';
@@ -367,7 +218,7 @@ export function useDocumentosStore() {
     const caminhoCompleto = `${parentPath}/${nome}`.replace(/\/\/+/g, '/');
 
     const newFolder: PastaDMS = {
-      id: `p-${Date.now()}`,
+      id: `p-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       nome,
       parentId,
       caminhoCompleto,
@@ -409,7 +260,7 @@ export function useDocumentosStore() {
     const codigo = `DOC-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
     const newDoc: DocumentoDMS = {
-      id: `doc-${Date.now()}`,
+      id: `doc-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       codigo,
       nome: params.nome,
       extensao: params.extensao,

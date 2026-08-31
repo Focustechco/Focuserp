@@ -78,10 +78,11 @@ export function DmsExplorerView() {
       if (normDocPath === normFolderPath) return true;
     }
 
-    // 3. Match por ID da Entidade (Cliente, Projeto, Colaborador, Produto)
+    // 3. Match por ID da Entidade (Cliente, Fornecedor, Projeto, Colaborador, Produto)
     if (folder.entidadeId) {
       if (
         doc.clienteId === folder.entidadeId || 
+        doc.fornecedorId === folder.entidadeId || 
         doc.projetoId === folder.entidadeId || 
         doc.colaboradorId === folder.entidadeId || 
         doc.produtoId === folder.entidadeId
@@ -94,6 +95,7 @@ export function DmsExplorerView() {
     if (folder.nome) {
       const normFolderName = folder.nome.toLowerCase().trim();
       if (doc.clienteNome && doc.clienteNome.toLowerCase().trim() === normFolderName) return true;
+      if (doc.fornecedorNome && doc.fornecedorNome.toLowerCase().trim() === normFolderName) return true;
       if (doc.projetoNome && doc.projetoNome.toLowerCase().trim() === normFolderName) return true;
       if (doc.colaboradorNome && doc.colaboradorNome.toLowerCase().trim() === normFolderName) return true;
       if (doc.produtoNome && doc.produtoNome.toLowerCase().trim() === normFolderName) return true;
@@ -176,9 +178,22 @@ export function DmsExplorerView() {
   // Contagem de documentos de uma pasta
   const countDocsInFolder = (folder: PastaDMS) => {
     return documentos.filter(d => {
-      if ((d?.caminhoPasta || '').toLowerCase().startsWith(folder.caminhoCompleto.toLowerCase())) return true;
+      if (!d) return false;
       if (d.pastaId === folder.id) return true;
-      if (folder.entidadeId && (d.clienteId === folder.entidadeId || d.projetoId === folder.entidadeId || d.colaboradorId === folder.entidadeId)) return true;
+      if (d.caminhoPasta && folder.caminhoCompleto) {
+        const normDocPath = d.caminhoPasta.toLowerCase().trim();
+        const normFolderPath = folder.caminhoCompleto.toLowerCase().trim();
+        if (normDocPath === normFolderPath || normDocPath.startsWith(normFolderPath + '/')) return true;
+      }
+      if (folder.entidadeId && (
+        d.clienteId === folder.entidadeId || 
+        d.fornecedorId === folder.entidadeId || 
+        d.projetoId === folder.entidadeId || 
+        d.colaboradorId === folder.entidadeId || 
+        d.produtoId === folder.entidadeId
+      )) {
+        return true;
+      }
       return false;
     }).length;
   };

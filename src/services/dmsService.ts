@@ -187,10 +187,10 @@ export const dmsService = {
     return rootFolder;
   },
 
-  // 8. Assinaturas Digitais: Cria automaticamente /Assinaturas Digitais
+  // 8. Assinaturas Digitais: Cria automaticamente /Contratos/Assinaturas Digitais
   ensureSignaturesFolder(): PastaDMS {
-    const rootFolder = this.ensureFolder('Assinaturas Digitais', null, 'Contratos', undefined, 'p-ass');
-    return rootFolder;
+    const rootFolder = this.ensureFolder('Contratos', null, 'Contratos', undefined, 'p-ctr');
+    return this.ensureFolder('Assinaturas Digitais', rootFolder.id, 'Contratos', undefined, 'p-ass');
   },
 
   // 9. Fiscal: Cria automaticamente /Fiscal e subpastas de notas fiscais
@@ -205,16 +205,13 @@ export const dmsService = {
     return rootFolder;
   },
 
-  // 10. Financeiro: Cria automaticamente /Financeiro e subpastas de comprovantes
-  ensureFinancialFolder(tipo: 'Contas a Pagar' | 'Contas a Receber' | 'Comprovantes' = 'Comprovantes'): PastaDMS {
+  // 10. Financeiro: Cria automaticamente /Financeiro e subpastas de comprovantes e extratos
+  ensureFinancialFolder(tipo: 'Contas a Pagar' | 'Contas a Receber' | 'Extratos' | 'Comprovantes' = 'Comprovantes'): PastaDMS {
     const rootFolder = this.ensureFolder('Financeiro', null, 'Financeiro', undefined, 'p-fin');
-    if (tipo === 'Contas a Pagar') {
-      return this.ensureFolder('Contas a Pagar', rootFolder.id, 'Financeiro', undefined, 'p-fin-pagar');
+    if (tipo === 'Extratos') {
+      return this.ensureFolder('Extratos Bancários', rootFolder.id, 'Financeiro', undefined, 'p-fin-ext');
     }
-    if (tipo === 'Contas a Receber') {
-      return this.ensureFolder('Contas a Receber', rootFolder.id, 'Financeiro', undefined, 'p-fin-receber');
-    }
-    return this.ensureFolder('Comprovantes Bancários', rootFolder.id, 'Financeiro', undefined, 'p-fin-comp');
+    return this.ensureFolder('Comprovantes', rootFolder.id, 'Financeiro', undefined, 'p-fin-comp');
   },
 
   // 11. Comercial OS & CRM
@@ -224,9 +221,15 @@ export const dmsService = {
       return this.ensureFolder('Propostas Comerciais', rootFolder.id, 'Comercial', undefined, 'p-com-prop');
     }
     if (tipo === 'Ordens de Servico') {
-      return this.ensureFolder('Ordens de Serviço (OS)', rootFolder.id, 'Comercial', undefined, 'p-com-os');
+      return this.ensureFolder('Ordens de Serviço', rootFolder.id, 'Comercial', undefined, 'p-com-os');
     }
     return rootFolder;
+  },
+
+  // 12. Marketing
+  ensureMarketingFolder(): PastaDMS {
+    const rootFolder = this.ensureFolder('Marketing', null, 'Marketing', undefined, 'p-mkt');
+    return this.ensureFolder('Campanhas', rootFolder.id, 'Marketing', undefined, 'p-mkt-camp');
   },
 
   // ---------------------------------------------------------------------------
@@ -319,6 +322,8 @@ export const dmsService = {
       targetFolder = this.ensureFinancialFolder();
     } else if (params.moduloOrigem === 'Comercial') {
       targetFolder = this.ensureComercialFolder();
+    } else if (params.moduloOrigem === 'Marketing') {
+      targetFolder = this.ensureMarketingFolder();
     } else {
       targetFolder = this.ensureFolder(params.moduloOrigem, null, params.moduloOrigem);
     }
