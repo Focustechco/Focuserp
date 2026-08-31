@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Search, Filter, MoreHorizontal, Download, Plus, Calendar, 
@@ -80,7 +81,9 @@ export function RecebimentosList() {
   const [datePreset, setDatePreset] = useState<DatePreset>('todos');
   const [dataInicio, setDataInicio] = useState<string>('');
   const [dataFim, setDataFim] = useState<string>('');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [tituloParaExcluir, setTituloParaExcluir] = useState<TituloReceber | null>(null);
+  const [isBatchDeleteDialogOpen, setIsBatchDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const queryClient = useQueryClient();
@@ -129,12 +132,46 @@ export function RecebimentosList() {
       queryClient.invalidateQueries({ queryKey: ['contas_receber'] });
 
       toast.success('Título a receber excluído com sucesso!');
+      setSelectedIds(prev => prev.filter(selId => selId !== id));
     } catch (err: any) {
       console.error('Erro ao excluir título:', err);
       toast.error('Erro ao excluir título: ' + (err?.message || 'Tente novamente.'));
     } finally {
       setIsDeleting(false);
       setTituloParaExcluir(null);
+    }
+  };
+
+  const handleConfirmarExclusaoLote = async () => {
+    if (selectedIds.length === 0) return;
+    setIsDeleting(true);
+    try {
+      // 1. Remove do estado local imediato
+      selectedIds.forEach(id => deleteLocalTitulo(id));
+      
+      // 2. Atualiza cache do React Query imediatamente
+      const idSet = new Set(selectedIds);
+      queryClient.setQueryData(['contas_receber'], (old: any) => {
+        if (!Array.isArray(old)) return [];
+        return old.filter((item: any) => !idSet.has(item.id));
+      });
+
+      // 3. Remove no banco/service
+      await Promise.allSettled(
+        selectedIds.map(id => financeiroService.deleteContaReceber(id))
+      );
+      
+      // 4. Invalida cache para sincronizar
+      queryClient.invalidateQueries({ queryKey: ['contas_receber'] });
+
+      toast.success(`${selectedIds.length} título(s) excluído(s) com sucesso!`);
+      setSelectedIds([]);
+      setIsBatchDeleteDialogOpen(false);
+    } catch (err: any) {
+      console.error('Erro ao excluir títulos selecionados:', err);
+      toast.error('Erro ao excluir títulos selecionados: ' + (err?.message || 'Tente novamente.'));
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -417,11 +454,57 @@ export function RecebimentosList() {
         </div>
       </div>
 
+      {/* Barra de Ações em Lote */}
+      {selectedIds.length > 0 && (
+        <div className="flex items-center justify-between bg-rose-500/10 border border-rose-500/30 px-4 py-2.5 rounded-lg animate-in fade-in duration-200">
+          <div className="flex items-center gap-2">
+            <Badge variant="destructive" className="font-mono text-xs">
+              {selectedIds.length}
+            </Badge>
+            <span className="text-xs font-semibold text-foreground">
+              {selectedIds.length === 1 ? '1 título selecionado' : `${selectedIds.length} títulos selecionados`}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs"
+              onClick={() => setSelectedIds([])}
+            >
+              Limpar seleção
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              className="h-8 text-xs gap-1.5 font-semibold shadow-xs"
+              onClick={() => setIsBatchDeleteDialogOpen(true)}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Excluir Selecionados ({selectedIds.length})
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Tabela de Títulos a Receber */}
       <div className="rounded-lg border bg-card overflow-hidden shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-[44px] px-3 text-center">
+                <Checkbox 
+                  checked={filteredData.length > 0 && selectedIds.length === filteredData.length}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      setSelectedIds(filteredData.map(t => t.id));
+                    } else {
+                      setSelectedIds([]);
+                    }
+                  }}
+                  aria-label="Selecionar todos os títulos"
+                />
+              </TableHead>
               <TableHead className="w-[110px]">Número</TableHead>
               <TableHead>Cliente / Descrição</TableHead>
               <TableHead>Origem / Categoria</TableHead>
@@ -436,7 +519,7 @@ export function RecebimentosList() {
           <TableBody>
             {filteredData.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-12 text-muted-foreground text-xs">
+                <TableCell colSpan={10} className="text-center py-12 text-muted-foreground text-xs">
                   Nenhum título encontrado com os filtros selecionados.
                 </TableCell>
               </TableRow>
@@ -445,9 +528,23 @@ export function RecebimentosList() {
                 const isRecorrencia = (titulo.descricao || '').toLowerCase().includes('recorrência') || 
                                      (titulo.descricao || '').toLowerCase().includes('mensalidade') ||
                                      (titulo.categoria || '').toLowerCase().includes('recorrência');
+                const isSelected = selectedIds.includes(titulo.id);
 
                 return (
-                  <TableRow key={titulo.id} className="hover:bg-muted/40 transition-colors">
+                  <TableRow key={titulo.id} className={`hover:bg-muted/40 transition-colors ${isSelected ? 'bg-rose-500/5' : ''}`}>
+                    <TableCell className="w-[44px] px-3 text-center">
+                      <Checkbox 
+                        checked={isSelected}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedIds(prev => [...prev, titulo.id]);
+                          } else {
+                            setSelectedIds(prev => prev.filter(id => id !== titulo.id));
+                          }
+                        }}
+                        aria-label={`Selecionar título ${titulo.numero}`}
+                      />
+                    </TableCell>
                     <TableCell className="font-mono text-xs font-semibold text-primary">
                       {titulo.numero}
                     </TableCell>
@@ -494,15 +591,6 @@ export function RecebimentosList() {
                             Baixar
                           </Button>
                         )}
-                        <Button 
-                          size="sm" 
-                          variant="ghost" 
-                          className="h-7 w-7 p-0 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-md transition-all"
-                          onClick={() => setTituloParaExcluir(titulo)}
-                          title="Excluir título"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" className="h-7 w-7 p-0 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200">
@@ -535,7 +623,7 @@ export function RecebimentosList() {
         </Table>
       </div>
 
-      {/* Diálogo de Confirmação de Exclusão */}
+      {/* Diálogo de Confirmação de Exclusão Individual */}
       <Dialog open={!!tituloParaExcluir} onOpenChange={(open) => !open && setTituloParaExcluir(null)}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -554,6 +642,30 @@ export function RecebimentosList() {
             </Button>
             <Button variant="destructive" size="sm" onClick={handleConfirmarExclusao} disabled={isDeleting}>
               {isDeleting ? 'Excluindo...' : 'Confirmar Exclusão'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo de Confirmação de Exclusão em Lote */}
+      <Dialog open={isBatchDeleteDialogOpen} onOpenChange={(open) => !open && setIsBatchDeleteDialogOpen(false)}>
+        <DialogContent className="sm:max-w-[440px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-rose-600">
+              <Trash2 className="w-5 h-5" /> Excluir {selectedIds.length} Títulos a Receber
+            </DialogTitle>
+            <DialogDescription className="text-xs pt-2 text-muted-foreground">
+              Tem certeza que deseja excluir permanentemente os <strong>{selectedIds.length}</strong> títulos selecionados?
+              <br /><br />
+              Esta ação em lote é irreversível e removerá todos os registros selecionados do sistema financeiro.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0 mt-4">
+            <Button variant="outline" size="sm" onClick={() => setIsBatchDeleteDialogOpen(false)} disabled={isDeleting}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" size="sm" onClick={handleConfirmarExclusaoLote} disabled={isDeleting}>
+              {isDeleting ? 'Excluindo...' : `Excluir ${selectedIds.length} Título(s)`}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Search, Filter, MoreHorizontal, Download, Plus, Calendar, 
@@ -79,7 +80,9 @@ export function ContasList() {
   const [datePreset, setDatePreset] = useState<DatePreset>('todos');
   const [dataInicio, setDataInicio] = useState<string>('');
   const [dataFim, setDataFim] = useState<string>('');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [contaParaExcluir, setContaParaExcluir] = useState<ContaPagar | null>(null);
+  const [isBatchDeleteDialogOpen, setIsBatchDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const queryClient = useQueryClient();
@@ -122,12 +125,46 @@ export function ContasList() {
       queryClient.invalidateQueries({ queryKey: ['contas_pagar'] });
 
       toast.success('Conta a pagar excluída com sucesso!');
+      setSelectedIds(prev => prev.filter(selId => selId !== id));
     } catch (err: any) {
       console.error('Erro ao excluir conta:', err);
       toast.error('Erro ao excluir conta: ' + (err?.message || 'Tente novamente.'));
     } finally {
       setIsDeleting(false);
       setContaParaExcluir(null);
+    }
+  };
+
+  const handleConfirmarExclusaoLote = async () => {
+    if (selectedIds.length === 0) return;
+    setIsDeleting(true);
+    try {
+      // 1. Remove do estado local imediato
+      selectedIds.forEach(id => deleteLocalConta(id));
+      
+      // 2. Atualiza cache do React Query imediatamente
+      const idSet = new Set(selectedIds);
+      queryClient.setQueryData(['contas_pagar'], (old: any) => {
+        if (!Array.isArray(old)) return [];
+        return old.filter((item: any) => !idSet.has(item.id));
+      });
+
+      // 3. Remove no banco/service
+      await Promise.allSettled(
+        selectedIds.map(id => financeiroService.deleteContaPagar(id))
+      );
+      
+      // 4. Invalida cache para sincronizar
+      queryClient.invalidateQueries({ queryKey: ['contas_pagar'] });
+
+      toast.success(`${selectedIds.length} conta(s) excluída(s) com sucesso!`);
+      setSelectedIds([]);
+      setIsBatchDeleteDialogOpen(false);
+    } catch (err: any) {
+      console.error('Erro ao excluir contas selecionadas:', err);
+      toast.error('Erro ao excluir contas selecionadas: ' + (err?.message || 'Tente novamente.'));
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -402,11 +439,57 @@ export function ContasList() {
         </div>
       </div>
 
+      {/* Barra de Ações em Lote */}
+      {selectedIds.length > 0 && (
+        <div className="flex items-center justify-between bg-rose-500/10 border border-rose-500/30 px-4 py-2.5 rounded-lg animate-in fade-in duration-200">
+          <div className="flex items-center gap-2">
+            <Badge variant="destructive" className="font-mono text-xs">
+              {selectedIds.length}
+            </Badge>
+            <span className="text-xs font-semibold text-foreground">
+              {selectedIds.length === 1 ? '1 conta selecionada' : `${selectedIds.length} contas selecionadas`}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs"
+              onClick={() => setSelectedIds([])}
+            >
+              Limpar seleção
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              className="h-8 text-xs gap-1.5 font-semibold shadow-xs"
+              onClick={() => setIsBatchDeleteDialogOpen(true)}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Excluir Selecionadas ({selectedIds.length})
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Tabela de Contas a Pagar */}
       <div className="rounded-lg border bg-card overflow-hidden shadow-sm">
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-[44px] px-3 text-center">
+                <Checkbox 
+                  checked={filteredData.length > 0 && selectedIds.length === filteredData.length}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      setSelectedIds(filteredData.map(c => c.id));
+                    } else {
+                      setSelectedIds([]);
+                    }
+                  }}
+                  aria-label="Selecionar todas as contas"
+                />
+              </TableHead>
               <TableHead className="w-[110px]">Número</TableHead>
               <TableHead>Fornecedor / Descrição</TableHead>
               <TableHead>Categoria</TableHead>
@@ -421,94 +504,102 @@ export function ContasList() {
           <TableBody>
             {filteredData.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-12 text-muted-foreground text-xs">
+                <TableCell colSpan={10} className="text-center py-12 text-muted-foreground text-xs">
                   Nenhuma conta encontrada com os filtros selecionados.
                 </TableCell>
               </TableRow>
             ) : (
-              filteredData.map((conta) => (
-                <TableRow key={conta.id} className="hover:bg-muted/40 transition-colors">
-                  <TableCell className="font-mono text-xs font-semibold text-rose-600 dark:text-rose-400">
-                    {conta.numero}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-col min-w-0">
-                      <span className="font-semibold text-xs text-foreground truncate">{conta.fornecedor}</span>
-                      <span className="text-[11px] text-muted-foreground truncate">{conta.descricao}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-xs text-muted-foreground">{conta.categoria || 'Operacional'}</span>
-                  </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">
-                    {formatDateBrasilia(conta.dataEmissao)}
-                  </TableCell>
-                  <TableCell className="text-xs font-medium text-foreground">
-                    {formatDateBrasilia(conta.dataVencimento)}
-                  </TableCell>
-                  <TableCell className="text-right font-semibold text-xs text-foreground">
-                    {formatCurrency(conta.valorOriginal)}
-                  </TableCell>
-                  <TableCell className="text-right text-xs text-muted-foreground">
-                    {formatCurrency(conta.saldo)}
-                  </TableCell>
-                  <TableCell>
-                    {renderStatusTag(conta.status)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1.5">
-                      {conta.status !== 'Pago' && (
-                        <Button 
-                          size="sm" 
-                          variant="ghost" 
-                          className="h-7 text-xs px-2.5 font-medium text-slate-700 dark:text-slate-200 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-emerald-50/80 dark:hover:bg-emerald-950/50 border border-slate-200 dark:border-slate-800 rounded-md transition-all gap-1.5 shadow-none"
-                          onClick={() => handleAprovarPagamento(conta)}
-                        >
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                          Pagar
-                        </Button>
-                      )}
-                      <Button 
-                        size="sm" 
-                        variant="ghost" 
-                        className="h-7 w-7 p-0 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-md transition-all"
-                        onClick={() => setContaParaExcluir(conta)}
-                        title="Excluir conta"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-7 w-7 p-0 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          {conta.status !== 'Pago' && (
-                            <DropdownMenuItem onClick={() => handleAprovarPagamento(conta)}>
-                              <CheckCircle2 className="w-4 h-4 mr-2 text-emerald-600" />
-                              Registrar pagamento
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuItem
-                            className="text-rose-600 cursor-pointer focus:bg-rose-500/10 focus:text-rose-600"
-                            onClick={() => setContaParaExcluir(conta)}
+              filteredData.map((conta) => {
+                const isSelected = selectedIds.includes(conta.id);
+
+                return (
+                  <TableRow key={conta.id} className={`hover:bg-muted/40 transition-colors ${isSelected ? 'bg-rose-500/5' : ''}`}>
+                    <TableCell className="w-[44px] px-3 text-center">
+                      <Checkbox 
+                        checked={isSelected}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedIds(prev => [...prev, conta.id]);
+                          } else {
+                            setSelectedIds(prev => prev.filter(id => id !== conta.id));
+                          }
+                        }}
+                        aria-label={`Selecionar conta ${conta.numero}`}
+                      />
+                    </TableCell>
+                    <TableCell className="font-mono text-xs font-semibold text-rose-600 dark:text-rose-400">
+                      {conta.numero}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col min-w-0">
+                        <span className="font-semibold text-xs text-foreground truncate">{conta.fornecedor}</span>
+                        <span className="text-[11px] text-muted-foreground truncate">{conta.descricao}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-xs text-muted-foreground">{conta.categoria || 'Operacional'}</span>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {formatDateBrasilia(conta.dataEmissao)}
+                    </TableCell>
+                    <TableCell className="text-xs font-medium text-foreground">
+                      {formatDateBrasilia(conta.dataVencimento)}
+                    </TableCell>
+                    <TableCell className="text-right font-semibold text-xs text-foreground">
+                      {formatCurrency(conta.valorOriginal)}
+                    </TableCell>
+                    <TableCell className="text-right text-xs text-muted-foreground">
+                      {formatCurrency(conta.saldo)}
+                    </TableCell>
+                    <TableCell>
+                      {renderStatusTag(conta.status)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        {conta.status !== 'Pago' && (
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className="h-7 text-xs px-2.5 font-medium text-slate-700 dark:text-slate-200 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-emerald-50/80 dark:hover:bg-emerald-950/50 border border-slate-200 dark:border-slate-800 rounded-md transition-all gap-1.5 shadow-none"
+                            onClick={() => handleAprovarPagamento(conta)}
                           >
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Excluir conta
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                            Pagar
+                          </Button>
+                        )}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-7 w-7 p-0 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {conta.status !== 'Pago' && (
+                              <DropdownMenuItem onClick={() => handleAprovarPagamento(conta)}>
+                                <CheckCircle2 className="w-4 h-4 mr-2 text-emerald-600" />
+                                Registrar pagamento
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem
+                              className="text-rose-600 cursor-pointer focus:bg-rose-500/10 focus:text-rose-600"
+                              onClick={() => setContaParaExcluir(conta)}
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Excluir conta
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>
       </div>
 
-      {/* Diálogo de Confirmação de Exclusão */}
+      {/* Diálogo de Confirmação de Exclusão Individual */}
       <Dialog open={!!contaParaExcluir} onOpenChange={(open) => !open && setContaParaExcluir(null)}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
@@ -527,6 +618,30 @@ export function ContasList() {
             </Button>
             <Button variant="destructive" size="sm" onClick={handleConfirmarExclusao} disabled={isDeleting}>
               {isDeleting ? 'Excluindo...' : 'Confirmar Exclusão'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo de Confirmação de Exclusão em Lote */}
+      <Dialog open={isBatchDeleteDialogOpen} onOpenChange={(open) => !open && setIsBatchDeleteDialogOpen(false)}>
+        <DialogContent className="sm:max-w-[440px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-rose-600">
+              <Trash2 className="w-5 h-5" /> Excluir {selectedIds.length} Contas a Pagar
+            </DialogTitle>
+            <DialogDescription className="text-xs pt-2 text-muted-foreground">
+              Tem certeza que deseja excluir permanentemente as <strong>{selectedIds.length}</strong> contas selecionadas?
+              <br /><br />
+              Esta ação em lote é irreversível e removerá todos os registros selecionados do sistema financeiro.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0 mt-4">
+            <Button variant="outline" size="sm" onClick={() => setIsBatchDeleteDialogOpen(false)} disabled={isDeleting}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" size="sm" onClick={handleConfirmarExclusaoLote} disabled={isDeleting}>
+              {isDeleting ? 'Excluindo...' : `Excluir ${selectedIds.length} Conta(s)`}
             </Button>
           </DialogFooter>
         </DialogContent>
