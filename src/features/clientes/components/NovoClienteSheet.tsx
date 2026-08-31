@@ -139,6 +139,7 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
   const [estado, setEstado] = useState(clienteToEdit?.endereco?.estado || '');
   const [pais, setPais] = useState(clienteToEdit?.endereco?.pais || 'Brasil');
   const [isBuscandoCep, setIsBuscandoCep] = useState(false);
+  const [isConsultandoCnpj, setIsConsultandoCnpj] = useState(false);
 
   // Contatos
   const contatoPrincipal = clienteToEdit?.contatos?.find(c => c.principal) || clienteToEdit?.contatos?.[0];
@@ -356,6 +357,55 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
       toast.error('Erro ao consultar CEP.');
     } finally {
       setIsBuscandoCep(false);
+    }
+  };
+
+  // Consulta Inteligente de CNPJ na base da Receita Federal
+  const handleConsultarCnpj = async () => {
+    const cleanCnpj = documento.replace(/\D/g, '');
+    if (cleanCnpj.length !== 14) {
+      toast.error('Informe um CNPJ válido com 14 dígitos para consultar.');
+      return;
+    }
+
+    setIsConsultandoCnpj(true);
+    try {
+      const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cleanCnpj}`);
+      if (!res.ok) throw new Error('Falha ao consultar CNPJ');
+      const data = await res.json();
+
+      setRazaoSocial(data.razao_social || razaoSocial);
+      setNomeFantasia(data.nome_fantasia || data.razao_social || nomeFantasia);
+      if (data.data_inicio_atividade) {
+        setDataFundacao(data.data_inicio_atividade);
+      }
+      if (data.cnae_fiscal_descricao) {
+        setSegmento(data.cnae_fiscal_descricao);
+      }
+      if (data.porte) {
+        setPorte(data.porte);
+      }
+      if (data.cep) {
+        setCep(data.cep);
+        setLogradouro(data.logradouro || '');
+        setNumero(data.numero || '');
+        setComplemento(data.complemento || '');
+        setBairro(data.bairro || '');
+        setCidade(data.municipio || '');
+        setEstado(data.uf || '');
+        setPais('Brasil');
+      }
+      if (data.email) {
+        setContatoEmail(data.email);
+      }
+      if (data.ddd_telefone_1) {
+        setContatoTelefone(data.ddd_telefone_1);
+      }
+      toast.success('Dados do cliente preenchidos automaticamente via Receita Federal!');
+    } catch {
+      toast.error('Não foi possível consultar o CNPJ automaticamente.');
+    } finally {
+      setIsConsultandoCnpj(false);
     }
   };
 
@@ -684,13 +734,28 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
 
               <div className="space-y-2">
                 <Label htmlFor="doc" className="font-semibold">{tipoPessoa === 'pj' ? 'CNPJ *' : 'CPF *'}</Label>
-                <Input 
-                  id="doc" 
-                  placeholder={tipoPessoa === 'pj' ? "00.000.000/0000-00" : "000.000.000-00"} 
-                  value={documento}
-                  onChange={e => setDocumento(e.target.value)}
-                  className="font-mono"
-                />
+                <div className="flex gap-2">
+                  <Input 
+                    id="doc" 
+                    placeholder={tipoPessoa === 'pj' ? "00.000.000/0000-00" : "000.000.000-00"} 
+                    value={documento}
+                    onChange={e => setDocumento(e.target.value)}
+                    className="font-mono"
+                  />
+                  {tipoPessoa === 'pj' && (
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm" 
+                      disabled={isConsultandoCnpj}
+                      onClick={handleConsultarCnpj}
+                      className="text-xs gap-1 shrink-0 font-medium hover:bg-primary hover:text-primary-foreground transition-colors cursor-pointer"
+                    >
+                      <Search className="w-3.5 h-3.5" />
+                      {isConsultandoCnpj ? 'Buscando...' : 'Buscar CNPJ'}
+                    </Button>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-2">
