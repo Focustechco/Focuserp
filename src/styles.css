@@ -220,3 +220,145 @@
 [data-sidebar="content"]::-webkit-scrollbar-thumb:hover {
   background-color: oklch(0.5 0 0 / 40%);
 }
+
+/* ==========================================================================
+   ESTILIZAÇÃO DE GRÁFICOS E TOOLTIPS (LIGHT / DARK MODES)
+   - Na versão Dark: o card do tooltip ao passar o mouse fica CLARO com texto
+     escuro 100% nítido e legível.
+   - Na versão White (Light): o card do tooltip ao passar o mouse ganha realce
+     e borda em LARANJA (#ea580c).
+   ========================================================================== */
+
+/* 1. MODO CLARO (WHITE) - Tooltip com borda e realce em Laranja Focus */
+.recharts-default-tooltip {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border: 1.5px solid #ea580c !important;
+  border-radius: 10px !important;
+  box-shadow: 0 10px 25px -5px rgba(234, 88, 12, 0.25), 0 8px 10px -6px rgba(234, 88, 12, 0.15) !important;
+  padding: 8px 12px !important;
+  font-family: inherit !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  transition: all 0.2s ease-in-out !important;
+}
+
+.recharts-default-tooltip .recharts-tooltip-label {
+  color: #ea580c !important;
+  font-weight: 700 !important;
+  font-size: 12px !important;
+  margin-bottom: 4px !important;
+  border-bottom: 1px dashed rgba(234, 88, 12, 0.3) !important;
+  padding-bottom: 3px !important;
+}
+
+.recharts-default-tooltip .recharts-tooltip-item-list {
+  padding: 0 !important;
+  margin: 0 !important;
+  list-style: none !important;
+}
+
+.recharts-default-tooltip .recharts-tooltip-item {
+  color: #1e293b !important;
+  font-size: 12px !important;
+  padding: 2px 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+}
+
+.recharts-default-tooltip .recharts-tooltip-item-name {
+  color: #475569 !important;
+  font-weight: 600 !important;
+}
+
+.recharts-default-tooltip .recharts-tooltip-item-separator {
+  color: #ea580c !important;
+  font-weight: bold !important;
+  margin: 0 2px !important;
+}
+
+.recharts-default-tooltip .recharts-tooltip-item-value {
+  color: #ea580c !important;
+  font-weight: 700 !important;
+}
+
+/* 2. MODO ESCURO (DARK) - Card do Tooltip Fica CLARO (Branco / Alto Contraste) */
+.dark .recharts-default-tooltip,
+:is(.dark *) .recharts-default-tooltip,
+[data-theme="dark"] .recharts-default-tooltip,
+html.dark .recharts-default-tooltip {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border: 1.5px solid #cbd5e1 !important;
+  border-radius: 10px !important;
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.5), 0 10px 10px rgba(0, 0, 0, 0.3) !important;
+  padding: 8px 12px !important;
+  font-family: inherit !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+}
+
+.dark .recharts-default-tooltip .recharts-tooltip-label,
+:is(.dark *) .recharts-default-tooltip .recharts-tooltip-label,
+[data-theme="dark"] .recharts-default-tooltip .recharts-tooltip-label,
+html.dark .recharts-default-tooltip .recharts-tooltip-label {
+  color: #0f172a !important;
+  font-weight: 700 !important;
+  font-size: 12px !important;
+  margin-bottom: 4px !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  padding-bottom: 3px !important;
+}
+
+.dark .recharts-default-tooltip .recharts-tooltip-item,
+:is(.dark *) .recharts-default-tooltip .recharts-tooltip-item,
+[data-theme="dark"] .recharts-default-tooltip .recharts-tooltip-item,
+html.dark .recharts-default-tooltip .recharts-tooltip-item {
+  color: #0f172a !important;
+  font-size: 12px !important;
+  padding: 2px 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+}
+
+.dark .recharts-default-tooltip .recharts-tooltip-item-name,
+:is(.dark *) .recharts-default-tooltip .recharts-tooltip-item-name,
+[data-theme="dark"] .recharts-default-tooltip .recharts-tooltip-item-name,
+html.dark .recharts-default-tooltip .recharts-tooltip-item-name {
+  color: #334155 !important;
+  font-weight: 600 !important;
+}
+
+.dark .recharts-default-tooltip .recharts-tooltip-item-separator,
+:is(.dark *) .recharts-default-tooltip .recharts-tooltip-item-separator,
+[data-theme="dark"] .recharts-default-tooltip .recharts-tooltip-item-separator,
+html.dark .recharts-default-tooltip .recharts-tooltip-item-separator {
+  color: #ea580c !important;
+  font-weight: bold !important;
+  margin: 0 2px !important;
+}
+
+.dark .recharts-default-tooltip .recharts-tooltip-item-value,
+:is(.dark *) .recharts-default-tooltip .recharts-tooltip-item-value,
+[data-theme="dark"] .recharts-default-tooltip .recharts-tooltip-item-value,
+html.dark .recharts-default-tooltip .recharts-tooltip-item-value {
+  color: #ea580c !important;
+  font-weight: 700 !important;
+}
+
+/* 3. Realce de cursor e hover nas fatias e barras dos gráficos */
+.recharts-pie-sector:hover,
+.recharts-sector:hover {
+  filter: drop-shadow(0 0 6px rgba(234, 88, 12, 0.45));
+  transition: all 0.2s ease-in-out;
+  cursor: pointer;
+}
+
+.recharts-bar-rectangle:hover {
+  filter: brightness(1.1);
+  cursor: pointer;
+}

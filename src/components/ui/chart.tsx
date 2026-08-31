@@ -159,11 +159,17 @@ const ChartTooltipContent = React.forwardRef<
       <div
         ref={ref}
         className={cn(
-          "grid min-w-[8rem] items-start gap-1.5 rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-xl",
+          "grid min-w-[8.5rem] items-start gap-1.5 rounded-xl px-3 py-2 text-xs transition-all",
+          "bg-white text-slate-900 border-[1.5px] border-orange-500 shadow-lg shadow-orange-500/20",
+          "dark:bg-white dark:text-slate-900 dark:border-slate-300 dark:shadow-2xl",
           className,
         )}
       >
-        {!nestLabel ? tooltipLabel : null}
+        {!nestLabel ? (
+          <div className="border-b border-dashed border-orange-500/30 pb-1 mb-0.5">
+            {tooltipLabel}
+          </div>
+        ) : null}
         <div className="grid gap-1.5">
           {payload
             .filter((item) => item.type !== "none")
@@ -216,12 +222,12 @@ const ChartTooltipContent = React.forwardRef<
                       >
                         <div className="grid gap-1.5">
                           {nestLabel ? tooltipLabel : null}
-                          <span className="text-muted-foreground">
+                          <span className="text-slate-600 font-semibold">
                             {itemConfig?.label || item.name}
                           </span>
                         </div>
                         {item.value && (
-                          <span className="font-mono font-medium tabular-nums text-foreground">
+                          <span className="font-mono font-bold tabular-nums text-orange-600">
                             {item.value.toLocaleString()}
                           </span>
                         )}

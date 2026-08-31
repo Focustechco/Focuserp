@@ -445,7 +445,6 @@ export function Dashboard() {
                 <XAxis dataKey="m" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} dy={5} />
                 <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} tickFormatter={(v) => `R$${v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v}`} dx={-5} />
                 <Tooltip
-                  contentStyle={{ background: "var(--color-card)", border: "1px solid var(--color-border)", borderRadius: 10, fontSize: 12, boxShadow: "0 4px 12px rgba(0,0,0,0.15)" }}
                   formatter={(v: number) => [currency(v), ""]}
                 />
                 <Area type="monotone" dataKey="entradas" stroke="#10b981" strokeWidth={2.5} fillOpacity={1} fill="url(#entGrad)" name="Entradas" dot={{ r: 4, fill: "#10b981", strokeWidth: 2, stroke: "#fff" }} activeDot={{ r: 6 }} />
@@ -456,7 +455,7 @@ export function Dashboard() {
         </Card>
 
         {/* Receita por Categoria */}
-        <Card className="shadow-sm border-border/80">
+        <Card className="shadow-sm border-border/80 hover:border-orange-500/40 transition-all">
           <CardHeader>
             <CardTitle className="text-base font-semibold">Receita por Categoria</CardTitle>
             <CardDescription className="text-xs">Distribuição de entradas</CardDescription>
@@ -470,7 +469,6 @@ export function Dashboard() {
                   ))}
                 </Pie>
                 <Tooltip
-                  contentStyle={{ background: "var(--color-card)", border: "1px solid var(--color-border)", borderRadius: 10, fontSize: 12 }}
                   formatter={(v: number) => currency(v)}
                 />
                 <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: 11 }} />
@@ -482,7 +480,7 @@ export function Dashboard() {
 
       {/* Seção Inferior */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Card className="shadow-sm border-border/80">
+        <Card className="shadow-sm border-border/80 hover:border-orange-500/40 transition-all">
           <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
             <div>
               <CardTitle className="text-base font-semibold">MRR — Receita Recorrente</CardTitle>
@@ -502,7 +500,6 @@ export function Dashboard() {
                 <XAxis dataKey="m" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} dy={5} />
                 <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} tickFormatter={(v) => `R$${v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v}`} dx={-5} />
                 <Tooltip
-                  contentStyle={{ background: "var(--color-card)", border: "1px solid var(--color-border)", borderRadius: 10, fontSize: 12 }}
                   formatter={(v: number) => currency(v)}
                 />
                 <Line type="monotone" dataKey="v" stroke="#ea580c" strokeWidth={3} dot={{ r: 4, fill: "#ea580c", strokeWidth: 2, stroke: "#fff" }} activeDot={{ r: 6 }} name="MRR" />
@@ -511,7 +508,7 @@ export function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-2 shadow-sm border-border/80">
+        <Card className="lg:col-span-2 shadow-sm border-border/80 hover:border-orange-500/40 transition-all">
           <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
             <div>
               <CardTitle className="text-base font-semibold">Despesas por Categoria</CardTitle>
@@ -525,8 +522,7 @@ export function Dashboard() {
                 <XAxis dataKey="name" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} dy={5} />
                 <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} tickFormatter={(v) => `R$${v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v}`} dx={-5} />
                 <Tooltip
-                  cursor={{ fill: "var(--color-muted)" }}
-                  contentStyle={{ background: "var(--color-card)", border: "1px solid var(--color-border)", borderRadius: 10, fontSize: 12 }}
+                  cursor={{ fill: "transparent" }}
                   formatter={(v: number) => currency(v)}
                 />
                 <Bar dataKey="value" radius={[8, 8, 0, 0]} fill="#ea580c" />
