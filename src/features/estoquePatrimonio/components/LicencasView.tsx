@@ -12,7 +12,9 @@ import {
   ExternalLink,
   CheckCircle2,
   Receipt,
-  User
+  User,
+  Send,
+  ArrowRight
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -33,32 +35,36 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useEstoquePatrimonio } from '../hooks/useEstoquePatrimonio';
 import { useLocalStorageState } from '@/hooks/useDataStore';
+import { Licenca } from '../types';
 import { toast } from 'sonner';
 
 export function LicencasView() {
-  const { licencas, criarLicencaComFinanceiro, deleteLicenca } = useEstoquePatrimonio();
+  const { licencas, criarLicencaComFinanceiro, lancarContaPagar, lancarContaReceber, deleteLicenca } = useEstoquePatrimonio();
   const { data: clientes = [] } = useLocalStorageState<any>('focus_clientes', []);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [isNovoModalOpen, setIsNovoModalOpen] = useState(false);
+  const [licencaParaLancar, setLicencaParaLancar] = useState<Licenca | null>(null);
+  const [dataVencimentoLancar, setDataVencimentoLancar] = useState(
+    new Date(new Date().getFullYear(), new Date().getMonth(), 10).toISOString().split('T')[0]
+  );
 
   const [novoForm, setNovoForm] = useState({
-    nome: 'Microsoft 365 Business Premium',
-    fabricante: 'Microsoft',
+    nome: 'Canva Premium',
+    fabricante: 'Canva',
     plano: 'Enterprise Annual',
     tipo: 'Assinatura' as 'Assinatura' | 'Perpétua',
-    quantidadeTotal: 20,
-    quantidadeUsada: 15,
+    quantidadeTotal: 8,
+    quantidadeUsada: 1,
     dataCompra: new Date().toISOString().split('T')[0],
-    vencimento: new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString().split('T')[0],
-    valor: 85.0,
-    responsavelNome: 'Equipe de TI',
+    vencimento: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 10).toISOString().split('T')[0],
+    valor: 35.0,
+    responsavelNome: 'Equipe de TI & Marketing',
     centroCustoNome: 'Tecnologia da Informação',
     observacoes: '',
     gerarContaPagar: true,
     gerarContaReceber: false,
     clienteNome: '',
-    vencimentoFinanceiro: new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
   });
 
   const filteredLicencas = licencas.filter((l) => {
@@ -100,15 +106,29 @@ export function LicencasView() {
       gerarContaPagar: novoForm.gerarContaPagar,
       gerarContaReceber: novoForm.gerarContaReceber,
       clienteNome: novoForm.clienteNome,
-      vencimentoFinanceiro: novoForm.vencimentoFinanceiro,
+      vencimentoFinanceiro: novoForm.vencimento,
     });
 
-    let msg = `Licença "${novoForm.nome}" cadastrada com sucesso!`;
-    if (novoForm.gerarContaPagar) msg += ' Conta a Pagar gerada.';
-    if (novoForm.gerarContaReceber && novoForm.clienteNome) msg += ' Conta a Receber gerada para o cliente.';
-    toast.success(msg);
-
+    toast.success(`Licença "${novoForm.nome}" cadastrada! Título de R$ ${vlr.toFixed(2)} gerado no Contas a Pagar com vencimento em ${novoForm.vencimento}.`);
     setIsNovoModalOpen(false);
+  };
+
+  const handleConfirmarLancamentoManual = () => {
+    if (!licencaParaLancar) return;
+    const vlr = Number(licencaParaLancar.valor) || 0;
+
+    lancarContaPagar({
+      fornecedor: licencaParaLancar.fabricante || licencaParaLancar.nome,
+      descricao: `Mensalidade/Assinatura: ${licencaParaLancar.nome} (${licencaParaLancar.plano || 'Licença'})`,
+      valor: vlr,
+      vencimento: dataVencimentoLancar,
+      categoria: 'Licenças de Software & SaaS',
+      centroCustoNome: licencaParaLancar.centroCustoNome || 'Tecnologia da Informação',
+      formaPagamento: 'Boleto',
+    });
+
+    toast.success(`Título de R$ ${vlr.toFixed(2)} gerado no Contas a Pagar com vencimento em ${new Date(dataVencimentoLancar).toLocaleDateString('pt-BR')}!`);
+    setLicencaParaLancar(null);
   };
 
   return (
@@ -118,7 +138,7 @@ export function LicencasView() {
         <div>
           <h2 className="text-xl font-bold tracking-tight text-foreground">Gestão de Licenças e Softwares (SAM)</h2>
           <p className="text-xs text-muted-foreground">
-            Controle de assinaturas, assentos contratados, custos e renovações com integração financeira automática
+            Controle de assinaturas e mensalidades de SaaS/Software integrado diretamente ao módulo de Contas a Pagar
           </p>
         </div>
         <Button
@@ -135,7 +155,7 @@ export function LicencasView() {
         <div className="relative">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por nome do software, fabricante (ex: Microsoft, Adobe, AWS) ou plano..."
+            placeholder="Buscar por nome do software, fabricante (ex: Canva, Microsoft, Adobe, AWS) ou plano..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-9 text-xs h-9"
@@ -149,7 +169,7 @@ export function LicencasView() {
           <div className="col-span-full py-12 text-center text-muted-foreground text-xs border rounded-xl bg-card">
             <KeyRound className="w-8 h-8 opacity-30 mx-auto mb-2" />
             <p className="font-semibold text-foreground text-sm">Nenhuma licença cadastrada</p>
-            <p className="mt-1">Clique em "Nova Licença / Software" para cadastrar e gerar os lançamentos financeiros.</p>
+            <p className="mt-1">Clique em "Nova Licença / Software" para cadastrar e lançar a despesa no Contas a Pagar.</p>
           </div>
         ) : (
           filteredLicencas.map((lic) => {
@@ -195,14 +215,14 @@ export function LicencasView() {
                   <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-border/50">
                     <div>
                       <span className="text-[10px] text-muted-foreground block uppercase font-bold">Valor Mensal / Assinatura</span>
-                      <span className="font-bold text-foreground">
+                      <span className="font-bold text-foreground text-sm">
                         R$ {(lic.valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </span>
                     </div>
                     <div className="text-right">
                       <span className="text-[10px] text-muted-foreground block uppercase font-bold">Vencimento</span>
                       <span
-                        className={`font-semibold ${
+                        className={`font-semibold text-xs ${
                           isProximoVencimento ? 'text-rose-600 font-bold' : 'text-foreground'
                         }`}
                       >
@@ -211,14 +231,23 @@ export function LicencasView() {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between pt-2 border-t text-[11px] text-muted-foreground">
-                    <span className="truncate max-w-[170px]">
-                      CC: {lic.centroCustoNome || 'TI / Infra'}
-                    </span>
+                  <div className="pt-2 border-t flex items-center justify-between gap-1">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setLicencaParaLancar(lic);
+                        setDataVencimentoLancar(lic.vencimento || new Date(Date.now() + 10 * 86400000).toISOString().split('T')[0]);
+                      }}
+                      className="h-7 text-[11px] px-2 gap-1 text-orange-600 hover:text-orange-700 bg-orange-500/5 hover:bg-orange-500/10 border-orange-500/20 font-semibold"
+                    >
+                      <Receipt className="w-3.5 h-3.5" /> Lançar no Contas a Pagar
+                    </Button>
+
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-6 w-6 text-muted-foreground hover:text-rose-600"
+                      className="h-7 w-7 text-muted-foreground hover:text-rose-600"
                       onClick={() => {
                         deleteLicenca(lic.id);
                         toast.success(`Licença "${lic.nome}" excluída!`);
@@ -227,6 +256,10 @@ export function LicencasView() {
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
+                  </div>
+
+                  <div className="text-[10px] text-muted-foreground pt-1 border-t">
+                    <span>CC: {lic.centroCustoNome || 'Tecnologia da Informação'}</span>
                   </div>
                 </CardContent>
               </Card>
@@ -240,10 +273,10 @@ export function LicencasView() {
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-base font-bold flex items-center gap-2">
-              <KeyRound className="h-5 w-5 text-orange-600" /> Cadastrar Licença de Software & Integração Financeira
+              <KeyRound className="h-5 w-5 text-orange-600" /> Cadastrar Licença / Assinatura & Gerar Contas a Pagar
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Registre subscrições corporativas e gere lançamentos automáticos em Contas a Pagar e Contas a Receber.
+              Cadastre o software (ex: Canva, Microsoft 365, etc.) e o valor do vencimento será automaticamente lançado como despesa no módulo <strong>Contas a Pagar</strong>.
             </DialogDescription>
           </DialogHeader>
 
@@ -252,7 +285,7 @@ export function LicencasView() {
               <Label className="text-xs font-semibold">Nome do Software / Produto *</Label>
               <Input
                 required
-                placeholder="Ex: Microsoft 365 Business Premium, Adobe CC, ChatGPT Plus"
+                placeholder="Ex: Canva Premium, Microsoft 365, Adobe CC"
                 value={novoForm.nome}
                 onChange={(e) => setNovoForm({ ...novoForm, nome: e.target.value })}
                 className="text-xs h-8"
@@ -264,16 +297,16 @@ export function LicencasView() {
                 <Label className="text-xs font-semibold">Fabricante / Fornecedor *</Label>
                 <Input
                   required
-                  placeholder="Ex: Microsoft, Google, Adobe, OpenAI"
+                  placeholder="Ex: Canva, Microsoft, Google, Adobe"
                   value={novoForm.fabricante}
                   onChange={(e) => setNovoForm({ ...novoForm, fabricante: e.target.value })}
                   className="text-xs h-8"
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Plano / SKU</Label>
+                <Label className="text-xs">Plano / Tipo de Assinatura</Label>
                 <Input
-                  placeholder="Ex: Enterprise Annual / Pro Mensal"
+                  placeholder="Ex: Enterprise Annual / Mensal"
                   value={novoForm.plano}
                   onChange={(e) => setNovoForm({ ...novoForm, plano: e.target.value })}
                   className="text-xs h-8"
@@ -292,7 +325,7 @@ export function LicencasView() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="text-xs">
-                    <SelectItem value="Assinatura">Assinatura</SelectItem>
+                    <SelectItem value="Assinatura">Assinatura Mensal/Anual</SelectItem>
                     <SelectItem value="Perpétua">Perpétua</SelectItem>
                   </SelectContent>
                 </Select>
@@ -311,7 +344,7 @@ export function LicencasView() {
               </div>
 
               <div className="space-y-1">
-                <Label className="text-xs font-semibold">Valor (R$) *</Label>
+                <Label className="text-xs font-bold text-foreground">Valor Mensalidade (R$) *</Label>
                 <Input
                   type="number"
                   step="0.01"
@@ -335,52 +368,32 @@ export function LicencasView() {
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Data de Vencimento / Renovação</Label>
+                <Label className="text-xs font-bold text-foreground">Data de Vencimento / Dia da Cobrança *</Label>
                 <Input
                   type="date"
+                  required
                   value={novoForm.vencimento}
                   onChange={(e) => setNovoForm({ ...novoForm, vencimento: e.target.value })}
-                  className="text-xs h-8"
+                  className="text-xs h-8 font-bold text-orange-600"
                 />
               </div>
             </div>
 
             {/* PAINEL DE INTEGRAÇÃO FINANCEIRA */}
-            <div className="space-y-2.5 p-3 rounded-lg border bg-orange-500/5 dark:bg-orange-950/20 border-orange-500/20">
+            <div className="p-3 rounded-lg border bg-orange-500/5 dark:bg-orange-950/20 border-orange-500/20 space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-orange-700 dark:text-orange-300">
                   <Receipt className="w-4 h-4" />
-                  Gerar Despesa em Contas a Pagar
+                  Gerar Título de Despesa no Contas a Pagar
                 </div>
                 <Switch
                   checked={novoForm.gerarContaPagar}
                   onCheckedChange={(checked) => setNovoForm({ ...novoForm, gerarContaPagar: checked })}
                 />
               </div>
-
-              <div className="flex items-center justify-between pt-1 border-t border-orange-500/10">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-blue-700 dark:text-blue-300">
-                  <User className="w-4 h-4" />
-                  Repassar / Faturar para Cliente (Contas a Receber)
-                </div>
-                <Switch
-                  checked={novoForm.gerarContaReceber}
-                  onCheckedChange={(checked) => setNovoForm({ ...novoForm, gerarContaReceber: checked })}
-                />
-              </div>
-
-              {novoForm.gerarContaReceber && (
-                <div className="space-y-1 pt-1">
-                  <Label className="text-[11px] font-semibold">Cliente a ser Faturado *</Label>
-                  <Input
-                    required={novoForm.gerarContaReceber}
-                    placeholder="Informe o nome do Cliente Corporativo"
-                    value={novoForm.clienteNome}
-                    onChange={(e) => setNovoForm({ ...novoForm, clienteNome: e.target.value })}
-                    className="text-xs h-8 bg-card"
-                  />
-                </div>
-              )}
+              <p className="text-[11px] text-muted-foreground">
+                Ao salvar, um título de <strong>R$ {Number(novoForm.valor || 0).toFixed(2)}</strong> com vencimento em <strong>{novoForm.vencimento}</strong> será enviado automaticamente ao módulo de <strong>Contas a Pagar</strong>.
+              </p>
             </div>
 
             <DialogFooter className="pt-2">
@@ -388,10 +401,62 @@ export function LicencasView() {
                 Cancelar
               </Button>
               <Button type="submit" size="sm" className="text-xs bg-orange-600 hover:bg-orange-700 text-white font-semibold">
-                Salvar Licença & Gerar Financeiro
+                Salvar Licença & Lançar no Contas a Pagar
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL: LANÇAR DESPESA DIRETA NO CONTAS A PAGAR */}
+      <Dialog open={!!licencaParaLancar} onOpenChange={(open) => !open && setLicencaParaLancar(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-bold flex items-center gap-2 text-orange-600">
+              <Receipt className="w-4 h-4" /> Lançar Mensalidade no Contas a Pagar
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Confirme o valor e a data de vencimento da mensalidade de <strong>{licencaParaLancar?.nome}</strong> para contabilizar a despesa.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2 text-xs">
+            <div className="p-3 bg-muted/40 rounded-lg border space-y-1.5">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Software / Fornecedor:</span>
+                <span className="font-semibold text-foreground">{licencaParaLancar?.nome} ({licencaParaLancar?.fabricante})</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Valor da Mensalidade:</span>
+                <span className="font-bold text-orange-600 text-sm">R$ {Number(licencaParaLancar?.valor || 0).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Centro de Custo:</span>
+                <span>{licencaParaLancar?.centroCustoNome || 'Tecnologia da Informação'}</span>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Data de Vencimento da Cobrança *</Label>
+              <Input
+                type="date"
+                required
+                value={dataVencimentoLancar}
+                onChange={(e) => setDataVencimentoLancar(e.target.value)}
+                className="text-xs h-8 font-bold"
+              />
+              <p className="text-[10px] text-muted-foreground">Ex: Escolha o dia 10 do mês desejado para o pagamento.</p>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0 mt-2">
+            <Button variant="outline" size="sm" onClick={() => setLicencaParaLancar(null)} className="text-xs">
+              Cancelar
+            </Button>
+            <Button variant="default" size="sm" onClick={handleConfirmarLancamentoManual} className="text-xs bg-orange-600 hover:bg-orange-700 text-white font-semibold">
+              Confirmar Lançamento Financeiro
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

@@ -11,6 +11,8 @@ import {
 } from '../types';
 import { ContaPagar } from '@/features/contas-pagar/types';
 import { TituloReceber } from '@/features/contas-receber/types';
+import { contaPagarService } from '@/services/contaPagarService';
+import { contaReceberService } from '@/services/contaReceberService';
 
 const INITIAL_EQUIPAMENTOS: Equipamento[] = [];
 const INITIAL_ESTOQUE_ITENS: EstoqueItem[] = [];
@@ -82,7 +84,7 @@ export function useEstoquePatrimonio() {
   const { addItem: addContaPagar } = useLocalStorageState<ContaPagar>('focus_contas_pagar', []);
   const { addItem: addContaReceber } = useLocalStorageState<TituloReceber>('focus_contas_receber', []);
 
-  // Helper para gerar Conta a Pagar
+  // Helper para gerar Conta a Pagar com persistência garantida em todos os armazenamentos
   const lancarContaPagar = (params: {
     fornecedor?: string;
     descricao: string;
@@ -94,15 +96,15 @@ export function useEstoquePatrimonio() {
     formaPagamento?: any;
     observacoes?: string;
   }) => {
-    const id = 'pag-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+    const id = crypto.randomUUID();
     const numero = `PAG-${Math.floor(1000 + Math.random() * 9000)}`;
     const novaConta: ContaPagar = {
       id,
       numero,
       fornecedor: params.fornecedor || 'Fornecedor de TI / Almoxarifado',
       descricao: params.descricao,
-      categoria: params.categoria || 'Estoque & Suprimentos TI',
-      centroCustoNome: params.centroCustoNome || 'Almoxarifado TI',
+      categoria: params.categoria || 'Licenças de Software & SaaS',
+      centroCustoNome: params.centroCustoNome || 'Tecnologia da Informação',
       centroCustoId: params.centroCustoId,
       valorOriginal: params.valor,
       valorPago: 0,
@@ -121,15 +123,41 @@ export function useEstoquePatrimonio() {
           data: new Date().toISOString(),
           usuario: 'Módulo Estoque & Patrimônio',
           acao: 'Criação',
-          observacao: `Gerado a partir de operação no estoque/patrimônio: ${params.descricao}`
+          observacao: `Gerado a partir de operação no estoque/licenças: ${params.descricao}`
         }
       ]
     };
+
+    // 1. Adicionar no hook local
     addContaPagar(novaConta);
+
+    // 2. Gravar em todas as chaves de cache local para leitura imediata em qualquer aba
+    if (typeof window !== 'undefined') {
+      ['focus_app_focus_contas_pagar', 'focus_contas_pagar', 'focus_app_contas_pagar'].forEach((key) => {
+        try {
+          const raw = window.localStorage.getItem(key);
+          const currentList = raw ? JSON.parse(raw) : [];
+          if (Array.isArray(currentList)) {
+            const filtered = currentList.filter((item: any) => item.id !== id);
+            window.localStorage.setItem(key, JSON.stringify([novaConta, ...filtered]));
+          }
+        } catch {}
+      });
+      try {
+        window.dispatchEvent(new Event('focus_storage_update'));
+        window.dispatchEvent(new Event('storage'));
+      } catch {}
+    }
+
+    // 3. Persistir no Supabase
+    contaPagarService.saveContaPagar(novaConta as any).catch((err) => {
+      console.warn('[useEstoquePatrimonio] Erro ao sincronizar conta a pagar com o banco:', err);
+    });
+
     return novaConta;
   };
 
-  // Helper para gerar Conta a Receber
+  // Helper para gerar Conta a Receber com persistência garantida em todos os armazenamentos
   const lancarContaReceber = (params: {
     cliente?: string;
     clienteId?: string;
@@ -142,7 +170,7 @@ export function useEstoquePatrimonio() {
     formaPagamento?: any;
     observacoes?: string;
   }) => {
-    const id = 'rec-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+    const id = crypto.randomUUID();
     const numero = `REC-${Math.floor(1000 + Math.random() * 9000)}`;
     const novoTitulo: TituloReceber = {
       id,
@@ -174,7 +202,33 @@ export function useEstoquePatrimonio() {
         }
       ]
     };
+
+    // 1. Adicionar no hook local
     addContaReceber(novoTitulo);
+
+    // 2. Gravar em todas as chaves de cache local
+    if (typeof window !== 'undefined') {
+      ['focus_app_focus_contas_receber', 'focus_contas_receber', 'focus_app_contas_receber'].forEach((key) => {
+        try {
+          const raw = window.localStorage.getItem(key);
+          const currentList = raw ? JSON.parse(raw) : [];
+          if (Array.isArray(currentList)) {
+            const filtered = currentList.filter((item: any) => item.id !== id);
+            window.localStorage.setItem(key, JSON.stringify([novoTitulo, ...filtered]));
+          }
+        } catch {}
+      });
+      try {
+        window.dispatchEvent(new Event('focus_storage_update'));
+        window.dispatchEvent(new Event('storage'));
+      } catch {}
+    }
+
+    // 3. Persistir no Supabase
+    contaReceberService.saveContaReceber(novoTitulo as any).catch((err) => {
+      console.warn('[useEstoquePatrimonio] Erro ao sincronizar conta a receber com o banco:', err);
+    });
+
     return novoTitulo;
   };
 

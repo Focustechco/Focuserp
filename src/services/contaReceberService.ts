@@ -1,6 +1,20 @@
 import { supabase } from '@/lib/supabaseClient';
 import { contaReceberSchema, ContaReceberDTO } from '@/schemas/contaReceberSchema';
 
+function toValidUuid(id?: string | null): string {
+  if (!id || typeof id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+    return crypto.randomUUID();
+  }
+  return id;
+}
+
+function toNullableValidUuid(id?: string | null): string | null {
+  if (!id || typeof id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+    return null;
+  }
+  return id;
+}
+
 export const contaReceberService = {
   /**
    * Buscar todas as contas a receber
@@ -84,20 +98,6 @@ export const contaReceberService = {
       return [];
     }
   },
-
-function toValidUuid(id?: string | null): string {
-  if (!id || typeof id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
-    return crypto.randomUUID();
-  }
-  return id;
-}
-
-function toNullableValidUuid(id?: string | null): string | null {
-  if (!id || typeof id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
-    return null;
-  }
-  return id;
-}
 
   /**
    * Salvar ou atualizar conta a receber

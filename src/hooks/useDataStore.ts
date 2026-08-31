@@ -436,8 +436,11 @@ export function useLocalStorageState<T extends { id: string }>(
           if (!isMountedRef.current) return;
 
           if (!dbErr && Array.isArray(dbRows)) {
+            const rawDeletedIds = safeGetItem('focus_app_deleted_contas_receber_ids');
+            const deletedSet = new Set<string>(rawDeletedIds ? JSON.parse(rawDeletedIds) : []);
+
             const mapped = dbRows
-              .filter((item: any) => item && (item.cliente_nome || item.descricao || Number(item.valor_original || 0) > 0))
+              .filter((item: any) => item && !deletedSet.has(String(item.id)) && (item.cliente_nome || item.cliente || item.descricao || Number(item.valor_original || 0) > 0))
               .map((item: any) => {
                 const valorOrig = Number(item.valor_original ?? item.valorOriginal ?? 0) || 0;
                 const valorRec = Number(item.valor_recebido ?? item.valorRecebido ?? 0) || 0;
@@ -448,6 +451,7 @@ export function useLocalStorageState<T extends { id: string }>(
                   clienteId: item.cliente_id || item.clienteId,
                   descricao: item.descricao || 'Recebimento de título',
                   categoria: item.categoria || 'Receita Operacional',
+                  centroCustoNome: item.centro_custo || item.centroCustoNome || item.centroCusto || '',
                   valorOriginal: valorOrig,
                   valorRecebido: valorRec,
                   saldo: Number(item.saldo ?? (valorOrig - valorRec)) || 0,
@@ -460,6 +464,12 @@ export function useLocalStorageState<T extends { id: string }>(
                   ultimaAtualizacao: item.updated_at || new Date().toISOString(),
                 };
               }) as unknown as T[];
+
+            localCached.forEach((lc: any) => {
+              if (lc && lc.id && !mapped.some((m: any) => m.id === lc.id) && !deletedSet.has(String(lc.id))) {
+                mapped.push(lc);
+              }
+            });
 
             setData(mapped);
             writeLocalCache(table, mapped);
@@ -477,8 +487,11 @@ export function useLocalStorageState<T extends { id: string }>(
           if (!isMountedRef.current) return;
 
           if (!dbErr && Array.isArray(dbRows)) {
+            const rawDeletedIds = safeGetItem('focus_app_deleted_contas_pagar_ids');
+            const deletedSet = new Set<string>(rawDeletedIds ? JSON.parse(rawDeletedIds) : []);
+
             const mapped = dbRows
-              .filter((item: any) => item && (item.fornecedor_nome || item.descricao || Number(item.valor_original || 0) > 0))
+              .filter((item: any) => item && !deletedSet.has(String(item.id)) && (item.fornecedor_nome || item.fornecedor || item.descricao || Number(item.valor_original || 0) > 0))
               .map((item: any) => {
                 const valorOrig = Number(item.valor_original ?? item.valorOriginal ?? 0) || 0;
                 const valorPg = Number(item.valor_pago ?? item.valorPago ?? 0) || 0;
@@ -489,6 +502,7 @@ export function useLocalStorageState<T extends { id: string }>(
                   fornecedorId: item.fornecedor_id || item.fornecedorId,
                   descricao: item.descricao || 'Despesa operacional',
                   categoria: item.categoria || 'Despesa Operacional',
+                  centroCustoNome: item.centro_custo || item.centroCustoNome || item.centroCusto || '',
                   valorOriginal: valorOrig,
                   valorPago: valorPg,
                   saldo: Number(item.saldo ?? (valorOrig - valorPg)) || 0,
@@ -501,6 +515,12 @@ export function useLocalStorageState<T extends { id: string }>(
                   ultimaAtualizacao: item.updated_at || new Date().toISOString(),
                 };
               }) as unknown as T[];
+
+            localCached.forEach((lc: any) => {
+              if (lc && lc.id && !mapped.some((m: any) => m.id === lc.id) && !deletedSet.has(String(lc.id))) {
+                mapped.push(lc);
+              }
+            });
 
             setData(mapped);
             writeLocalCache(table, mapped);
