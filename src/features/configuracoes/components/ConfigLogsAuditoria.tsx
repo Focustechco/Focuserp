@@ -30,18 +30,24 @@ export function ConfigLogsAuditoria() {
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Auditoria e Logs</h2>
-        <p className="text-muted-foreground mt-1">Rastreamento de configurações globais e depuração de serviços do ERP.</p>
+    <div className="space-y-6 animate-fade-in pt-1">
+      <div className="border-b pb-4">
+        <h3 className="font-bold text-lg flex items-center gap-2 text-foreground">
+          <History className="w-5 h-5 text-orange-500" /> Trilha de Auditoria & Logs Técnicos
+        </h3>
+        <p className="text-xs text-muted-foreground">
+          Rastreabilidade completa de ações administrativas, eventos de segurança e depuração de serviços.
+        </p>
       </div>
 
-      <Card>
-        <CardHeader className="pb-4">
-          <CardTitle>Histórico e Rastreabilidade</CardTitle>
-          <CardDescription>Estes registros são read-only (imutáveis) por exigência de compliance.</CardDescription>
+      <Card className="rounded-2xl border shadow-xs bg-card">
+        <CardHeader className="pb-3 border-b bg-muted/20">
+          <CardTitle className="text-sm font-bold flex items-center gap-2">
+            <ScrollText className="w-4 h-4 text-orange-500" /> Histórico & Rastreabilidade de Conformidade
+          </CardTitle>
+          <CardDescription className="text-xs">Estes registros são read-only (imutáveis) para fins de governança e LGPD.</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-4 text-xs">
           <Tabs defaultValue="auditoria" className="w-full">
             <TabsList className="mb-4">
               <TabsTrigger value="auditoria" className="gap-2"><History className="w-4 h-4" /> Auditoria de Configurações</TabsTrigger>

@@ -43,28 +43,38 @@ export function ConfigBackup() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex justify-between items-center">
+    <div className="space-y-6 animate-fade-in pt-1">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b pb-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Backup e Recuperação</h2>
-          <p className="text-muted-foreground mt-1">Gerencie a retenção de dados e snapshots de segurança da plataforma.</p>
+          <h3 className="font-bold text-lg flex items-center gap-2 text-foreground">
+            <HardDrive className="w-5 h-5 text-orange-500" /> Backup, Recuperação & Disaster Recovery
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            Gerenciamento de snapshots automatizados, cópias criptografadas em nuvem e histórico de restauração.
+          </p>
         </div>
-        <Button className="gap-2" onClick={handleSave} disabled={saving}>
-          <Save className="w-4 h-4" /> {saving ? "Salvando..." : "Salvar Configurações"}
+        <Button 
+          className="bg-orange-600 hover:bg-orange-700 text-white rounded-xl gap-1.5 font-bold text-xs h-8 shadow-xs cursor-pointer" 
+          onClick={handleSave} 
+          disabled={saving}
+        >
+          <Save className="w-3.5 h-3.5" /> {saving ? "Salvando..." : "Salvar Configurações"}
         </Button>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><HardDrive className="w-5 h-5 text-primary" /> Política de Retenção</CardTitle>
-            <CardDescription>Configure com que frequência o ERP gera cópias de segurança.</CardDescription>
+        <Card className="rounded-2xl border shadow-xs bg-card">
+          <CardHeader className="pb-3 border-b bg-muted/20">
+            <CardTitle className="text-sm font-bold flex items-center gap-2">
+              <HardDrive className="w-4 h-4 text-orange-500" /> Política de Retenção & Agendamento
+            </CardTitle>
+            <CardDescription className="text-xs">Configure a periodicidade de backup e provedor de armazenamento.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label>Frequência de Backup Automático</Label>
+          <CardContent className="space-y-4 pt-4 text-xs">
+            <div className="space-y-1.5">
+              <Label className="font-semibold">Frequência de Backup Automático</Label>
               <Select defaultValue="diario">
-                <SelectTrigger><SelectValue/></SelectTrigger>
+                <SelectTrigger className="rounded-xl h-9 text-xs"><SelectValue/></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="diario">Diário (Recomendado)</SelectItem>
                   <SelectItem value="semanal">Semanal</SelectItem>
@@ -73,10 +83,10 @@ export function ConfigBackup() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label>Tempo de Retenção</Label>
+            <div className="space-y-1.5">
+              <Label className="font-semibold">Tempo de Retenção</Label>
               <Select defaultValue="30">
-                <SelectTrigger><SelectValue/></SelectTrigger>
+                <SelectTrigger className="rounded-xl h-9 text-xs"><SelectValue/></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="7">Últimos 7 dias</SelectItem>
                   <SelectItem value="30">Últimos 30 dias</SelectItem>
@@ -85,31 +95,38 @@ export function ConfigBackup() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label>Local de Armazenamento</Label>
+            <div className="space-y-1.5">
+              <Label className="font-semibold">Local de Armazenamento</Label>
               <Select defaultValue="aws">
-                <SelectTrigger><SelectValue/></SelectTrigger>
+                <SelectTrigger className="rounded-xl h-9 text-xs"><SelectValue/></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="aws">AWS S3 (Padrão Focus)</SelectItem>
+                  <SelectItem value="aws">AWS S3 (Padrão Focus Cloud)</SelectItem>
                   <SelectItem value="gcp">Google Cloud Storage</SelectItem>
                   <SelectItem value="azure">Azure Blob Storage</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div className="pt-4">
-              <Button variant="outline" className="w-full gap-2 text-primary border-primary hover:bg-primary/5" onClick={handleGerarBackup} disabled={generating}>
-                <Download className="w-4 h-4" /> {generating ? "Gerando Snapshot..." : "Gerar Backup Manual Agora"}
+            <div className="pt-2">
+              <Button 
+                variant="outline" 
+                className="w-full gap-2 rounded-xl h-9 text-xs font-semibold text-orange-600 border-orange-200 hover:bg-orange-50 dark:hover:bg-orange-950/20" 
+                onClick={handleGerarBackup} 
+                disabled={generating}
+              >
+                <Download className="w-3.5 h-3.5" /> {generating ? "Gerando Snapshot..." : "Gerar Backup Manual Agora"}
               </Button>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle>Histórico de Snapshots</CardTitle>
-            <CardDescription>Arquivos disponíveis para recuperação de desastres (Disaster Recovery).</CardDescription>
+        <Card className="md:col-span-2 rounded-2xl border shadow-xs bg-card">
+          <CardHeader className="pb-3 border-b bg-muted/20">
+            <CardTitle className="text-sm font-bold flex items-center gap-2">
+              <HardDrive className="w-4 h-4 text-orange-500" /> Histórico de Snapshots Disponíveis
+            </CardTitle>
+            <CardDescription className="text-xs">Pontos de restauração verificados prontos para recuperação.</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-4 text-xs">
             <div className="border rounded-lg overflow-hidden">
               <Table>
                 <TableHeader className="bg-muted/50">

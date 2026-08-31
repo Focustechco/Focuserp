@@ -35,23 +35,33 @@ export function ConfigNumeracao() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex justify-between items-center">
+    <div className="space-y-6 animate-fade-in pt-1">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b pb-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Numeração Automática</h2>
-          <p className="text-muted-foreground mt-1">Configure o padrão de geração de IDs e códigos da plataforma.</p>
+          <h3 className="font-bold text-lg flex items-center gap-2 text-foreground">
+            <Hash className="w-5 h-5 text-orange-500" /> Padrões de Numeração Automática (Human IDs)
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            Configure prefixos, sufixos, quantidade de dígitos e reinício anual dos códigos gerados nos módulos.
+          </p>
         </div>
-        <Button className="gap-2" onClick={handleSave} disabled={saving}>
-          <Save className="w-4 h-4" /> {saving ? "Salvando..." : "Salvar Alterações"}
+        <Button 
+          onClick={handleSave} 
+          disabled={saving}
+          className="bg-orange-600 hover:bg-orange-700 text-white rounded-xl gap-1.5 font-bold text-xs h-8 shadow-xs cursor-pointer"
+        >
+          <Save className="w-3.5 h-3.5" /> {saving ? "Salvando..." : "Salvar Alterações"}
         </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Hash className="w-5 h-5 text-primary" /> Padrões por Módulo</CardTitle>
-          <CardDescription>Defina como os identificadores visuais (Human IDs) serão formatados.</CardDescription>
+      <Card className="rounded-2xl border shadow-xs bg-card">
+        <CardHeader className="pb-3 border-b bg-muted/20">
+          <CardTitle className="text-sm font-bold flex items-center gap-2">
+            <Hash className="w-4 h-4 text-orange-500" /> Regras de Numeração por Módulo
+          </CardTitle>
+          <CardDescription className="text-xs">Defina a estrutura visual dos identificadores de faturas, contratos e cadastros.</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-4 text-xs">
           <div className="border rounded-lg overflow-hidden overflow-x-auto">
             <Table>
               <TableHeader className="bg-muted/50">

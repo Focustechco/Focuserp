@@ -21,25 +21,35 @@ export function ConfigSeguranca() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex justify-between items-center">
+    <div className="space-y-6 animate-fade-in pt-1">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b pb-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Segurança da Plataforma</h2>
-          <p className="text-muted-foreground mt-1">Políticas globais de acesso e senhas para todos os usuários.</p>
+          <h3 className="font-bold text-lg flex items-center gap-2 text-foreground">
+            <ShieldCheck className="w-5 h-5 text-orange-500" /> Segurança, Políticas & Autenticação
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            Políticas globais de senhas, autenticação em duas etapas (2FA), controle de sessão e restrição de IP.
+          </p>
         </div>
-        <Button className="gap-2" onClick={handleSave} disabled={saving}>
-          <Save className="w-4 h-4" /> {saving ? "Salvando..." : "Salvar Alterações"}
+        <Button 
+          onClick={handleSave} 
+          disabled={saving}
+          className="bg-orange-600 hover:bg-orange-700 text-white rounded-xl gap-1.5 font-bold text-xs h-8 shadow-xs cursor-pointer"
+        >
+          <Save className="w-3.5 h-3.5" /> {saving ? "Salvando..." : "Salvar Alterações"}
         </Button>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* Senhas */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><KeyRound className="w-5 h-5 text-primary" /> Política de Senhas</CardTitle>
-            <CardDescription>Regras para criação e renovação de credenciais.</CardDescription>
+        <Card className="rounded-2xl border shadow-xs bg-card">
+          <CardHeader className="pb-3 border-b bg-muted/20">
+            <CardTitle className="text-sm font-bold flex items-center gap-2">
+              <KeyRound className="w-4 h-4 text-orange-500" /> Política de Senhas Corporativas
+            </CardTitle>
+            <CardDescription className="text-xs">Regras de complexidade, histórico e renovação de credenciais.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 pt-4 text-xs">
             <div className="space-y-2">
               <Label>Complexidade Mínima</Label>
               <Select defaultValue="alta">
@@ -67,44 +77,47 @@ export function ConfigSeguranca() {
         </Card>
 
         {/* Sessão */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><ShieldCheck className="w-5 h-5 text-primary" /> Controle de Sessão</CardTitle>
-            <CardDescription>Gerenciamento de conexões ativas.</CardDescription>
+        <Card className="rounded-2xl border shadow-xs bg-card">
+          <CardHeader className="pb-3 border-b bg-muted/20">
+            <CardTitle className="text-sm font-bold flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-orange-500" /> Controle de Sessão & Timeout
+            </CardTitle>
+            <CardDescription className="text-xs">Gerenciamento de conexões ativas e encerramento por inatividade.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label>Deslogar por inatividade (minutos)</Label>
-              <Input type="number" defaultValue="30" min="5" />
+          <CardContent className="space-y-4 pt-4 text-xs">
+            <div className="space-y-1.5">
+              <Label className="font-semibold">Deslogar por Inatividade (minutos)</Label>
+              <Input type="number" defaultValue="30" min="5" className="rounded-xl h-9 text-xs" />
             </div>
-            <div className="space-y-2">
-              <Label>Tempo máximo absoluto de sessão (horas)</Label>
-              <Input type="number" defaultValue="12" min="1" />
-              <p className="text-[10px] text-muted-foreground mt-1">Derruba o usuário mesmo se ele estiver ativo, forçando novo login.</p>
+            <div className="space-y-1.5">
+              <Label className="font-semibold">Tempo Máximo de Sessão (horas)</Label>
+              <Input type="number" defaultValue="12" min="1" className="rounded-xl h-9 text-xs" />
             </div>
           </CardContent>
         </Card>
 
         {/* MFA e Bloqueios */}
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-rose-600 dark:text-rose-500"><AlertOctagon className="w-5 h-5" /> Acesso Estrito</CardTitle>
-            <CardDescription>Configurações de alta segurança para prevenção de ataques.</CardDescription>
+        <Card className="md:col-span-2 rounded-2xl border shadow-xs bg-card">
+          <CardHeader className="pb-3 border-b bg-muted/20">
+            <CardTitle className="text-sm font-bold flex items-center gap-2 text-rose-600 dark:text-rose-400">
+              <AlertOctagon className="w-4 h-4" /> Acesso Estrito & Prevenção de Intrusões (MFA)
+            </CardTitle>
+            <CardDescription className="text-xs">Parâmetros de autenticação reforçada e bloqueio por força bruta.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6 border-t pt-4">
-            <div className="flex items-center justify-between">
+          <CardContent className="space-y-4 pt-4 text-xs">
+            <div className="flex items-center justify-between p-3 rounded-xl border bg-muted/20">
               <div className="space-y-0.5">
-                <Label className="text-base">MFA Obrigatório para Toda a Empresa</Label>
-                <p className="text-xs text-muted-foreground">Força a autenticação em 2 fatores para qualquer perfil de acesso. (Sobrescreve configurações individuais no módulo de Usuários).</p>
+                <Label className="text-xs font-bold cursor-pointer">MFA Obrigatório para Toda a Empresa</Label>
+                <p className="text-[11px] text-muted-foreground">Força autenticação em duas etapas (2FA via Authenticator) para todos os colaboradores.</p>
               </div>
-              <Switch />
+              <Switch checked={mfaGlobal} onCheckedChange={setMfaGlobal} />
             </div>
             
-            <div className="grid grid-cols-2 gap-4 pt-4 border-t">
-              <div className="space-y-2">
-                <Label>Tentativas de Login até Bloqueio</Label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+              <div className="space-y-1.5">
+                <Label className="font-semibold">Tentativas de Login até Bloqueio</Label>
                 <Select defaultValue="5">
-                  <SelectTrigger><SelectValue/></SelectTrigger>
+                  <SelectTrigger className="rounded-xl h-9 text-xs"><SelectValue/></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="3">3 tentativas</SelectItem>
                     <SelectItem value="5">5 tentativas</SelectItem>
@@ -112,20 +125,19 @@ export function ConfigSeguranca() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label>Tempo de Bloqueio (minutos)</Label>
+              <div className="space-y-1.5">
+                <Label className="font-semibold">Tempo de Bloqueio Temporário</Label>
                 <Select defaultValue="30">
-                  <SelectTrigger><SelectValue/></SelectTrigger>
+                  <SelectTrigger className="rounded-xl h-9 text-xs"><SelectValue/></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="15">15 minutos</SelectItem>
                     <SelectItem value="30">30 minutos</SelectItem>
                     <SelectItem value="60">1 hora</SelectItem>
-                    <SelectItem value="0">Bloqueio Permanente (Exige desbloqueio do Admin)</SelectItem>
+                    <SelectItem value="0">Bloqueio Permanente (Requer Admin)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
-
           </CardContent>
         </Card>
       </div>

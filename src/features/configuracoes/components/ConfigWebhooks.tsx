@@ -43,23 +43,32 @@ export function ConfigWebhooks() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex justify-between items-center">
+    <div className="space-y-6 animate-fade-in pt-1">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b pb-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Webhooks</h2>
-          <p className="text-muted-foreground mt-1">Notifique sistemas externos automaticamente quando eventos ocorrerem no ERP.</p>
+          <h3 className="font-bold text-lg flex items-center gap-2 text-foreground">
+            <Webhook className="w-5 h-5 text-orange-500" /> Webhooks & Disparadores de Eventos
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            Notifique servidores externos, microserviços e ferramentas no-code (Make, n8n, Zapier) em tempo real.
+          </p>
         </div>
-        <Button className="gap-2" onClick={handleCreateWebhook}>
-          <Plus className="w-4 h-4" /> Novo Webhook
+        <Button 
+          className="bg-orange-600 hover:bg-orange-700 text-white rounded-xl gap-1.5 font-bold text-xs h-8 shadow-xs cursor-pointer" 
+          onClick={handleCreateWebhook}
+        >
+          <Plus className="w-3.5 h-3.5" /> Novo Webhook
         </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Webhook className="w-5 h-5 text-primary" /> Endpoints Cadastrados</CardTitle>
-          <CardDescription>O sistema fará requisições HTTP para as URLs cadastradas nos eventos especificados.</CardDescription>
+      <Card className="rounded-2xl border shadow-xs bg-card">
+        <CardHeader className="pb-3 border-b bg-muted/20">
+          <CardTitle className="text-sm font-bold flex items-center gap-2">
+            <Webhook className="w-4 h-4 text-orange-500" /> Endpoints de Webhook Cadastrados
+          </CardTitle>
+          <CardDescription className="text-xs">Requisições HTTP POST automáticas disparadas mediante ações do sistema.</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-4 text-xs">
           <div className="border rounded-lg overflow-hidden overflow-x-auto">
             <Table>
               <TableHeader className="bg-muted/50">

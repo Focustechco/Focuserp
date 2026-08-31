@@ -18,25 +18,35 @@ export function ConfigPreferenciasGlobais() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex justify-between items-center">
+    <div className="space-y-6 animate-fade-in pt-1">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b pb-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Preferências Gerais</h2>
-          <p className="text-muted-foreground mt-1">Configurações regionais e formatos padrão da plataforma.</p>
+          <h3 className="font-bold text-lg flex items-center gap-2 text-foreground">
+            <Globe2 className="w-5 h-5 text-orange-500" /> Preferências Globais & Moeda
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            Configurações regionais, idioma padrão, fuso horário e formatação monetária da plataforma.
+          </p>
         </div>
-        <Button className="gap-2" onClick={handleSave} disabled={saving}>
-          <Save className="w-4 h-4" /> {saving ? "Salvando..." : "Salvar Alterações"}
+        <Button 
+          onClick={handleSave} 
+          disabled={saving}
+          className="bg-orange-600 hover:bg-orange-700 text-white rounded-xl gap-1.5 font-bold text-xs h-8 shadow-xs cursor-pointer"
+        >
+          <Save className="w-3.5 h-3.5" /> {saving ? "Salvando..." : "Salvar Alterações"}
         </Button>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* Localização e Idioma */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Globe2 className="w-5 h-5 text-primary" /> Idioma e Região</CardTitle>
-            <CardDescription>O idioma e formato padrão de números para todos os usuários.</CardDescription>
+        <Card className="rounded-2xl border shadow-xs bg-card">
+          <CardHeader className="pb-3 border-b bg-muted/20">
+            <CardTitle className="text-sm font-bold flex items-center gap-2">
+              <Globe2 className="w-4 h-4 text-orange-500" /> Idioma e Região
+            </CardTitle>
+            <CardDescription className="text-xs">O idioma e formato padrão de números para todos os usuários.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 pt-4 text-xs">
             <div className="space-y-2">
               <Label>Idioma Padrão</Label>
               <Select defaultValue="pt-BR">
@@ -73,16 +83,18 @@ export function ConfigPreferenciasGlobais() {
         </Card>
 
         {/* Formatos Monetários e Tempo */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><DollarSign className="w-5 h-5 text-primary" /> Moeda e Tempo</CardTitle>
-            <CardDescription>Padrões de exibição financeira e fusos horários.</CardDescription>
+        <Card className="rounded-2xl border shadow-xs bg-card">
+          <CardHeader className="pb-3 border-b bg-muted/20">
+            <CardTitle className="text-sm font-bold flex items-center gap-2">
+              <DollarSign className="w-4 h-4 text-orange-500" /> Moeda & Formatação de Tempo
+            </CardTitle>
+            <CardDescription className="text-xs">Padrões de exibição financeira e fusos horários da organização.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label>Moeda Base (Tenant)</Label>
+          <CardContent className="space-y-4 pt-4 text-xs">
+            <div className="space-y-1.5">
+              <Label className="font-semibold">Moeda Base (Tenant)</Label>
               <Select defaultValue="BRL">
-                <SelectTrigger><SelectValue/></SelectTrigger>
+                <SelectTrigger className="rounded-xl h-9 text-xs"><SelectValue/></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="BRL">BRL - Real Brasileiro (R$)</SelectItem>
                   <SelectItem value="USD">USD - Dólar Americano ($)</SelectItem>
@@ -90,10 +102,10 @@ export function ConfigPreferenciasGlobais() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label>Casas Decimais (Valores Monetários)</Label>
+            <div className="space-y-1.5">
+              <Label className="font-semibold">Casas Decimais (Valores Monetários)</Label>
               <Select defaultValue="2">
-                <SelectTrigger><SelectValue/></SelectTrigger>
+                <SelectTrigger className="rounded-xl h-9 text-xs"><SelectValue/></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="0">0 (Ex: R$ 1.000)</SelectItem>
                   <SelectItem value="2">2 (Ex: R$ 1.000,00)</SelectItem>
@@ -101,17 +113,16 @@ export function ConfigPreferenciasGlobais() {
                   <SelectItem value="4">4 (Ex: R$ 1.000,0000)</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-[10px] text-muted-foreground mt-1">Geralmente, sistemas usam 2 a 4 casas decimais dependendo da precisão dos custos industriais.</p>
             </div>
-            <div className="space-y-2">
-              <Label>Fuso Horário Principal (Timezone)</Label>
+            <div className="space-y-1.5">
+              <Label className="font-semibold">Fuso Horário Principal (Timezone)</Label>
               <Select defaultValue="America/Sao_Paulo">
-                <SelectTrigger><SelectValue/></SelectTrigger>
+                <SelectTrigger className="rounded-xl h-9 text-xs"><SelectValue/></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="America/Sao_Paulo">(GMT-03:00) Brasília, São Paulo</SelectItem>
+                  <SelectItem value="America/Sao_Paulo">(GMT-03:00) Horário Oficial de Brasília</SelectItem>
                   <SelectItem value="America/Manaus">(GMT-04:00) Manaus</SelectItem>
-                  <SelectItem value="America/New_York">(GMT-05:00) New York</SelectItem>
-                  <SelectItem value="UTC">(GMT+00:00) Coordinated Universal Time</SelectItem>
+                  <SelectItem value="America/New_York">(GMT-05:00) New York (EST)</SelectItem>
+                  <SelectItem value="UTC">(GMT+00:00) UTC Universal Time</SelectItem>
                 </SelectContent>
               </Select>
             </div>
