@@ -13,7 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Search, Filter, MoreHorizontal, Download, Plus, Calendar, 
-  CheckCircle2, RefreshCw, X, ArrowUpRight, Clock, AlertTriangle, Trash2
+  CheckCircle2, RefreshCw, X, ArrowUpRight, Clock, AlertTriangle, Trash2, CheckSquare
 } from 'lucide-react';
 import { NovoRecebimentoSheet } from './NovoRecebimentoSheet';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -81,6 +81,7 @@ export function RecebimentosList() {
   const [datePreset, setDatePreset] = useState<DatePreset>('todos');
   const [dataInicio, setDataInicio] = useState<string>('');
   const [dataFim, setDataFim] = useState<string>('');
+  const [isSelectionMode, setIsSelectionMode] = useState<boolean>(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [tituloParaExcluir, setTituloParaExcluir] = useState<TituloReceber | null>(null);
   const [isBatchDeleteDialogOpen, setIsBatchDeleteDialogOpen] = useState(false);
@@ -347,6 +348,21 @@ export function RecebimentosList() {
               </Button>
             )}
 
+            <Button
+              variant={isSelectionMode ? "secondary" : "outline"}
+              size="sm"
+              onClick={() => {
+                const nextMode = !isSelectionMode;
+                setIsSelectionMode(nextMode);
+                if (!nextMode) setSelectedIds([]);
+              }}
+              className={`text-xs h-9 gap-1.5 ${isSelectionMode ? 'bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-950/40 dark:text-orange-300 dark:border-orange-800 font-semibold' : ''}`}
+              title="Ativar/Desativar seleção múltipla para exclusão"
+            >
+              <CheckSquare className="w-3.5 h-3.5 text-orange-600" />
+              {isSelectionMode ? 'Cancelar Seleção' : 'Selecionar'}
+            </Button>
+
             <Button variant="outline" size="sm" className="text-xs h-9">
               <Download className="mr-1.5 h-3.5 w-3.5" /> Exportar
             </Button>
@@ -455,7 +471,7 @@ export function RecebimentosList() {
       </div>
 
       {/* Barra de Ações em Lote */}
-      {selectedIds.length > 0 && (
+      {isSelectionMode && selectedIds.length > 0 && (
         <div className="flex items-center justify-between bg-rose-500/10 border border-rose-500/30 px-4 py-2.5 rounded-lg animate-in fade-in duration-200">
           <div className="flex items-center gap-2">
             <Badge variant="destructive" className="font-mono text-xs">
@@ -492,19 +508,21 @@ export function RecebimentosList() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[44px] px-3 text-center">
-                <Checkbox 
-                  checked={filteredData.length > 0 && selectedIds.length === filteredData.length}
-                  onCheckedChange={(checked) => {
-                    if (checked) {
-                      setSelectedIds(filteredData.map(t => t.id));
-                    } else {
-                      setSelectedIds([]);
-                    }
-                  }}
-                  aria-label="Selecionar todos os títulos"
-                />
-              </TableHead>
+              {isSelectionMode && (
+                <TableHead className="w-[44px] px-3 text-center animate-fade-in">
+                  <Checkbox 
+                    checked={filteredData.length > 0 && selectedIds.length === filteredData.length}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setSelectedIds(filteredData.map(t => t.id));
+                      } else {
+                        setSelectedIds([]);
+                      }
+                    }}
+                    aria-label="Selecionar todos os títulos"
+                  />
+                </TableHead>
+              )}
               <TableHead className="w-[110px]">Número</TableHead>
               <TableHead>Cliente / Descrição</TableHead>
               <TableHead>Origem / Categoria</TableHead>
@@ -519,7 +537,7 @@ export function RecebimentosList() {
           <TableBody>
             {filteredData.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="text-center py-12 text-muted-foreground text-xs">
+                <TableCell colSpan={isSelectionMode ? 10 : 9} className="text-center py-12 text-muted-foreground text-xs">
                   Nenhum título encontrado com os filtros selecionados.
                 </TableCell>
               </TableRow>
@@ -532,19 +550,21 @@ export function RecebimentosList() {
 
                 return (
                   <TableRow key={titulo.id} className={`hover:bg-muted/40 transition-colors ${isSelected ? 'bg-rose-500/5' : ''}`}>
-                    <TableCell className="w-[44px] px-3 text-center">
-                      <Checkbox 
-                        checked={isSelected}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            setSelectedIds(prev => [...prev, titulo.id]);
-                          } else {
-                            setSelectedIds(prev => prev.filter(id => id !== titulo.id));
-                          }
-                        }}
-                        aria-label={`Selecionar título ${titulo.numero}`}
-                      />
-                    </TableCell>
+                    {isSelectionMode && (
+                      <TableCell className="w-[44px] px-3 text-center animate-fade-in">
+                        <Checkbox 
+                          checked={isSelected}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedIds(prev => [...prev, titulo.id]);
+                            } else {
+                              setSelectedIds(prev => prev.filter(id => id !== titulo.id));
+                            }
+                          }}
+                          aria-label={`Selecionar título ${titulo.numero}`}
+                        />
+                      </TableCell>
+                    )}
                     <TableCell className="font-mono text-xs font-semibold text-primary">
                       {titulo.numero}
                     </TableCell>

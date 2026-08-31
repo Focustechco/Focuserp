@@ -78,6 +78,7 @@ function NotificacoesPage() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('todas');
+  const [isSelectionMode, setIsSelectionMode] = useState<boolean>(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [loadingPush, setLoadingPush] = useState(false);
 
@@ -257,17 +258,34 @@ function NotificacoesPage() {
               />
             </div>
 
-            {selectedIds.length > 0 && (
-              <div className="flex items-center gap-2 bg-primary/5 px-3 py-1.5 rounded-lg border border-primary/20 animate-fade-in w-full md:w-auto">
-                <span className="text-xs font-semibold text-primary">{selectedIds.length} selecionada(s)</span>
-                <Button variant="ghost" size="sm" onClick={handleBulkMarkRead} className="h-7 text-xs">
-                  <CheckCheck className="w-3 h-3 mr-1 text-emerald-600" /> Marcar Lidas
-                </Button>
-                <Button variant="ghost" size="sm" onClick={handleBulkArchive} className="h-7 text-xs">
-                  <Archive className="w-3 h-3 mr-1 text-muted-foreground" /> Arquivar
-                </Button>
-              </div>
-            )}
+            <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+              <Button
+                variant={isSelectionMode ? "secondary" : "outline"}
+                size="sm"
+                onClick={() => {
+                  const next = !isSelectionMode;
+                  setIsSelectionMode(next);
+                  if (!next) setSelectedIds([]);
+                }}
+                className={`text-xs h-9 gap-1.5 ${isSelectionMode ? 'bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-950/40 dark:text-orange-300 dark:border-orange-800 font-semibold' : ''}`}
+                title="Ativar/Desativar seleção múltipla"
+              >
+                <CheckSquare className="w-3.5 h-3.5 text-orange-600" />
+                {isSelectionMode ? 'Cancelar Seleção' : 'Selecionar'}
+              </Button>
+
+              {isSelectionMode && selectedIds.length > 0 && (
+                <div className="flex items-center gap-2 bg-primary/5 px-3 py-1.5 rounded-lg border border-primary/20 animate-fade-in">
+                  <span className="text-xs font-semibold text-primary">{selectedIds.length} selecionada(s)</span>
+                  <Button variant="ghost" size="sm" onClick={handleBulkMarkRead} className="h-7 text-xs">
+                    <CheckCheck className="w-3 h-3 mr-1 text-emerald-600" /> Marcar Lidas
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={handleBulkArchive} className="h-7 text-xs">
+                    <Archive className="w-3 h-3 mr-1 text-muted-foreground" /> Arquivar
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* FILTROS POR CATEGORIA */}
@@ -301,11 +319,18 @@ function NotificacoesPage() {
       <Card>
         <CardHeader className="py-3 px-4 border-b flex flex-row items-center justify-between">
           <div className="flex items-center gap-2">
-            <Checkbox 
-              checked={selectedIds.length > 0 && selectedIds.length === filteredNotificacoes.length}
-              onCheckedChange={(checked) => handleSelectAll(!!checked)}
-            />
-            <span className="text-xs font-semibold text-muted-foreground">Selecionar Todas</span>
+            {isSelectionMode && (
+              <div className="flex items-center gap-2 animate-fade-in">
+                <Checkbox 
+                  checked={selectedIds.length > 0 && selectedIds.length === filteredNotificacoes.length}
+                  onCheckedChange={(checked) => handleSelectAll(!!checked)}
+                />
+                <span className="text-xs font-semibold text-muted-foreground">Selecionar Todas</span>
+              </div>
+            )}
+            {!isSelectionMode && (
+              <span className="text-xs font-semibold text-muted-foreground">Lista de Notificações</span>
+            )}
           </div>
           <span className="text-xs text-muted-foreground">Exibindo {filteredNotificacoes.length} resultado(s)</span>
         </CardHeader>
@@ -324,11 +349,13 @@ function NotificacoesPage() {
                   key={notif.id}
                   className={`p-4 transition-colors flex items-start gap-4 ${!notif.lida ? 'bg-primary/5 font-medium' : 'hover:bg-muted/40'} ${isSelected ? 'bg-primary/10' : ''}`}
                 >
-                  <Checkbox 
-                    checked={isSelected}
-                    onCheckedChange={() => handleToggleSelect(notif.id)}
-                    className="mt-1"
-                  />
+                  {isSelectionMode && (
+                    <Checkbox 
+                      checked={isSelected}
+                      onCheckedChange={() => handleToggleSelect(notif.id)}
+                      className="mt-1 animate-fade-in"
+                    />
+                  )}
 
                   <div className="p-2.5 rounded-xl bg-background border shadow-2xs shrink-0">
                     {getCategoryIcon(notif.origem)}

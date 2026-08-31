@@ -17,7 +17,7 @@ import {
   Folder, FileText, Image as ImageIcon, Video, FolderPlus, 
   UploadCloud, Search, Star, LayoutGrid, List, ChevronRight, 
   MoreVertical, Trash2, Eye, Download, Tag, HardDrive, ArrowLeft,
-  CheckCircle2, X
+  CheckCircle2, X, CheckSquare
 } from 'lucide-react';
 import { useDocumentosStore } from '../hooks/useDocumentosStore';
 import { PastaDMS, DocumentoDMS } from '../types';
@@ -41,7 +41,8 @@ export function DmsExplorerView() {
   const [search, setSearch] = useState('');
   const [selectedDoc, setSelectedDoc] = useState<DocumentoDMS | null>(null);
 
-  // Seleção múltipla para exclusão em lote
+  // Modo de Seleção exclusivo por botão "Selecionar"
+  const [isSelectionMode, setIsSelectionMode] = useState<boolean>(false);
   const [selectedDocIds, setSelectedDocIds] = useState<string[]>([]);
   const [isBatchDeleteDialogOpen, setIsBatchDeleteDialogOpen] = useState(false);
   const [docToDeleteSingle, setDocToDeleteSingle] = useState<DocumentoDMS | null>(null);
@@ -149,6 +150,7 @@ export function DmsExplorerView() {
     toast.success(`${selectedDocIds.length} documento(s) movido(s) para a lixeira!`);
     setSelectedDocIds([]);
     setIsBatchDeleteDialogOpen(false);
+    setIsSelectionMode(false);
   };
 
   const handleConfirmSingleDelete = () => {
@@ -183,21 +185,37 @@ export function DmsExplorerView() {
 
   return (
     <div className="space-y-4 animate-fade-in pt-2">
-      {/* Barra de Ferramentas Superior */}
+      {/* Barra de Ferramentas Superior com Botão Selecionar */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-card border p-3 rounded-lg">
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <div className="relative flex-1 sm:w-80">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input 
               placeholder="Pesquisar por nome, código, pasta ou tag..." 
-              className="pl-8 text-xs"
+              className="pl-8 text-xs h-9"
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
           </div>
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
+          {/* Botão Único Selecionar */}
+          <Button
+            variant={isSelectionMode ? "secondary" : "outline"}
+            size="sm"
+            onClick={() => {
+              const next = !isSelectionMode;
+              setIsSelectionMode(next);
+              if (!next) setSelectedDocIds([]);
+            }}
+            className={`gap-1.5 h-8 text-xs ${isSelectionMode ? 'bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-950/40 dark:text-orange-300 dark:border-orange-800 font-semibold' : ''}`}
+            title="Ativar/Desativar modo de seleção para exclusão"
+          >
+            <CheckSquare className="w-3.5 h-3.5 text-orange-600" />
+            {isSelectionMode ? 'Cancelar Seleção' : 'Selecionar'}
+          </Button>
+
           <div className="bg-muted p-1 rounded-md flex">
             <Button 
               variant={viewMode === 'grid' ? 'secondary' : 'ghost'} 
@@ -236,15 +254,15 @@ export function DmsExplorerView() {
         </div>
       </div>
 
-      {/* BARRA DE AÇÃO EM LOTE QUANDO HÁ SELEÇÃO */}
-      {selectedDocIds.length > 0 && (
+      {/* BARRA DE AÇÃO EM LOTE QUANDO HÁ SELEÇÃO NO MODO SELECIONAR */}
+      {isSelectionMode && selectedDocIds.length > 0 && (
         <div className="bg-primary/10 border border-primary/30 rounded-lg p-3 flex items-center justify-between animate-fade-in">
           <div className="flex items-center gap-3">
             <Badge variant="default" className="bg-primary text-primary-foreground text-xs font-bold">
               {selectedDocIds.length} selecionado(s)
             </Badge>
             <span className="text-xs text-muted-foreground hidden sm:inline">
-              Documentos prontos para ações em massa
+              Documentos selecionados para ações em massa
             </span>
           </div>
 
@@ -335,14 +353,14 @@ export function DmsExplorerView() {
             </div>
 
             <div className="flex items-center gap-3">
-              {visibleDocs.length > 0 && (
-                <div className="flex items-center gap-2 text-xs">
+              {isSelectionMode && visibleDocs.length > 0 && (
+                <div className="flex items-center gap-2 text-xs animate-fade-in">
                   <Checkbox 
                     checked={isAllVisibleSelected} 
                     onCheckedChange={handleSelectAllVisible}
                     id="select-all-docs"
                   />
-                  <Label htmlFor="select-all-docs" className="text-xs cursor-pointer text-muted-foreground">
+                  <Label htmlFor="select-all-docs" className="text-xs cursor-pointer text-muted-foreground font-semibold">
                     Selecionar Todos
                   </Label>
                 </div>
@@ -400,17 +418,27 @@ export function DmsExplorerView() {
                         <div 
                           key={doc.id}
                           className={`p-3 border rounded-lg bg-card transition-all flex flex-col justify-between space-y-3 group hover:shadow-md cursor-pointer ${
-                            isSelected ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:border-primary/50'
+                            isSelected && isSelectionMode ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:border-primary/50'
                           }`}
-                          onClick={() => handleToggleSelectDoc(doc.id)}
+                          onClick={() => {
+                            if (isSelectionMode) {
+                              handleToggleSelectDoc(doc.id);
+                            } else {
+                              setSelectedDoc(doc);
+                              logAction(doc.id, doc.nome, 'Visualizacao', 'Preview aberto pelo usuário');
+                            }
+                          }}
                         >
                           <div className="flex items-start justify-between gap-2">
                             <div className="flex items-center gap-2.5 min-w-0">
-                              <Checkbox 
-                                checked={isSelected} 
-                                onCheckedChange={() => handleToggleSelectDoc(doc.id)}
-                                onClick={(e) => e.stopPropagation()}
-                              />
+                              {isSelectionMode && (
+                                <Checkbox 
+                                  checked={isSelected} 
+                                  onCheckedChange={() => handleToggleSelectDoc(doc.id)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="animate-fade-in"
+                                />
+                              )}
                               {renderFileIcon(doc.extensao)}
                               <div className="min-w-0">
                                 <p className="font-semibold text-xs truncate" title={doc.nome}>{doc.nome}</p>
@@ -500,16 +528,26 @@ export function DmsExplorerView() {
                   <div 
                     key={doc.id}
                     className={`flex items-center justify-between p-2.5 border rounded-md text-xs transition-colors cursor-pointer ${
-                      isSelected ? 'border-primary bg-primary/5' : 'hover:bg-muted/40'
+                      isSelected && isSelectionMode ? 'border-primary bg-primary/5' : 'hover:bg-muted/40'
                     }`}
-                    onClick={() => handleToggleSelectDoc(doc.id)}
+                    onClick={() => {
+                      if (isSelectionMode) {
+                        handleToggleSelectDoc(doc.id);
+                      } else {
+                        setSelectedDoc(doc);
+                        logAction(doc.id, doc.nome, 'Visualizacao');
+                      }
+                    }}
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <Checkbox 
-                        checked={isSelected} 
-                        onCheckedChange={() => handleToggleSelectDoc(doc.id)}
-                        onClick={(e) => e.stopPropagation()}
-                      />
+                      {isSelectionMode && (
+                        <Checkbox 
+                          checked={isSelected} 
+                          onCheckedChange={() => handleToggleSelectDoc(doc.id)}
+                          onClick={(e) => e.stopPropagation()}
+                          className="animate-fade-in"
+                        />
+                      )}
                       {renderFileIcon(doc.extensao)}
                       <div className="min-w-0">
                         <p className="font-semibold truncate">{doc.nome}</p>
