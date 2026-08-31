@@ -14,6 +14,8 @@ import {
   Trash2,
   ClipboardList,
   Boxes,
+  LayoutList,
+  LayoutGrid,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -40,6 +42,7 @@ export function EstoqueView() {
   const [subTab, setSubTab] = useState<'itens' | 'inventario'>('itens');
   const [searchTerm, setSearchTerm] = useState('');
   const [categoriaFilter, setCategoriaFilter] = useState('todos');
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
 
   // Modals state
   const [isNovoItemOpen, setIsNovoItemOpen] = useState(false);
@@ -123,6 +126,16 @@ export function EstoqueView() {
 
   return (
     <div className="space-y-6">
+      {/* HEADER DA SEÇÃO */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-bold tracking-tight text-foreground">Itens e Estoque</h2>
+          <p className="text-xs text-muted-foreground">
+            Controle de saldos físicos de almoxarifado, níveis de reposição e auditorias
+          </p>
+        </div>
+      </div>
+
       {/* SUB-NAVEGAÇÃO: ESTOQUE FÍSICO / INVENTÁRIO */}
       <div className="flex items-center justify-between border-b pb-3 flex-wrap gap-3">
         <div className="flex items-center gap-1.5 bg-muted/40 p-1 rounded-lg border">
@@ -155,10 +168,10 @@ export function EstoqueView() {
         <InventarioView />
       ) : (
         <>
-          {/* BARRA DE FILTROS */}
+          {/* BARRA DE FILTROS E MODO DE VISUALIZAÇÃO */}
           <Card>
-            <CardContent className="p-4 flex flex-col sm:flex-row gap-3">
-              <div className="relative flex-1">
+            <CardContent className="p-4 flex flex-col sm:flex-row gap-3 items-center">
+              <div className="relative flex-1 w-full">
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Buscar por código, nome do item ou localização..."
@@ -182,124 +195,249 @@ export function EstoqueView() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="flex items-center gap-1 bg-muted/50 p-1 rounded-lg border shrink-0">
+                <Button
+                  variant={viewMode === 'table' ? 'default' : 'ghost'}
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  onClick={() => setViewMode('table')}
+                  title="Visualização em Lista"
+                >
+                  <LayoutList className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  variant={viewMode === 'cards' ? 'default' : 'ghost'}
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  onClick={() => setViewMode('cards')}
+                  title="Visualização em Cards"
+                >
+                  <LayoutGrid className="h-3.5 w-3.5" />
+                </Button>
+              </div>
             </CardContent>
           </Card>
 
-          {/* TABELA DE ITENS DE ESTOQUE */}
-          <Card>
-            <CardHeader className="py-4">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-semibold">Itens em Almoxarifado ({filteredItens.length})</CardTitle>
-                <Badge variant="outline" className="text-[10px] font-mono">
-                  Total Itens: {estoqueItens.reduce((acc, i) => acc + i.quantidade, 0)} unidades
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="text-xs">Código / Item</TableHead>
-                    <TableHead className="text-xs">Categoria</TableHead>
-                    <TableHead className="text-xs text-center">Qtd Atual</TableHead>
-                    <TableHead className="text-xs text-center">Qtd Mínima</TableHead>
-                    <TableHead className="text-xs">Localização</TableHead>
-                    <TableHead className="text-xs">Status</TableHead>
-                    <TableHead className="text-xs text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredItens.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8 text-xs text-muted-foreground">
-                        Nenhum item de estoque encontrado com os filtros aplicados.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredItens.map((item) => {
-                      const isAbaixoMinimo = item.quantidade <= item.quantidadeMinima;
-                      return (
-                        <TableRow key={item.id} className="hover:bg-muted/50">
-                          <TableCell>
-                            <div className="flex flex-col">
-                              <span className="font-semibold text-xs text-foreground">{item.nome}</span>
-                              <span className="text-[10px] font-mono text-muted-foreground">{item.codigo}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-xs">
-                            <Badge variant="secondary" className="text-[10px]">
-                              {item.categoria}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-center font-bold text-xs">
-                            <span className={isAbaixoMinimo ? 'text-rose-600 dark:text-rose-400 font-extrabold' : ''}>
+          {/* VISUALIZAÇÃO: CARDS OU TABELA */}
+          {viewMode === 'cards' ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredItens.length === 0 ? (
+                <div className="col-span-full text-center py-12 text-muted-foreground text-xs border rounded-xl bg-card">
+                  Nenhum item de estoque encontrado.
+                </div>
+              ) : (
+                filteredItens.map((item) => {
+                  const isAbaixoMinimo = item.quantidade <= item.quantidadeMinima;
+                  return (
+                    <Card key={item.id} className="rounded-xl border shadow-xs hover:border-primary/40 transition-all bg-card flex flex-col justify-between">
+                      <CardHeader className="p-4 pb-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <h4 className="font-bold text-xs text-foreground truncate">{item.nome}</h4>
+                            <span className="text-[10px] font-mono text-primary font-semibold block">{item.codigo}</span>
+                          </div>
+                          <Badge variant="secondary" className="text-[10px] shrink-0">
+                            {item.categoria}
+                          </Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="p-4 pt-2 space-y-2.5 text-xs flex-1">
+                        <div className="space-y-1 bg-muted/30 p-2.5 rounded-lg border text-[11px]">
+                          <div className="flex justify-between items-center">
+                            <span className="text-muted-foreground">Saldo em Estoque:</span>
+                            <span className={`font-bold text-xs ${isAbaixoMinimo ? 'text-rose-600 dark:text-rose-400' : 'text-foreground'}`}>
                               {item.quantidade} un
                             </span>
-                          </TableCell>
-                          <TableCell className="text-center text-xs text-muted-foreground font-mono">
-                            {item.quantidadeMinima} un
-                          </TableCell>
-                          <TableCell className="text-xs">
-                            <div className="flex items-center gap-1.5 text-muted-foreground">
-                              <MapPin className="h-3.5 w-3.5" />
-                              <span>{item.localizacao}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-xs">
-                            {isAbaixoMinimo ? (
-                              <Badge variant="destructive" className="text-[10px] gap-1">
-                                <AlertCircle className="h-3 w-3" /> Reposição Urgente
+                          </div>
+                          <div className="flex justify-between items-center text-muted-foreground">
+                            <span>Qtd Mínima:</span>
+                            <span className="font-mono">{item.quantidadeMinima} un</span>
+                          </div>
+                          <div className="flex justify-between items-center text-muted-foreground">
+                            <span>Localização:</span>
+                            <span className="truncate max-w-[130px] flex items-center gap-1">
+                              <MapPin className="h-3 w-3" /> {item.localizacao}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center text-muted-foreground">
+                            <span>Valor Unitário:</span>
+                            <span className="font-semibold text-foreground">
+                              R$ {(item.valorUnitario || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-1">
+                          <span className="text-muted-foreground text-[11px]">Status:</span>
+                          {isAbaixoMinimo ? (
+                            <Badge variant="destructive" className="text-[10px] gap-1">
+                              <AlertCircle className="h-3 w-3" /> Reposição Urgente
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[10px] text-emerald-600 bg-emerald-500/10 border-emerald-500/20">
+                              Normal
+                            </Badge>
+                          )}
+                        </div>
+                      </CardContent>
+                      <div className="p-3 border-t bg-muted/20 flex items-center justify-between rounded-b-xl">
+                        <div className="flex items-center gap-1.5">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedItem(item);
+                              setMovForm({ tipo: 'Entrada', quantidade: 1, motivo: 'Abastecimento de Estoque' });
+                              setIsMovimentarOpen(true);
+                            }}
+                            className="h-7 text-[11px] px-2.5 gap-1 text-emerald-600 hover:text-emerald-700"
+                          >
+                            <ArrowDownLeft className="h-3 w-3" /> Entrada
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedItem(item);
+                              setMovForm({ tipo: 'Saída', quantidade: 1, motivo: 'Entrega para Colaborador' });
+                              setIsMovimentarOpen(true);
+                            }}
+                            className="h-7 text-[11px] px-2.5 gap-1 text-amber-600 hover:text-amber-700"
+                          >
+                            <ArrowUpRight className="h-3 w-3" /> Saída
+                          </Button>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => deleteEstoqueItem(item.id)}
+                          className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                          title="Excluir item"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </Card>
+                  );
+                })
+              )}
+            </div>
+          ) : (
+            <Card>
+              <CardHeader className="py-4">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-semibold">Itens em Almoxarifado ({filteredItens.length})</CardTitle>
+                  <Badge variant="outline" className="text-[10px] font-mono">
+                    Total Itens: {estoqueItens.reduce((acc, i) => acc + i.quantidade, 0)} unidades
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="text-xs">Código / Item</TableHead>
+                      <TableHead className="text-xs">Categoria</TableHead>
+                      <TableHead className="text-xs text-center">Qtd Atual</TableHead>
+                      <TableHead className="text-xs text-center">Qtd Mínima</TableHead>
+                      <TableHead className="text-xs">Localização</TableHead>
+                      <TableHead className="text-xs">Status</TableHead>
+                      <TableHead className="text-xs text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredItens.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-8 text-xs text-muted-foreground">
+                          Nenhum item de estoque encontrado com os filtros aplicados.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredItens.map((item) => {
+                        const isAbaixoMinimo = item.quantidade <= item.quantidadeMinima;
+                        return (
+                          <TableRow key={item.id} className="hover:bg-muted/50">
+                            <TableCell>
+                              <div className="flex flex-col">
+                                <span className="font-semibold text-xs text-foreground">{item.nome}</span>
+                                <span className="text-[10px] font-mono text-muted-foreground">{item.codigo}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-xs">
+                              <Badge variant="secondary" className="text-[10px]">
+                                {item.categoria}
                               </Badge>
-                            ) : (
-                              <Badge variant="outline" className="text-[10px] text-emerald-600 bg-emerald-500/10 border-emerald-500/20">
-                                Normal
-                              </Badge>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setSelectedItem(item);
-                                  setMovForm({ tipo: 'Entrada', quantidade: 1, motivo: 'Abastecimento de Estoque' });
-                                  setIsMovimentarOpen(true);
-                                }}
-                                className="h-7 text-[11px] px-2 gap-1 text-emerald-600 hover:text-emerald-700"
-                              >
-                                <ArrowDownLeft className="h-3 w-3" /> Entrada
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setSelectedItem(item);
-                                  setMovForm({ tipo: 'Saída', quantidade: 1, motivo: 'Entrega para Colaborador' });
-                                  setIsMovimentarOpen(true);
-                                }}
-                                className="h-7 text-[11px] px-2 gap-1 text-amber-600 hover:text-amber-700"
-                              >
-                                <ArrowUpRight className="h-3 w-3" /> Saída
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => deleteEstoqueItem(item.id)}
-                                className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+                            </TableCell>
+                            <TableCell className="text-center font-bold text-xs">
+                              <span className={isAbaixoMinimo ? 'text-rose-600 dark:text-rose-400 font-extrabold' : ''}>
+                                {item.quantidade} un
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-center text-xs text-muted-foreground font-mono">
+                              {item.quantidadeMinima} un
+                            </TableCell>
+                            <TableCell className="text-xs">
+                              <div className="flex items-center gap-1.5 text-muted-foreground">
+                                <MapPin className="h-3.5 w-3.5" />
+                                <span>{item.localizacao}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-xs">
+                              {isAbaixoMinimo ? (
+                                <Badge variant="destructive" className="text-[10px] gap-1">
+                                  <AlertCircle className="h-3 w-3" /> Reposição Urgente
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-[10px] text-emerald-600 bg-emerald-500/10 border-emerald-500/20">
+                                  Normal
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedItem(item);
+                                    setMovForm({ tipo: 'Entrada', quantidade: 1, motivo: 'Abastecimento de Estoque' });
+                                    setIsMovimentarOpen(true);
+                                  }}
+                                  className="h-7 text-[11px] px-2 gap-1 text-emerald-600 hover:text-emerald-700"
+                                >
+                                  <ArrowDownLeft className="h-3 w-3" /> Entrada
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedItem(item);
+                                    setMovForm({ tipo: 'Saída', quantidade: 1, motivo: 'Entrega para Colaborador' });
+                                    setIsMovimentarOpen(true);
+                                  }}
+                                  className="h-7 text-[11px] px-2 gap-1 text-amber-600 hover:text-amber-700"
+                                >
+                                  <ArrowUpRight className="h-3 w-3" /> Saída
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => deleteEstoqueItem(item.id)}
+                                  className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
         </>
       )}
 

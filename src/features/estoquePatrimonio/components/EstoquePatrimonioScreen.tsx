@@ -57,9 +57,6 @@ export function EstoquePatrimonioScreen() {
             <TabsTrigger value="estoque" className="gap-2 shrink-0 text-xs">
               <Package className="h-4 w-4" /> Itens/Estoque
             </TabsTrigger>
-            <TabsTrigger value="dashboard" className="gap-2 shrink-0 text-xs">
-              <LayoutDashboard className="h-4 w-4" /> Dashboard
-            </TabsTrigger>
             <TabsTrigger value="licencas" className="gap-2 shrink-0 text-xs">
               <KeyRound className="h-4 w-4" /> Licenças SaaS
             </TabsTrigger>
@@ -71,6 +68,9 @@ export function EstoquePatrimonioScreen() {
             </TabsTrigger>
             <TabsTrigger value="manutencoes" className="gap-2 shrink-0 text-xs">
               <Wrench className="h-4 w-4" /> Manutenções
+            </TabsTrigger>
+            <TabsTrigger value="dashboard" className="gap-2 shrink-0 text-xs">
+              <LayoutDashboard className="h-4 w-4" /> Dashboard
             </TabsTrigger>
           </TabsList>
         </div>

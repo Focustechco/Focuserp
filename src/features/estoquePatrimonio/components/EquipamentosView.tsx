@@ -24,6 +24,8 @@ import {
   AlertCircle,
   FileText,
   CreditCard,
+  LayoutList,
+  LayoutGrid,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -75,6 +77,7 @@ export function EquipamentosView() {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoriaFilter, setCategoriaFilter] = useState<string>('todos');
   const [situacaoFilter, setSituacaoFilter] = useState<string>('todos');
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
 
   // Modals
   const [isNovoModalOpen, setIsNovoModalOpen] = useState(false);
@@ -94,7 +97,7 @@ export function EquipamentosView() {
     dataAquisicao: new Date().toISOString().split('T')[0],
     valorCompra: 8500,
     garantiaMeses: 24,
-    situacao: 'Disponvel' as SituacaoEquipamento,
+    situacao: 'Disponível' as SituacaoEquipamento,
     departamento: 'Engenharia de Software',
     colaboradorNome: '',
     localFisica: 'Estoque Central TI',
@@ -118,42 +121,44 @@ export function EquipamentosView() {
     conexoes: 'HDMI, DisplayPort, USB-C',
   });
 
-  // Form State: Transferncia
+  // Form State: Transferência
   const [transfForm, setTransfForm] = useState({
     novoResponsavel: '',
     novoDepartamento: 'Engenharia de Software',
-    novaLocalizacao: 'Estao de Trabalho / Home Office',
-    observacao: 'Troca de responsvel de equipamento.',
+    novaLocalizacao: 'Estação de Trabalho / Home Office',
+    observacao: 'Troca de responsável de equipamento.',
   });
 
-  // Form State: Manuteno
+  // Form State: Manutenção
   const [manutForm, setManutForm] = useState({
     tipo: 'Preventiva' as 'Preventiva' | 'Corretiva' | 'Upgrade' | 'Troca',
-    descricao: 'Limpeza fsica interna e substituio de pasta trmica.',
-    valor: 150,
-    responsavel: 'Suporte Interno TI',
+    descricao: '',
+    valor: 0,
+    responsavel: 'Suporte Interno',
   });
 
   const filteredEquipamentos = equipamentos.filter((eq) => {
     if (!eq) return false;
     const search = searchTerm.toLowerCase();
     const matchesSearch =
-      (eq.codigoPatrimonial || '').toLowerCase().includes(search) ||
       (eq.marca || '').toLowerCase().includes(search) ||
       (eq.modelo || '').toLowerCase().includes(search) ||
+      (eq.codigoPatrimonial || '').toLowerCase().includes(search) ||
       (eq.numeroSerie || '').toLowerCase().includes(search) ||
-      (eq.colaboradorNome || '').toLowerCase().includes(search);
+      (eq.colaboradorNome || '').toLowerCase().includes(search) ||
+      (eq.departamento || '').toLowerCase().includes(search);
+
     const matchesCat = categoriaFilter === 'todos' || eq.categoria === categoriaFilter;
     const matchesSit = situacaoFilter === 'todos' || eq.situacao === situacaoFilter;
+
     return matchesSearch && matchesCat && matchesSit;
   });
 
   const handleCreateEquipamento = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!novoForm.codigoPatrimonial || !novoForm.marca || !novoForm.modelo) return;
 
-    const notebookSpecs =
-      novoForm.categoria === 'Notebook'
+    const specsNotebook =
+      novoForm.categoria === 'Notebook' || novoForm.categoria === 'Desktop'
         ? {
             processador: novoForm.processador,
             memoriaRam: novoForm.memoriaRam,
@@ -166,7 +171,7 @@ export function EquipamentosView() {
           }
         : undefined;
 
-    const monitorSpecs =
+    const specsMonitor =
       novoForm.categoria === 'Monitor'
         ? {
             polegadas: novoForm.polegadas,
@@ -182,54 +187,22 @@ export function EquipamentosView() {
         categoria: novoForm.categoria,
         marca: novoForm.marca,
         modelo: novoForm.modelo,
-        numeroSerie: novoForm.numeroSerie || 'SN-' + Date.now(),
+        numeroSerie: novoForm.numeroSerie,
         dataAquisicao: novoForm.dataAquisicao,
         valorCompra: Number(novoForm.valorCompra),
         garantiaMeses: Number(novoForm.garantiaMeses),
-        situacao: novoForm.colaboradorNome ? 'Em Uso' : novoForm.situacao,
+        situacao: novoForm.situacao,
         departamento: novoForm.departamento,
-        colaboradorNome: novoForm.colaboradorNome,
+        colaboradorNome: novoForm.colaboradorNome || undefined,
         localFisica: novoForm.localFisica,
         observacoes: novoForm.observacoes,
-        notebookSpecs,
-        monitorSpecs,
+        notebookSpecs: specsNotebook,
+        monitorSpecs: specsMonitor,
       },
       novoForm.gerarDespesaFinanceira
     );
 
     setIsNovoModalOpen(false);
-  };
-
-  const handleConfirmTransfer = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedEquipamento) return;
-
-    transferirEquipamento(
-      selectedEquipamento.id,
-      transfForm.novoResponsavel,
-      transfForm.novoDepartamento,
-      transfForm.novaLocalizacao,
-      transfForm.observacao
-    );
-
-    setIsTransferModalOpen(false);
-    setSelectedEquipamento(null);
-  };
-
-  const handleAbrirManutencaoSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedEquipamento) return;
-
-    abrirManutencao(
-      selectedEquipamento.id,
-      manutForm.tipo,
-      manutForm.descricao,
-      Number(manutForm.valor),
-      manutForm.responsavel
-    );
-
-    setIsManutencaoModalOpen(false);
-    setSelectedEquipamento(null);
   };
 
   const renderCategoryIcon = (categoria: CategoriaEquipamento) => {
@@ -257,7 +230,7 @@ export function EquipamentosView() {
       {/* HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-foreground">Equipamentos & Hardware ITAM</h2>
+          <h2 className="text-xl font-bold tracking-tight text-foreground">Equipamentos e Hardwares</h2>
           <p className="text-xs text-muted-foreground">
             Cadastro centralizado de ativos físicos, atribuições a colaboradores e histórico de ciclo de vida
           </p>
@@ -267,10 +240,10 @@ export function EquipamentosView() {
         </Button>
       </div>
 
-      {/* BARRA DE FILTROS POR CATEGORIA E BUSCA */}
+      {/* BARRA DE FILTROS POR CATEGORIA, BUSCA E MODO DE VISUALIZAÇÃO */}
       <Card>
-        <CardContent className="p-4 flex flex-col md:flex-row gap-3">
-          <div className="relative flex-1">
+        <CardContent className="p-4 flex flex-col md:flex-row gap-3 items-center">
+          <div className="relative flex-1 w-full">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar por código patrimonial, marca, modelo, serial ou responsável..."
@@ -308,194 +281,349 @@ export function EquipamentosView() {
               </SelectContent>
             </Select>
           </div>
+          <div className="flex items-center gap-1 bg-muted/50 p-1 rounded-lg border shrink-0">
+            <Button
+              variant={viewMode === 'table' ? 'default' : 'ghost'}
+              size="sm"
+              className="h-7 px-2 text-xs"
+              onClick={() => setViewMode('table')}
+              title="Visualização em Lista"
+            >
+              <LayoutList className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant={viewMode === 'cards' ? 'default' : 'ghost'}
+              size="sm"
+              className="h-7 px-2 text-xs"
+              onClick={() => setViewMode('cards')}
+              title="Visualização em Cards"
+            >
+              <LayoutGrid className="h-3.5 w-3.5" />
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
-      {/* TABELA PRINCIPAL DE EQUIPAMENTOS */}
-      <Card>
-        <CardHeader className="py-4">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-semibold">Equipamentos Cadastrados ({filteredEquipamentos.length})</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="text-xs">Patrimônio / Dispositivo</TableHead>
-                <TableHead className="text-xs">Categoria</TableHead>
-                <TableHead className="text-xs">Responsável / Setor</TableHead>
-                <TableHead className="text-xs">Especificações / Serial</TableHead>
-                <TableHead className="text-xs">Valor / Garantia</TableHead>
-                <TableHead className="text-xs">Situação</TableHead>
-                <TableHead className="text-xs text-right">Aes</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredEquipamentos.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-xs text-muted-foreground">
-                    Nenhum equipamento encontrado.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredEquipamentos.map((eq) => (
-                  <TableRow key={eq.id} className="hover:bg-muted/50">
-                    <TableCell>
-                      <div className="flex items-center gap-2.5">
-                        <div className="p-2 rounded-lg bg-muted border border-border shrink-0">
-                          {renderCategoryIcon(eq.categoria)}
-                        </div>
-                        <div>
-                          <div className="font-bold text-xs text-foreground">
-                            {eq.marca} {eq.modelo}
-                          </div>
-                          <span className="text-[10px] font-mono text-primary font-semibold">
-                            {eq.codigoPatrimonial}
-                          </span>
-                        </div>
+      {/* VISUALIZAÇÃO: CARDS OU TABELA */}
+      {viewMode === 'cards' ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredEquipamentos.length === 0 ? (
+            <div className="col-span-full text-center py-12 text-muted-foreground text-xs border rounded-xl bg-card">
+              Nenhum equipamento encontrado.
+            </div>
+          ) : (
+            filteredEquipamentos.map((eq) => (
+              <Card key={eq.id} className="rounded-xl border shadow-xs hover:border-primary/40 transition-all bg-card flex flex-col justify-between">
+                <CardHeader className="p-4 pb-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="p-2 rounded-lg bg-muted border shrink-0">
+                        {renderCategoryIcon(eq.categoria)}
                       </div>
-                    </TableCell>
-
-                    <TableCell className="text-xs">
-                      <Badge variant="outline" className="text-[10px]">
-                        {eq.categoria}
+                      <div className="min-w-0">
+                        <h4 className="font-bold text-xs text-foreground truncate">{eq.marca} {eq.modelo}</h4>
+                        <span className="text-[10px] font-mono text-primary font-semibold block">{eq.codigoPatrimonial}</span>
+                      </div>
+                    </div>
+                    {eq.situacao === 'Em Uso' && (
+                      <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/30 shrink-0">
+                        Em Uso
                       </Badge>
-                    </TableCell>
-
-                    <TableCell className="text-xs">
-                      {eq.colaboradorNome ? (
-                        <div className="flex flex-col">
-                          <span className="font-semibold text-xs text-foreground flex items-center gap-1">
-                            <User className="h-3 w-3 text-muted-foreground" /> {eq.colaboradorNome}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground">{eq.departamento}</span>
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground text-[11px] italic">Estoque TI</span>
-                      )}
-                    </TableCell>
-
-                    <TableCell className="text-xs">
-                      <div className="flex flex-col text-[11px]">
-                        <span className="font-mono text-muted-foreground truncate max-w-[150px]">
-                          S/N: {eq.numeroSerie}
-                        </span>
-                        {eq.notebookSpecs && (
-                          <span className="text-[10px] text-primary truncate max-w-[160px]">
-                            {eq.notebookSpecs.processador} | {eq.notebookSpecs.memoriaRam}
-                          </span>
-                        )}
-                        {eq.monitorSpecs && (
-                          <span className="text-[10px] text-indigo-500 truncate max-w-[160px]">
-                            {eq.monitorSpecs.polegadas} {eq.monitorSpecs.resolucao}
-                          </span>
-                        )}
+                    )}
+                    {eq.situacao === 'Disponível' && (
+                      <Badge variant="outline" className="text-[10px] bg-blue-500/10 text-blue-600 border-blue-500/30 shrink-0">
+                        Disponível
+                      </Badge>
+                    )}
+                    {eq.situacao === 'Manutenção' && (
+                      <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-600 border-amber-500/30 shrink-0">
+                        Manutenção
+                      </Badge>
+                    )}
+                    {eq.situacao === 'Baixa' && (
+                      <Badge variant="destructive" className="text-[10px] shrink-0">
+                        Baixa
+                      </Badge>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="p-4 pt-2 space-y-2.5 text-xs flex-1">
+                  <div className="space-y-1 bg-muted/30 p-2 rounded-lg border text-[11px]">
+                    <div className="flex justify-between items-center text-muted-foreground">
+                      <span>Categoria:</span>
+                      <span className="font-medium text-foreground">{eq.categoria}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-muted-foreground">
+                      <span>Serial (S/N):</span>
+                      <span className="font-mono text-foreground truncate max-w-[130px]">{eq.numeroSerie || 'N/A'}</span>
+                    </div>
+                    {eq.notebookSpecs && (
+                      <div className="flex justify-between items-center text-muted-foreground">
+                        <span>Config:</span>
+                        <span className="text-primary font-medium truncate max-w-[140px]">{eq.notebookSpecs.processador} | {eq.notebookSpecs.memoriaRam}</span>
                       </div>
-                    </TableCell>
+                    )}
+                    <div className="flex justify-between items-center text-muted-foreground">
+                      <span>Responsável:</span>
+                      <span className="font-medium text-foreground truncate max-w-[130px]">{eq.colaboradorNome || 'Estoque TI'}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-muted-foreground">
+                      <span>Setor / Local:</span>
+                      <span className="text-muted-foreground truncate max-w-[130px]">{eq.departamento || eq.localFisica}</span>
+                    </div>
+                  </div>
 
-                    <TableCell className="text-xs">
-                      <div className="flex flex-col">
-                        <span className="font-semibold">
-                          R$ {(eq.valorCompra || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground">
-                          Garantia: {eq.garantiaMeses || 12} meses
-                        </span>
-                      </div>
-                    </TableCell>
-
-                    <TableCell>
-                      {eq.situacao === 'Em Uso' && (
-                        <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
-                          Em Uso
-                        </Badge>
-                      )}
-                      {eq.situacao === 'Disponvel' && (
-                        <Badge variant="outline" className="text-[10px] bg-blue-500/10 text-blue-600 border-blue-500/30">
-                          Disponível
-                        </Badge>
-                      )}
-                      {eq.situacao === 'Manutenção' && (
-                        <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-600 border-amber-500/30">
-                          Manutenção
-                        </Badge>
-                      )}
-                      {eq.situacao === 'Baixa' && (
-                        <Badge variant="destructive" className="text-[10px]">
-                          Baixa / Descarte
-                        </Badge>
-                      )}
-                    </TableCell>
-
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        {/* Botão Transferir */}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 text-xs gap-1"
-                          title="Transferir Responsável"
-                          onClick={() => {
-                            setSelectedEquipamento(eq);
-                            setTransfForm({
-                              novoResponsavel: eq.colaboradorNome || '',
-                              novoDepartamento: eq.departamento || 'Engenharia de Software',
-                              novaLocalizacao: eq.localFisica || 'Estação de Trabalho',
-                              observacao: 'Mudança de titularidade.',
-                            });
-                            setIsTransferModalOpen(true);
-                          }}
-                        >
-                          <ArrowRightLeft className="h-3.5 w-3.5 text-blue-600" />
-                        </Button>
-
-                        {/* Botão Timeline */}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 text-xs gap-1"
-                          title="Histórico / Timeline"
-                          onClick={() => {
-                            setSelectedEquipamento(eq);
-                            setIsTimelineModalOpen(true);
-                          }}
-                        >
-                          <History className="h-3.5 w-3.5 text-indigo-600" />
-                        </Button>
-
-                        {/* Botão Manutenção */}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 text-xs gap-1"
-                          title="Abrir Manutenção"
-                          onClick={() => {
-                            setSelectedEquipamento(eq);
-                            setIsManutencaoModalOpen(true);
-                          }}
-                        >
-                          <Wrench className="h-3.5 w-3.5 text-amber-600" />
-                        </Button>
-
-                        {/* Excluir */}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-muted-foreground hover:text-rose-600"
-                          onClick={() => deleteEquipamento(eq.id)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
+                  <div className="flex justify-between items-center pt-1 border-t text-xs">
+                    <span className="text-muted-foreground">Valor Aquisição:</span>
+                    <span className="font-bold text-foreground">R$ {(eq.valorCompra || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                </CardContent>
+                <div className="p-3 border-t bg-muted/20 flex items-center justify-between rounded-b-xl">
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs px-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 gap-1"
+                      onClick={() => {
+                        setSelectedEquipamento(eq);
+                        setTransfForm({
+                          novoResponsavel: eq.colaboradorNome || '',
+                          novoDepartamento: eq.departamento || 'Engenharia de Software',
+                          novaLocalizacao: eq.localFisica || 'Estação de Trabalho',
+                          observacao: 'Mudança de titularidade.',
+                        });
+                        setIsTransferModalOpen(true);
+                      }}
+                      title="Transferir"
+                    >
+                      <ArrowRightLeft className="h-3.5 w-3.5" /> Transferir
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs px-2 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 gap-1"
+                      onClick={() => {
+                        setSelectedEquipamento(eq);
+                        setIsTimelineModalOpen(true);
+                      }}
+                      title="Histórico"
+                    >
+                      <History className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs px-2 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40 gap-1"
+                      onClick={() => {
+                        setSelectedEquipamento(eq);
+                        setIsManutencaoModalOpen(true);
+                      }}
+                      title="Manutenção"
+                    >
+                      <Wrench className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-muted-foreground hover:text-rose-600"
+                    onClick={() => deleteEquipamento(eq.id)}
+                    title="Excluir"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </Card>
+            ))
+          )}
+        </div>
+      ) : (
+        <Card>
+          <CardHeader className="py-4">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-semibold">Equipamentos Cadastrados ({filteredEquipamentos.length})</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="text-xs">Patrimônio / Dispositivo</TableHead>
+                  <TableHead className="text-xs">Categoria</TableHead>
+                  <TableHead className="text-xs">Responsável / Setor</TableHead>
+                  <TableHead className="text-xs">Especificações / Serial</TableHead>
+                  <TableHead className="text-xs">Valor / Garantia</TableHead>
+                  <TableHead className="text-xs">Situação</TableHead>
+                  <TableHead className="text-xs text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredEquipamentos.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-xs text-muted-foreground">
+                      Nenhum equipamento encontrado.
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                ) : (
+                  filteredEquipamentos.map((eq) => (
+                    <TableRow key={eq.id} className="hover:bg-muted/50">
+                      <TableCell>
+                        <div className="flex items-center gap-2.5">
+                          <div className="p-2 rounded-lg bg-muted border border-border shrink-0">
+                            {renderCategoryIcon(eq.categoria)}
+                          </div>
+                          <div>
+                            <div className="font-bold text-xs text-foreground">
+                              {eq.marca} {eq.modelo}
+                            </div>
+                            <span className="text-[10px] font-mono text-primary font-semibold">
+                              {eq.codigoPatrimonial}
+                            </span>
+                          </div>
+                        </div>
+                      </TableCell>
+
+                      <TableCell className="text-xs">
+                        <Badge variant="outline" className="text-[10px]">
+                          {eq.categoria}
+                        </Badge>
+                      </TableCell>
+
+                      <TableCell className="text-xs">
+                        {eq.colaboradorNome ? (
+                          <div className="flex flex-col">
+                            <span className="font-semibold text-xs text-foreground flex items-center gap-1">
+                              <User className="h-3 w-3 text-muted-foreground" /> {eq.colaboradorNome}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground">{eq.departamento}</span>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-[11px] italic">Estoque TI</span>
+                        )}
+                      </TableCell>
+
+                      <TableCell className="text-xs">
+                        <div className="flex flex-col text-[11px]">
+                          <span className="font-mono text-muted-foreground truncate max-w-[150px]">
+                            S/N: {eq.numeroSerie}
+                          </span>
+                          {eq.notebookSpecs && (
+                            <span className="text-[10px] text-primary truncate max-w-[160px]">
+                              {eq.notebookSpecs.processador} | {eq.notebookSpecs.memoriaRam}
+                            </span>
+                          )}
+                          {eq.monitorSpecs && (
+                            <span className="text-[10px] text-indigo-500 truncate max-w-[160px]">
+                              {eq.monitorSpecs.polegadas} {eq.monitorSpecs.resolucao}
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+
+                      <TableCell className="text-xs">
+                        <div className="flex flex-col">
+                          <span className="font-semibold">
+                            R$ {(eq.valorCompra || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground">
+                            Garantia: {eq.garantiaMeses || 12} meses
+                          </span>
+                        </div>
+                      </TableCell>
+
+                      <TableCell>
+                        {eq.situacao === 'Em Uso' && (
+                          <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
+                            Em Uso
+                          </Badge>
+                        )}
+                        {eq.situacao === 'Disponível' && (
+                          <Badge variant="outline" className="text-[10px] bg-blue-500/10 text-blue-600 border-blue-500/30">
+                            Disponível
+                          </Badge>
+                        )}
+                        {eq.situacao === 'Manutenção' && (
+                          <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-600 border-amber-500/30">
+                            Manutenção
+                          </Badge>
+                        )}
+                        {eq.situacao === 'Baixa' && (
+                          <Badge variant="destructive" className="text-[10px]">
+                            Baixa / Descarte
+                          </Badge>
+                        )}
+                      </TableCell>
+
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          {/* Botão Transferir */}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs gap-1"
+                            title="Transferir Responsável"
+                            onClick={() => {
+                              setSelectedEquipamento(eq);
+                              setTransfForm({
+                                novoResponsavel: eq.colaboradorNome || '',
+                                novoDepartamento: eq.departamento || 'Engenharia de Software',
+                                novaLocalizacao: eq.localFisica || 'Estação de Trabalho',
+                                observacao: 'Mudança de titularidade.',
+                              });
+                              setIsTransferModalOpen(true);
+                            }}
+                          >
+                            <ArrowRightLeft className="h-3.5 w-3.5 text-blue-600" />
+                          </Button>
+
+                          {/* Botão Timeline */}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs gap-1"
+                            title="Histórico / Timeline"
+                            onClick={() => {
+                              setSelectedEquipamento(eq);
+                              setIsTimelineModalOpen(true);
+                            }}
+                          >
+                            <History className="h-3.5 w-3.5 text-indigo-600" />
+                          </Button>
+
+                          {/* Botão Manutenção */}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs gap-1"
+                            title="Abrir Manutenção"
+                            onClick={() => {
+                              setSelectedEquipamento(eq);
+                              setIsManutencaoModalOpen(true);
+                            }}
+                          >
+                            <Wrench className="h-3.5 w-3.5 text-amber-600" />
+                          </Button>
+
+                          {/* Excluir */}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-rose-600"
+                            onClick={() => deleteEquipamento(eq.id)}
+                            title="Excluir Equipamento"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
 
       {/* MODAL: CADASTRO DE NOVO EQUIPAMENTO (COM CAMPOS DINMICOS CONFORME CATEGORIA) */}
       <Dialog open={isNovoModalOpen} onOpenChange={setIsNovoModalOpen}>
