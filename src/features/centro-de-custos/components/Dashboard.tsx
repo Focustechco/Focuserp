@@ -4,6 +4,7 @@ import { CentroCusto } from '../types';
 import { INITIAL_CENTROS } from '../data/initialData';
 import { TituloReceber } from '@/features/contas-receber/types';
 import { ContaPagar } from '@/features/contas-pagar/types';
+import { isItemMatchingCentroStrict } from '../utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TrendingUp, TrendingDown, Activity, PieChart as PieChartIcon } from 'lucide-react';
 import { ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
@@ -43,29 +44,28 @@ export function Dashboard() {
     );
   }
 
-  // Agrupamento de Resultado por Departamento raiz
+  // Agrupamento de Resultado por Departamento / Centro raiz
   const raizes = centros.filter(c => !c.centroPaiId);
-  const dataDepartamentos = raizes.map(c => {
-    let rec = 0;
-    let desp = 0;
-    const cName = (c.nome || c.categoria || '').toLowerCase();
-    
-    contasReceber.forEach(t => {
-      const match = (t.centroCustoId && t.centroCustoId === c.id) ||
-                    (t.centroCustoNome && t.centroCustoNome.toLowerCase() === cName) ||
-                    (t.categoria && t.categoria.toLowerCase().includes(cName));
-      if (match) rec += t.valorOriginal || 0;
-    });
+  const dataDepartamentos = raizes.map(raiz => {
+    const getDescendantIds = (parentId: string): string[] => {
+      const children = centros.filter(c => c.centroPaiId === parentId && c.id !== parentId);
+      let desc: string[] = children.map(c => c.id);
+      children.forEach(ch => {
+        desc = [...desc, ...getDescendantIds(ch.id)];
+      });
+      return desc;
+    };
 
-    contasPagar.forEach(cp => {
-      const match = (cp.centroCustoId && cp.centroCustoId === c.id) ||
-                    (cp.centroCustoNome && cp.centroCustoNome.toLowerCase() === cName) ||
-                    (cp.categoria && cp.categoria.toLowerCase().includes(cName));
-      if (match) desp += cp.valorOriginal || 0;
-    });
+    const targetCenters = centros.filter(c => [raiz.id, ...getDescendantIds(raiz.id)].includes(c.id));
+
+    const rec = contasReceber.filter(t => targetCenters.some(c => isItemMatchingCentroStrict(t, c)))
+      .reduce((acc, t) => acc + (t.valorLiquido || t.valorOriginal || 0), 0);
+
+    const desp = contasPagar.filter(cp => targetCenters.some(c => isItemMatchingCentroStrict(cp, c)))
+      .reduce((acc, cp) => acc + (cp.valorFinal || cp.valorOriginal || 0), 0);
 
     return {
-      name: c.nome,
+      name: raiz.nome,
       Receita: rec,
       Despesa: desp
     };

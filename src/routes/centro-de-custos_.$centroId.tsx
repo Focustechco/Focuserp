@@ -17,6 +17,7 @@ import {
   Activity, DollarSign, Calendar, ExternalLink, ArrowUpRight, ArrowDownRight, Tag 
 } from "lucide-react";
 import { NovoCentroCustoSheet } from "@/features/centro-de-custos/components/NovoCentroCustoSheet";
+import { isItemMatchingCentroStrict } from "@/features/centro-de-custos/utils";
 import { formatDateBrasilia } from "@/lib/dateUtils";
 
 export const Route = createFileRoute("/centro-de-custos_/$centroId")({
@@ -48,33 +49,40 @@ function PerfilCentroCustoPage() {
     );
   }
 
-  const cName = (centro.categoria || centro.nome || '').toLowerCase();
-  const deptName = (centro.departamento || '').toLowerCase();
+  // Obter centro atual e seus descendentes na hierarquia
+  const allCentroIds = useMemo(() => {
+    if (!centro) return [];
+    const getDescendants = (parentId: string): string[] => {
+      const children = centros.filter(c => c.centroPaiId === parentId && c.id !== parentId);
+      let desc: string[] = children.map(c => c.id);
+      children.forEach(ch => {
+        desc = [...desc, ...getDescendants(ch.id)];
+      });
+      return desc;
+    };
+    return [centro.id, ...getDescendants(centro.id)];
+  }, [centro, centros]);
 
-  // Despesas reais vinculadas
+  const targetCentros = useMemo(() => {
+    return centros.filter(c => allCentroIds.includes(c.id));
+  }, [centros, allCentroIds]);
+
+  // Despesas reais estritamente vinculadas
   const despesasVinculadas = useMemo(() => {
     return contasPagar.filter(cp => {
-      const cpCat = (cp.categoria || '').toLowerCase();
-      return (cp.centroCustoId && cp.centroCustoId === centro.id) ||
-             (cp.centroCustoNome && cp.centroCustoNome.toLowerCase() === centro.nome.toLowerCase()) ||
-             (cp.centroCusto && cp.centroCusto.toLowerCase() === centro.nome.toLowerCase()) ||
-             cpCat.includes(cName) || cName.includes(cpCat) || (deptName && cpCat.includes(deptName));
+      return targetCentros.some(c => isItemMatchingCentroStrict(cp, c));
     });
-  }, [contasPagar, centro, cName, deptName]);
+  }, [contasPagar, targetCentros]);
 
-  // Receitas reais vinculadas
+  // Receitas reais estritamente vinculadas
   const receitasVinculadas = useMemo(() => {
     return contasReceber.filter(t => {
-      const tCat = (t.categoria || '').toLowerCase();
-      return (t.centroCustoId && t.centroCustoId === centro.id) ||
-             (t.centroCustoNome && t.centroCustoNome.toLowerCase() === centro.nome.toLowerCase()) ||
-             (t.centroCusto && t.centroCusto.toLowerCase() === centro.nome.toLowerCase()) ||
-             tCat.includes(cName) || cName.includes(tCat) || (deptName && tCat.includes(deptName));
+      return targetCentros.some(c => isItemMatchingCentroStrict(t, c));
     });
-  }, [contasReceber, centro, cName, deptName]);
+  }, [contasReceber, targetCentros]);
 
-  const totalReceita = receitasVinculadas.reduce((acc, t) => acc + (t.valorOriginal || 0), 0);
-  const totalDespesa = despesasVinculadas.reduce((acc, cp) => acc + (cp.valorOriginal || 0), 0);
+  const totalReceita = receitasVinculadas.reduce((acc, t) => acc + (t.valorLiquido || t.valorOriginal || 0), 0);
+  const totalDespesa = despesasVinculadas.reduce((acc, cp) => acc + (cp.valorFinal || cp.valorOriginal || 0), 0);
   const numLancamentos = receitasVinculadas.length + despesasVinculadas.length;
   const resultadoLiquido = totalReceita - totalDespesa;
 
