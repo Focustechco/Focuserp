@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SelectResponsavel } from '@/components/SelectResponsavel';
 import { useNotificacoesStore } from '@/features/notificacoes/useNotificacoesStore';
 import { ItemBacklog, TipoItemBacklog, StatusKanban, PrioridadeDev } from '../types';
@@ -58,21 +59,24 @@ export function NovoItemBacklogSheet({
       responsavel: form.responsavel || 'Desenvolvedor',
       storyPoints: Number(form.storyPoints) || 1,
       estimativaHoras: Number(form.estimativaHoras) || 4,
+      horasApontadas: 0,
+      tags: [form.tipoItem, form.prioridade],
+      criteriosAceite: [
+        { id: `crit-${Date.now()}-1`, descricao: 'Funcionalidade validada e aprovada em QA', concluido: false },
+        { id: `crit-${Date.now()}-2`, descricao: 'Testes de integração automatizados passando', concluido: false }
+      ],
+      updatedAt: new Date().toISOString(),
     });
 
-    if (form.responsavel) {
-      notificar({
-        titulo: `Nova tarefa atribuída a você: "${form.titulo}"`,
-        descricao: `Você foi definido como responsável por um item no backlog (${form.tipoItem}, Prioridade: ${form.prioridade}).`,
-        origem: 'Projetos',
-        tipo: 'Informação',
-        prioridade: (form.prioridade === 'Crítica' || form.prioridade === 'Alta') ? 'Alta' : 'Normal',
-        targetUrl: '/desenvolvimento',
-        usuarioDestino: form.responsavel
-      });
-    }
+    notificar({
+      titulo: `Novo Item no Backlog`,
+      descricao: `"${form.titulo}" (${form.tipoItem}) adicionado com sucesso ao projeto.`,
+      origem: 'Desenvolvimento',
+      tipo: 'Info',
+      prioridade: form.prioridade === 'Crítica' ? 'Urgente' : 'Normal',
+      targetUrl: '/desenvolvimento',
+    });
 
-    onOpenChange(false);
     setForm({
       titulo: '',
       descricao: '',
@@ -83,35 +87,47 @@ export function NovoItemBacklogSheet({
       storyPoints: 3,
       estimativaHoras: 8,
     });
+
+    onOpenChange(false);
   };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="sm:max-w-md overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle className="text-lg font-bold flex items-center gap-2">
-            <Layers className="h-5 w-5 text-primary" /> Criar Item no Backlog / Sprint
+        <SheetHeader className="pb-4 border-b">
+          <SheetTitle className="flex items-center gap-2 text-base font-bold">
+            <Code2 className="w-5 h-5 text-primary" /> Novo Item de Backlog / Engenharia
           </SheetTitle>
           <SheetDescription className="text-xs">
-            Cadastre novas histórias de usuário, épicos, tarefas técnicas ou melhorias.
+            Crie épicos, histórias, tarefas de arquitetura ou bugs para o pipeline técnico.
           </SheetDescription>
         </SheetHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 py-4 text-xs">
-          <div className="space-y-1">
-            <Label className="text-xs font-semibold">Título do Item *</Label>
+          <div className="space-y-1.5">
+            <Label className="font-semibold text-foreground">Título do Item *</Label>
             <Input
               required
-              placeholder="Ex: Implementar Webhooks de Pagamento PIX"
+              placeholder="Ex: Desenvolver endpoint de conciliação bancária OFX"
               value={form.titulo}
-              onChange={(e) => setForm({ ...form, titulo: e.target.value })}
+              onChange={e => setForm({ ...form, titulo: e.target.value })}
               className="text-xs"
             />
           </div>
 
+          <div className="space-y-1.5">
+            <Label className="font-semibold text-foreground">Descrição Técnica & Critérios</Label>
+            <Textarea
+              placeholder="Descreva a especificação, dependências e impacto na arquitetura..."
+              value={form.descricao}
+              onChange={e => setForm({ ...form, descricao: e.target.value })}
+              className="min-h-[90px] text-xs resize-none"
+            />
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label className="text-xs font-semibold">Tipo de Item *</Label>
+            <div className="space-y-1.5">
+              <Label className="font-semibold text-foreground">Tipo de Item</Label>
               <Select value={form.tipoItem} onValueChange={(val: TipoItemBacklog) => setForm({ ...form, tipoItem: val })}>
                 <SelectTrigger className="text-xs">
                   <SelectValue />
@@ -127,8 +143,8 @@ export function NovoItemBacklogSheet({
               </Select>
             </div>
 
-            <div className="space-y-1">
-              <Label className="text-xs font-semibold">Prioridade *</Label>
+            <div className="space-y-1.5">
+              <Label className="font-semibold text-foreground">Prioridade</Label>
               <Select value={form.prioridade} onValueChange={(val: PrioridadeDev) => setForm({ ...form, prioridade: val })}>
                 <SelectTrigger className="text-xs">
                   <SelectValue />
@@ -144,40 +160,42 @@ export function NovoItemBacklogSheet({
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label className="text-xs font-semibold">Story Points (Fibonacci)</Label>
+            <div className="space-y-1.5">
+              <Label className="font-semibold text-foreground">Story Points (Fibonacci)</Label>
               <Input
                 type="number"
-                min={1}
-                max={13}
+                min="1"
+                max="100"
                 value={form.storyPoints}
-                onChange={(e) => setForm({ ...form, storyPoints: Number(e.target.value) })}
+                onChange={e => setForm({ ...form, storyPoints: parseInt(e.target.value) || 1 })}
                 className="text-xs"
               />
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs font-semibold">Estimativa em Horas</Label>
+
+            <div className="space-y-1.5">
+              <Label className="font-semibold text-foreground">Estimativa em Horas (h)</Label>
               <Input
                 type="number"
-                min={1}
+                min="1"
+                max="500"
                 value={form.estimativaHoras}
-                onChange={(e) => setForm({ ...form, estimativaHoras: Number(e.target.value) })}
+                onChange={e => setForm({ ...form, estimativaHoras: parseInt(e.target.value) || 1 })}
                 className="text-xs"
               />
             </div>
           </div>
 
-          <div className="space-y-1">
-            <Label className="text-xs font-semibold">Responsável pela Tarefa</Label>
+          <div className="space-y-1.5">
+            <Label className="font-semibold text-foreground">Responsável / Tech Owner</Label>
             <SelectResponsavel
               value={form.responsavel}
-              onValueChange={(val) => setForm({ ...form, responsavel: val })}
-              placeholder="Selecione o Usuário Responsável"
+              onValueChange={val => setForm({ ...form, responsavel: val })}
+              placeholder="Selecione o desenvolvedor..."
             />
           </div>
 
-          <div className="space-y-1">
-            <Label className="text-xs font-semibold">Coluna Kanban Inicial</Label>
+          <div className="space-y-1.5">
+            <Label className="font-semibold text-foreground">Status Inicial do Kanban</Label>
             <Select value={form.status} onValueChange={(val: StatusKanban) => setForm({ ...form, status: val })}>
               <SelectTrigger className="text-xs">
                 <SelectValue />
@@ -193,23 +211,31 @@ export function NovoItemBacklogSheet({
             </Select>
           </div>
 
-          <div className="space-y-1">
-            <Label className="text-xs font-semibold">Descrição & Critérios de Aceite</Label>
-            <Textarea
-              rows={4}
-              placeholder="Descreva a estória, regras de negócio e critérios de aceite..."
-              value={form.descricao}
-              onChange={(e) => setForm({ ...form, descricao: e.target.value })}
-              className="text-xs"
-            />
+          <div className="pt-2">
+            <div className="p-3 bg-muted/40 rounded-xl border space-y-1">
+              <span className="font-semibold text-foreground text-xs flex items-center gap-1.5">
+                <CheckSquare className="w-3.5 h-3.5 text-primary" /> Critérios de Aceite Padrão
+              </span>
+              <p className="text-[11px] text-muted-foreground">
+                Serão incluídos automaticamente checklists de validação funcional e cobertura de testes.
+              </p>
+            </div>
           </div>
 
-          <SheetFooter className="pt-4">
-            <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+          <SheetFooter className="pt-4 border-t flex flex-col sm:flex-row gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              className="text-xs w-full sm:w-auto"
+            >
               Cancelar
             </Button>
-            <Button type="submit" size="sm" className="gap-1.5 font-semibold">
-              <Plus className="h-4 w-4" /> Adicionar Tarefa
+            <Button
+              type="submit"
+              className="text-xs w-full sm:w-auto bg-primary text-primary-foreground font-semibold"
+            >
+              <Plus className="w-3.5 h-3.5 mr-1" /> Criar Item
             </Button>
           </SheetFooter>
         </form>
