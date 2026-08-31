@@ -8,7 +8,6 @@ import {
   Award,
   TrendingUp,
   ShieldCheck,
-  Sparkles,
   LayoutDashboard,
   Plus,
 } from 'lucide-react';
@@ -18,7 +17,7 @@ import { OnboardingView } from './OnboardingView';
 import { NpsSurveysView } from './NpsSurveysView';
 import { ExpansaoPipelineView } from './ExpansaoPipelineView';
 import { PlanosAcaoView } from './PlanosAcaoView';
-import { Workspace360View } from './Workspace360View';
+import { ModalWorkspace360 } from './ModalWorkspace360';
 import { DashboardExecutivoCs } from './DashboardExecutivoCs';
 import { ModalRegistrarNps } from './ModalRegistrarNps';
 import { ModalNovaAcaoCs } from './ModalNovaAcaoCs';
@@ -41,7 +40,7 @@ export function CustomerSuccessScreen() {
   } = useCustomerSuccess();
 
   const [activeTab, setActiveTab] = useState<
-    'carteira' | 'onboarding' | 'nps' | 'expansao' | 'planos' | 'workspace_360' | 'dashboard'
+    'carteira' | 'onboarding' | 'nps' | 'expansao' | 'planos' | 'dashboard'
   >('carteira');
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
 
@@ -76,17 +75,12 @@ export function CustomerSuccessScreen() {
   }, [clients, csCustomers]);
 
   const selectedClient = useMemo(() => {
-    if (!selectedClientId) return combinedClients[0] || null;
-    return combinedClients.find((c) => c.id === selectedClientId) || combinedClients[0] || null;
+    if (!selectedClientId) return null;
+    return combinedClients.find((c) => c.id === selectedClientId) || null;
   }, [combinedClients, selectedClientId]);
 
   const handleSelectClient = (clientId: string) => {
     setSelectedClientId(clientId);
-    setActiveTab('workspace_360');
-  };
-
-  const handleBackToCarteira = () => {
-    setActiveTab('carteira');
   };
 
   return (
@@ -98,7 +92,7 @@ export function CustomerSuccessScreen() {
             <Heart className="h-8 w-8 text-rose-500 fill-rose-500/20" /> Customer Service
           </h1>
           <p className="text-muted-foreground mt-1 text-sm">
-            Gestão estratégica 360° do ciclo de vida do cliente: Onboarding, Health Score, NPS, Retenção e Expansão
+            Gestão estratégica do ciclo de vida do cliente: Onboarding, Health Score, NPS, Retenção e Expansão
           </p>
         </div>
 
@@ -145,13 +139,6 @@ export function CustomerSuccessScreen() {
             </TabsTrigger>
             <TabsTrigger value="planos" className="gap-2 shrink-0 text-xs font-semibold">
               <ShieldCheck className="h-4 w-4" /> Planos de Ação
-            </TabsTrigger>
-            <TabsTrigger
-              value="workspace_360"
-              disabled={!selectedClient}
-              className="gap-2 shrink-0 text-xs font-semibold"
-            >
-              <Sparkles className="h-4 w-4" /> Workspace 360° {selectedClient ? `(${selectedClient.nomeFantasia || selectedClient.razaoSocial})` : ''}
             </TabsTrigger>
             <TabsTrigger value="dashboard" className="gap-2 shrink-0 text-xs font-semibold">
               <LayoutDashboard className="h-4 w-4" /> Dashboard
@@ -210,27 +197,7 @@ export function CustomerSuccessScreen() {
           />
         </TabsContent>
 
-        {/* ABA 6: WORKSPACE 360° INDIVIDUAL */}
-        <TabsContent value="workspace_360" className="m-0 focus-visible:outline-none">
-          {selectedClient && (
-            <Workspace360View
-              client={selectedClient}
-              onboardingSteps={onboardingSteps}
-              healthFactors={healthFactors}
-              npsSurveys={npsSurveys}
-              expansions={expansions}
-              actionPlans={actionPlans}
-              timelines={timelines}
-              toggleOnboardingStep={toggleOnboardingStep}
-              onOpenNovoNps={() => setIsNpsModalOpen(true)}
-              onOpenNovaAcao={() => setIsActionModalOpen(true)}
-              onOpenNovaExpansao={() => setIsExpansionModalOpen(true)}
-              onBackToCarteira={handleBackToCarteira}
-            />
-          )}
-        </TabsContent>
-
-        {/* ABA 7: DASHBOARD EXECUTIVO CS (EXTREMA DIREITA) */}
+        {/* ABA 6: DASHBOARD EXECUTIVO CS (EXTREMA DIREITA) */}
         <TabsContent value="dashboard" className="m-0 focus-visible:outline-none">
           <DashboardExecutivoCs
             clients={combinedClients}
@@ -239,6 +206,23 @@ export function CustomerSuccessScreen() {
           />
         </TabsContent>
       </Tabs>
+
+      {/* MODAL WORKSPACE 360° DO CLIENTE */}
+      <ModalWorkspace360
+        open={!!selectedClientId}
+        onOpenChange={(open) => !open && setSelectedClientId(null)}
+        client={selectedClient}
+        onboardingSteps={onboardingSteps}
+        healthFactors={healthFactors}
+        npsSurveys={npsSurveys}
+        expansions={expansions}
+        actionPlans={actionPlans}
+        timelines={timelines}
+        toggleOnboardingStep={toggleOnboardingStep}
+        onOpenNovoNps={() => setIsNpsModalOpen(true)}
+        onOpenNovaAcao={() => setIsActionModalOpen(true)}
+        onOpenNovaExpansao={() => setIsExpansionModalOpen(true)}
+      />
 
       {/* MODAL REGISTRAR NPS */}
       <ModalRegistrarNps
