@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { 
   Search, Filter, Calendar, RefreshCw, ArrowUpRight, 
   DollarSign, Clock, Sparkles, FileText, CheckCircle2, 
-  TrendingUp, Layers, ChevronRight, Trash2
+  TrendingUp, Layers, ChevronRight, Trash2, UserX
 } from 'lucide-react';
 import {
   Dialog,
@@ -27,6 +27,7 @@ import { addMonths, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { toast } from 'sonner';
 import { useNotificacoesStore } from '@/features/notificacoes/useNotificacoesStore';
 import { useContasReceberQuery } from '../hooks/useContasReceberQuery';
+import { useClientesQuery } from '@/features/clientes/hooks/useClientesQuery';
 
 export interface RecebimentoFuturoItem {
   id: string;
@@ -54,6 +55,7 @@ export function RecebimentosFuturosTab() {
   const [isEmitindo, setIsEmitindo] = useState<string | null>(null);
   const [itemParaExcluir, setItemParaExcluir] = useState<RecebimentoFuturoItem | null>(null);
 
+  const { clientes = [] } = useClientesQuery();
   const { data: recorrencias = [], setAllItems: setAllRecorrencias } = useLocalStorageState<RecorrenciaFinanceira>('focus_recorrencias');
   const { data: contratos = [], setAllItems: setAllContratos } = useLocalStorageState<Contrato>('focus_contratos');
   const { data: localTitulos = [], setAllItems: setAllTitulos, saveItem: saveLocalTitulo } = useLocalStorageState<TituloReceber>('focus_contas_receber');
@@ -63,6 +65,28 @@ export function RecebimentosFuturosTab() {
 
   const hojeStr = getBrasiliaTodayIso();
   const hoje = new Date();
+
+  // Mapeamento de clientes válidos e ativos
+  const validClientsMap = useMemo(() => {
+    const map = new Map<string, string>();
+    clientes.forEach(c => {
+      if (c && c.id) {
+        map.set(String(c.id), c.nomeFantasia || c.razaoSocial || 'Cliente');
+      }
+    });
+    return map;
+  }, [clientes]);
+
+  const validClientNamesSet = useMemo(() => {
+    const set = new Set<string>();
+    clientes.forEach(c => {
+      if (c) {
+        if (c.nomeFantasia) set.add(c.nomeFantasia.trim().toLowerCase());
+        if (c.razaoSocial) set.add(c.razaoSocial.trim().toLowerCase());
+      }
+    });
+    return set;
+  }, [clientes]);
 
   // 1. Mapeia todos os títulos já emitidos para não duplicar no cronograma futuro
   const titulosExistentesMap = useMemo(() => {
@@ -78,14 +102,21 @@ export function RecebimentosFuturosTab() {
     return set;
   }, [localTitulos]);
 
-  // 2. Projeta os meses futuros a partir das Recorrências ativas e Contratos vigentes
+  // 2. Projeta os meses futuros a partir das Recorrências ativas e Contratos vigentes de clientes EXISTENTES
   const todosFuturos = useMemo(() => {
     const lista: RecebimentoFuturoItem[] = [];
 
     // Recorrências Ativas
-    const recsAtivas = recorrencias.filter(r => r.status === 'Ativa');
+    const recsAtivas = recorrencias.filter(r => r && r.status === 'Ativa');
     recsAtivas.forEach(rec => {
       if (dispensados.includes(rec.id)) return;
+
+      // Se clientes já foram carregados e o cliente da recorrência não existe mais, IGNORAR (excluído em cascata)
+      if (clientes.length > 0) {
+        const hasValidId = rec.clientId && validClientsMap.has(rec.clientId);
+        const hasValidName = rec.clienteNome && validClientNamesSet.has(rec.clienteNome.trim().toLowerCase());
+        if (!hasValidId && !hasValidName) return;
+      }
 
       const datas = generateRecorrenciaDates(rec, 60);
       const totalCiclos = rec.quantidade && rec.quantidade > 0 ? rec.quantidade : (rec.dataFim || rec.dataFinal ? datas.length : undefined);
@@ -120,10 +151,19 @@ export function RecebimentosFuturosTab() {
     });
 
     // Contratos Vigentes sem recorrência cadastrada
-    const clientIdsComRec = new Set(recsAtivas.map(r => r.clientId));
+    const clientIdsComRec = new Set(recsAtivas.map(r => r.clientId).filter(Boolean));
     contratos.forEach(c => {
+      if (!c) return;
       if (dispensados.includes(c.id) || dispensados.includes(`rec-contrato-${c.id}`)) return;
       if (c.clienteId && clientIdsComRec.has(c.clienteId)) return;
+
+      // Se clientes foram carregados e o cliente não existe mais, IGNORAR
+      if (clientes.length > 0) {
+        const hasValidId = c.clienteId && validClientsMap.has(c.clienteId);
+        const hasValidName = c.clienteNome && validClientNamesSet.has(c.clienteNome.trim().toLowerCase());
+        if (!hasValidId && !hasValidName) return;
+      }
+
       if (c.status === 'Ativo' || c.status === 'Vigente') {
         const valorMensal = Number(c.valorMensal || (c as any).valorMensalidade || 0);
         if (valorMensal > 0 && c.dataInicio) {
@@ -180,7 +220,7 @@ export function RecebimentosFuturosTab() {
     // Ordenação estritamente cronológica por vencimento previsto
     lista.sort((a, b) => a.dataVencimentoPrevista.localeCompare(b.dataVencimentoPrevista));
     return lista;
-  }, [recorrencias, contratos, titulosExistentesMap, hojeStr, dispensados]);
+  }, [recorrencias, contratos, titulosExistentesMap, hojeStr, dispensados, clientes, validClientsMap, validClientNamesSet]);
 
   // 3. Filtragem de Período e Busca
   const dataLimitePeriodo = useMemo(() => {
@@ -227,9 +267,17 @@ export function RecebimentosFuturosTab() {
 
   const totalMRRRecorrente = useMemo(() => {
     return recorrencias
-      .filter(r => r.status === 'Ativa')
+      .filter(r => {
+        if (!r || r.status !== 'Ativa') return false;
+        if (clientes.length > 0) {
+          const hasValidId = r.clientId && validClientsMap.has(r.clientId);
+          const hasValidName = r.clienteNome && validClientNamesSet.has(r.clienteNome.trim().toLowerCase());
+          if (!hasValidId && !hasValidName) return false;
+        }
+        return true;
+      })
       .reduce((acc, r) => acc + Number(r.valor || 0), 0);
-  }, [recorrencias]);
+  }, [recorrencias, clientes, validClientsMap, validClientNamesSet]);
 
   // 5. Ação: Emitir / Antecipar Título Oficial no Contas a Receber
   const handleEmitirTituloAgora = async (item: RecebimentoFuturoItem) => {
@@ -249,7 +297,7 @@ export function RecebimentosFuturosTab() {
         dataEmissao: hojeStr,
         dataVencimento: item.dataVencimentoPrevista,
         formaPagamento: 'Boleto',
-        status: 'Pendente', // REGRA: Sempre nasce Pendente para quitação posterior
+        status: 'Pendente',
         responsavel: 'Financeiro Focus ERP',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -275,15 +323,23 @@ export function RecebimentosFuturosTab() {
     }
   };
 
-  // 6. Ação: Excluir / Cancelar Recorrência Completa
+  // 6. Ação: Excluir Toda a Recorrência Deste Item
   const handleExcluirRecorrenciaCompleta = (item: RecebimentoFuturoItem) => {
+    const itemCliNome = (item.clienteNome || '').trim().toLowerCase();
+
     // Remover de recorrencias
-    const novasRecs = recorrencias.filter(r => r.id !== item.origemId && r.id !== `rec-${item.origemId}`);
+    const novasRecs = recorrencias.filter(r => {
+      if (!r) return false;
+      if (r.id === item.origemId || r.id === `rec-${item.origemId}`) return false;
+      if (item.clienteId && r.clientId === item.clienteId && r.descricao === item.descricao) return false;
+      if (itemCliNome && (r.clienteNome || '').trim().toLowerCase() === itemCliNome && r.descricao === item.descricao) return false;
+      return true;
+    });
     setAllRecorrencias(novasRecs);
 
     // Se for contrato, desativar
     const novosContratos = contratos.map(c => {
-      if (c.id === item.origemId) {
+      if (c.id === item.origemId || (item.clienteId && c.clienteId === item.clienteId)) {
         return { ...c, status: 'Encerrado' as const };
       }
       return c;
@@ -291,13 +347,36 @@ export function RecebimentosFuturosTab() {
     setAllContratos(novosContratos);
 
     // Adicionar aos dispensados
-    setAllDispensados([...dispensados, item.origemId, `rec-contrato-${item.origemId}`]);
+    setAllDispensados([...dispensados, item.origemId, item.id, `rec-contrato-${item.origemId}`]);
 
     toast.success(`Recorrência "${item.descricao}" excluída com sucesso!`);
     setItemParaExcluir(null);
   };
 
-  // 7. Ação: Dispensar apenas este ciclo específico
+  // 7. Ação: Excluir TODAS as recorrências do cliente selecionado
+  const handleExcluirTodasDoCliente = (item: RecebimentoFuturoItem) => {
+    const itemCliNome = (item.clienteNome || '').trim().toLowerCase();
+
+    const novasRecs = recorrencias.filter(r => {
+      if (!r) return false;
+      if (item.clienteId && r.clientId === item.clienteId) return false;
+      if (itemCliNome && (r.clienteNome || '').trim().toLowerCase() === itemCliNome) return false;
+      return true;
+    });
+    setAllRecorrencias(novasRecs);
+
+    const novosContratos = contratos.map(c => {
+      if (item.clienteId && c.clienteId === item.clienteId) return { ...c, status: 'Encerrado' as const };
+      if (itemCliNome && (c.clienteNome || '').trim().toLowerCase() === itemCliNome) return { ...c, status: 'Encerrado' as const };
+      return c;
+    });
+    setAllContratos(novosContratos);
+
+    toast.success(`Todas as recorrências e previsões do cliente "${item.clienteNome}" foram excluídas!`);
+    setItemParaExcluir(null);
+  };
+
+  // 8. Ação: Dispensar apenas este ciclo específico
   const handleDispensarApenasEsteCiclo = (item: RecebimentoFuturoItem) => {
     setAllDispensados([...dispensados, item.id]);
     toast.success(`Ciclo "${item.cicloLabel}" (${formatDateBrasilia(item.dataVencimentoPrevista)}) dispensado da projeção.`);
@@ -485,8 +564,8 @@ export function RecebimentosFuturosTab() {
                         size="icon"
                         variant="ghost"
                         onClick={() => setItemParaExcluir(item)}
-                        title="Excluir ou Dispensar Opção"
-                        className="h-7 w-7 text-muted-foreground hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                        title="Excluir ou Dispensar Recorrência"
+                        className="h-7 w-7 text-muted-foreground hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </Button>
@@ -501,21 +580,22 @@ export function RecebimentosFuturosTab() {
 
       {/* Modal de Exclusão / Cancelamento de Recorrência */}
       <Dialog open={!!itemParaExcluir} onOpenChange={(open) => !open && setItemParaExcluir(null)}>
-        <DialogContent className="sm:max-w-[480px]">
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-rose-600 dark:text-rose-400">
-              <Trash2 className="w-5 h-5" /> Excluir Opção Futura
+              <Trash2 className="w-5 h-5" /> Excluir Recorrência / Previsão Futura
             </DialogTitle>
             <DialogDescription className="pt-2 text-sm text-foreground">
-              Você selecionou <span className="font-semibold text-foreground">{itemParaExcluir?.descricao}</span> ({itemParaExcluir?.clienteNome}) com previsão para <span className="font-semibold text-foreground">{itemParaExcluir && formatDateBrasilia(itemParaExcluir.dataVencimentoPrevista)}</span> no valor de <span className="font-semibold text-emerald-600">{itemParaExcluir && formatCurrency(itemParaExcluir.valorPrevisto)}</span>.
+              Você selecionou <span className="font-semibold text-foreground">{itemParaExcluir?.descricao}</span> do cliente <span className="font-bold text-orange-600">{itemParaExcluir?.clienteNome}</span> no valor de <span className="font-semibold text-emerald-600">{itemParaExcluir && formatCurrency(itemParaExcluir.valorPrevisto)}</span>.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="p-3 bg-muted/50 rounded-lg text-xs space-y-2 border">
-            <p className="font-medium text-foreground">Escolha a ação desejada:</p>
-            <ul className="list-disc pl-4 space-y-1 text-muted-foreground">
-              <li><strong className="text-foreground">Excluir Toda a Recorrência:</strong> Remove permanentemente todas as parcelas/ciclos futuros desta recorrência.</li>
-              <li><strong className="text-foreground">Dispensar Apenas Este Ciclo:</strong> Oculta somente este mês ({itemParaExcluir?.cicloLabel}), mantendo os demais.</li>
+          <div className="p-3 bg-muted/50 rounded-xl text-xs space-y-2 border">
+            <p className="font-medium text-foreground">Escolha a ação de exclusão:</p>
+            <ul className="list-disc pl-4 space-y-1.5 text-muted-foreground">
+              <li><strong className="text-foreground">Excluir Esta Recorrência:</strong> Remove todas as parcelas e projeções futuras deste serviço/contrato.</li>
+              <li><strong className="text-foreground">Excluir Todas do Cliente:</strong> Remove todas as recorrências e vínculos financeiros deste cliente.</li>
+              <li><strong className="text-foreground">Dispensar Apenas Este Mês:</strong> Oculta apenas o vencimento ({itemParaExcluir?.cicloLabel}).</li>
             </ul>
           </div>
 
@@ -524,7 +604,7 @@ export function RecebimentosFuturosTab() {
               variant="outline"
               size="sm"
               onClick={() => setItemParaExcluir(null)}
-              className="w-full sm:w-auto"
+              className="w-full sm:w-auto text-xs"
             >
               Cancelar
             </Button>
@@ -534,15 +614,23 @@ export function RecebimentosFuturosTab() {
               onClick={() => itemParaExcluir && handleDispensarApenasEsteCiclo(itemParaExcluir)}
               className="w-full sm:w-auto text-xs"
             >
-              Dispensar Apenas Este Ciclo
+              Dispensar Apenas Este Mês
             </Button>
             <Button
               variant="destructive"
               size="sm"
               onClick={() => itemParaExcluir && handleExcluirRecorrenciaCompleta(itemParaExcluir)}
-              className="w-full sm:w-auto text-xs"
+              className="w-full sm:w-auto text-xs font-semibold"
             >
-              Excluir Toda a Recorrência
+              Excluir Esta Recorrência
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => itemParaExcluir && handleExcluirTodasDoCliente(itemParaExcluir)}
+              className="w-full sm:w-auto text-xs font-bold bg-rose-700 hover:bg-rose-800"
+            >
+              <UserX className="w-3 h-3 mr-1" /> Excluir Todas do Cliente
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -552,9 +640,9 @@ export function RecebimentosFuturosTab() {
       <div className="p-3.5 bg-blue-50/60 dark:bg-blue-950/20 border border-blue-200/60 dark:border-blue-800/40 rounded-xl text-xs text-blue-900 dark:text-blue-200 flex items-start gap-3">
         <Sparkles className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
         <div className="space-y-0.5">
-          <p className="font-semibold text-xs">Regra de Previsibilidade Financeira:</p>
+          <p className="font-semibold text-xs">Regra de Previsibilidade Financeira & Recorrências:</p>
           <p className="text-[11px] text-blue-700/90 dark:text-blue-300/80 leading-relaxed">
-            Os recebimentos futuros são projeções das recorrências e contratos ativos. Eles <strong>não impactam o saldo realizado de caixa</strong> e possuem status estrito de <strong>Programado</strong> até que sejam emitidos ou cheguem ao seu ciclo vigente.
+            Ao excluir um cliente no sistema, suas <strong>recorrências ativas, contratos e previsões futuras são removidas automaticamente em cascata</strong> do Contas a Receber.
           </p>
         </div>
       </div>

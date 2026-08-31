@@ -27,6 +27,9 @@ export function useClientesQuery() {
     mutationFn: (cliente: ClienteDTO) => clienteService.saveCliente(cliente),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clientes'] });
+      queryClient.invalidateQueries({ queryKey: ['contas-receber'] });
+      queryClient.invalidateQueries({ queryKey: ['recorrencias'] });
+      queryClient.invalidateQueries({ queryKey: ['contratos'] });
       toast.success('Cliente salvo com sucesso!');
     },
     onError: (err: Error) => {
@@ -39,7 +42,11 @@ export function useClientesQuery() {
     mutationFn: (id: string) => clienteService.deleteCliente(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clientes'] });
-      toast.success('Cliente removido com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ['contas-receber'] });
+      queryClient.invalidateQueries({ queryKey: ['recorrencias'] });
+      queryClient.invalidateQueries({ queryKey: ['contratos'] });
+      queryClient.invalidateQueries({ queryKey: ['titulos'] });
+      toast.success('Cliente e suas recorrências foram removidos com sucesso!');
     },
     onError: (err: Error) => {
       toast.error(`Erro ao remover cliente: ${err.message}`);
