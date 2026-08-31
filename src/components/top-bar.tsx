@@ -1,7 +1,4 @@
-import focusLogoMobile from "@/assets/focus-logo-mobile.png";
-import focusLogoMobileDark from "@/assets/focus-logo-mobile-dark.png";
-import focusLogoMobileIos from "@/assets/focus-logo-mobile-ios.png";
-import focusLogoMobileIosDark from "@/assets/focus-logo-mobile-ios-dark.png";
+import { FocusLogo } from "@/components/FocusLogo";
 import { Link } from "@tanstack/react-router";
 import React, { useState, useEffect } from "react";
 import { 
@@ -106,10 +103,6 @@ export function TopBar() {
     setQuery("");
   };
 
-  // Determine light/dark logos for mobile iOS or general mobile
-  const mobileLightLogo = isIOS ? focusLogoMobileIos : focusLogoMobile;
-  const mobileDarkLogo = isIOS ? focusLogoMobileIosDark : focusLogoMobileDark;
-
   return (
     <>
       <header className="sticky top-0 z-30 flex items-center gap-2 sm:gap-3 border-b bg-background/90 px-3 sm:px-4 backdrop-blur-md pt-[env(safe-area-inset-top,0px)] min-h-[3.75rem] py-1.5 transition-all">
@@ -118,16 +111,7 @@ export function TopBar() {
         {/* Logo Focus no Mobile */}
         <div className="flex sm:hidden items-center ml-0.5 shrink-0">
           <Link to="/" className="flex items-center">
-            <img
-              src={mobileLightLogo}
-              alt="Focus ERP"
-              className="h-7 sm:h-8 w-auto max-w-[135px] object-contain dark:hidden"
-            />
-            <img
-              src={mobileDarkLogo}
-              alt="Focus ERP"
-              className="h-7 sm:h-8 w-auto max-w-[135px] object-contain hidden dark:block"
-            />
+            <FocusLogo size="sm" showSubtitle={false} />
           </Link>
         </div>
         

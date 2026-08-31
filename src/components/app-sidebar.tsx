@@ -45,9 +45,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import focusLogoHorizontal from "@/assets/focus-logo-horizontal.png";
-import focusLogoHorizontalDark from "@/assets/focus-logo-horizontal-dark.png";
-import focusSymbolTransparent from "@/assets/focus-symbol-transparent.png";
+import { FocusLogo } from "@/components/FocusLogo";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { UserProfileModal } from "./UserProfileModal";
@@ -148,18 +146,7 @@ function SidebarLogoHeader() {
             isCollapsed ? "opacity-0 scale-95 hidden" : "opacity-100 scale-100 flex"
           )}
         >
-          {/* Light Mode Logo */}
-          <img
-            src={focusLogoHorizontal}
-            alt="Focus ERP — powered by focus tech®"
-            className="w-[160px] max-w-[165px] h-auto object-contain transition-all duration-200 dark:hidden"
-          />
-          {/* Dark Mode Logo */}
-          <img
-            src={focusLogoHorizontalDark}
-            alt="Focus ERP — powered by focus tech®"
-            className="w-[160px] max-w-[165px] h-auto object-contain transition-all duration-200 hidden dark:block"
-          />
+          <FocusLogo size="md" />
         </div>
 
         {/* Símbolo Focus - Sidebar Recolhida */}
@@ -169,11 +156,7 @@ function SidebarLogoHeader() {
             isCollapsed ? "opacity-100 scale-100 flex" : "opacity-0 scale-95 hidden"
           )}
         >
-          <img
-            src={focusSymbolTransparent}
-            alt="Focus ERP"
-            className="w-6.5 h-6.5 max-w-[26px] max-h-[26px] object-contain shrink-0"
-          />
+          <FocusLogo size="sm" collapsed />
         </div>
       </Link>
     </SidebarHeader>
