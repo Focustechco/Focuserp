@@ -51,18 +51,9 @@ export function ReportDocumentPreviewModal({ data, isOpen, onClose }: PreviewPro
           pdf.addImage(imgData, 'JPEG', margin, margin, finalWidth, finalHeight);
           pdf.save(`Relatorio-Focus-${data.reportNumber}.pdf`);
           
-          // Indexar automaticamente no DMS
-          dmsService.uploadFileFromModule({
-            nome: `Relatorio-Focus-${data.definition.title.replace(/\s+/g, '_')}-${data.reportNumber}.pdf`,
-            moduloOrigem: 'Relatórios',
-            relatorioTipo: data.definition.category === 'Financeiro' ? 'DRE Gerencial' : 'Geral',
-            categoria: 'Relatórios Executivos',
-            tags: ['Relatórios', data.definition.category, data.reportNumber],
-            urlConteudo: imgData,
-          });
-
-          toast.success(`Relatório exportado em PDF e arquivado no módulo Gestão de Documentos (DMS)!`, { id: 'pdf-toast' });
+          // Registrar execução e salvar 1 única cópia definitiva no DMS com o snapshot visual
           registerExecution(data.definition.id, fmt, data.filters, data, imgData);
+          toast.success(`Relatório exportado em PDF e arquivado no módulo Gestão de Documentos (DMS)!`, { id: 'pdf-toast' });
         } catch (err: any) {
           console.error('Erro na exportação PDF:', err);
           toast.error(`Erro ao gerar PDF: ${err.message || 'Falha de processamento'}`, { id: 'pdf-toast' });
@@ -74,14 +65,6 @@ export function ReportDocumentPreviewModal({ data, isOpen, onClose }: PreviewPro
     }
 
     // Exportação em formatos tabulares (CSV/Excel/Word)
-    dmsService.uploadFileFromModule({
-      nome: `Relatorio-Focus-${data.definition.title.replace(/\s+/g, '_')}-${data.reportNumber}.${fmt.toLowerCase()}`,
-      moduloOrigem: 'Relatórios',
-      relatorioTipo: data.definition.category === 'Financeiro' ? 'DRE Gerencial' : 'Geral',
-      categoria: 'Planilhas Exportadas',
-      tags: ['Relatórios', fmt, data.reportNumber],
-    });
-
     registerExecution(data.definition.id, fmt, data.filters, data);
     toast.success(`Relatório exportado em ${fmt} e salvo no Módulo de Documentos (DMS)!`);
     setIsExporting(false);

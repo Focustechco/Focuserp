@@ -375,20 +375,6 @@ export function useRelatoriosStore() {
       rows,
       chartData
     };
-
-    // Auto-gerar e indexar uma cópia no módulo Gestão de Documentos (DMS) imediatamente ao gerar
-    dmsService.uploadFileFromModule({
-      nome: `Relatorio_${definition.title.replace(/\s+/g, '_')}_${reportNumber}.pdf`,
-      extensao: 'pdf',
-      tamanho: '1.4 MB',
-      tamanhoBytes: 1468006,
-      moduloOrigem: 'Relatórios',
-      relatorioTipo: definition.category === 'Financeiro' ? 'DRE Gerencial' : 'Geral',
-      categoria: `Relatório Executivo - ${definition.category}`,
-      tags: ['Relatórios', definition.category, reportNumber],
-    });
-
-    return generatedData;
   };
 
   const saveReportToDmsVault = (data: GeneratedReportData, format: ReportFormat, fileUrl?: string) => {
@@ -397,7 +383,7 @@ export function useRelatoriosStore() {
     const nomeArquivo = `Relatorio_${data.definition.title.replace(/[^a-zA-Z0-9]/g, '_')}_${data.reportNumber}.${ext}`;
     const tamanhoStr = format === 'PDF' ? '1.4 MB' : format === 'DOCX' ? '820 KB' : format === 'XLSX' ? '450 KB' : '120 KB';
 
-    dmsService.uploadFileFromModule({
+    return dmsService.uploadFileFromModule({
       nome: nomeArquivo,
       extensao: ext,
       tamanho: tamanhoStr,
@@ -417,18 +403,18 @@ export function useRelatoriosStore() {
       reportId: def.id,
       reportTitle: def.title,
       category: def.category,
-      generatedBy: 'Usurio Administrador',
+      generatedBy: 'Usuário Administrador',
       generatedAt: new Date().toISOString(),
       format,
       fileSize: format === 'PDF' ? '1.4 MB' : format === 'DOCX' ? '820 KB' : format === 'XLSX' ? '450 KB' : '120 KB',
       generationTimeMs: Math.floor(180 + Math.random() * 250),
       status: 'Sucesso',
-      filtersSummary: `Perodo: ${filters.dataInicio || 'Geral'} at ${filters.dataFim || 'Hoje'}`
+      filtersSummary: `Período: ${filters.dataInicio || 'Geral'} até ${filters.dataFim || 'Hoje'}`
     };
 
     addHistory(newEntry);
 
-    // Integrar salvamento do documento gerado diretamente no Mdulo Documentos (DMS)
+    // Integrar salvamento do documento gerado (apenas 1 única cópia precisa e com snapshot)
     if (generatedData) {
       saveReportToDmsVault(generatedData, format, fileUrl);
     }

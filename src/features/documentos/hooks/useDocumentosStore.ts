@@ -171,29 +171,40 @@ export function useDocumentosStore() {
       }
     });
 
-    // 2.2 Auto-indexar Relatórios Gerados Reais (focus_relatorios_history)
+    // 2.2 Auto-indexar Relatórios Gerados Reais (focus_relatorios_history) apenas se não houver no docMap
+    const existingDocNames = new Set(Array.from(docMap.values()).map(d => (d.nome || '').toLowerCase().replace(/[^a-z0-9]/g, '')));
+
     (relatoriosHistorico || []).forEach((rel: any) => {
       const docId = `doc-rel-${rel.id}`;
-      if (!docMap.has(docId) && !deletedSet.has(docId) && !deletedSet.has(rel.id)) {
+      const ext = (rel.format?.toLowerCase() || 'pdf') as FormatoArquivo;
+      const reportTitle = rel.reportTitle || 'Relatório Executivo';
+      const normalizedTitle = reportTitle.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+      // Evitar duplicatas se já foi salvo no DMS diretamente com urlConteudo ou mesmo nome
+      const isAlreadyInDms = Array.from(docMap.values()).some(d => 
+        d.id === docId || 
+        (d.nome || '').toLowerCase().replace(/[^a-z0-9]/g, '').includes(normalizedTitle)
+      );
+
+      if (!isAlreadyInDms && !docMap.has(docId) && !deletedSet.has(docId) && !deletedSet.has(rel.id)) {
         let pastaTargetId = 'p-rel-geral';
-        if (rel.category === 'Financeiro' || rel.reportTitle?.includes('DRE')) pastaTargetId = 'p-rel-dre';
-        else if (rel.reportTitle?.includes('Fluxo')) pastaTargetId = 'p-rel-fluxo';
-        else if (rel.category === 'Comercial' || rel.reportTitle?.includes('Vendas')) pastaTargetId = 'p-rel-faturam';
+        if (rel.category === 'Financeiro' || reportTitle.includes('DRE')) pastaTargetId = 'p-rel-dre';
+        else if (reportTitle.includes('Fluxo')) pastaTargetId = 'p-rel-fluxo';
+        else if (rel.category === 'Comercial' || reportTitle.includes('Vendas')) pastaTargetId = 'p-rel-faturam';
         else if (rel.category === 'RH') pastaTargetId = 'p-rel-rh';
         else if (rel.category === 'Auditoria') pastaTargetId = 'p-rel-audit';
 
-        const ext = (rel.format?.toLowerCase() || 'pdf') as FormatoArquivo;
         docMap.set(docId, {
           id: docId,
           codigo: `REL-${new Date(rel.generatedAt || Date.now()).getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
-          nome: `${rel.reportTitle || 'Relatório Executivo'}.${ext}`,
+          nome: `${reportTitle}.${ext}`,
           extensao: ext,
           tamanho: rel.fileSize || '1.4 MB',
           tamanhoBytes: 1468006,
           pastaId: pastaTargetId,
           caminhoPasta: `/Relatórios/${rel.category || 'Geral'}`,
           moduloOrigem: 'Relatórios',
-          relatorioTipo: rel.reportTitle,
+          relatorioTipo: reportTitle,
           categoria: `Relatório Executivo - ${rel.category || 'Geral'}`,
           tags: ['Relatórios', rel.category || 'Geral', 'Gerado Automaticamente'],
           responsavelUpload: rel.generatedBy || 'Sistema Integrado (Relatórios)',
