@@ -39,41 +39,41 @@ function ModuloComercialOpsPage() {
       <Tabs defaultValue="dashboard" className="space-y-6" onValueChange={setActiveTab}>
         <div className="border-b pb-2 w-full overflow-x-auto scrollbar-hide">
           <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
-            <TabsTrigger value="dashboard" className="gap-2 shrink-0 font-semibold">
-              <LayoutGrid className="w-4 h-4 text-orange-500" /> Dashboard Executivo
+            <TabsTrigger value="dashboard" className="gap-2 shrink-0 font-medium">
+              <LayoutGrid className="w-4 h-4" /> Dashboard Executivo
             </TabsTrigger>
-            <TabsTrigger value="minha-performance" className="gap-2 shrink-0 font-semibold">
-              <User className="w-4 h-4 text-blue-500" /> Minha Performance
+            <TabsTrigger value="minha-performance" className="gap-2 shrink-0 font-medium">
+              <User className="w-4 h-4" /> Minha Performance
             </TabsTrigger>
-            <TabsTrigger value="atividades" className="gap-2 shrink-0 font-semibold">
-              <Phone className="w-4 h-4 text-emerald-500" /> Atividades & Contatos
+            <TabsTrigger value="atividades" className="gap-2 shrink-0 font-medium">
+              <Phone className="w-4 h-4" /> Atividades & Contatos
             </TabsTrigger>
-            <TabsTrigger value="propostas" className="gap-2 shrink-0 font-semibold">
-              <FileText className="w-4 h-4 text-purple-500" /> Propostas Comerciais
+            <TabsTrigger value="propostas" className="gap-2 shrink-0 font-medium">
+              <FileText className="w-4 h-4" /> Propostas Comerciais
             </TabsTrigger>
-            <TabsTrigger value="equipe" className="gap-2 shrink-0 font-semibold">
-              <Users className="w-4 h-4 text-indigo-500" /> Time Comercial
+            <TabsTrigger value="equipe" className="gap-2 shrink-0 font-medium">
+              <Users className="w-4 h-4" /> Time Comercial
             </TabsTrigger>
-            <TabsTrigger value="metas" className="gap-2 shrink-0 font-semibold">
-              <Target className="w-4 h-4 text-amber-500" /> Metas & OKRs
+            <TabsTrigger value="metas" className="gap-2 shrink-0 font-medium">
+              <Target className="w-4 h-4" /> Metas & OKRs
             </TabsTrigger>
-            <TabsTrigger value="comissoes" className="gap-2 shrink-0 font-semibold">
-              <DollarSign className="w-4 h-4 text-emerald-600" /> Comissões
+            <TabsTrigger value="comissoes" className="gap-2 shrink-0 font-medium">
+              <DollarSign className="w-4 h-4" /> Comissões
             </TabsTrigger>
-            <TabsTrigger value="scripts" className="gap-2 shrink-0 font-semibold">
-              <Sparkles className="w-4 h-4 text-orange-500" /> Scripts de Venda
+            <TabsTrigger value="scripts" className="gap-2 shrink-0 font-medium">
+              <Sparkles className="w-4 h-4" /> Scripts de Venda
             </TabsTrigger>
-            <TabsTrigger value="estrategias" className="gap-2 shrink-0 font-semibold">
-              <Layers className="w-4 h-4 text-cyan-500" /> Estratégias Comerciais
+            <TabsTrigger value="estrategias" className="gap-2 shrink-0 font-medium">
+              <Layers className="w-4 h-4" /> Estratégias Comerciais
             </TabsTrigger>
-            <TabsTrigger value="playbooks" className="gap-2 shrink-0 font-semibold">
-              <BookOpen className="w-4 h-4 text-rose-500" /> Playbooks
+            <TabsTrigger value="playbooks" className="gap-2 shrink-0 font-medium">
+              <BookOpen className="w-4 h-4" /> Playbooks
             </TabsTrigger>
-            <TabsTrigger value="catalogos" className="gap-2 shrink-0 font-semibold">
-              <Package className="w-4 h-4 text-teal-500" /> Produtos & Serviços
+            <TabsTrigger value="catalogos" className="gap-2 shrink-0 font-medium">
+              <Package className="w-4 h-4" /> Produtos & Serviços
             </TabsTrigger>
-            <TabsTrigger value="relatorios" className="gap-2 shrink-0 font-semibold">
-              <FileSpreadsheet className="w-4 h-4 text-blue-600" /> Relatórios
+            <TabsTrigger value="relatorios" className="gap-2 shrink-0 font-medium">
+              <FileSpreadsheet className="w-4 h-4" /> Relatórios
             </TabsTrigger>
           </TabsList>
         </div>

@@ -31,28 +31,28 @@ function IndicadoresPage() {
         <div className="w-full overflow-x-auto scrollbar-hide border-b pb-1">
           <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
             <TabsTrigger value="dashboard" className="gap-2 shrink-0">
-              <Activity className="w-4 h-4 text-purple-500" /> Visão Global (C-Level)
+              <Activity className="w-4 h-4" /> Visão Global (C-Level)
             </TabsTrigger>
             <TabsTrigger value="financeiro" className="gap-2 shrink-0">
-              <Wallet className="w-4 h-4 text-emerald-500" /> Financeiro
+              <Wallet className="w-4 h-4" /> Financeiro
             </TabsTrigger>
             <TabsTrigger value="comercial" className="gap-2 shrink-0">
-              <Target className="w-4 h-4 text-orange-500" /> Comercial
+              <Target className="w-4 h-4" /> Comercial
             </TabsTrigger>
             <TabsTrigger value="rh" className="gap-2 shrink-0">
-              <Users className="w-4 h-4 text-blue-500" /> Recursos Humanos
+              <Users className="w-4 h-4" /> Recursos Humanos
             </TabsTrigger>
             <TabsTrigger value="fornecedores" className="gap-2 shrink-0">
-              <Building2 className="w-4 h-4 text-amber-500" /> Fornecedores
+              <Building2 className="w-4 h-4" /> Fornecedores
             </TabsTrigger>
             <TabsTrigger value="clientes" className="gap-2 shrink-0">
-              <UserCheck className="w-4 h-4 text-cyan-500" /> Clientes
+              <UserCheck className="w-4 h-4" /> Clientes
             </TabsTrigger>
             <TabsTrigger value="softwares" className="gap-2 shrink-0">
-              <Rocket className="w-4 h-4 text-rose-500" /> Softwares (SaaS)
+              <Rocket className="w-4 h-4" /> Softwares (SaaS)
             </TabsTrigger>
             <TabsTrigger value="projetos" className="gap-2 shrink-0">
-              <Briefcase className="w-4 h-4 text-indigo-500" /> Projetos
+              <Briefcase className="w-4 h-4" /> Projetos
             </TabsTrigger>
           </TabsList>
         </div>
