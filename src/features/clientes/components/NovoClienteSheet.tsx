@@ -667,28 +667,34 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
           <TabsContent value="gerais" className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label>Tipo de Pessoa</Label>
-                <Select value={tipoPessoa} onValueChange={setTipoPessoa}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                <Label className="font-semibold">Tipo de Pessoa *</Label>
+                <Select value={tipoPessoa} onValueChange={(val) => {
+                  setTipoPessoa(val);
+                  if (val === 'pf' && !contatoNome && (nomeFantasia || razaoSocial)) {
+                    setContatoNome(nomeFantasia || razaoSocial);
+                  }
+                }}>
+                  <SelectTrigger className="font-medium"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="pj">Pessoa Jurídica (PJ)</SelectItem>
-                    <SelectItem value="pf">Pessoa Física (PF)</SelectItem>
+                    <SelectItem value="pj">🏢 Pessoa Jurídica (Empresa)</SelectItem>
+                    <SelectItem value="pf">👤 Pessoa Física (Individual / CPF)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="doc">{tipoPessoa === 'pj' ? 'CNPJ *' : 'CPF *'}</Label>
+                <Label htmlFor="doc" className="font-semibold">{tipoPessoa === 'pj' ? 'CNPJ *' : 'CPF *'}</Label>
                 <Input 
                   id="doc" 
                   placeholder={tipoPessoa === 'pj' ? "00.000.000/0000-00" : "000.000.000-00"} 
                   value={documento}
                   onChange={e => setDocumento(e.target.value)}
+                  className="font-mono"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label>Status do Cliente</Label>
+                <Label className="font-semibold">Status do Cliente</Label>
                 <Select value={statusCliente} onValueChange={(v: any) => setStatusCliente(v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -699,95 +705,170 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="razao">{tipoPessoa === 'pj' ? 'Razão Social *' : 'Nome Completo *'}</Label>
-                <Input 
-                  id="razao" 
-                  placeholder="Ex: Focus Tecnologia Ltda" 
-                  value={razaoSocial}
-                  onChange={e => setRazaoSocial(e.target.value)}
-                />
-              </div>
+            {tipoPessoa === 'pf' ? (
+              /* CAMPOS ESPECÍFICOS DE PESSOA FÍSICA */
+              <div className="space-y-4 p-4 rounded-xl border bg-amber-500/5 dark:bg-amber-950/20 border-amber-500/20">
+                <div className="flex items-center gap-2 text-xs font-bold text-amber-700 dark:text-amber-300">
+                  <User className="w-4 h-4" /> Dados Pessoais do Cliente (Pessoa Física)
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="fantasia">Nome Fantasia / Apelido</Label>
-                <Input 
-                  id="fantasia" 
-                  placeholder="Ex: Focus ERP" 
-                  value={nomeFantasia}
-                  onChange={e => setNomeFantasia(e.target.value)}
-                />
-              </div>
-            </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="razao" className="font-semibold">Nome Completo *</Label>
+                    <Input 
+                      id="razao" 
+                      placeholder="Ex: Carlos Eduardo da Silva" 
+                      value={razaoSocial}
+                      onChange={e => {
+                        setRazaoSocial(e.target.value);
+                        if (!nomeFantasia || nomeFantasia === razaoSocial) {
+                          setNomeFantasia(e.target.value);
+                        }
+                      }}
+                    />
+                  </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="ie">Inscrição Estadual</Label>
-                <Input 
-                  id="ie" 
-                  placeholder="Isento ou Nº" 
-                  value={ie}
-                  onChange={e => setIe(e.target.value)}
-                />
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="fantasia">Apelido / Como prefere ser chamado (Opcional)</Label>
+                    <Input 
+                      id="fantasia" 
+                      placeholder="Ex: Edu, Cadu" 
+                      value={nomeFantasia}
+                      onChange={e => setNomeFantasia(e.target.value)}
+                    />
+                  </div>
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="im">Inscrição Municipal</Label>
-                <Input 
-                  id="im" 
-                  placeholder="Nº Inscrição Municipal" 
-                  value={im}
-                  onChange={e => setIm(e.target.value)}
-                />
-              </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="ie">RG / Documento de Identidade</Label>
+                    <Input 
+                      id="ie" 
+                      placeholder="Ex: 12.345.678-9 SSP/SP" 
+                      value={ie}
+                      onChange={e => setIe(e.target.value)}
+                    />
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="dataFundacao">{tipoPessoa === 'pj' ? 'Data de Fundação' : 'Data de Nascimento'}</Label>
-                <Input 
-                  id="dataFundacao" 
-                  type="date"
-                  value={dataFundacao}
-                  onChange={e => setDataFundacao(e.target.value)}
-                />
-              </div>
-            </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="dataFundacao">Data de Nascimento</Label>
+                    <Input 
+                      id="dataFundacao" 
+                      type="date"
+                      value={dataFundacao}
+                      onChange={e => setDataFundacao(e.target.value)}
+                    />
+                  </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="segmento">Segmento / Ramo de Atividade</Label>
-                <Input 
-                  id="segmento" 
-                  placeholder="Ex: Tecnologia, Varejo, Serviços" 
-                  value={segmento}
-                  onChange={e => setSegmento(e.target.value)}
-                />
+                  <div className="space-y-2">
+                    <Label htmlFor="segmento">Profissão / Ocupação</Label>
+                    <Input 
+                      id="segmento" 
+                      placeholder="Ex: Consultor, Arquiteto, Médico, Dev" 
+                      value={segmento}
+                      onChange={e => setSegmento(e.target.value)}
+                    />
+                  </div>
+                </div>
               </div>
+            ) : (
+              /* CAMPOS ESPECÍFICOS DE PESSOA JURÍDICA */
+              <div className="space-y-4 p-4 rounded-xl border bg-blue-500/5 dark:bg-blue-950/20 border-blue-500/20">
+                <div className="flex items-center gap-2 text-xs font-bold text-blue-700 dark:text-blue-300">
+                  <Building className="w-4 h-4" /> Dados Empresariais (Pessoa Jurídica)
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="porte">Porte da Empresa</Label>
-                <Select value={porte} onValueChange={setPorte}>
-                  <SelectTrigger id="porte"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="MEI">MEI</SelectItem>
-                    <SelectItem value="Micro">Microempresa (ME)</SelectItem>
-                    <SelectItem value="Pequeno">Pequeno Porte (EPP)</SelectItem>
-                    <SelectItem value="Médio">Médio Porte</SelectItem>
-                    <SelectItem value="Grande">Grande Porte</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="razao" className="font-semibold">Razão Social *</Label>
+                    <Input 
+                      id="razao" 
+                      placeholder="Ex: Focus Tecnologia da Informação Ltda" 
+                      value={razaoSocial}
+                      onChange={e => setRazaoSocial(e.target.value)}
+                    />
+                  </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="site">Website / Domínio</Label>
-                <Input 
-                  id="site" 
-                  placeholder="https://suaempresa.com.br" 
-                  value={site}
-                  onChange={e => setSite(e.target.value)}
-                />
+                  <div className="space-y-2">
+                    <Label htmlFor="fantasia">Nome Fantasia</Label>
+                    <Input 
+                      id="fantasia" 
+                      placeholder="Ex: Focus ERP" 
+                      value={nomeFantasia}
+                      onChange={e => setNomeFantasia(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="ie">Inscrição Estadual</Label>
+                    <Input 
+                      id="ie" 
+                      placeholder="Isento ou Nº" 
+                      value={ie}
+                      onChange={e => setIe(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="im">Inscrição Municipal</Label>
+                    <Input 
+                      id="im" 
+                      placeholder="Nº Inscrição Municipal" 
+                      value={im}
+                      onChange={e => setIm(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="dataFundacao">Data de Fundação</Label>
+                    <Input 
+                      id="dataFundacao" 
+                      type="date"
+                      value={dataFundacao}
+                      onChange={e => setDataFundacao(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="segmento">Segmento / Ramo de Atividade</Label>
+                    <Input 
+                      id="segmento" 
+                      placeholder="Ex: Tecnologia, Varejo, Serviços" 
+                      value={segmento}
+                      onChange={e => setSegmento(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="porte">Porte da Empresa</Label>
+                    <Select value={porte} onValueChange={setPorte}>
+                      <SelectTrigger id="porte"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="MEI">MEI</SelectItem>
+                        <SelectItem value="Micro">Microempresa (ME)</SelectItem>
+                        <SelectItem value="Pequeno">Pequeno Porte (EPP)</SelectItem>
+                        <SelectItem value="Médio">Médio Porte</SelectItem>
+                        <SelectItem value="Grande">Grande Porte</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="site">Website / Domínio</Label>
+                    <Input 
+                      id="site" 
+                      placeholder="https://suaempresa.com.br" 
+                      value={site}
+                      onChange={e => setSite(e.target.value)}
+                    />
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="obs">Observações Internas / Comerciais</Label>
@@ -807,7 +888,7 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
               <div className="flex items-center justify-between">
                 <h4 className="font-semibold text-sm flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-orange-600" />
-                  Localização e Endereço Corporativo
+                  {tipoPessoa === 'pf' ? 'Endereço Residencial / Cobrança' : 'Localização e Endereço Corporativo'}
                 </h4>
                 <Badge variant="outline" className="text-xs">Busca Automática via CEP</Badge>
               </div>
@@ -838,10 +919,10 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
                 </div>
 
                 <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="logradouro">Logradouro (Rua, Avenida, Alameda) *</Label>
+                  <Label htmlFor="logradouro">Logradouro / Rua *</Label>
                   <Input 
                     id="logradouro" 
-                    placeholder="Ex: Av. Paulista" 
+                    placeholder="Ex: Avenida Paulista" 
                     value={logradouro}
                     onChange={e => setLogradouro(e.target.value)}
                   />
@@ -851,20 +932,20 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
               {/* Linha 2: Número, Complemento, Bairro */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="num">Número *</Label>
+                  <Label htmlFor="numero">Número *</Label>
                   <Input 
-                    id="num" 
-                    placeholder="Ex: 1000 ou S/N" 
+                    id="numero" 
+                    placeholder="Ex: 1000" 
                     value={numero}
                     onChange={e => setNumero(e.target.value)}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="comp">Complemento</Label>
+                  <Label htmlFor="complemento">Complemento</Label>
                   <Input 
-                    id="comp" 
-                    placeholder="Ex: Sala 402, Bloco B" 
+                    id="complemento" 
+                    placeholder={tipoPessoa === 'pf' ? "Ex: Apto 42, Bloco B" : "Ex: Sala 402, Andar 4"} 
                     value={complemento}
                     onChange={e => setComplemento(e.target.value)}
                   />
@@ -923,75 +1004,114 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
               <div className="flex items-center justify-between">
                 <h4 className="font-semibold text-sm flex items-center gap-2">
                   <User className="w-4 h-4 text-orange-600" />
-                  Contato Principal & Interlocutores
+                  {tipoPessoa === 'pf' ? 'Canais de Contato Direto do Cliente' : 'Contato Principal & Interlocutores Corporativos'}
                 </h4>
-                <Badge variant="outline" className="text-xs">Responsável</Badge>
+                <Badge variant="outline" className="text-xs">{tipoPessoa === 'pf' ? 'Contato Individual' : 'Responsável'}</Badge>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="c-nome">Nome Completo *</Label>
-                  <Input 
-                    id="c-nome" 
-                    placeholder="Ex: João da Silva" 
-                    value={contatoNome}
-                    onChange={e => setContatoNome(e.target.value)}
-                  />
-                </div>
+              {tipoPessoa === 'pf' ? (
+                /* CONTATO DIRETO PESSOA FÍSICA */
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="c-celular">Celular / WhatsApp *</Label>
+                    <Input 
+                      id="c-celular" 
+                      placeholder="(11) 99999-9999" 
+                      value={contatoCelular}
+                      onChange={e => setContatoCelular(e.target.value)}
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="c-cargo">Cargo / Função</Label>
-                  <Input 
-                    id="c-cargo" 
-                    placeholder="Ex: Gerente de TI / Diretor" 
-                    value={contatoCargo}
-                    onChange={e => setContatoCargo(e.target.value)}
-                  />
-                </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="c-email">E-mail de Contato</Label>
+                    <Input 
+                      id="c-email" 
+                      type="email" 
+                      placeholder="seuemail@exemplo.com" 
+                      value={contatoEmail}
+                      onChange={e => setContatoEmail(e.target.value)}
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="c-depto">Departamento</Label>
-                  <Input 
-                    id="c-depto" 
-                    placeholder="Ex: Tecnologia, Financeiro" 
-                    value={contatoDepartamento}
-                    onChange={e => setContatoDepartamento(e.target.value)}
-                  />
+                  <div className="space-y-2">
+                    <Label htmlFor="c-tel">Telefone Alternativo</Label>
+                    <Input 
+                      id="c-tel" 
+                      placeholder="(11) 3000-0000" 
+                      value={contatoTelefone}
+                      onChange={e => setContatoTelefone(e.target.value)}
+                    />
+                  </div>
                 </div>
-              </div>
+              ) : (
+                /* CONTATOS CORPORATIVOS PJ */
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="c-nome">Nome Completo *</Label>
+                      <Input 
+                        id="c-nome" 
+                        placeholder="Ex: João da Silva" 
+                        value={contatoNome}
+                        onChange={e => setContatoNome(e.target.value)}
+                      />
+                    </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="c-email">E-mail Corporativo</Label>
-                  <Input 
-                    id="c-email" 
-                    type="email" 
-                    placeholder="contato@empresa.com" 
-                    value={contatoEmail}
-                    onChange={e => setContatoEmail(e.target.value)}
-                  />
-                </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="c-cargo">Cargo / Função</Label>
+                      <Input 
+                        id="c-cargo" 
+                        placeholder="Ex: Gerente de TI / Diretor" 
+                        value={contatoCargo}
+                        onChange={e => setContatoCargo(e.target.value)}
+                      />
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="c-celular">Celular / WhatsApp *</Label>
-                  <Input 
-                    id="c-celular" 
-                    placeholder="(11) 99999-9999" 
-                    value={contatoCelular}
-                    onChange={e => setContatoCelular(e.target.value)}
-                  />
-                </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="c-depto">Departamento</Label>
+                      <Input 
+                        id="c-depto" 
+                        placeholder="Ex: Tecnologia, Financeiro" 
+                        value={contatoDepartamento}
+                        onChange={e => setContatoDepartamento(e.target.value)}
+                      />
+                    </div>
+                  </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="c-tel">Telefone Fixo</Label>
-                  <Input 
-                    id="c-tel" 
-                    placeholder="(11) 3000-0000" 
-                    value={contatoTelefone}
-                    onChange={e => setContatoTelefone(e.target.value)}
-                  />
-                </div>
-              </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="c-email">E-mail Corporativo</Label>
+                      <Input 
+                        id="c-email" 
+                        type="email" 
+                        placeholder="contato@empresa.com" 
+                        value={contatoEmail}
+                        onChange={e => setContatoEmail(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="c-celular">Celular / WhatsApp *</Label>
+                      <Input 
+                        id="c-celular" 
+                        placeholder="(11) 99999-9999" 
+                        value={contatoCelular}
+                        onChange={e => setContatoCelular(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="c-tel">Telefone Fixo</Label>
+                      <Input 
+                        id="c-tel" 
+                        placeholder="(11) 3000-0000" 
+                        value={contatoTelefone}
+                        onChange={e => setContatoTelefone(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </TabsContent>
 

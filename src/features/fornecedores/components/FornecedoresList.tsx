@@ -293,76 +293,111 @@ export function FornecedoresList() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredData.map((fornecedor) => {
+                const isPF = fornecedor.tipo === 'Pessoa Física';
                 const contatos = Array.isArray(fornecedor?.contatos) ? fornecedor.contatos : [];
                 const contatoPrincipal = contatos.find(c => c?.principal) || contatos[0];
+                const nomeExibicao = isPF ? (fornecedor.razaoSocial || fornecedor.nomeFantasia || 'Prestador') : (fornecedor.nomeFantasia || fornecedor.razaoSocial || 'Fornecedor');
+
                 return (
                   <Card 
                     key={fornecedor.id} 
-                    className="border rounded-xl hover:border-primary/40 hover:shadow-md transition-all group flex flex-col justify-between overflow-hidden bg-card"
+                    className={`border rounded-xl transition-all group flex flex-col justify-between overflow-hidden bg-card ${
+                      isPF 
+                        ? 'hover:border-amber-500/50 hover:shadow-md border-amber-500/20' 
+                        : 'hover:border-blue-500/50 hover:shadow-md border-blue-500/20'
+                    }`}
                   >
-                    <CardHeader className="p-4 pb-3 border-b bg-muted/20">
+                    <CardHeader className={`p-4 pb-3 border-b ${isPF ? 'bg-amber-500/5 dark:bg-amber-950/20' : 'bg-blue-500/5 dark:bg-blue-950/20'}`}>
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex items-center gap-3 min-w-0">
                           <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 font-bold text-xs ${
-                            fornecedor.tipo === 'Pessoa Jurídica' 
-                              ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20' 
-                              : 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20'
+                            isPF 
+                              ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30' 
+                              : 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30'
                           }`}>
-                            {fornecedor.tipo === 'Pessoa Jurídica' ? <Building2 className="w-5 h-5" /> : <User className="w-5 h-5" />}
+                            {isPF ? <User className="w-5 h-5" /> : <Building2 className="w-5 h-5" />}
                           </div>
                           <div className="min-w-0">
                             <h3 
                               onClick={() => handleOpenPerfil(fornecedor)}
                               className="font-bold text-sm text-foreground truncate hover:text-primary cursor-pointer transition-colors"
-                              title={fornecedor.nomeFantasia || fornecedor.razaoSocial}
+                              title={nomeExibicao}
                             >
-                              {fornecedor.nomeFantasia || fornecedor.razaoSocial || 'Fornecedor'}
+                              {nomeExibicao}
                             </h3>
                             <p className="text-xs text-muted-foreground truncate">
-                              {fornecedor.categoria || 'Fornecedor Geral'}
+                              {fornecedor.categoria || (isPF ? 'Prestador Autônomo' : 'Fornecedor Corporativo')}
                             </p>
                           </div>
                         </div>
-                        <Badge 
-                          variant={fornecedor.status === 'Ativo' ? 'default' : 'secondary'} 
-                          className={`text-[10px] shrink-0 ${fornecedor.status === 'Ativo' ? 'bg-emerald-600 hover:bg-emerald-700' : ''}`}
-                        >
-                          {fornecedor.status || 'Ativo'}
-                        </Badge>
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                          <Badge 
+                            variant={fornecedor.status === 'Ativo' ? 'default' : 'secondary'} 
+                            className={`text-[10px] ${fornecedor.status === 'Ativo' ? 'bg-emerald-600 hover:bg-emerald-700' : ''}`}
+                          >
+                            {fornecedor.status || 'Ativo'}
+                          </Badge>
+                          <Badge variant="outline" className={`text-[9px] px-1.5 py-0 ${isPF ? 'border-amber-500/40 text-amber-600 dark:text-amber-400' : 'border-blue-500/40 text-blue-600 dark:text-blue-400'}`}>
+                            {isPF ? 'Pessoa Física' : 'Pessoa Jurídica'}
+                          </Badge>
+                        </div>
                       </div>
                     </CardHeader>
 
                     <CardContent className="p-4 space-y-2.5 text-xs flex-1">
                       <div className="flex items-center justify-between py-1 border-b border-dashed">
-                        <span className="text-muted-foreground">Código:</span>
+                        <span className="text-muted-foreground">{isPF ? 'ID / Código:' : 'Código Fornecedor:'}</span>
                         <span className="font-mono font-semibold text-primary">{fornecedor.codigo || 'F-000'}</span>
                       </div>
 
                       <div className="flex items-center justify-between py-1 border-b border-dashed">
-                        <span className="text-muted-foreground">CPF / CNPJ:</span>
-                        <span className="font-mono text-foreground">{fornecedor.documento || '-'}</span>
+                        <span className="text-muted-foreground">{isPF ? 'CPF:' : 'CNPJ:'}</span>
+                        <span className="font-mono font-semibold text-foreground">{fornecedor.documento || '-'}</span>
                       </div>
 
-                      {contatoPrincipal && (
-                        <div className="space-y-1 py-1 border-b border-dashed">
-                          <span className="text-muted-foreground block text-[11px]">Contato Principal:</span>
-                          <div className="flex items-center gap-1.5 text-foreground font-medium truncate">
-                            <User className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                            <span className="truncate">{contatoPrincipal.nome}</span>
-                          </div>
-                          {contatoPrincipal.email && (
-                            <div className="flex items-center gap-1.5 text-muted-foreground text-[11px] truncate">
-                              <Mail className="w-3 h-3 text-muted-foreground shrink-0" />
-                              <span className="truncate">{contatoPrincipal.email}</span>
+                      {isPF ? (
+                        /* DETALHES DE PESSOA FÍSICA NO CARD DE FORNECEDORES */
+                        <div className="space-y-1.5 py-1 border-b border-dashed">
+                          {contatoPrincipal?.celular && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-muted-foreground flex items-center gap-1">
+                                <Phone className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> WhatsApp:
+                              </span>
+                              <span className="font-medium text-foreground">{contatoPrincipal.celular}</span>
                             </div>
                           )}
-                          {contatoPrincipal.celular && (
-                            <div className="flex items-center gap-1.5 text-muted-foreground text-[11px] truncate">
-                              <Phone className="w-3 h-3 text-muted-foreground shrink-0" />
-                              <span>{contatoPrincipal.celular}</span>
+                          {contatoPrincipal?.email && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-muted-foreground flex items-center gap-1">
+                                <Mail className="w-3.5 h-3.5 text-blue-500 shrink-0" /> E-mail:
+                              </span>
+                              <span className="font-medium text-foreground truncate max-w-[170px]">{contatoPrincipal.email}</span>
                             </div>
                           )}
                         </div>
+                      ) : (
+                        /* DETALHES DE PESSOA JURÍDICA NO CARD DE FORNECEDORES */
+                        contatoPrincipal && (
+                          <div className="space-y-1 py-1 border-b border-dashed">
+                            <span className="text-muted-foreground block text-[11px]">Representante Comercial:</span>
+                            <div className="flex items-center gap-1.5 text-foreground font-medium truncate">
+                              <User className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                              <span className="truncate">{contatoPrincipal.nome} {contatoPrincipal.cargo ? `(${contatoPrincipal.cargo})` : ''}</span>
+                            </div>
+                            {contatoPrincipal.email && (
+                              <div className="flex items-center gap-1.5 text-muted-foreground text-[11px] truncate">
+                                <Mail className="w-3 h-3 text-muted-foreground shrink-0" />
+                                <span className="truncate">{contatoPrincipal.email}</span>
+                              </div>
+                            )}
+                            {contatoPrincipal.celular && (
+                              <div className="flex items-center gap-1.5 text-muted-foreground text-[11px] truncate">
+                                <Phone className="w-3 h-3 text-muted-foreground shrink-0" />
+                                <span>{contatoPrincipal.celular}</span>
+                              </div>
+                            )}
+                          </div>
+                        )
                       )}
 
                       <div className="flex items-center justify-between pt-1">
@@ -374,13 +409,13 @@ export function FornecedoresList() {
                         </span>
                       </div>
 
-                      {fornecedor.pixChave && (
+                      {(fornecedor.pixChave || (fornecedor.dadosBancarios && fornecedor.dadosBancarios[0]?.chavePix)) && (
                         <div className="flex items-center justify-between pt-1 text-[11px]">
                           <span className="text-muted-foreground flex items-center gap-1">
-                            <CreditCard className="w-3 h-3 text-emerald-500 shrink-0" /> Chave PIX:
+                            <CreditCard className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> Chave PIX:
                           </span>
                           <span className="font-mono text-foreground truncate max-w-[150px]">
-                            {fornecedor.pixChave}
+                            {fornecedor.pixChave || (fornecedor.dadosBancarios && fornecedor.dadosBancarios[0]?.chavePix)}
                           </span>
                         </div>
                       )}

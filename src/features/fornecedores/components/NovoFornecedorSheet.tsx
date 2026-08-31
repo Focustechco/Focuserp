@@ -504,30 +504,33 @@ export function NovoFornecedorSheet({
                   size="sm"
                   variant={tipoPessoa === 'pj' ? 'default' : 'ghost'}
                   onClick={() => setTipoPessoa('pj')}
-                  className="text-xs h-7 gap-1.5"
+                  className="text-xs h-7 gap-1.5 font-medium"
                 >
-                  <Building2 className="w-3.5 h-3.5" /> Pessoa Jurídica (CNPJ)
+                  <Building2 className="w-3.5 h-3.5" /> Pessoa Jurídica (Empresa)
                 </Button>
                 <Button 
                   type="button"
                   size="sm"
                   variant={tipoPessoa === 'pf' ? 'default' : 'ghost'}
-                  onClick={() => setTipoPessoa('pf')}
-                  className="text-xs h-7 gap-1.5"
+                  onClick={() => {
+                    setTipoPessoa('pf');
+                    if (tipoChavePix === 'CNPJ') setTipoChavePix('CPF');
+                  }}
+                  className="text-xs h-7 gap-1.5 font-medium"
                 >
-                  <User className="w-3.5 h-3.5" /> Pessoa Física (CPF)
+                  <User className="w-3.5 h-3.5" /> Pessoa Física (Prestador / CPF)
                 </Button>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label className="text-xs">{tipoPessoa === 'pj' ? 'CNPJ *' : 'CPF *'}</Label>
+                  <Label className="text-xs font-semibold">{tipoPessoa === 'pj' ? 'CNPJ *' : 'CPF *'}</Label>
                   <div className="flex gap-2">
                     <Input 
                       placeholder={tipoPessoa === 'pj' ? '00.000.000/0001-00' : '000.000.000-00'} 
                       value={documento} 
                       onChange={e => setDocumento(e.target.value)}
-                      className="text-xs"
+                      className="text-xs font-mono"
                     />
                     {tipoPessoa === 'pj' && (
                       <Button 
@@ -546,7 +549,7 @@ export function NovoFornecedorSheet({
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Status do Fornecedor</Label>
+                  <Label className="text-xs font-semibold">Status do Fornecedor</Label>
                   <Select value={statusFornecedor} onValueChange={(v: StatusFornecedor) => setStatusFornecedor(v)}>
                     <SelectTrigger className="text-xs">
                       <SelectValue placeholder="Selecione o status" />
@@ -562,80 +565,148 @@ export function NovoFornecedorSheet({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Nome Fantasia *</Label>
-                  <Input 
-                    placeholder="Ex: AWS Brasil, Google Cloud, TOTVS" 
-                    value={nomeFantasia} 
-                    onChange={e => setNomeFantasia(e.target.value)}
-                    className="text-xs"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Razão Social</Label>
-                  <Input 
-                    placeholder="Ex: Amazon Serviços de Varejo do Brasil Ltda" 
-                    value={razaoSocial} 
-                    onChange={e => setRazaoSocial(e.target.value)}
-                    className="text-xs"
-                  />
-                </div>
-              </div>
+              {tipoPessoa === 'pf' ? (
+                /* CAMPOS ESPECÍFICOS DE PESSOA FÍSICA / AUTÔNOMO */
+                <div className="space-y-4 p-4 rounded-xl border bg-amber-500/5 dark:bg-amber-950/20 border-amber-500/20">
+                  <div className="flex items-center gap-2 text-xs font-bold text-amber-700 dark:text-amber-300">
+                    <User className="w-4 h-4" /> Dados do Prestador / Profissional Autônomo (Pessoa Física)
+                  </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Inscrição Estadual (IE)</Label>
-                  <Input placeholder="Isento ou Nº" value={ie} onChange={e => setIe(e.target.value)} className="text-xs" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Inscrição Municipal (IM)</Label>
-                  <Input placeholder="Nº da inscrição" value={im} onChange={e => setIm(e.target.value)} className="text-xs" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Categoria / Especialidade</Label>
-                  <Select value={categoria} onValueChange={setCategoria}>
-                    <SelectTrigger className="text-xs">
-                      <SelectValue placeholder="Categoria" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Cloud">Cloud & Infraestrutura</SelectItem>
-                      <SelectItem value="Desenvolvimento de Software">Desenvolvimento de Software</SelectItem>
-                      <SelectItem value="Equipamentos">Equipamentos & Hardware</SelectItem>
-                      <SelectItem value="Marketing">Marketing & Mídia</SelectItem>
-                      <SelectItem value="Contabilidade">Contabilidade & Fiscal</SelectItem>
-                      <SelectItem value="Jurídico">Jurídico</SelectItem>
-                      <SelectItem value="Consultoria">Consultoria</SelectItem>
-                      <SelectItem value="Recursos Humanos">Recursos Humanos & Treinamento</SelectItem>
-                      <SelectItem value="Licenciamento">Licenciamento de Software</SelectItem>
-                      <SelectItem value="Telefonia">Telefonia & Internet</SelectItem>
-                      <SelectItem value="Serviços">Serviços Gerais</SelectItem>
-                      <SelectItem value="Outros">Outros</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold">Nome Completo do Prestador *</Label>
+                      <Input 
+                        placeholder="Ex: Carlos Eduardo da Silva" 
+                        value={razaoSocial} 
+                        onChange={e => {
+                          setRazaoSocial(e.target.value);
+                          if (!nomeFantasia || nomeFantasia === razaoSocial) {
+                            setNomeFantasia(e.target.value);
+                          }
+                        }}
+                        className="text-xs"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Apelido / Nome Profissional (Opcional)</Label>
+                      <Input 
+                        placeholder="Ex: Cadu Tech / Carlos Consultoria" 
+                        value={nomeFantasia} 
+                        onChange={e => setNomeFantasia(e.target.value)}
+                        className="text-xs"
+                      />
+                    </div>
+                  </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Website / Portal do Fornecedor</Label>
-                  <Input placeholder="https://fornecedor.com.br" value={site} onChange={e => setSite(e.target.value)} className="text-xs" />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">RG / Documento de Identificação</Label>
+                      <Input placeholder="Ex: 12.345.678-9 SSP/SP" value={ie} onChange={e => setIe(e.target.value)} className="text-xs" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold">Especialidade / Ramo Profissional</Label>
+                      <Select value={categoria} onValueChange={setCategoria}>
+                        <SelectTrigger className="text-xs">
+                          <SelectValue placeholder="Categoria" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Desenvolvimento de Software">Desenvolvimento de Software</SelectItem>
+                          <SelectItem value="Cloud">Cloud & Infraestrutura</SelectItem>
+                          <SelectItem value="Equipamentos">Equipamentos & Manutenção</SelectItem>
+                          <SelectItem value="Marketing">Design & Marketing</SelectItem>
+                          <SelectItem value="Consultoria">Consultoria Técnica / Negócios</SelectItem>
+                          <SelectItem value="Jurídico">Advocacia / Jurídico</SelectItem>
+                          <SelectItem value="Contabilidade">Contabilidade & Finanças</SelectItem>
+                          <SelectItem value="Serviços">Serviços Gerais</SelectItem>
+                          <SelectItem value="Outros">Outros Serviços Autônomos</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Porte da Empresa</Label>
-                  <Select value={porte} onValueChange={setPorte}>
-                    <SelectTrigger className="text-xs">
-                      <SelectValue placeholder="Porte" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Microempresa (ME)">Microempresa (ME)</SelectItem>
-                      <SelectItem value="Empresa de Pequeno Porte (EPP)">Empresa de Pequeno Porte (EPP)</SelectItem>
-                      <SelectItem value="Médio">Médio Porte</SelectItem>
-                      <SelectItem value="Grande">Grande Empresa / Multinacional</SelectItem>
-                    </SelectContent>
-                  </Select>
+              ) : (
+                /* CAMPOS ESPECÍFICOS DE PESSOA JURÍDICA */
+                <div className="space-y-4 p-4 rounded-xl border bg-blue-500/5 dark:bg-blue-950/20 border-blue-500/20">
+                  <div className="flex items-center gap-2 text-xs font-bold text-blue-700 dark:text-blue-300">
+                    <Building2 className="w-4 h-4" /> Dados Empresariais (Pessoa Jurídica)
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold">Nome Fantasia *</Label>
+                      <Input 
+                        placeholder="Ex: AWS Brasil, Google Cloud, TOTVS" 
+                        value={nomeFantasia} 
+                        onChange={e => setNomeFantasia(e.target.value)}
+                        className="text-xs"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold">Razão Social</Label>
+                      <Input 
+                        placeholder="Ex: Amazon Serviços de Varejo do Brasil Ltda" 
+                        value={razaoSocial} 
+                        onChange={e => setRazaoSocial(e.target.value)}
+                        className="text-xs"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Inscrição Estadual (IE)</Label>
+                      <Input placeholder="Isento ou Nº" value={ie} onChange={e => setIe(e.target.value)} className="text-xs" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Inscrição Municipal (IM)</Label>
+                      <Input placeholder="Nº da inscrição" value={im} onChange={e => setIm(e.target.value)} className="text-xs" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Categoria / Especialidade</Label>
+                      <Select value={categoria} onValueChange={setCategoria}>
+                        <SelectTrigger className="text-xs">
+                          <SelectValue placeholder="Categoria" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Cloud">Cloud & Infraestrutura</SelectItem>
+                          <SelectItem value="Desenvolvimento de Software">Desenvolvimento de Software</SelectItem>
+                          <SelectItem value="Equipamentos">Equipamentos & Hardware</SelectItem>
+                          <SelectItem value="Marketing">Marketing & Mídia</SelectItem>
+                          <SelectItem value="Contabilidade">Contabilidade & Fiscal</SelectItem>
+                          <SelectItem value="Jurídico">Jurídico</SelectItem>
+                          <SelectItem value="Consultoria">Consultoria</SelectItem>
+                          <SelectItem value="Recursos Humanos">Recursos Humanos & Treinamento</SelectItem>
+                          <SelectItem value="Licenciamento">Licenciamento de Software</SelectItem>
+                          <SelectItem value="Telefonia">Telefonia & Internet</SelectItem>
+                          <SelectItem value="Serviços">Serviços Gerais</SelectItem>
+                          <SelectItem value="Outros">Outros</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Website / Portal do Fornecedor</Label>
+                      <Input placeholder="https://fornecedor.com.br" value={site} onChange={e => setSite(e.target.value)} className="text-xs" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Porte da Empresa</Label>
+                      <Select value={porte} onValueChange={setPorte}>
+                        <SelectTrigger className="text-xs">
+                          <SelectValue placeholder="Porte" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Microempresa (ME)">Microempresa (ME)</SelectItem>
+                          <SelectItem value="Empresa de Pequeno Porte (EPP)">Empresa de Pequeno Porte (EPP)</SelectItem>
+                          <SelectItem value="Médio">Médio Porte</SelectItem>
+                          <SelectItem value="Grande">Grande Empresa / Multinacional</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="space-y-1.5">
                 <Label className="text-xs">Observações Internas</Label>
@@ -691,7 +762,7 @@ export function NovoFornecedorSheet({
                 </div>
                 <div className="space-y-1.5 sm:col-span-2">
                   <Label className="text-xs">Complemento</Label>
-                  <Input placeholder="Sala 1204, Bloco B" value={complemento} onChange={e => setComplemento(e.target.value)} className="text-xs" />
+                  <Input placeholder={tipoPessoa === 'pf' ? "Apto 42, Bloco B" : "Sala 1204, Bloco B"} value={complemento} onChange={e => setComplemento(e.target.value)} className="text-xs" />
                 </div>
               </div>
 
@@ -713,20 +784,56 @@ export function NovoFornecedorSheet({
 
             {/* 3. CONTATOS */}
             <TabsContent value="contatos" className="space-y-4 pt-3">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Nome do Contato / Representante *</Label>
-                  <Input placeholder="Ex: Carlos Silva" value={contatoNome} onChange={e => setContatoNome(e.target.value)} className="text-xs" />
+              {tipoPessoa === 'pf' ? (
+                /* CONTATO DIRETO PESSOA FÍSICA */
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Celular / WhatsApp *</Label>
+                    <Input placeholder="(11) 99999-9999" value={contatoCelular} onChange={e => setContatoCelular(e.target.value)} className="text-xs" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">E-mail de Contato</Label>
+                    <Input placeholder="prestador@email.com" value={contatoEmail} onChange={e => setContatoEmail(e.target.value)} className="text-xs" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Telefone Alternativo</Label>
+                    <Input placeholder="(11) 3000-0000" value={contatoTelefone} onChange={e => setContatoTelefone(e.target.value)} className="text-xs" />
+                  </div>
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Cargo / Função</Label>
-                  <Input placeholder="Ex: Gerente de Contas" value={contatoCargo} onChange={e => setContatoCargo(e.target.value)} className="text-xs" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Departamento</Label>
-                  <Input placeholder="Ex: Comercial, Suporte, Financeiro" value={contatoDepartamento} onChange={e => setContatoDepartamento(e.target.value)} className="text-xs" />
-                </div>
-              </div>
+              ) : (
+                /* CONTATOS CORPORATIVOS PJ */
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold">Nome do Contato / Representante *</Label>
+                      <Input placeholder="Ex: Carlos Silva" value={contatoNome} onChange={e => setContatoNome(e.target.value)} className="text-xs" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Cargo / Função</Label>
+                      <Input placeholder="Ex: Gerente de Contas" value={contatoCargo} onChange={e => setContatoCargo(e.target.value)} className="text-xs" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Departamento</Label>
+                      <Input placeholder="Ex: Comercial, Suporte, Financeiro" value={contatoDepartamento} onChange={e => setContatoDepartamento(e.target.value)} className="text-xs" />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">E-mail Corporativo</Label>
+                      <Input placeholder="contato@fornecedor.com.br" value={contatoEmail} onChange={e => setContatoEmail(e.target.value)} className="text-xs" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold">Celular / WhatsApp *</Label>
+                      <Input placeholder="(11) 99999-9999" value={contatoCelular} onChange={e => setContatoCelular(e.target.value)} className="text-xs" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Telefone Comercial</Label>
+                      <Input placeholder="(11) 3000-0000" value={contatoTelefone} onChange={e => setContatoTelefone(e.target.value)} className="text-xs" />
+                    </div>
+                  </div>
+                </>
+              )}
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-1.5">

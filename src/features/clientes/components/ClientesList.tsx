@@ -230,71 +230,116 @@ export function ClientesList() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredData.map((cliente) => {
+                const isPF = cliente.tipo === 'Pessoa Física';
                 const contatoPrincipal = cliente.contatos?.find(c => c.principal) || cliente.contatos?.[0];
+                const nomeExibicao = isPF ? (cliente.razaoSocial || cliente.nomeFantasia || 'Cliente') : (cliente.nomeFantasia || cliente.razaoSocial || 'Cliente');
+
                 return (
                   <Card 
                     key={cliente.id} 
-                    className="border rounded-xl hover:border-primary/40 hover:shadow-md transition-all group flex flex-col justify-between overflow-hidden bg-card"
+                    className={`border rounded-xl transition-all group flex flex-col justify-between overflow-hidden bg-card ${
+                      isPF 
+                        ? 'hover:border-amber-500/50 hover:shadow-md border-amber-500/20' 
+                        : 'hover:border-blue-500/50 hover:shadow-md border-blue-500/20'
+                    }`}
                   >
-                    <CardHeader className="p-4 pb-3 border-b bg-muted/20">
+                    <CardHeader className={`p-4 pb-3 border-b ${isPF ? 'bg-amber-500/5 dark:bg-amber-950/20' : 'bg-blue-500/5 dark:bg-blue-950/20'}`}>
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex items-center gap-3 min-w-0">
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${cliente.tipo === 'Pessoa Jurídica' ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20' : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'}`}>
-                            {cliente.tipo === 'Pessoa Jurídica' ? <Building2 className="w-5 h-5" /> : <User className="w-5 h-5" />}
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 font-bold text-xs ${
+                            isPF 
+                              ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30' 
+                              : 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border border-blue-500/30'
+                          }`}>
+                            {isPF ? <User className="w-5 h-5" /> : <Building2 className="w-5 h-5" />}
                           </div>
                           <div className="min-w-0">
                             <h3 
                               onClick={() => { setClientePerfil(cliente); setPerfilOpen(true); }}
                               className="font-bold text-sm text-foreground truncate hover:text-primary cursor-pointer transition-colors"
-                              title={cliente.nomeFantasia || cliente.razaoSocial}
+                              title={nomeExibicao}
                             >
-                              {cliente.nomeFantasia || cliente.razaoSocial}
+                              {nomeExibicao}
                             </h3>
                             <p className="text-xs text-muted-foreground truncate">
-                              {cliente.tipo === 'Pessoa Jurídica' ? cliente.razaoSocial : (cliente.segmento || 'Pessoa Física')}
+                              {isPF ? (cliente.segmento || 'Pessoa Física / Individual') : (cliente.segmento ? `${cliente.segmento} • PJ` : cliente.razaoSocial)}
                             </p>
                           </div>
                         </div>
-                        <Badge 
-                          variant={cliente.status === 'Ativo' ? 'default' : 'secondary'} 
-                          className={`text-[10px] shrink-0 ${cliente.status === 'Ativo' ? 'bg-emerald-600 hover:bg-emerald-700' : ''}`}
-                        >
-                          {cliente.status}
-                        </Badge>
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                          <Badge 
+                            variant={cliente.status === 'Ativo' ? 'default' : 'secondary'} 
+                            className={`text-[10px] ${cliente.status === 'Ativo' ? 'bg-emerald-600 hover:bg-emerald-700' : ''}`}
+                          >
+                            {cliente.status}
+                          </Badge>
+                          <Badge variant="outline" className={`text-[9px] px-1.5 py-0 ${isPF ? 'border-amber-500/40 text-amber-600 dark:text-amber-400' : 'border-blue-500/40 text-blue-600 dark:text-blue-400'}`}>
+                            {isPF ? 'Pessoa Física' : 'Pessoa Jurídica'}
+                          </Badge>
+                        </div>
                       </div>
                     </CardHeader>
 
                     <CardContent className="p-4 space-y-2.5 text-xs flex-1">
                       <div className="flex items-center justify-between py-1 border-b border-dashed">
-                        <span className="text-muted-foreground">Código / ID:</span>
-                        <span className="font-mono font-semibold text-foreground">{cliente.codigo || '-'}</span>
+                        <span className="text-muted-foreground">{isPF ? 'ID / Código:' : 'Código Corporativo:'}</span>
+                        <span className="font-mono font-semibold text-primary">{cliente.codigo || '-'}</span>
                       </div>
 
                       <div className="flex items-center justify-between py-1 border-b border-dashed">
-                        <span className="text-muted-foreground">CPF / CNPJ:</span>
-                        <span className="font-mono text-foreground">{cliente.documento || '-'}</span>
+                        <span className="text-muted-foreground">{isPF ? 'CPF:' : 'CNPJ:'}</span>
+                        <span className="font-mono font-semibold text-foreground">{cliente.documento || '-'}</span>
                       </div>
 
-                      {contatoPrincipal && (
-                        <div className="space-y-1 py-1 border-b border-dashed">
-                          <span className="text-muted-foreground block text-[11px]">Contato Principal:</span>
-                          <div className="flex items-center gap-1.5 text-foreground font-medium truncate">
-                            <User className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                            <span className="truncate">{contatoPrincipal.nome}</span>
-                          </div>
-                          {contatoPrincipal.email && (
-                            <div className="flex items-center gap-1.5 text-muted-foreground text-[11px] truncate">
-                              <Mail className="w-3 h-3 text-muted-foreground shrink-0" />
-                              <span className="truncate">{contatoPrincipal.email}</span>
+                      {isPF ? (
+                        /* DETALHES DE PESSOA FÍSICA NO CARD */
+                        <div className="space-y-1.5 py-1 border-b border-dashed">
+                          {contatoPrincipal?.celular && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-muted-foreground flex items-center gap-1">
+                                <Phone className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> WhatsApp:
+                              </span>
+                              <span className="font-medium text-foreground">{contatoPrincipal.celular}</span>
                             </div>
                           )}
-                          {contatoPrincipal.celular && (
-                            <div className="flex items-center gap-1.5 text-muted-foreground text-[11px] truncate">
-                              <Phone className="w-3 h-3 text-muted-foreground shrink-0" />
-                              <span>{contatoPrincipal.celular}</span>
+                          {contatoPrincipal?.email && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-muted-foreground flex items-center gap-1">
+                                <Mail className="w-3.5 h-3.5 text-blue-500 shrink-0" /> E-mail:
+                              </span>
+                              <span className="font-medium text-foreground truncate max-w-[170px]">{contatoPrincipal.email}</span>
+                            </div>
+                          )}
+                          {cliente.dataFundacaoNascimento && (
+                            <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                              <span>Nascimento:</span>
+                              <span>{new Date(cliente.dataFundacaoNascimento).toLocaleDateString('pt-BR')}</span>
                             </div>
                           )}
                         </div>
+                      ) : (
+                        /* DETALHES DE PESSOA JURÍDICA NO CARD */
+                        contatoPrincipal && (
+                          <div className="space-y-1 py-1 border-b border-dashed">
+                            <span className="text-muted-foreground block text-[11px]">Interlocutor Principal:</span>
+                            <div className="flex items-center gap-1.5 text-foreground font-medium truncate">
+                              <User className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                              <span className="truncate">{contatoPrincipal.nome} {contatoPrincipal.cargo ? `(${contatoPrincipal.cargo})` : ''}</span>
+                            </div>
+                            {contatoPrincipal.email && (
+                              <div className="flex items-center gap-1.5 text-muted-foreground text-[11px] truncate">
+                                <Mail className="w-3 h-3 text-muted-foreground shrink-0" />
+                                <span className="truncate">{contatoPrincipal.email}</span>
+                              </div>
+                            )}
+                            {contatoPrincipal.celular && (
+                              <div className="flex items-center gap-1.5 text-muted-foreground text-[11px] truncate">
+                                <Phone className="w-3 h-3 text-muted-foreground shrink-0" />
+                                <span>{contatoPrincipal.celular}</span>
+                              </div>
+                            )}
+                          </div>
+                        )
                       )}
 
                       <div className="flex items-center justify-between pt-1">
