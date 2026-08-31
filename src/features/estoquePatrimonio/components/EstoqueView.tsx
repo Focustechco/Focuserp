@@ -41,14 +41,26 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useEstoquePatrimonio } from '../hooks/useEstoquePatrimonio';
 import { useLocalStorageState } from '@/hooks/useDataStore';
+import { CentroCusto } from '@/features/centro-de-custos/types';
+import { INITIAL_CENTROS } from '@/features/centro-de-custos/data/initialData';
+import { CategoriaFinanceira } from '@/features/plano-contas/types';
+import { INITIAL_CATEGORIAS } from '@/features/plano-contas/mockData';
 import { EstoqueItem } from '../types';
 import { InventarioView } from './InventarioView';
 import { toast } from 'sonner';
 
 export function EstoqueView() {
-  const { estoqueItens, addEstoqueItem, ajustarEstoqueItemComFinanceiro, deleteEstoqueItem } = useEstoquePatrimonio();
+  const { 
+    estoqueItens, 
+    addEstoqueItem, 
+    ajustarEstoqueItemComFinanceiro, 
+    deleteEstoqueItem 
+  } = useEstoquePatrimonio();
+
   const { data: clientes = [] } = useLocalStorageState<any>('focus_clientes', []);
   const { data: fornecedores = [] } = useLocalStorageState<any>('focus_fornecedores', []);
+  const { data: centrosCusto = [] } = useLocalStorageState<CentroCusto>('focus_centro_custos', INITIAL_CENTROS);
+  const { data: planoContas = [] } = useLocalStorageState<CategoriaFinanceira>('focus_plano_contas', INITIAL_CATEGORIAS);
 
   const [subTab, setSubTab] = useState<'itens' | 'inventario'>('itens');
   const [searchTerm, setSearchTerm] = useState('');
@@ -85,6 +97,9 @@ export function EstoqueView() {
     vencimento: new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
     formaPagamento: 'Boleto',
     finalidadeSaida: 'venda' as 'venda' | 'interno',
+    centroCustoId: '',
+    centroCustoNome: 'Operacional & Tecnologia',
+    categoriaFinanceira: 'Estoque & Insumos Almoxarifado',
   });
 
   const filteredItens = estoqueItens.filter((item) => {
@@ -179,6 +194,10 @@ export function EstoqueView() {
     const vlrTot = Number(movForm.valorTotal) || (qtd * (Number(movForm.valorUnitario) || 0));
     const shouldGenFinancial = movForm.tipo !== 'Ajuste' && movForm.gerarFinanceiro && (movForm.tipo === 'Entrada' || movForm.finalidadeSaida === 'venda');
 
+    const selectedCc = centrosCusto.find(c => c.id === movForm.centroCustoId || c.nome === movForm.centroCustoNome);
+    const ccNomeFinal = selectedCc ? selectedCc.nome : (movForm.centroCustoNome || 'Operacional & Tecnologia');
+    const ccIdFinal = selectedCc ? selectedCc.id : movForm.centroCustoId;
+
     ajustarEstoqueItemComFinanceiro({
       itemId: selectedItem.id,
       quantidadeMudanca: qtd,
@@ -189,13 +208,16 @@ export function EstoqueView() {
       entidadeNome: movForm.entidadeNome,
       vencimento: movForm.vencimento,
       formaPagamento: movForm.formaPagamento,
+      centroCustoId: ccIdFinal,
+      centroCustoNome: ccNomeFinal,
+      categoria: movForm.categoriaFinanceira,
     });
 
     if (shouldGenFinancial) {
       if (movForm.tipo === 'Entrada') {
-        toast.success(`Entrada de ${qtd} un realizada! Conta a Pagar de R$ ${vlrTot.toFixed(2)} gerada com sucesso.`);
+        toast.success(`Entrada de ${qtd} un realizada! Conta a Pagar de R$ ${vlrTot.toFixed(2)} direcionada para "${ccNomeFinal}".`);
       } else {
-        toast.success(`Saída de ${qtd} un realizada! Conta a Receber de R$ ${vlrTot.toFixed(2)} gerada para ${movForm.entidadeNome}.`);
+        toast.success(`Saída de ${qtd} un realizada! Conta a Receber de R$ ${vlrTot.toFixed(2)} direcionada para "${ccNomeFinal}".`);
       }
     } else {
       toast.success(`Movimentação de ${movForm.tipo} (${qtd} un) registrada no estoque!`);
@@ -776,6 +798,56 @@ export function EstoqueView() {
                             onChange={(e) => setMovForm({ ...movForm, vencimento: e.target.value })}
                             className="text-xs h-8 bg-card"
                           />
+                        </div>
+                      </div>
+
+                      {/* CENTRO DE CUSTO E CATEGORIA */}
+                      <div className="grid grid-cols-2 gap-2 pt-1 border-t border-orange-500/10">
+                        <div className="space-y-1">
+                          <Label className="text-[11px] font-bold text-foreground">Centro de Custo *</Label>
+                          <Select
+                            value={movForm.centroCustoId || movForm.centroCustoNome}
+                            onValueChange={(val) => {
+                              const matched = centrosCusto.find(c => c.id === val || c.nome === val);
+                              setMovForm({
+                                ...movForm,
+                                centroCustoId: matched ? matched.id : val,
+                                centroCustoNome: matched ? matched.nome : val,
+                              });
+                            }}
+                          >
+                            <SelectTrigger className="text-xs h-8 bg-card">
+                              <SelectValue placeholder="Selecione o Centro de Custo" />
+                            </SelectTrigger>
+                            <SelectContent className="text-xs">
+                              {centrosCusto.map((cc) => (
+                                <SelectItem key={cc.id} value={cc.id}>
+                                  {cc.codigo ? `${cc.codigo} - ` : ''}{cc.nome} ({cc.tipo})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label className="text-[11px] font-bold text-foreground">Categoria Financeira *</Label>
+                          <Select
+                            value={movForm.categoriaFinanceira}
+                            onValueChange={(val) => setMovForm({ ...movForm, categoriaFinanceira: val })}
+                          >
+                            <SelectTrigger className="text-xs h-8 bg-card">
+                              <SelectValue placeholder="Selecione a Categoria" />
+                            </SelectTrigger>
+                            <SelectContent className="text-xs">
+                              {planoContas
+                                .filter(c => movForm.tipo === 'Entrada' ? (c.tipo === 'Despesa' || !c.tipo) : (c.tipo === 'Receita' || !c.tipo))
+                                .map((cat) => (
+                                  <SelectItem key={cat.id} value={cat.nome}>
+                                    {cat.codigo ? `${cat.codigo} - ` : ''}{cat.nome}
+                                  </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
                         </div>
                       </div>
 

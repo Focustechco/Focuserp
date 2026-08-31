@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   Wrench, Plus, CheckCircle2, Clock, DollarSign, Search, Trash2, 
-  ArrowUpRight, Receipt, User, Building2, AlertCircle, X 
+  ArrowUpRight, Receipt, User, Building2, AlertCircle, X, FolderTree, Tag 
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,10 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useEstoquePatrimonio } from '../hooks/useEstoquePatrimonio';
 import { useLocalStorageState } from '@/hooks/useDataStore';
+import { CentroCusto } from '@/features/centro-de-custos/types';
+import { INITIAL_CENTROS } from '@/features/centro-de-custos/data/initialData';
+import { CategoriaFinanceira } from '@/features/plano-contas/types';
+import { INITIAL_CATEGORIAS } from '@/features/plano-contas/mockData';
 import { toast } from 'sonner';
 
 export function ManutencoesView() {
@@ -35,6 +39,8 @@ export function ManutencoesView() {
 
   const { data: clientes = [] } = useLocalStorageState<any>('focus_clientes', []);
   const { data: fornecedores = [] } = useLocalStorageState<any>('focus_fornecedores', []);
+  const { data: centrosCusto = [] } = useLocalStorageState<CentroCusto>('focus_centro_custos', INITIAL_CENTROS);
+  const { data: planoContas = [] } = useLocalStorageState<CategoriaFinanceira>('focus_plano_contas', INITIAL_CATEGORIAS);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [isNovoModalOpen, setIsNovoModalOpen] = useState(false);
@@ -51,7 +57,12 @@ export function ManutencoesView() {
     gerarContaReceber: false,
     clienteNome: '',
     vencimento: new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
+    centroCustoId: '',
+    centroCustoNome: 'Operacional & Tecnologia',
+    categoriaFinanceira: 'Manutenção de Equipamentos & TI',
   });
+
+  const categoriasDespesa = planoContas.filter(c => c.tipo === 'Despesa' || !c.tipo);
 
   const filtered = manutencoes.filter((m) => {
     if (!m) return false;
@@ -87,6 +98,9 @@ export function ManutencoesView() {
     }
 
     const vlr = Number(novoForm.valor) || 0;
+    const selectedCc = centrosCusto.find(c => c.id === novoForm.centroCustoId || c.nome === novoForm.centroCustoNome);
+    const ccNomeFinal = selectedCc ? selectedCc.nome : (novoForm.centroCustoNome || 'Operacional & Tecnologia');
+    const ccIdFinal = selectedCc ? selectedCc.id : novoForm.centroCustoId;
 
     abrirManutencaoComFinanceiro({
       equipamentoId: novoForm.equipamentoId,
@@ -99,10 +113,13 @@ export function ManutencoesView() {
       gerarContaReceber: novoForm.gerarContaReceber,
       clienteNome: novoForm.clienteNome,
       vencimento: novoForm.vencimento,
+      centroCustoId: ccIdFinal,
+      centroCustoNome: ccNomeFinal,
+      categoria: novoForm.categoriaFinanceira,
     });
 
-    let msg = `Ordem de manutenção [${novoForm.tipo}] registrada com sucesso!`;
-    if (novoForm.gerarContaPagar) msg += ' Conta a Pagar gerada.';
+    let msg = `Ordem de manutenção [${novoForm.tipo}] registrada!`;
+    if (novoForm.gerarContaPagar) msg += ` Conta a Pagar direcionada para "${ccNomeFinal}".`;
     if (novoForm.gerarContaReceber && novoForm.clienteNome) msg += ' Faturamento gerado no Contas a Receber.';
     toast.success(msg);
 
@@ -118,6 +135,9 @@ export function ManutencoesView() {
       gerarContaReceber: false,
       clienteNome: '',
       vencimento: new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
+      centroCustoId: '',
+      centroCustoNome: 'Operacional & Tecnologia',
+      categoriaFinanceira: 'Manutenção de Equipamentos & TI',
     });
   };
 
@@ -128,7 +148,7 @@ export function ManutencoesView() {
         <div>
           <h2 className="text-xl font-bold tracking-tight text-foreground">Ordens de Manutenção & Upgrades</h2>
           <p className="text-xs text-muted-foreground">
-            Controle de serviços preventivos, corretivos, reparos e integração financeira automática com Contas a Pagar e Receber
+            Controle de serviços preventivos, corretivos, reparos e integração financeira automática com Centro de Custo, Categorias e Contas a Pagar
           </p>
         </div>
         <Button
@@ -308,10 +328,10 @@ export function ManutencoesView() {
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-base font-bold flex items-center gap-2">
-              <Wrench className="h-5 w-5 text-orange-600" /> Abertura de Ordem de Manutenção & Integração Financeira
+              <Wrench className="h-5 w-5 text-orange-600" /> Abertura de Ordem de Manutenção & Direcionamento Financeiro
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Registre a ordem de serviço técnico e gere lançamentos automáticos em Contas a Pagar e Contas a Receber.
+              Registre a ordem de serviço e selecione o <strong>Centro de Custo</strong> e <strong>Categoria</strong> para contabilizar com precisão no ERP.
             </DialogDescription>
           </DialogHeader>
 
@@ -401,6 +421,58 @@ export function ManutencoesView() {
               </div>
             </div>
 
+            {/* SELEÇÃO DE CENTRO DE CUSTO E CATEGORIA */}
+            <div className="grid grid-cols-2 gap-2 p-2.5 rounded-lg border bg-muted/30">
+              <div className="space-y-1">
+                <Label className="text-xs font-bold flex items-center gap-1 text-foreground">
+                  <FolderTree className="w-3.5 h-3.5 text-orange-600" /> Centro de Custo *
+                </Label>
+                <Select
+                  value={novoForm.centroCustoId || novoForm.centroCustoNome}
+                  onValueChange={(val) => {
+                    const matched = centrosCusto.find(c => c.id === val || c.nome === val);
+                    setNovoForm({
+                      ...novoForm,
+                      centroCustoId: matched ? matched.id : val,
+                      centroCustoNome: matched ? matched.nome : val,
+                    });
+                  }}
+                >
+                  <SelectTrigger className="text-xs h-8 bg-card">
+                    <SelectValue placeholder="Selecione o Centro de Custo" />
+                  </SelectTrigger>
+                  <SelectContent className="text-xs">
+                    {centrosCusto.map((cc) => (
+                      <SelectItem key={cc.id} value={cc.id}>
+                        {cc.codigo ? `${cc.codigo} - ` : ''}{cc.nome} ({cc.tipo})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs font-bold flex items-center gap-1 text-foreground">
+                  <Tag className="w-3.5 h-3.5 text-orange-600" /> Categoria Financeira *
+                </Label>
+                <Select
+                  value={novoForm.categoriaFinanceira}
+                  onValueChange={(val) => setNovoForm({ ...novoForm, categoriaFinanceira: val })}
+                >
+                  <SelectTrigger className="text-xs h-8 bg-card">
+                    <SelectValue placeholder="Selecione a Categoria" />
+                  </SelectTrigger>
+                  <SelectContent className="text-xs">
+                    {categoriasDespesa.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.nome}>
+                        {cat.codigo ? `${cat.codigo} - ` : ''}{cat.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
             {/* PAINEL DE INTEGRAÇÃO FINANCEIRA */}
             <div className="space-y-2.5 p-3 rounded-lg border bg-orange-500/5 dark:bg-orange-950/20 border-orange-500/20">
               <div className="flex items-center justify-between">
@@ -444,7 +516,7 @@ export function ManutencoesView() {
                 Cancelar
               </Button>
               <Button type="submit" size="sm" className="text-xs bg-orange-600 hover:bg-orange-700 text-white font-semibold">
-                Abrir Ordem & Gerar Financeiro
+                Abrir Ordem & Contabilizar no Financeiro
               </Button>
             </DialogFooter>
           </form>

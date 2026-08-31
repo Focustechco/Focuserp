@@ -354,6 +354,9 @@ export function useEstoquePatrimonio() {
     entidadeNome?: string; // Fornecedor (Entrada) ou Cliente (Saída)
     vencimento?: string;
     formaPagamento?: any;
+    centroCustoId?: string;
+    centroCustoNome?: string;
+    categoria?: string;
   }) => {
     const item = estoqueItens.find((i) => i.id === params.itemId);
     if (!item) return;
@@ -376,8 +379,9 @@ export function useEstoquePatrimonio() {
           descricao: `Compra/Entrada de Estoque: ${params.quantidadeMudanca}x ${item.nome} (${item.codigo})`,
           valor: params.valorTotal,
           vencimento: params.vencimento,
-          categoria: 'Estoque & Insumos Almoxarifado',
-          centroCustoNome: 'Almoxarifado TI',
+          categoria: params.categoria || 'Estoque & Insumos Almoxarifado',
+          centroCustoNome: params.centroCustoNome || 'Operacional & Tecnologia',
+          centroCustoId: params.centroCustoId,
           formaPagamento: params.formaPagamento || 'Boleto',
           observacoes: `Motivo: ${params.motivo}`,
         });
@@ -387,8 +391,9 @@ export function useEstoquePatrimonio() {
           descricao: `Venda/Faturamento de Estoque: ${params.quantidadeMudanca}x ${item.nome} (${item.codigo})`,
           valor: params.valorTotal,
           vencimento: params.vencimento,
-          categoria: 'Venda de Materiais & Insumos',
-          centroCustoNome: 'Almoxarifado & Vendas',
+          categoria: params.categoria || 'Venda de Materiais & Insumos',
+          centroCustoNome: params.centroCustoNome || 'Comercial & Marketing',
+          centroCustoId: params.centroCustoId,
           formaPagamento: params.formaPagamento || 'PIX',
           observacoes: `Motivo: ${params.motivo}`,
         });
@@ -424,6 +429,9 @@ export function useEstoquePatrimonio() {
     gerarContaReceber?: boolean;
     clienteNome?: string;
     vencimento?: string;
+    centroCustoId?: string;
+    centroCustoNome?: string;
+    categoria?: string;
   }) => {
     const eq = equipamentos.find((e) => e.id === params.equipamentoId);
     const eqNome = eq ? `${eq.marca} ${eq.modelo}` : 'Equipamento';
@@ -469,8 +477,9 @@ export function useEstoquePatrimonio() {
         descricao: `Serviço de Manutenção [${params.tipo}]: ${eqNome} (${eqCod})`,
         valor: params.valor,
         vencimento: params.vencimento,
-        categoria: 'Manutenção de Equipamentos & TI',
-        centroCustoNome: 'Manutenção TI',
+        categoria: params.categoria || 'Manutenção de Equipamentos & TI',
+        centroCustoNome: params.centroCustoNome || 'Operacional & Tecnologia',
+        centroCustoId: params.centroCustoId,
       });
     }
 
@@ -481,8 +490,9 @@ export function useEstoquePatrimonio() {
         descricao: `Faturamento de Manutenção [${params.tipo}]: ${eqNome} (${eqCod})`,
         valor: params.valor,
         vencimento: params.vencimento,
-        categoria: 'Serviços de Manutenção & Suporte',
-        centroCustoNome: 'Operações & Serviços',
+        categoria: params.categoria || 'Serviços de Manutenção & Suporte',
+        centroCustoNome: params.centroCustoNome || 'Operações & Serviços',
+        centroCustoId: params.centroCustoId,
       });
     }
 
@@ -508,6 +518,7 @@ export function useEstoquePatrimonio() {
     gerarContaReceber?: boolean;
     clienteNome?: string;
     vencimentoFinanceiro?: string;
+    categoria?: string;
   }) => {
     const id = 'lic-' + Date.now();
     const novaLicenca: Licenca = {
@@ -523,8 +534,9 @@ export function useEstoquePatrimonio() {
         descricao: `Assinatura de Software/Licença: ${params.licenca.nome} (${params.licenca.plano})`,
         valor: params.licenca.valor,
         vencimento: params.vencimentoFinanceiro || params.licenca.vencimento,
-        categoria: 'Licenças de Software & SaaS',
-        centroCustoNome: params.licenca.centroCustoNome || 'TI / Infraestrutura',
+        categoria: params.categoria || 'Licenciamento de Software',
+        centroCustoNome: params.licenca.centroCustoNome || 'Operacional & Tecnologia',
+        centroCustoId: params.licenca.centroCustoId,
       });
     }
 
@@ -535,8 +547,9 @@ export function useEstoquePatrimonio() {
         descricao: `Repasse de Licença de Software: ${params.licenca.nome} (${params.licenca.plano})`,
         valor: params.licenca.valor,
         vencimento: params.vencimentoFinanceiro || params.licenca.vencimento,
-        categoria: 'Repasse de Licenças & Serviços',
-        centroCustoNome: 'Comercial & Faturamento',
+        categoria: params.categoria || 'Licenciamento de Software',
+        centroCustoNome: params.licenca.centroCustoNome || 'Comercial & Marketing',
+        centroCustoId: params.licenca.centroCustoId,
       });
     }
 
