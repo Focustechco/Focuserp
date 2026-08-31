@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { PastaDMS, DocumentoDMS, AuditLogDocumento, FormatoArquivo, ModuloOrigemDMS } from '@/features/documentos/types';
 import { INITIAL_PASTAS, INITIAL_DOCUMENTOS } from '@/features/documentos/data/initialData';
 import { safeGetItem, safeSetItem } from '@/lib/safeStorage';
+import { dmsBlobStore } from '@/lib/indexedDbStorage';
 
 const DOCS_STORAGE_KEYS = ['focus_app_focus_dms_documentos', 'focus_dms_documentos'];
 const PASTAS_STORAGE_KEYS = ['focus_app_focus_dms_pastas', 'focus_dms_pastas'];
@@ -249,7 +250,24 @@ export const dmsService = {
   },
 
   async saveDocumentos(docs: DocumentoDMS[]): Promise<void> {
-    const serialized = JSON.stringify(docs);
+    // Sanitizar documentos para nunca estourar cota do localStorage com Base64
+    const sanitizedDocs = docs.map((doc) => {
+      if (doc.urlConteudo && (doc.urlConteudo.startsWith('data:') || doc.urlConteudo.length > 2000)) {
+        // Salvar blob pesado no IndexedDB em background
+        dmsBlobStore.saveBlob(doc.id, doc.urlConteudo);
+        return {
+          ...doc,
+          urlConteudo: `indexeddb:${doc.id}`,
+          historicoVersoes: (doc.historicoVersoes || []).map((v) => ({
+            ...v,
+            urlDownload: v.urlDownload && v.urlDownload.startsWith('data:') ? `indexeddb:${doc.id}` : v.urlDownload,
+          })),
+        };
+      }
+      return doc;
+    });
+
+    const serialized = JSON.stringify(sanitizedDocs);
     for (const key of DOCS_STORAGE_KEYS) {
       safeSetItem(key, serialized);
     }
@@ -257,9 +275,23 @@ export const dmsService = {
   },
 
   async saveDocumento(doc: DocumentoDMS): Promise<void> {
+    // Se o documento contém Base64 pesado, salvar no IndexedDB
+    let docToSave = doc;
+    if (doc.urlConteudo && (doc.urlConteudo.startsWith('data:') || doc.urlConteudo.length > 2000)) {
+      await dmsBlobStore.saveBlob(doc.id, doc.urlConteudo);
+      docToSave = {
+        ...doc,
+        urlConteudo: `indexeddb:${doc.id}`,
+        historicoVersoes: (doc.historicoVersoes || []).map((v) => ({
+          ...v,
+          urlDownload: v.urlDownload && v.urlDownload.startsWith('data:') ? `indexeddb:${doc.id}` : v.urlDownload,
+        })),
+      };
+    }
+
     const list = this.getDocumentos();
     const filtered = list.filter((d) => d.id !== doc.id);
-    const updated = [doc, ...filtered];
+    const updated = [docToSave, ...filtered];
     await this.saveDocumentos(updated);
 
     // Auditoria
@@ -332,8 +364,19 @@ export const dmsService = {
     const ext = (rawExt === 'pdf' ? 'pdf' : rawExt === 'xlsx' || rawExt === 'xls' ? 'xlsx' : rawExt === 'csv' ? 'csv' : rawExt === 'docx' || rawExt === 'doc' ? 'docx' : rawExt === 'xml' ? 'xml' : rawExt === 'png' || rawExt === 'jpg' ? 'png' : 'outros') as FormatoArquivo;
     const codigo = `DOC-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
+    const newDocId = `doc-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+    // Se houver Base64, salvar no IndexedDB
+    if (params.urlConteudo && (params.urlConteudo.startsWith('data:') || params.urlConteudo.length > 2000)) {
+      dmsBlobStore.saveBlob(newDocId, params.urlConteudo);
+    }
+
+    const storedUrl = params.urlConteudo && (params.urlConteudo.startsWith('data:') || params.urlConteudo.length > 2000)
+      ? `indexeddb:${newDocId}`
+      : params.urlConteudo;
+
     const newDoc: DocumentoDMS = {
-      id: `doc-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      id: newDocId,
       codigo,
       nome: params.nome,
       extensao: ext,
@@ -344,6 +387,8 @@ export const dmsService = {
       moduloOrigem: params.moduloOrigem,
       clienteId: params.clienteId,
       clienteNome: params.clienteNome,
+      fornecedorId: params.fornecedorId,
+      fornecedorNome: params.fornecedorNome,
       projetoId: params.projetoId,
       projetoNome: params.projetoNome,
       contratoId: params.contratoId,
@@ -361,7 +406,7 @@ export const dmsService = {
       versaoAtual: '1.0',
       favorito: false,
       status: params.status || 'Ativo',
-      urlConteudo: params.urlConteudo,
+      urlConteudo: storedUrl,
       historicoVersoes: [
         {
           numeroVersao: '1.0',
@@ -369,7 +414,7 @@ export const dmsService = {
           dataAlteracao: new Date().toISOString(),
           descricaoAlteracao: `Arquivo gerado e sincronizado automaticamente via módulo ${params.moduloOrigem}.`,
           tamanhoArquivo: params.tamanho || '1.2 MB',
-          urlDownload: params.urlConteudo,
+          urlDownload: storedUrl,
         },
       ],
     };
@@ -383,6 +428,7 @@ export const dmsService = {
     const docToDelete = list.find((d) => d.id === id);
     const updated = list.filter((d) => d.id !== id);
     await this.saveDocumentos(updated);
+    await dmsBlobStore.deleteBlob(id);
 
     try {
       await supabase.from('focus_dms_documentos').delete().eq('id', id);
@@ -398,6 +444,7 @@ export const dmsService = {
     const list = this.getDocumentos();
     const updated = list.filter((d) => !idSet.has(d.id));
     await this.saveDocumentos(updated);
+    await dmsBlobStore.deleteBlobsBatch(ids);
 
     try {
       await supabase.from('focus_dms_documentos').delete().in('id', ids);

@@ -3,6 +3,7 @@ import { useLocalStorageState } from "@/hooks/useDataStore";
 import { PastaDMS, DocumentoDMS, AuditLogDocumento, FormatoArquivo, ModuloOrigemDMS } from "../types";
 import { INITIAL_PASTAS, INITIAL_DOCUMENTOS } from "../data/initialData";
 import { dmsService } from "@/services/dmsService";
+import { dmsBlobStore } from "@/lib/indexedDbStorage";
 
 export function useDocumentosStore() {
   const { data: rawPastas, addItem: addPastaItem, updateItem: updatePastaItem, removeItem: removePastaItem, save: savePastas } = useLocalStorageState<PastaDMS>('focus_dms_pastas', INITIAL_PASTAS);
@@ -22,11 +23,15 @@ export function useDocumentosStore() {
   const pastas = useMemo(() => {
     const map = new Map<string, PastaDMS>();
     const pathMap = new Map<string, string>(); // caminhoNormalizado -> idOficial
+    const nameMap = new Map<string, string>(); // nomeNormalizado -> idOficial
 
     // 1.1 Pastas Oficiais Raízes e Subpastas Padrão
     INITIAL_PASTAS.forEach((p) => {
       map.set(p.id, p);
       pathMap.set(p.caminhoCompleto.toLowerCase().trim(), p.id);
+      if (p.parentId === null) {
+        nameMap.set(p.nome.toLowerCase().trim(), p.id);
+      }
     });
 
     // 1.2 Auto-sincronizar subpastas de Clientes Cadastrados
@@ -134,12 +139,42 @@ export function useDocumentosStore() {
       }
     });
 
+    // Mapeamento de subpastas conhecidas que nunca devem ficar soltas na raiz
+    const KNOWN_SUBFOLDERS_PARENT_MAP: Record<string, { parentId: string; caminhoCompleto: string }> = {
+      'extratos bancários': { parentId: 'p-fin', caminhoCompleto: '/Financeiro/Extratos Bancários' },
+      'extratos': { parentId: 'p-fin', caminhoCompleto: '/Financeiro/Extratos Bancários' },
+      'comprovantes': { parentId: 'p-fin', caminhoCompleto: '/Financeiro/Comprovantes' },
+      'comprovantes bancários': { parentId: 'p-fin', caminhoCompleto: '/Financeiro/Comprovantes' },
+      'assinaturas digitais': { parentId: 'p-ctr', caminhoCompleto: '/Contratos/Assinaturas Digitais' },
+      'colaboradores': { parentId: 'p-rh', caminhoCompleto: '/RH/Colaboradores' },
+      'serviços (nfs-e)': { parentId: 'p-fisc', caminhoCompleto: '/Fiscal/Serviços (NFS-e)' },
+      'mercadorias (nf-e)': { parentId: 'p-fisc', caminhoCompleto: '/Fiscal/Mercadorias (NF-e)' },
+      'propostas comerciais': { parentId: 'p-com', caminhoCompleto: '/Comercial/Propostas Comerciais' },
+      'ordens de serviço': { parentId: 'p-com', caminhoCompleto: '/Comercial/Ordens de Serviço' },
+      'ordens de serviço (os)': { parentId: 'p-com', caminhoCompleto: '/Comercial/Ordens de Serviço' },
+      'campanhas': { parentId: 'p-mkt', caminhoCompleto: '/Marketing/Campanhas' },
+      'dre gerencial': { parentId: 'p-rel', caminhoCompleto: '/Relatórios/DRE Gerencial' },
+      'fluxo de caixa': { parentId: 'p-rel', caminhoCompleto: '/Relatórios/Fluxo de Caixa' },
+      'faturamento e vendas': { parentId: 'p-rel', caminhoCompleto: '/Relatórios/Faturamento e Vendas' },
+      'auditoria e compliance': { parentId: 'p-rel', caminhoCompleto: '/Relatórios/Auditoria e Compliance' },
+      'recursos humanos': { parentId: 'p-rel', caminhoCompleto: '/Relatórios/Recursos Humanos' },
+    };
+
     // 1.7 Pastas criadas pelo usuário (somente se não forem duplicatas de caminhos oficiais)
     (rawPastas || []).forEach((p) => {
       if (!p || !p.nome) return;
+      const normNome = p.nome.toLowerCase().trim();
       const normalizedPath = (p.caminhoCompleto || `/${p.nome}`).toLowerCase().trim();
-      
-      // Se a pasta é oficial ou já foi mapeada, não duplicar
+
+      // Se for subpasta conhecida que foi salva na raiz incorretamente
+      if (KNOWN_SUBFOLDERS_PARENT_MAP[normNome]) {
+        return;
+      }
+
+      // Se a pasta é oficial raiz ou já foi mapeada
+      if (nameMap.has(normNome) && p.parentId === null) {
+        return;
+      }
       if (pathMap.has(normalizedPath)) {
         return;
       }
@@ -259,8 +294,18 @@ export function useDocumentosStore() {
     const caminhoPasta = targetFolder ? targetFolder.caminhoCompleto : `/${params.moduloOrigem}`;
     const codigo = `DOC-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
+    const newDocId = `doc-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+    if (params.urlConteudo && (params.urlConteudo.startsWith('data:') || params.urlConteudo.length > 2000)) {
+      dmsBlobStore.saveBlob(newDocId, params.urlConteudo);
+    }
+
+    const storedUrl = params.urlConteudo && (params.urlConteudo.startsWith('data:') || params.urlConteudo.length > 2000)
+      ? `indexeddb:${newDocId}`
+      : params.urlConteudo;
+
     const newDoc: DocumentoDMS = {
-      id: `doc-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      id: newDocId,
       codigo,
       nome: params.nome,
       extensao: params.extensao,
@@ -290,7 +335,7 @@ export function useDocumentosStore() {
       versaoAtual: '1.0',
       favorito: false,
       status: 'Ativo',
-      urlConteudo: params.urlConteudo,
+      urlConteudo: storedUrl,
       historicoVersoes: [
         {
           numeroVersao: '1.0',
@@ -298,7 +343,7 @@ export function useDocumentosStore() {
           dataAlteracao: new Date().toISOString(),
           descricaoAlteracao: 'Versão inicial enviada ao sistema.',
           tamanhoArquivo: params.tamanho,
-          urlDownload: params.urlConteudo,
+          urlDownload: storedUrl,
         },
       ],
     };

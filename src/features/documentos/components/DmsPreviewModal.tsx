@@ -43,6 +43,7 @@ import { useDocumentosStore } from '../hooks/useDocumentosStore';
 import { useLocalStorageState } from '@/hooks/useDataStore';
 import { REPORT_CATALOG } from '@/features/relatorios/data/catalog';
 import focusLogoHq from '@/assets/focus-erp-logo-hq.png';
+import { dmsBlobStore } from '@/lib/indexedDbStorage';
 import { toast } from 'sonner';
 
 export interface PreviewProps {
@@ -64,6 +65,19 @@ export function DmsPreviewModal({ documento: propDocumento, doc: propDoc, isOpen
   const [descAlteracao, setDescAlteracao] = useState('');
   const [zoomLevel, setZoomLevel] = useState(1);
   const [copiedCode, setCopiedCode] = useState(false);
+  const [resolvedUrl, setResolvedUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    if (documento?.urlConteudo?.startsWith('indexeddb:')) {
+      dmsBlobStore.getBlob(documento.id).then((blob) => {
+        if (isMounted) setResolvedUrl(blob);
+      });
+    } else {
+      setResolvedUrl(documento?.urlConteudo || null);
+    }
+    return () => { isMounted = false; };
+  }, [documento?.id, documento?.urlConteudo]);
 
   // Consultar dados do sistema para enriquecer visualização do documento caso não haja imagem binária
   const { data: contasReceber } = useLocalStorageState<any>('focus_contas_receber', []);
@@ -80,19 +94,20 @@ export function DmsPreviewModal({ documento: propDocumento, doc: propDoc, isOpen
 
   if (!documento) return null;
 
-  const isDataImage = documento.urlConteudo?.startsWith('data:image/');
-  const isDataPdf = documento.urlConteudo?.startsWith('data:application/pdf') || documento.urlConteudo?.startsWith('blob:') || (documento.urlConteudo?.startsWith('http') && documento.nome.endsWith('.pdf'));
+  const effectiveUrl = resolvedUrl || documento.urlConteudo;
+  const isDataImage = effectiveUrl?.startsWith('data:image/');
+  const isDataPdf = effectiveUrl?.startsWith('data:application/pdf') || effectiveUrl?.startsWith('blob:') || (effectiveUrl?.startsWith('http') && documento.nome.endsWith('.pdf'));
 
   const handleOpenInNewTab = () => {
-    if (documento.urlConteudo) {
+    if (effectiveUrl) {
       const win = window.open();
       if (win) {
         if (isDataImage) {
-          win.document.write(`<body style="margin:0; background:#0f172a; display:flex; align-items:center; justify-content:center;"><img src="${documento.urlConteudo}" style="max-width:100%; max-height:100vh; object-contain;" /></body>`);
-        } else if (documento.urlConteudo.startsWith('data:')) {
-          win.document.write(`<iframe src="${documento.urlConteudo}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
+          win.document.write(`<body style="margin:0; background:#0f172a; display:flex; align-items:center; justify-content:center;"><img src="${effectiveUrl}" style="max-width:100%; max-height:100vh; object-contain;" /></body>`);
+        } else if (effectiveUrl.startsWith('data:')) {
+          win.document.write(`<iframe src="${effectiveUrl}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
         } else {
-          win.location.href = documento.urlConteudo;
+          win.location.href = effectiveUrl;
         }
       }
     } else {
@@ -107,9 +122,9 @@ export function DmsPreviewModal({ documento: propDocumento, doc: propDoc, isOpen
   const handleDownload = () => {
     logAction(documento.id, documento.nome, 'Download', `Download da versão ${documento.versaoAtual}`);
 
-    if (documento.urlConteudo) {
+    if (effectiveUrl) {
       const link = window.document.createElement('a');
-      link.href = documento.urlConteudo;
+      link.href = effectiveUrl;
       link.download = documento.nome;
       window.document.body.appendChild(link);
       link.click();
@@ -214,14 +229,14 @@ HISTÓRICO E METADADOS DO ARQUIVO:
   // ---------------------------------------------------------------------------
   const renderInlineViewer = () => {
     const ext = (documento?.extensao || documento?.nome.split('.').pop() || '').toLowerCase();
-    const hasUrl = !!documento.urlConteudo && (documento.urlConteudo.startsWith('data:') || documento.urlConteudo.startsWith('blob:') || documento.urlConteudo.startsWith('http'));
+    const hasUrl = !!effectiveUrl && (effectiveUrl.startsWith('data:') || effectiveUrl.startsWith('blob:') || effectiveUrl.startsWith('http'));
 
     // 1. IMAGEM / RELATÓRIO EXECUTIVO EXPORTADO EM ALTA RESOLUÇÃO
     if (isDataImage || (['png', 'jpg', 'jpeg', 'svg', 'webp', 'gif'].includes(ext) && hasUrl)) {
       return (
         <div className="w-full h-full flex items-center justify-center p-2 sm:p-4 overflow-auto">
           <img
-            src={documento.urlConteudo}
+            src={effectiveUrl}
             alt={documento.nome}
             style={{ transform: `scale(${zoomLevel})` }}
             className="max-w-full max-h-[85vh] w-auto h-auto object-contain rounded-lg shadow-2xl border border-slate-200 transition-transform duration-200 select-none bg-white"
@@ -235,7 +250,7 @@ HISTÓRICO E METADADOS DO ARQUIVO:
       return (
         <div className="w-full h-full min-h-[580px] p-1 flex flex-col items-center justify-center">
           <iframe 
-            src={documento.urlConteudo} 
+            src={effectiveUrl} 
             title={documento.nome}
             className="w-full h-full min-h-[580px] rounded-lg border-0 shadow-2xl bg-white"
           />
@@ -245,7 +260,7 @@ HISTÓRICO E METADADOS DO ARQUIVO:
 
     // 3. XML, CSV, TXT, CODE, JSON
     if (['xml', 'txt', 'csv', 'json', 'md', 'html'].includes(ext)) {
-      const codeText = (hasUrl && !isDataImage) ? documento.urlConteudo : getSampleTextContent();
+      const codeText = (hasUrl && !isDataImage) ? effectiveUrl : getSampleTextContent();
       return (
         <div className="w-full h-full flex flex-col p-4">
           <div className="flex justify-between items-center mb-2 px-2">
