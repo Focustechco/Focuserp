@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useLocalStorageState } from '@/hooks/useDataStore';
 import { Contrato } from '../types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -11,6 +11,7 @@ import {
   DialogHeader, 
   DialogTitle, 
   DialogDescription,
+  DialogFooter
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
@@ -28,9 +29,15 @@ import {
   ShieldCheck,
   Calendar,
   DollarSign,
-  Edit3
+  Edit3,
+  Landmark,
+  ExternalLink,
+  CheckCircle2,
+  Lock,
+  Layers,
+  X
 } from 'lucide-react';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { differenceInDays } from 'date-fns';
 import { NovoContratoSheet, downloadDocumentFile } from './NovoContratoSheet';
 import { toast } from 'sonner';
@@ -39,10 +46,18 @@ const formatCurrency = (value?: number | null) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
 };
 
-export function ContratosList({ filterEntidade }: { filterEntidade?: string[] }) {
+interface ContratosListProps {
+  filterTitularidade?: 'Cliente' | 'Focus Tecnologia' | 'Todos';
+  filterEntidade?: string[];
+}
+
+export function ContratosList({ filterTitularidade = 'Todos', filterEntidade }: ContratosListProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const { data: contratos, deleteItem } = useLocalStorageState<Contrato>('focus_contratos', []);
-  const { data: clientes } = useLocalStorageState<any>('focus_clientes', []);
+  const [statusFilter, setStatusFilter] = useState<string>('todos');
+  
+  const { data: contratos = [], deleteItem } = useLocalStorageState<Contrato>('focus_contratos', []);
+  const { data: clientes = [] } = useLocalStorageState<any>('focus_clientes', []);
+  const { data: fornecedores = [] } = useLocalStorageState<any>('focus_fornecedores', []);
 
   // Details & Edit Modal States
   const [selectedContrato, setSelectedContrato] = useState<Contrato | null>(null);
@@ -51,8 +66,10 @@ export function ContratosList({ filterEntidade }: { filterEntidade?: string[] })
   const [contratoToEdit, setContratoToEdit] = useState<Contrato | null>(null);
   const [editSheetOpen, setEditSheetOpen] = useState(false);
 
+  const [contratoToDelete, setContratoToDelete] = useState<Contrato | null>(null);
+
   // Deduplica e higieniza a lista de contratos automaticamente
-  const uniqueContratos = React.useMemo(() => {
+  const uniqueContratos = useMemo(() => {
     const seenIds = new Set<string>();
     const seenKeys = new Set<string>();
     
@@ -78,41 +95,42 @@ export function ContratosList({ filterEntidade }: { filterEntidade?: string[] })
     });
   }, [contratos]);
 
-  const handlePurgeDuplicates = () => {
-    const seenKeys = new Set<string>();
-    const duplicates: string[] = [];
-
-    (contratos || []).forEach((c) => {
-      if (!c) return;
-      const key = `${c.numeroContrato || ''}_${c.clienteNome || ''}_${c.nome || ''}`;
-      if (seenKeys.has(key) || (!c.numeroContrato && !c.nome && !c.codigo)) {
-        duplicates.push(c.id);
-      } else {
-        seenKeys.add(key);
-      }
-    });
-
-    if (duplicates.length === 0) {
-      toast.info("Nenhum contrato duplicado ou corrompido encontrado!");
-      return;
-    }
-
-    if (window.confirm(`Foram encontrados ${duplicates.length} contrato(s) duplicados ou inválidos. Deseja limpá-los agora?`)) {
-      duplicates.forEach((id) => deleteItem(id));
-      toast.success(`${duplicates.length} contrato(s) duplicados removidos com sucesso!`);
-    }
+  // Identificador da titularidade de um contrato
+  const isContratoFocus = (c: Contrato) => {
+    if (c.titularidade === 'Focus Tecnologia') return true;
+    if (c.titularidade === 'Cliente') return false;
+    if (c.entidadeVinculo === 'Focus Tecnologia' || c.entidadeVinculo === 'Fornecedor' || c.entidadeVinculo === 'Parceiro' || c.entidadeVinculo === 'Interno') return true;
+    if (c.categoria === 'Despesa' || c.categoria === 'Interno') return true;
+    return false;
   };
 
-  const filteredData = uniqueContratos.filter(c => {
-    const matchSearch = (c.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-           (c.numeroContrato || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-           (c.codigo || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-           (c.responsavelInterno || '').toLowerCase().includes(searchTerm.toLowerCase());
-           
-    const matchEntidade = filterEntidade ? filterEntidade.includes(c.entidadeVinculo) : true;
-    
-    return matchSearch && matchEntidade;
-  });
+  const filteredData = useMemo(() => {
+    return uniqueContratos.filter(c => {
+      const matchSearch = 
+        (c.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (c.numeroContrato || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (c.codigo || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (c.clienteNome || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (c.contraparteNome || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (c.fornecedorNome || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (c.responsavelInterno || '').toLowerCase().includes(searchTerm.toLowerCase());
+             
+      const isFocus = isContratoFocus(c);
+      
+      // Filtro de Titularidade (Abas: Todos | Clientes | Focus Tecnologia Ltda)
+      let matchTitularidade = true;
+      if (filterTitularidade === 'Cliente') {
+        matchTitularidade = !isFocus;
+      } else if (filterTitularidade === 'Focus Tecnologia') {
+        matchTitularidade = isFocus;
+      }
+
+      // Filtro de Status
+      const matchStatus = statusFilter === 'todos' || c.status?.toLowerCase() === statusFilter.toLowerCase();
+      
+      return matchSearch && matchTitularidade && matchStatus;
+    });
+  }, [uniqueContratos, searchTerm, filterTitularidade, statusFilter]);
 
   const handleOpenDetails = (contrato: Contrato) => {
     setSelectedContrato(contrato);
@@ -125,16 +143,23 @@ export function ContratosList({ filterEntidade }: { filterEntidade?: string[] })
     setEditSheetOpen(true);
   };
 
+  const handleConfirmDelete = () => {
+    if (!contratoToDelete) return;
+    deleteItem(contratoToDelete.id);
+    toast.success(`Contrato "${contratoToDelete.numeroContrato} - ${contratoToDelete.nome}" excluído com sucesso!`);
+    setContratoToDelete(null);
+  };
+
   const handleDownload = (contrato: Contrato, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     downloadDocumentFile(contrato.arquivoUrl, contrato.arquivoNome, contrato.nome);
-    toast.success(`Download de "${contrato.arquivoNome || contrato.nome}" concluído!`);
+    toast.success(`Download de "${contrato.arquivoNome || contrato.nome}" iniciado!`);
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'Vigente':
-        return <Badge className="bg-emerald-500 hover:bg-emerald-600">Vigente</Badge>;
+        return <Badge className="bg-emerald-600 text-white font-semibold">Vigente</Badge>;
       case 'Encerrado':
         return <Badge variant="secondary">Encerrado</Badge>;
       case 'Cancelado':
@@ -150,66 +175,81 @@ export function ContratosList({ filterEntidade }: { filterEntidade?: string[] })
 
   return (
     <div className="space-y-4 animate-fade-in">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+      {/* BARRA SUPERIOR DE BUSCA E AÇÕES */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-card p-3 rounded-lg border shadow-2xs">
+        <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto flex-1">
           <div className="relative w-full sm:w-80">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input 
-              placeholder="Buscar contrato, número ou código..." 
-              className="pl-8"
+              placeholder="Buscar por nome, número, cliente ou código..." 
+              className="pl-8 text-xs h-9"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <Button variant="outline" size="icon">
-            <Filter className="h-4 w-4" />
-          </Button>
-        </div>
-        
-        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-          {contratos && contratos.length > uniqueContratos.length && (
+
+          {searchTerm && (
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
-              className="text-xs text-rose-600 border-rose-200 hover:bg-rose-50 dark:hover:bg-rose-950"
-              onClick={handlePurgeDuplicates}
-              title="Limpar contratos duplicados"
+              onClick={() => setSearchTerm('')}
+              className="h-9 text-xs text-muted-foreground hover:text-foreground"
             >
-              <Trash2 className="mr-1.5 h-3.5 w-3.5 text-rose-500" />
-              Limpar Duplicados ({contratos.length - uniqueContratos.length})
+              <X className="w-3.5 h-3.5 mr-1" /> Limpar
             </Button>
           )}
-          <Button variant="outline" onClick={() => toast.info("Exportação da lista de contratos iniciada.")}>
-            <Download className="mr-2 h-4 w-4" />
+        </div>
+        
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => toast.info("Exportação da lista de contratos gerada.")}
+            className="h-9 text-xs gap-1.5"
+          >
+            <Download className="h-3.5 w-3.5" />
             Exportar
           </Button>
-          <NovoContratoSheet>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Novo Contrato
+
+          {/* Botão Novo Contrato contextualizado com a aba ativa */}
+          <NovoContratoSheet 
+            defaultTitularidade={filterTitularidade === 'Focus Tecnologia' ? 'Focus Tecnologia' : 'Cliente'}
+          >
+            <Button size="sm" className="h-9 text-xs bg-orange-600 hover:bg-orange-700 text-white font-semibold gap-1.5 shadow-xs">
+              <Plus className="h-3.5 w-3.5" />
+              {filterTitularidade === 'Focus Tecnologia' ? 'Novo Contrato Focus' : 'Novo Contrato'}
             </Button>
           </NovoContratoSheet>
         </div>
       </div>
 
-      {/* Table */}
-      <div className="rounded-md border bg-card overflow-x-auto shadow-xs">
+      {/* TABELA DE CONTRATOS */}
+      <div className="rounded-lg border bg-card overflow-x-auto shadow-xs">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead>Contrato & Detalhes</TableHead>
-              <TableHead>Vínculo / Responsável</TableHead>
+            <TableRow className="bg-muted/40 text-xs">
+              <TableHead className="w-[320px]">Contrato & Titularidade</TableHead>
+              <TableHead>Vínculo / Contraparte</TableHead>
+              <TableHead>Responsável Interno</TableHead>
               <TableHead>Vigência</TableHead>
-              <TableHead>Valor Total</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Valor Total</TableHead>
+              <TableHead className="text-center">Status</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredData.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
-                  Nenhum contrato encontrado. Clique em "Novo Contrato" para adicionar.
+                <TableCell colSpan={7} className="text-center py-12 text-muted-foreground text-xs space-y-2">
+                  <Landmark className="w-8 h-8 opacity-30 mx-auto" />
+                  <p className="font-semibold text-foreground text-sm">Nenhum contrato encontrado</p>
+                  <p>
+                    {filterTitularidade === 'Focus Tecnologia' 
+                      ? 'Nenhum contrato corporativo da Focus Tecnologia Ltda registrado nesta categoria.'
+                      : filterTitularidade === 'Cliente'
+                      ? 'Nenhum contrato de cliente registrado.'
+                      : 'Clique em "Novo Contrato" para cadastrar seu primeiro contrato.'}
+                  </p>
                 </TableCell>
               </TableRow>
             ) : (
@@ -221,278 +261,273 @@ export function ContratosList({ filterEntidade }: { filterEntidade?: string[] })
                    isVencendo = dias > 0 && dias <= 90;
                 }
 
+                const isFocus = isContratoFocus(contrato);
                 const clienteRelacionado = clientes.find((c: any) => c.id === contrato.clienteId);
-                const nomeEntidade = clienteRelacionado ? (clienteRelacionado.nomeFantasia || clienteRelacionado.razaoSocial) : contrato.entidadeVinculo;
+                const fornecedorRelacionado = fornecedores.find((f: any) => f.id === contrato.fornecedorId);
+
+                const nomeContraparte = isFocus 
+                  ? (contrato.fornecedorNome || contrato.contraparteNome || fornecedorRelacionado?.nomeFantasia || fornecedorRelacionado?.razaoSocial || 'Fornecedor / Parceiro Focus')
+                  : (contrato.clienteNome || clienteRelacionado?.nomeFantasia || clienteRelacionado?.razaoSocial || 'Cliente Corporativo');
 
                 return (
                   <TableRow 
                     key={contrato.id} 
-                    className="group cursor-pointer hover:bg-muted/50 transition-colors"
+                    className="group cursor-pointer hover:bg-muted/40 transition-colors"
                     onClick={() => handleOpenDetails(contrato)}
                   >
+                    {/* Contrato & Titularidade */}
                     <TableCell>
-                      <div className="flex flex-col">
-                        <span className="font-medium text-sm text-foreground">{contrato.numeroContrato} - {contrato.nome}</span>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                          <span className="font-mono text-[10px] bg-muted px-1.5 py-0.5 rounded font-bold">{contrato.codigo}</span>
-                          <span>•</span>
-                          <span>{contrato.tipoServico}</span>
-                          <span>•</span>
-                          <span className={contrato.categoria === 'Receita' ? 'text-emerald-600 font-semibold' : 'text-fuchsia-600 font-semibold'}>
-                            {contrato.categoria}
+                      <div className="flex flex-col space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-xs sm:text-sm text-foreground hover:text-orange-600 transition-colors">
+                            {contrato.numeroContrato} - {contrato.nome}
                           </span>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+                          {/* Badge de Titularidade */}
+                          {isFocus ? (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 font-semibold gap-1">
+                              <Building2 className="w-3 h-3" /> Focus Tecnologia Ltda
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 font-semibold gap-1">
+                              <User className="w-3 h-3" /> Cliente
+                            </Badge>
+                          )}
+                          
+                          <span className="font-mono text-[10px] bg-muted px-1.5 py-0.2 rounded font-bold">{contrato.codigo}</span>
+                          <span>•</span>
+                          <span className="truncate">{contrato.tipoServico}</span>
                         </div>
                       </div>
                     </TableCell>
 
+                    {/* Vínculo / Contraparte */}
                     <TableCell>
-                       <div className="flex flex-col gap-0.5">
-                        <div className="flex items-center gap-1.5">
-                          <Building2 className="w-3.5 h-3.5 text-primary" />
-                          <span className="text-sm font-medium">{nomeEntidade}</span>
+                      <div className="flex items-center gap-2">
+                        <div className={`p-1.5 rounded-md shrink-0 ${isFocus ? 'bg-purple-500/10 text-purple-600' : 'bg-blue-500/10 text-blue-600'}`}>
+                          {isFocus ? <Building2 className="w-3.5 h-3.5" /> : <User className="w-3.5 h-3.5" />}
                         </div>
-                        <span className="text-xs text-muted-foreground">Resp: {contrato.responsavelInterno}</span>
-                       </div>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-xs text-foreground truncate">{nomeContraparte}</p>
+                          <p className="text-[10px] text-muted-foreground">{isFocus ? 'Contraparte Focus' : 'Cliente'}</p>
+                        </div>
+                      </div>
                     </TableCell>
 
+                    {/* Responsável Interno */}
                     <TableCell>
-                      <div className="flex flex-col">
-                        <span className="text-sm">Até {contrato.dataFinal ? new Date(contrato.dataFinal).toLocaleDateString('pt-BR') : 'Indeterminado'}</span>
+                      <span className="text-xs text-muted-foreground">{contrato.responsavelInterno || 'Gestor Interno'}</span>
+                    </TableCell>
+
+                    {/* Vigência */}
+                    <TableCell>
+                      <div className="flex flex-col text-xs">
+                        <span className="font-medium text-foreground">
+                          Até {contrato.dataFinal ? new Date(contrato.dataFinal).toLocaleDateString('pt-BR') : 'Indeterminado'}
+                        </span>
                         {isVencendo && (
-                          <span className="text-xs text-orange-600 font-medium flex items-center gap-1 mt-0.5">
+                          <span className="text-[10px] text-orange-600 font-semibold flex items-center gap-1 mt-0.5">
                             <CalendarClock className="w-3 h-3" /> Vence em {dias} dias
                           </span>
                         )}
                         {!isVencendo && dias > 90 && (
-                          <span className="text-xs text-muted-foreground mt-0.5">
+                          <span className="text-[10px] text-muted-foreground mt-0.5">
                             {dias} dias restantes
                           </span>
                         )}
                       </div>
                     </TableCell>
 
-                    <TableCell>
-                      <span className="font-medium">{formatCurrency(contrato.valorTotal || 0)}</span>
+                    {/* Valor Total */}
+                    <TableCell className="text-right">
+                      <span className="font-bold text-xs sm:text-sm text-foreground">
+                        {formatCurrency(contrato.valorTotal || 0)}
+                      </span>
+                      {contrato.valorMensalidade > 0 && (
+                        <div className="text-[10px] text-muted-foreground">
+                          {formatCurrency(contrato.valorMensalidade)}/mês
+                        </div>
+                      )}
                     </TableCell>
 
-                    <TableCell>
+                    {/* Status */}
+                    <TableCell className="text-center">
                       {getStatusBadge(contrato.status)}
                     </TableCell>
 
+                    {/* Ações */}
                     <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
+                          <Button variant="ghost" className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground">
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleOpenDetails(contrato)}>
-                            <Eye className="w-4 h-4 mr-2" /> Expandir e Visualizar Contrato
+                        <DropdownMenuContent align="end" className="w-48 text-xs">
+                          <DropdownMenuItem onClick={() => handleOpenDetails(contrato)} className="gap-2 cursor-pointer">
+                            <Eye className="w-3.5 h-3.5 text-primary" /> Visualizar Detalhes
                           </DropdownMenuItem>
 
-                          <DropdownMenuItem onClick={(e) => handleOpenEdit(contrato, e)}>
-                            <Edit3 className="w-4 h-4 mr-2 text-blue-600" /> Editar Contrato
+                          <DropdownMenuItem onClick={(e) => handleOpenEdit(contrato, e)} className="gap-2 cursor-pointer text-blue-600">
+                            <Edit3 className="w-3.5 h-3.5" /> Editar Contrato
                           </DropdownMenuItem>
 
-                          <DropdownMenuItem onClick={(e) => handleDownload(contrato, e)}>
-                            <Download className="w-4 h-4 mr-2 text-emerald-600" /> Baixar Documento (Real)
+                          <DropdownMenuItem onClick={(e) => handleDownload(contrato, e)} className="gap-2 cursor-pointer text-emerald-600">
+                            <Download className="w-3.5 h-3.5" /> Baixar Documento
                           </DropdownMenuItem>
 
-                          <DropdownMenuItem className="text-red-600" onClick={(e) => {
-                            e.stopPropagation();
-                            if (window.confirm("Tem certeza que deseja excluir este contrato?")) {
-                              deleteItem(contrato.id);
-                              toast.success("Contrato removido com sucesso!");
-                            }
-                          }}>
-                            <Trash2 className="w-4 h-4 mr-2" /> Excluir Contrato
+                          <DropdownMenuSeparator />
+
+                          <DropdownMenuItem onClick={() => setContratoToDelete(contrato)} className="gap-2 cursor-pointer text-rose-600 focus:text-rose-600">
+                            <Trash2 className="w-3.5 h-3.5" /> Excluir Contrato
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
                   </TableRow>
-                )
+                );
               })
             )}
           </TableBody>
         </Table>
       </div>
 
-      {/* Sheet de Edição de Contrato Existente */}
-      <NovoContratoSheet
-        contratoToEdit={contratoToEdit}
-        open={editSheetOpen}
-        onOpenChange={setEditSheetOpen}
-      />
-
-      {/* Modal de Detalhamento e Visualização do Contrato */}
-      {selectedContrato && (
-        <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-          <DialogContent className="w-full sm:max-w-[850px] h-[100dvh] sm:h-[90vh] max-h-[100dvh] sm:max-h-[90vh] p-0 overflow-hidden bg-background flex flex-col border shadow-2xl">
-            
-            {/* Header */}
-            <div className="p-3.5 sm:p-6 border-b bg-muted/20 shrink-0">
-              <DialogHeader>
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 sm:p-2.5 rounded-xl bg-primary/10 border shadow-xs text-primary shrink-0">
-                      <FileText className="w-5 h-5 sm:w-6 sm:h-6" />
-                    </div>
-                    <div>
-                      <DialogTitle className="text-base sm:text-xl font-bold flex items-center gap-2">
-                        {selectedContrato.numeroContrato} - {selectedContrato.nome}
-                      </DialogTitle>
-                      <DialogDescription className="text-xs flex items-center gap-2 mt-0.5">
-                        <span className="font-mono bg-muted px-1.5 py-0.5 rounded font-bold text-[10px] sm:text-xs">{selectedContrato.codigo}</span>
-                        <span>•</span>
-                        <span>{selectedContrato.tipoServico}</span>
-                      </DialogDescription>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 self-end sm:self-auto">
-                    <Button size="sm" variant="outline" className="gap-1 text-xs h-8" onClick={() => {
-                      setDetailsOpen(false);
-                      handleOpenEdit(selectedContrato);
-                    }}>
-                      <Edit3 className="w-3.5 h-3.5 text-blue-600" /> Editar
-                    </Button>
-                    {getStatusBadge(selectedContrato.status)}
-                  </div>
-                </div>
-              </DialogHeader>
-            </div>
-
-            {/* Modal Body Tabs */}
-            <Tabs defaultValue="detalhes" className="flex-1 flex flex-col overflow-hidden min-h-0">
-              <div className="px-4 sm:px-6 border-b bg-card shrink-0">
-                <TabsList className="w-full justify-start h-auto p-0 bg-transparent flex-nowrap min-w-max pb-1">
-                  <TabsTrigger value="detalhes" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-3 sm:px-4 py-2.5 text-xs">Ficha do Contrato</TabsTrigger>
-                  <TabsTrigger value="visualizador" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-3 sm:px-4 py-2.5 text-xs">Visualizar Contrato Anexo</TabsTrigger>
-                </TabsList>
-              </div>
-
-              <div className="p-3 sm:p-6 overflow-y-auto flex-1 space-y-4 sm:space-y-6 bg-muted/10 min-h-0">
-                
-                <TabsContent value="detalhes" className="space-y-4 sm:space-y-6 mt-0 outline-none">
-                  
-                  {/* Grid de Informações Chave */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-4">
-                    <div className="p-3 sm:p-3.5 rounded-xl border bg-card space-y-1">
-                      <span className="text-[11px] sm:text-xs text-muted-foreground flex items-center gap-1.5">
-                        <Building2 className="w-3.5 h-3.5 text-primary" /> Cliente / Entidade
-                      </span>
-                      <div className="font-semibold text-xs sm:text-sm truncate">
-                        {clientes.find((c: any) => c.id === selectedContrato.clienteId)?.nomeFantasia || selectedContrato.entidadeVinculo}
-                      </div>
-                    </div>
-
-                    <div className="p-3 sm:p-3.5 rounded-xl border bg-card space-y-1">
-                      <span className="text-[11px] sm:text-xs text-muted-foreground flex items-center gap-1.5">
-                        <User className="w-3.5 h-3.5 text-primary" /> Responsável Interno
-                      </span>
-                      <div className="font-semibold text-xs sm:text-sm truncate">{selectedContrato.responsavelInterno}</div>
-                    </div>
-
-                    <div className="p-3 sm:p-3.5 rounded-xl border bg-card space-y-1">
-                      <span className="text-[11px] sm:text-xs text-muted-foreground flex items-center gap-1.5">
-                        <DollarSign className="w-3.5 h-3.5 text-emerald-600" /> Valor Total Global
-                      </span>
-                      <div className="font-semibold text-xs sm:text-sm text-emerald-600">{formatCurrency(selectedContrato.valorTotal || 0)}</div>
-                    </div>
-
-                    <div className="p-3 sm:p-3.5 rounded-xl border bg-card space-y-1">
-                      <span className="text-[11px] sm:text-xs text-muted-foreground flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5 text-primary" /> Início da Vigência
-                      </span>
-                      <div className="font-semibold text-xs sm:text-sm">
-                        {selectedContrato.dataInicial ? new Date(selectedContrato.dataInicial).toLocaleDateString('pt-BR') : '-'}
-                      </div>
-                    </div>
-
-                    <div className="p-3 sm:p-3.5 rounded-xl border bg-card space-y-1">
-                      <span className="text-[11px] sm:text-xs text-muted-foreground flex items-center gap-1.5">
-                        <CalendarClock className="w-3.5 h-3.5 text-primary" /> Vencimento
-                      </span>
-                      <div className="font-semibold text-xs sm:text-sm">
-                        {selectedContrato.dataFinal ? new Date(selectedContrato.dataFinal).toLocaleDateString('pt-BR') : 'Indeterminado'}
-                      </div>
-                    </div>
-
-                    <div className="p-3 sm:p-3.5 rounded-xl border bg-card space-y-1">
-                      <span className="text-[11px] sm:text-xs text-muted-foreground flex items-center gap-1.5">
-                        <ShieldCheck className="w-3.5 h-3.5 text-primary" /> Categoria
-                      </span>
-                      <div className="font-semibold text-xs sm:text-sm">{selectedContrato.categoria}</div>
-                    </div>
-                  </div>
-
-                  {/* Objeto do Contrato */}
-                  <div className="space-y-2">
-                    <h4 className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground">Descrição / Objeto do Contrato</h4>
-                    <div className="p-3 sm:p-4 rounded-xl border bg-card text-xs leading-relaxed font-normal whitespace-pre-wrap">
-                      {selectedContrato.descricao || 'Sem descrição cadastrada.'}
-                    </div>
-                  </div>
-
-                  {/* Documento Anexo Status */}
-                  <div className="space-y-2">
-                    <h4 className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-muted-foreground">Documento do Contrato</h4>
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 sm:p-3.5 rounded-xl border bg-card">
-                      <div className="flex items-center gap-3">
-                        <FileText className="w-5 h-5 text-primary shrink-0" />
-                        <div>
-                          <div className="font-semibold text-xs truncate max-w-xs">{selectedContrato.arquivoNome || `${selectedContrato.numeroContrato}.pdf`}</div>
-                          <div className="text-[10px] text-muted-foreground">Documento autenticado no cofre digital de contratos</div>
-                        </div>
-                      </div>
-                      <Button size="sm" variant="default" className="gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white w-full sm:w-auto" onClick={() => handleDownload(selectedContrato)}>
-                        <Download className="w-3.5 h-3.5" /> Baixar Documento
-                      </Button>
-                    </div>
-                  </div>
-
-                </TabsContent>
-
-                {/* Visualizador Integrado Limpo e Protagonista do PDF */}
-                <TabsContent value="visualizador" className="mt-0 outline-none space-y-4">
-                  {selectedContrato.arquivoUrl ? (
-                    <div className="border rounded-xl h-[60dvh] sm:h-[480px] overflow-hidden bg-slate-950 flex flex-col items-center justify-center p-1 sm:p-2">
-                      <iframe 
-                        src={`${selectedContrato.arquivoUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`} 
-                        className="w-full h-full rounded-lg border-none"
-                        title="Visualização do Contrato"
-                      />
-                    </div>
+      {/* MODAL DE DETALHES COMPLETOS DO CONTRATO */}
+      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
+          <DialogHeader className="p-6 pb-4 border-b bg-muted/20">
+            <div className="flex justify-between items-start">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  {selectedContrato && isContratoFocus(selectedContrato) ? (
+                    <Badge className="bg-purple-600 text-white text-[10px]">Contrato Focus Tecnologia Ltda</Badge>
                   ) : (
-                    <div className="border rounded-xl h-[280px] sm:h-[320px] flex flex-col items-center justify-center bg-card text-center p-4 sm:p-6 space-y-3 shadow-xs">
-                      <FileText className="w-10 h-10 sm:w-12 sm:h-12 text-primary opacity-60" />
-                      <div>
-                        <div className="font-bold text-sm text-foreground">{selectedContrato.nome}</div>
-                        <p className="text-xs text-muted-foreground mt-1">O documento do contrato está validado e armazenado com segurança no sistema.</p>
-                      </div>
-                      <Button className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 font-semibold text-xs" onClick={() => handleDownload(selectedContrato)}>
-                        <Download className="w-4 h-4" /> Baixar Documento
-                      </Button>
-                    </div>
+                    <Badge className="bg-blue-600 text-white text-[10px]">Contrato com Cliente</Badge>
                   )}
-                </TabsContent>
+                  {selectedContrato && getStatusBadge(selectedContrato.status)}
+                </div>
+                <DialogTitle className="text-lg font-bold text-foreground">
+                  {selectedContrato?.numeroContrato} - {selectedContrato?.nome}
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground font-mono">
+                  Identificador: {selectedContrato?.codigo} • Responsável: {selectedContrato?.responsavelInterno}
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
 
+          {selectedContrato && (
+            <div className="flex-1 overflow-y-auto p-6 space-y-5 text-xs">
+              {/* Partes Envolvidas */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="p-3 rounded-lg border bg-muted/30 space-y-1">
+                  <span className="text-[10px] text-muted-foreground uppercase font-bold block">Contratada</span>
+                  <p className="font-bold text-sm text-foreground">FOCUS TECNOLOGIA E SISTEMAS LTDA</p>
+                  <p className="text-muted-foreground">CNPJ: 12.345.678/0001-99</p>
+                </div>
+
+                <div className="p-3 rounded-lg border bg-muted/30 space-y-1">
+                  <span className="text-[10px] text-muted-foreground uppercase font-bold block">Contratante / Contraparte</span>
+                  <p className="font-bold text-sm text-foreground">
+                    {isContratoFocus(selectedContrato) 
+                      ? (selectedContrato.fornecedorNome || selectedContrato.contraparteNome || 'Contraparte Corporativa')
+                      : (selectedContrato.clienteNome || 'Cliente Corporativo')}
+                  </p>
+                  <p className="text-muted-foreground">Vínculo: {selectedContrato.entidadeVinculo}</p>
+                </div>
               </div>
 
-              {/* Footer */}
-              <div className="p-3 sm:p-4 border-t bg-muted/10 flex justify-between items-center shrink-0">
-                <Button variant="outline" size="sm" className="gap-1.5 text-xs text-emerald-600 border-emerald-200 hover:bg-emerald-50" onClick={() => handleDownload(selectedContrato)}>
-                  <Download className="w-3.5 h-3.5" /> Baixar PDF
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => setDetailsOpen(false)}>Fechar</Button>
+              {/* Valores & Condições */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div className="p-3 rounded-lg border bg-card">
+                  <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Valor Global</span>
+                  <span className="font-bold text-base text-foreground">{formatCurrency(selectedContrato.valorTotal)}</span>
+                </div>
+                <div className="p-3 rounded-lg border bg-card">
+                  <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Mensalidade</span>
+                  <span className="font-bold text-base text-emerald-600">{formatCurrency(selectedContrato.valorMensalidade)}</span>
+                </div>
+                <div className="p-3 rounded-lg border bg-card col-span-2 sm:col-span-1">
+                  <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Vigência</span>
+                  <span className="font-bold text-xs text-foreground">
+                    {selectedContrato.dataFinal ? new Date(selectedContrato.dataFinal).toLocaleDateString('pt-BR') : 'Indeterminada'}
+                  </span>
+                </div>
               </div>
 
-            </Tabs>
-          </DialogContent>
-        </Dialog>
+              {/* Descrição / Objeto */}
+              <div className="space-y-1.5 border rounded-lg p-3.5 bg-muted/20">
+                <span className="font-bold text-foreground text-xs uppercase block">Objeto e Escopo do Contrato</span>
+                <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                  {selectedContrato.descricao || 'Nenhuma descrição informada.'}
+                </p>
+              </div>
+
+              {/* Arquivo Anexo */}
+              {selectedContrato.arquivoUrl && (
+                <div className="p-3.5 rounded-lg border border-emerald-500/30 bg-emerald-50/40 dark:bg-emerald-950/20 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <FileText className="w-5 h-5 text-emerald-600" />
+                    <div>
+                      <p className="font-semibold text-xs text-foreground">{selectedContrato.arquivoNome || 'Documento do Contrato'}</p>
+                      <p className="text-[10px] text-muted-foreground">Documento oficial anexado e sincronizado no DMS</p>
+                    </div>
+                  </div>
+                  <Button 
+                    size="sm" 
+                    className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
+                    onClick={() => downloadDocumentFile(selectedContrato.arquivoUrl, selectedContrato.arquivoNome, selectedContrato.nome)}
+                  >
+                    <Download className="w-3.5 h-3.5" /> Baixar Arquivo
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter className="p-4 border-t bg-muted/10">
+            <Button variant="outline" size="sm" onClick={() => setDetailsOpen(false)} className="text-xs">
+              Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL EDITAR CONTRATO */}
+      {contratoToEdit && (
+        <NovoContratoSheet 
+          contratoToEdit={contratoToEdit}
+          open={editSheetOpen}
+          onOpenChange={(openState) => {
+            setEditSheetOpen(openState);
+            if (!openState) setContratoToEdit(null);
+          }}
+        />
       )}
 
+      {/* MODAL CONFIRMAR EXCLUSÃO */}
+      <Dialog open={!!contratoToDelete} onOpenChange={(open) => !open && setContratoToDelete(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-semibold flex items-center gap-2 text-rose-600">
+              <Trash2 className="w-4 h-4" /> Confirmar Exclusão de Contrato
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground pt-1">
+              Tem certeza de que deseja excluir o contrato <strong>{contratoToDelete?.numeroContrato} - {contratoToDelete?.nome}</strong>?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0 mt-3">
+            <Button variant="outline" size="sm" onClick={() => setContratoToDelete(null)}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" size="sm" onClick={handleConfirmDelete}>
+              Confirmar Exclusão
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

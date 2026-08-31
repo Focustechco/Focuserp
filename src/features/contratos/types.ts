@@ -35,8 +35,12 @@ export interface Contrato {
   
   // Vínculos MDM (Foreign Keys simuladas)
   entidadeVinculo: EntidadeVinculo;
+  titularidade?: 'Cliente' | 'Focus Tecnologia';
   clienteId?: string;
+  clienteNome?: string;
   fornecedorId?: string;
+  fornecedorNome?: string;
+  contraparteNome?: string;
   projetoId?: string;
   
   responsavelInterno: string;

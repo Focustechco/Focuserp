@@ -9,14 +9,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Upload, FileText, Plus, Clock, ShieldAlert, CheckCircle2, Trash2, Edit3, Download } from "lucide-react";
+import { 
+  Upload, FileText, Plus, Clock, ShieldAlert, CheckCircle2, 
+  Trash2, Edit3, Download, Building2, User, Landmark, Briefcase, Handshake
+} from "lucide-react";
 
 import { useLocalStorageState } from '@/hooks/useDataStore';
-import { Contrato, CategoriaContrato, StatusContrato, TipoServicoContrato } from '../types';
+import { Contrato, CategoriaContrato, StatusContrato, TipoServicoContrato, EntidadeVinculo } from '../types';
 import { Usuario } from '@/features/usuarios/types';
 import { INITIAL_USUARIOS } from '@/features/usuarios/data/initialData';
 import { SelectResponsavel } from '@/components/SelectResponsavel';
 import { Cliente } from '@/features/clientes/types';
+import { Fornecedor } from '@/features/fornecedores/types';
 import { useDocumentosStore } from '@/features/documentos/hooks/useDocumentosStore';
 import { useNotificacoesStore } from '@/features/notificacoes/useNotificacoesStore';
 import { toast } from 'sonner';
@@ -24,6 +28,7 @@ import { toast } from 'sonner';
 interface NovoContratoSheetProps {
   children?: React.ReactNode;
   contratoToEdit?: Contrato | null;
+  defaultTitularidade?: 'Cliente' | 'Focus Tecnologia';
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
@@ -42,7 +47,7 @@ export function downloadDocumentFile(fileUrl?: string, fileName?: string, defaul
   }
 
   // Gera um PDF / Documento Blob real para download imediato no navegador
-  const content = `====================================================\nFOCUS FINANCE - CONTRATO OFICIAL (CLM)\n====================================================\nDocumento: ${name}\nData de Emissão: ${new Date().toLocaleString('pt-BR')}\nAutenticação Digital: SHA256-VALIDATED-FOCUS\n====================================================\nEste documento foi registrado no cofre corporativo de contratos da Focus Finance.`;
+  const content = `====================================================\nFOCUS ERP - CONTRATO OFICIAL (CLM)\n====================================================\nDocumento: ${name}\nData de Emissão: ${new Date().toLocaleString('pt-BR')}\nAutenticação Digital: SHA256-VALIDATED-FOCUS\n====================================================\nEste documento foi registrado no cofre corporativo de contratos da Focus Tecnologia.`;
   const blob = new Blob([content], { type: 'application/pdf;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -54,19 +59,32 @@ export function downloadDocumentFile(fileUrl?: string, fileName?: string, defaul
   URL.revokeObjectURL(url);
 }
 
-export function NovoContratoSheet({ children, contratoToEdit, open: externalOpen, onOpenChange: externalOnOpenChange }: NovoContratoSheetProps) {
+export function NovoContratoSheet({ 
+  children, 
+  contratoToEdit, 
+  defaultTitularidade = 'Cliente', 
+  open: externalOpen, 
+  onOpenChange: externalOnOpenChange 
+}: NovoContratoSheetProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const isControlled = externalOpen !== undefined;
   const open = isControlled ? externalOpen : internalOpen;
   const setOpen = isControlled ? (externalOnOpenChange || (() => {})) : setInternalOpen;
+
+  // Titularidade: Contrato de Cliente ou Contrato da Focus Tecnologia Ltda
+  const [titularidade, setTitularidade] = useState<'Cliente' | 'Focus Tecnologia'>(defaultTitularidade);
 
   // Form States
   const [numeroContrato, setNumeroContrato] = useState("");
   const [nome, setNome] = useState("");
   const [categoria, setCategoria] = useState<CategoriaContrato>("Receita");
   const [tipoServico, setTipoServico] = useState<TipoServicoContrato>("Desenvolvimento de Software");
-  const [entidadeVinculo, setEntidadeVinculo] = useState<string>("Cliente");
+  
+  // Vínculos
   const [clienteId, setClienteId] = useState<string>("");
+  const [fornecedorId, setFornecedorId] = useState<string>("");
+  const [contraparteNome, setContraparteNome] = useState<string>("");
+  
   const [responsavel, setResponsavel] = useState<string>("");
   const [departamento, setDepartamento] = useState<string>("Comercial");
   const [status, setStatus] = useState<StatusContrato>("Vigente");
@@ -94,21 +112,30 @@ export function NovoContratoSheet({ children, contratoToEdit, open: externalOpen
 
   const { addItem, updateItem } = useLocalStorageState<Contrato>('focus_contratos');
   const { data: usuarios } = useLocalStorageState<Usuario>('focus_usuarios', INITIAL_USUARIOS);
-  const { data: clientes } = useLocalStorageState<Cliente>('focus_clientes', []);
+  const { data: clientes = [] } = useLocalStorageState<Cliente>('focus_clientes', []);
+  const { data: fornecedores = [] } = useLocalStorageState<Fornecedor>('focus_fornecedores', []);
   const { pastas, uploadDocument } = useDocumentosStore();
   const { notificar } = useNotificacoesStore();
 
   // Carregar dados para edição se contratoToEdit for informado
   useEffect(() => {
     if (contratoToEdit) {
+      const isFocus = contratoToEdit.titularidade === 'Focus Tecnologia' || 
+                      contratoToEdit.entidadeVinculo === 'Focus Tecnologia' || 
+                      contratoToEdit.entidadeVinculo === 'Fornecedor' ||
+                      contratoToEdit.categoria === 'Despesa' ||
+                      contratoToEdit.categoria === 'Interno';
+
+      setTitularidade(isFocus ? 'Focus Tecnologia' : 'Cliente');
       setNumeroContrato(contratoToEdit.numeroContrato || "");
       setNome(contratoToEdit.nome || "");
-      setCategoria(contratoToEdit.categoria || "Receita");
+      setCategoria(contratoToEdit.categoria || (isFocus ? "Despesa" : "Receita"));
       setTipoServico(contratoToEdit.tipoServico || "Desenvolvimento de Software");
-      setEntidadeVinculo(contratoToEdit.entidadeVinculo || "Cliente");
       setClienteId(contratoToEdit.clienteId || "");
+      setFornecedorId(contratoToEdit.fornecedorId || "");
+      setContraparteNome(contratoToEdit.contraparteNome || contratoToEdit.fornecedorNome || "");
       setResponsavel(contratoToEdit.responsavelInterno || "");
-      setDepartamento(contratoToEdit.departamento || "Comercial");
+      setDepartamento(contratoToEdit.departamento || (isFocus ? "Operações" : "Comercial"));
       setStatus(contratoToEdit.status || "Vigente");
       setDescricao(contratoToEdit.descricao || "");
       setDataAssinatura(contratoToEdit.dataAssinatura ? contratoToEdit.dataAssinatura.split('T')[0] : new Date().toISOString().split('T')[0]);
@@ -129,18 +156,22 @@ export function NovoContratoSheet({ children, contratoToEdit, open: externalOpen
         setArquivo(null);
       }
     } else {
-      // Limpar form para criação de novo
+      // Limpar form para criação de novo com defaultTitularidade
+      setTitularidade(defaultTitularidade);
       setNumeroContrato("");
       setNome("");
-      setCategoria("Receita");
-      setTipoServico("Desenvolvimento de Software");
+      setCategoria(defaultTitularidade === 'Focus Tecnologia' ? "Despesa" : "Receita");
+      setTipoServico(defaultTitularidade === 'Focus Tecnologia' ? "Cloud" : "Desenvolvimento de Software");
       setClienteId("");
+      setFornecedorId("");
+      setContraparteNome("");
       setResponsavel("");
+      setDepartamento(defaultTitularidade === 'Focus Tecnologia' ? "Operações" : "Comercial");
       setStatus("Vigente");
       setDescricao("");
       setArquivo(null);
     }
-  }, [contratoToEdit, open]);
+  }, [contratoToEdit, open, defaultTitularidade]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -176,6 +207,12 @@ export function NovoContratoSheet({ children, contratoToEdit, open: externalOpen
     }
 
     const clienteSelecionado = clientes.find(c => c.id === clienteId);
+    const fornecedorSelecionado = fornecedores.find(f => f.id === fornecedorId);
+
+    const nomeClienteFinal = clienteSelecionado ? (clienteSelecionado.nomeFantasia || clienteSelecionado.razaoSocial) : undefined;
+    const nomeFornecedorFinal = fornecedorSelecionado ? (fornecedorSelecionado.nomeFantasia || fornecedorSelecionado.razaoSocial) : (contraparteNome.trim() || undefined);
+
+    const entidadeVinculoFinal: EntidadeVinculo = titularidade === 'Focus Tecnologia' ? 'Focus Tecnologia' : 'Cliente';
 
     const contratoData: Contrato = {
       id: contratoToEdit ? contratoToEdit.id : `ctr-${Date.now()}`,
@@ -184,8 +221,13 @@ export function NovoContratoSheet({ children, contratoToEdit, open: externalOpen
       nome: nome.trim(),
       categoria,
       tipoServico,
-      entidadeVinculo: (entidadeVinculo as any) || 'Cliente',
-      clienteId: clienteId || undefined,
+      titularidade,
+      entidadeVinculo: entidadeVinculoFinal,
+      clienteId: titularidade === 'Cliente' ? (clienteId || undefined) : undefined,
+      clienteNome: titularidade === 'Cliente' ? nomeClienteFinal : undefined,
+      fornecedorId: titularidade === 'Focus Tecnologia' ? (fornecedorId || undefined) : undefined,
+      fornecedorNome: titularidade === 'Focus Tecnologia' ? nomeFornecedorFinal : undefined,
+      contraparteNome: titularidade === 'Focus Tecnologia' ? (nomeFornecedorFinal || 'Focus Tecnologia Ltda') : nomeClienteFinal,
       responsavelInterno: responsavel || 'Gestor de Contratos',
       departamento,
       status,
@@ -211,16 +253,16 @@ export function NovoContratoSheet({ children, contratoToEdit, open: externalOpen
     // 1. Salvar ou Atualizar no Estado Local de Contratos
     if (contratoToEdit) {
       updateItem(contratoToEdit.id, contratoData);
-      toast.success("Contrato atualizado com sucesso!");
+      toast.success(`Contrato (${titularidade === 'Focus Tecnologia' ? 'Focus Tecnologia Ltda' : 'Cliente'}) atualizado com sucesso!`);
     } else {
       addItem(contratoData);
-      toast.success("Contrato criado com sucesso!");
+      toast.success(`Contrato adicionado à aba "${titularidade === 'Focus Tecnologia' ? 'Focus Tecnologia Ltda' : 'Clientes'}" com sucesso!`);
     }
 
-    // 2. Se houver novo arquivo, integrar com Módulo de Documentos (DMS)
+    // 2. Se houver novo arquivo, integrar com Módulo de Documentos (DMS) na pasta correta
     if (arquivo && arquivo.url && arquivo.url.startsWith('data:')) {
       const pastaContratos = pastas.find(
-        p => p.nome.toLowerCase().includes('contrato') || p.moduloVinculado === 'Contratos'
+        p => p.nome.toLowerCase().includes(titularidade === 'Focus Tecnologia' ? 'focus' : 'contrato') || p.moduloVinculado === 'Contratos'
       ) || pastas[0];
 
       if (pastaContratos) {
@@ -230,13 +272,14 @@ export function NovoContratoSheet({ children, contratoToEdit, open: externalOpen
           tamanho: arquivo.tamanho,
           tamanhoBytes: arquivo.bytes,
           pastaId: pastaContratos.id,
+          caminhoPasta: titularidade === 'Focus Tecnologia' ? '/Contratos/Focus Tecnologia Ltda' : '/Contratos/Clientes',
           moduloOrigem: 'Contratos',
-          categoria: 'Contrato Comercial',
-          tags: ['Contrato', contratoData.numeroContrato, contratoData.nome],
+          categoria: titularidade === 'Focus Tecnologia' ? 'Contrato Corporativo Focus' : 'Contrato Comercial Cliente',
+          tags: ['Contrato', titularidade, contratoData.numeroContrato, contratoData.nome],
           contratoId: contratoData.id,
           contratoNumero: contratoData.numeroContrato,
-          clienteId: clienteId || undefined,
-          clienteNome: clienteSelecionado?.nomeFantasia || clienteSelecionado?.razaoSocial,
+          clienteId: titularidade === 'Cliente' ? (clienteId || undefined) : undefined,
+          clienteNome: titularidade === 'Cliente' ? nomeClienteFinal : 'Focus Tecnologia Ltda',
           conteudoDataUrl: arquivo.url
         });
       }
@@ -245,7 +288,7 @@ export function NovoContratoSheet({ children, contratoToEdit, open: externalOpen
     // 3. Disparar Notificação Real no Sistema
     notificar({
       titulo: contratoToEdit ? `Contrato Atualizado (${contratoData.numeroContrato})` : `Novo Contrato Salvo (${contratoData.numeroContrato})`,
-      descricao: `Contrato "${contratoData.nome}" foi registrado com sucesso sob responsabilidade de ${responsavel || 'Gestor Interno'}.`,
+      descricao: `Contrato "${contratoData.nome}" vinculado a ${titularidade === 'Focus Tecnologia' ? 'Focus Tecnologia Ltda' : (nomeClienteFinal || 'Cliente')} foi registrado com sucesso.`,
       origem: 'Contratos',
       tipo: 'Sucesso',
       prioridade: 'Alta',
@@ -260,7 +303,7 @@ export function NovoContratoSheet({ children, contratoToEdit, open: externalOpen
     <Sheet open={open} onOpenChange={setOpen}>
       {!isControlled && (
         <SheetTrigger asChild>
-          {children || <Button><Plus className="mr-2 h-4 w-4" /> Novo Contrato</Button>}
+          {children || <Button className="bg-orange-600 hover:bg-orange-700 text-white"><Plus className="mr-2 h-4 w-4" /> Novo Contrato</Button>}
         </SheetTrigger>
       )}
       <SheetContent side="right" className="w-[95vw] sm:w-[800px] sm:max-w-[800px] flex flex-col p-0 bg-background">
@@ -269,11 +312,13 @@ export function NovoContratoSheet({ children, contratoToEdit, open: externalOpen
         <div className="p-6 pb-4 border-b bg-muted/20">
           <SheetHeader>
             <SheetTitle className="text-xl flex items-center gap-2">
-              {contratoToEdit ? <Edit3 className="w-5 h-5 text-primary" /> : <Plus className="w-5 h-5 text-primary" />}
+              {contratoToEdit ? <Edit3 className="w-5 h-5 text-orange-600" /> : <Plus className="w-5 h-5 text-orange-600" />}
               {contratoToEdit ? `Editar Contrato (${contratoToEdit.codigo})` : "Novo Contrato (CLM)"}
             </SheetTitle>
             <SheetDescription>
-              {contratoToEdit ? "Altere as informações, prazos, valores e arquivo anexo do contrato." : "Cadastre e vincule contratos a clientes e responsáveis com upload de PDF/DOC."}
+              {contratoToEdit 
+                ? "Altere as informações, titularidade (Cliente ou Focus Tecnologia Ltda), valores e documento anexo." 
+                : "Cadastre contratos diferenciando entre Contratos de Clientes e Contratos Corporativos da Focus Tecnologia Ltda."}
             </SheetDescription>
           </SheetHeader>
         </div>
@@ -281,10 +326,10 @@ export function NovoContratoSheet({ children, contratoToEdit, open: externalOpen
         <Tabs defaultValue="gerais" className="flex-1 flex flex-col overflow-hidden">
           <div className="px-6 border-b overflow-x-auto scrollbar-hide bg-card">
             <TabsList className="w-full justify-start h-auto p-0 bg-transparent flex-nowrap min-w-max pb-1">
-              <TabsTrigger value="gerais" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-2 text-xs">Dados Gerais</TabsTrigger>
-              <TabsTrigger value="documento" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-2 text-xs">Upload de Contrato (PDF/DOC)</TabsTrigger>
-              <TabsTrigger value="vigencia" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-2 text-xs">Vigência & Prazos</TabsTrigger>
-              <TabsTrigger value="valores" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-2 text-xs">Valores</TabsTrigger>
+              <TabsTrigger value="gerais" className="data-[state=active]:border-b-2 data-[state=active]:border-orange-600 rounded-none px-4 py-2 text-xs">Dados Gerais & Titularidade</TabsTrigger>
+              <TabsTrigger value="documento" className="data-[state=active]:border-b-2 data-[state=active]:border-orange-600 rounded-none px-4 py-2 text-xs">Upload de Contrato (PDF/DOC)</TabsTrigger>
+              <TabsTrigger value="vigencia" className="data-[state=active]:border-b-2 data-[state=active]:border-orange-600 rounded-none px-4 py-2 text-xs">Vigência & Prazos</TabsTrigger>
+              <TabsTrigger value="valores" className="data-[state=active]:border-b-2 data-[state=active]:border-orange-600 rounded-none px-4 py-2 text-xs">Valores & Pagamento</TabsTrigger>
             </TabsList>
           </div>
 
@@ -292,7 +337,73 @@ export function NovoContratoSheet({ children, contratoToEdit, open: externalOpen
             
             {/* 1. DADOS GERAIS */}
             <TabsContent value="gerais" className="space-y-4 mt-0 outline-none">
-              <div className="grid grid-cols-2 gap-4">
+              
+              {/* SELETOR DE TITULARIDADE / ABA DE DESTINO */}
+              <div className="space-y-2 p-3.5 bg-muted/40 rounded-xl border">
+                <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                  <Landmark className="w-4 h-4 text-orange-600" />
+                  Titularidade do Contrato (Aba de Destino) *
+                </Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTitularidade('Cliente');
+                      setCategoria('Receita');
+                      setTipoServico('Desenvolvimento de Software');
+                      setDepartamento('Comercial');
+                    }}
+                    className={`p-3 rounded-lg border text-left transition-all flex items-start gap-2.5 ${
+                      titularidade === 'Cliente'
+                        ? 'border-orange-500 bg-orange-500/10 ring-1 ring-orange-500 text-foreground'
+                        : 'border-border/60 hover:bg-muted/60 text-muted-foreground'
+                    }`}
+                  >
+                    <div className="p-2 rounded-md bg-blue-500/10 text-blue-600 shrink-0">
+                      <User className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-bold text-xs">Contrato com Cliente</p>
+                        <Badge variant="outline" className="text-[9px] bg-blue-50 text-blue-700 border-blue-200">Aba Clientes</Badge>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        Prestação de serviços, SaaS, projetos e desenvolvimento para clientes da carteira.
+                      </p>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTitularidade('Focus Tecnologia');
+                      setCategoria('Despesa');
+                      setTipoServico('Cloud');
+                      setDepartamento('Operações');
+                    }}
+                    className={`p-3 rounded-lg border text-left transition-all flex items-start gap-2.5 ${
+                      titularidade === 'Focus Tecnologia'
+                        ? 'border-orange-500 bg-orange-500/10 ring-1 ring-orange-500 text-foreground'
+                        : 'border-border/60 hover:bg-muted/60 text-muted-foreground'
+                    }`}
+                  >
+                    <div className="p-2 rounded-md bg-purple-500/10 text-purple-600 shrink-0">
+                      <Building2 className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-bold text-xs">Contrato Focus Tecnologia Ltda</p>
+                        <Badge variant="outline" className="text-[9px] bg-purple-50 text-purple-700 border-purple-200">Aba Focus</Badge>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        Fornecedores, infraestrutura em nuvem, parcerias corporativas e despesas da Focus.
+                      </p>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 pt-1">
                 
                 <div className="space-y-2 col-span-2 sm:col-span-1">
                   <Label>Número do Contrato *</Label>
@@ -301,7 +412,11 @@ export function NovoContratoSheet({ children, contratoToEdit, open: externalOpen
 
                 <div className="space-y-2 col-span-2 sm:col-span-1">
                   <Label>Nome do Contrato *</Label>
-                  <Input placeholder="Ex: Prestação de Serviços Tecnológicos" value={nome} onChange={e => setNome(e.target.value)} />
+                  <Input 
+                    placeholder={titularidade === 'Focus Tecnologia' ? "Ex: Licenciamento AWS / Infraestrutura Cloud" : "Ex: Prestação de Serviços Tecnológicos"} 
+                    value={nome} 
+                    onChange={e => setNome(e.target.value)} 
+                  />
                 </div>
 
                 <div className="space-y-2 col-span-2 sm:col-span-1">
@@ -309,48 +424,115 @@ export function NovoContratoSheet({ children, contratoToEdit, open: externalOpen
                   <Select value={categoria} onValueChange={(val: any) => setCategoria(val)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Receita">Receita (Cliente)</SelectItem>
-                      <SelectItem value="Despesa">Despesa (Fornecedor)</SelectItem>
-                      <SelectItem value="Interno">Interno</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2 col-span-2 sm:col-span-1">
-                  <Label>Tipo de Serviço</Label>
-                  <Select value={tipoServico} onValueChange={(val: any) => setTipoServico(val)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Desenvolvimento de Software">Desenvolvimento de Software</SelectItem>
-                      <SelectItem value="Sistema Web">Sistema Web</SelectItem>
-                      <SelectItem value="Aplicativo Mobile">Aplicativo Mobile</SelectItem>
-                      <SelectItem value="Consultoria">Consultoria</SelectItem>
-                      <SelectItem value="Suporte Técnico">Suporte Técnico</SelectItem>
-                      <SelectItem value="Licenciamento">Licenciamento</SelectItem>
-                      <SelectItem value="Prestação de Serviço">Prestação de Serviço</SelectItem>
-                      <SelectItem value="Cloud">Cloud</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* SELECIONAR CLIENTE */}
-                <div className="space-y-2 col-span-2 sm:col-span-1">
-                  <Label>Selecionar Cliente</Label>
-                  <Select value={clienteId} onValueChange={setClienteId}>
-                    <SelectTrigger><SelectValue placeholder="Selecione o Cliente..." /></SelectTrigger>
-                    <SelectContent>
-                      {clientes.length === 0 ? (
-                        <SelectItem value="none" disabled>Nenhum cliente cadastrado no sistema</SelectItem>
+                      {titularidade === 'Cliente' ? (
+                        <>
+                          <SelectItem value="Receita">Receita (Cliente / Faturamento)</SelectItem>
+                          <SelectItem value="Interno">Parceria / Acordo Comercial</SelectItem>
+                        </>
                       ) : (
-                        clientes.map(c => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {c.nomeFantasia || c.razaoSocial} ({c.documento})
-                          </SelectItem>
-                        ))
+                        <>
+                          <SelectItem value="Despesa">Despesa (Fornecedor / Serviços)</SelectItem>
+                          <SelectItem value="Interno">Interno / Governança Corporativa</SelectItem>
+                        </>
                       )}
                     </SelectContent>
                   </Select>
                 </div>
+
+                <div className="space-y-2 col-span-2 sm:col-span-1">
+                  <Label>Tipo de Serviço / Escopo</Label>
+                  <Select value={tipoServico} onValueChange={(val: any) => setTipoServico(val)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {titularidade === 'Cliente' ? (
+                        <>
+                          <SelectItem value="Desenvolvimento de Software">Desenvolvimento de Software</SelectItem>
+                          <SelectItem value="Sistema Web">Sistema Web</SelectItem>
+                          <SelectItem value="Aplicativo Mobile">Aplicativo Mobile</SelectItem>
+                          <SelectItem value="Consultoria">Consultoria</SelectItem>
+                          <SelectItem value="Suporte Técnico">Suporte Técnico</SelectItem>
+                          <SelectItem value="Licenciamento">Licenciamento SaaS</SelectItem>
+                          <SelectItem value="Prestação de Serviço">Prestação de Serviço</SelectItem>
+                          <SelectItem value="Outros">Outros</SelectItem>
+                        </>
+                      ) : (
+                        <>
+                          <SelectItem value="Cloud">Cloud & Hospedagem (AWS, Supabase, Cloudflare)</SelectItem>
+                          <SelectItem value="Licenciamento">Licenciamento de Software & Ferramentas</SelectItem>
+                          <SelectItem value="Jurídico">Jurídico & Compliance</SelectItem>
+                          <SelectItem value="Contabilidade">Contabilidade & Auditoria</SelectItem>
+                          <SelectItem value="Marketing">Marketing & Aquisição</SelectItem>
+                          <SelectItem value="Consultoria">Consultoria Especializada</SelectItem>
+                          <SelectItem value="NDA">NDA & Acordo de Confidencialidade</SelectItem>
+                          <SelectItem value="Parceria">Parceria Estratégica</SelectItem>
+                          <SelectItem value="Prestação de Serviço">Prestação de Serviços Tomados</SelectItem>
+                          <SelectItem value="Outros">Outros</SelectItem>
+                        </>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* VÍNCULO ESPECÍFICO CONFORME A TITULARIDADE */}
+                {titularidade === 'Cliente' ? (
+                  <div className="space-y-2 col-span-2 sm:col-span-1">
+                    <Label>Selecionar Cliente *</Label>
+                    <Select value={clienteId} onValueChange={setClienteId}>
+                      <SelectTrigger><SelectValue placeholder="Selecione o Cliente..." /></SelectTrigger>
+                      <SelectContent>
+                        {clientes.length === 0 ? (
+                          <SelectItem value="none" disabled>Nenhum cliente cadastrado no sistema</SelectItem>
+                        ) : (
+                          clientes.map(c => (
+                            <SelectItem key={c.id} value={c.id}>
+                              {c.nomeFantasia || c.razaoSocial} ({c.documento})
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : (
+                  <div className="space-y-2 col-span-2 sm:col-span-1">
+                    <Label>Fornecedor / Contraparte da Focus Tecnologia *</Label>
+                    {fornecedores.length > 0 ? (
+                      <div className="space-y-1.5">
+                        <Select 
+                          value={fornecedorId} 
+                          onValueChange={(val) => {
+                            setFornecedorId(val);
+                            const found = fornecedores.find(f => f.id === val);
+                            if (found) setContraparteNome(found.nomeFantasia || found.razaoSocial);
+                          }}
+                        >
+                          <SelectTrigger><SelectValue placeholder="Selecione o Fornecedor..." /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="manual">+ Digitar Contraparte Manualmente</SelectItem>
+                            {fornecedores.map(f => (
+                              <SelectItem key={f.id} value={f.id}>
+                                {f.nomeFantasia || f.razaoSocial} ({f.cnpj || f.cpf})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {(!fornecedorId || fornecedorId === 'manual') && (
+                          <Input 
+                            placeholder="Nome da empresa / fornecedor contratado..." 
+                            value={contraparteNome} 
+                            onChange={e => setContraparteNome(e.target.value)} 
+                            className="text-xs"
+                          />
+                        )}
+                      </div>
+                    ) : (
+                      <Input 
+                        placeholder="Ex: Amazon Web Services, Google Cloud, Locadora, etc." 
+                        value={contraparteNome} 
+                        onChange={e => setContraparteNome(e.target.value)} 
+                      />
+                    )}
+                  </div>
+                )}
 
                 {/* RESPONSÁVEL INTERNO */}
                 <div className="space-y-2 col-span-2 sm:col-span-1">
@@ -367,22 +549,35 @@ export function NovoContratoSheet({ children, contratoToEdit, open: externalOpen
                   <Select value={status} onValueChange={(val: any) => setStatus(val)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="Vigente">Vigente</SelectItem>
                       <SelectItem value="Em Elaboração">Em Elaboração</SelectItem>
                       <SelectItem value="Aguardando Assinatura">Aguardando Assinatura</SelectItem>
-                      <SelectItem value="Vigente">Vigente</SelectItem>
                       <SelectItem value="Encerrado">Encerrado</SelectItem>
                       <SelectItem value="Suspenso">Suspenso</SelectItem>
+                      <SelectItem value="Cancelado">Cancelado</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
+                <div className="space-y-2 col-span-2 sm:col-span-1">
+                  <Label>Departamento / Centro de Custo</Label>
+                  <Input 
+                    value={departamento} 
+                    onChange={e => setDepartamento(e.target.value)} 
+                    placeholder="Ex: Comercial, TI, Operações, Diretoria" 
+                  />
+                </div>
+
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2 pt-1">
                 <Label>Descrição / Objeto do Contrato *</Label>
                 <Textarea 
-                  placeholder="Descreva detalhadamente as obrigações e escopo do contrato..." 
-                  className="h-28" 
+                  placeholder={titularidade === 'Focus Tecnologia' 
+                    ? "Descreva as obrigações da contratada, SLAs e serviços prestados para a Focus Tecnologia Ltda..."
+                    : "Descreva detalhadamente as obrigações, entregáveis e escopo acordado com o cliente..."
+                  }
+                  className="h-24 text-xs" 
                   value={descricao}
                   onChange={e => setDescricao(e.target.value)}
                 />
@@ -399,12 +594,12 @@ export function NovoContratoSheet({ children, contratoToEdit, open: externalOpen
                     className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" 
                     onChange={handleFileUpload}
                   />
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3 text-primary">
+                  <div className="w-12 h-12 rounded-full bg-orange-500/10 flex items-center justify-center mb-3 text-orange-600">
                     <Upload className="w-6 h-6" />
                   </div>
-                  <h4 className="text-sm font-semibold">Anexar / Substituir Documento do Contrato (PDF / DOCX)</h4>
+                  <h4 className="text-sm font-semibold">Anexar Documento do Contrato (PDF / DOCX)</h4>
                   <p className="text-xs text-muted-foreground mt-1 max-w-sm">
-                    Clique aqui ou arraste o arquivo PDF ou DOCX assinado/minuta do contrato.
+                    Clique aqui ou arraste o arquivo PDF/DOC assinado ou minuta do contrato. O arquivo será sincronizado automaticamente com a pasta correspondente no DMS.
                   </p>
                 </div>
 
@@ -419,7 +614,7 @@ export function NovoContratoSheet({ children, contratoToEdit, open: externalOpen
                     </div>
                     <div className="flex items-center gap-2">
                       <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => downloadDocumentFile(arquivo.url, arquivo.nome, nome)}>
-                        <Download className="w-3.5 h-3.5" /> Baixar de Verdade
+                        <Download className="w-3.5 h-3.5" /> Baixar
                       </Button>
                       <Button variant="ghost" size="sm" onClick={() => setArquivo(null)}>
                         <Trash2 className="w-4 h-4 text-rose-500" />
@@ -433,16 +628,16 @@ export function NovoContratoSheet({ children, contratoToEdit, open: externalOpen
             {/* 3. VIGÊNCIA */}
             <TabsContent value="vigencia" className="space-y-4 mt-0 outline-none">
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
+                <div className="space-y-2 col-span-2 sm:col-span-1">
                   <Label>Data da Assinatura</Label>
                   <Input type="date" value={dataAssinatura} onChange={e => setDataAssinatura(e.target.value)} />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2 col-span-2 sm:col-span-1">
                   <Label>Data Inicial (Início da Vigência)</Label>
                   <Input type="date" value={dataInicial} onChange={e => setDataInicial(e.target.value)} />
                 </div>
                 <div className="space-y-2 col-span-2 sm:col-span-1">
-                  <Label>Data Final (Vencimento)</Label>
+                  <Label>Data Final (Término)</Label>
                   <Input type="date" value={dataFinal} onChange={e => setDataFinal(e.target.value)} />
                 </div>
               </div>
@@ -485,7 +680,7 @@ export function NovoContratoSheet({ children, contratoToEdit, open: externalOpen
           {/* Footer */}
           <div className="p-4 border-t bg-muted/10 flex justify-end gap-2 mt-auto">
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button className="bg-primary gap-2" onClick={handleSave}>
+            <Button className="bg-orange-600 hover:bg-orange-700 text-white gap-2 font-semibold" onClick={handleSave}>
               <CheckCircle2 className="w-4 h-4" /> {contratoToEdit ? "Salvar Alterações" : "Salvar Contrato"}
             </Button>
           </div>
