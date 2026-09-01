@@ -113,13 +113,15 @@ function persistClientsToAllStores(clientes: ClienteDTO[]) {
  */
 export const clienteService = {
   /**
-   * Buscar todos os clientes da organização com fusão inteligente de dados cadastrais e endereço
+   * Buscar todos os clientes da organização com banco de dados real como fonte da verdade.
+   * Elimina automaticamente clientes apagados no Mobile ou Desktop e mantém o cache sincronizado.
    */
   async getClientes(): Promise<ClienteDTO[]> {
     try {
       const deletedIds = getDeletedClientIds();
       const localMap = getLocalClients();
       let dbItems: any[] = [];
+      let dbFetchSucceeded = false;
 
       // 1. Buscar na tabela 'clientes' (que possui colunas de endereço completas)
       try {
@@ -127,10 +129,12 @@ export const clienteService = {
           .from('clientes')
           .select('*')
           .neq('status', 'deleted')
+          .neq('status', 'deletado')
           .order('created_at', { ascending: false });
 
-        if (!clientesErr && clientesData) {
+        if (!clientesErr && Array.isArray(clientesData)) {
           dbItems = [...dbItems, ...clientesData];
+          dbFetchSucceeded = true;
         }
       } catch (err) {
         console.warn('[clienteService.getClientes] Warning fetching clientes:', err);
@@ -146,21 +150,30 @@ export const clienteService = {
           .not('name', 'like', '__USER_PROFILE__%')
           .neq('status', 'user_profile')
           .neq('status', 'deleted')
+          .neq('status', 'deletado')
           .order('created_at', { ascending: false });
 
-        if (!clientsErr && clientsData) {
+        if (!clientsErr && Array.isArray(clientsData)) {
           dbItems = [...dbItems, ...clientsData];
+          dbFetchSucceeded = true;
         }
       } catch (err) {
         console.warn('[clienteService.getClientes] Warning fetching clients:', err);
       }
 
-      // Mesclar dados do banco com o cache local (priorizando dados reais de endereço)
-      if (dbItems.length > 0) {
+      // Se a consulta ao banco teve sucesso, o Banco de Dados é a Fonte da Verdade
+      if (dbFetchSucceeded) {
+        const freshMap = new Map<string, ClienteDTO>();
+
         dbItems.forEach(item => {
-          if (!item.id || deletedIds.has(String(item.id))) return;
+          if (!item || !item.id || deletedIds.has(String(item.id))) return;
+          if (item.status === 'deleted' || item.status === 'deletado' || item.deleted === true) return;
+          if (typeof item.name === 'string' && (item.name.startsWith('__DELETED__') || item.name.startsWith('__USER_PROFILE__'))) return;
 
           const id = String(item.id);
+          // Se já adicionamos este ID da tabela 'clientes', não sobrescrever com o registro genérico de 'clients'
+          if (freshMap.has(id) && !item.razao_social && !item.nome_fantasia) return;
+
           const current = localMap.get(id);
 
           const rawEndereco = {
@@ -186,7 +199,7 @@ export const clienteService = {
             inscricaoEstadual: item.inscricao_estadual || item.inscricaoEstadual || current?.inscricaoEstadual || 'Isento',
             inscricaoMunicipal: item.inscricao_municipal || item.inscricaoMunicipal || current?.inscricaoMunicipal || '',
             dataFundacaoNascimento: item.data_fundacao || item.dataFundacaoNascimento || current?.dataFundacaoNascimento || '',
-            status: item.status === 'inativo' ? 'Inativo' : 'Ativo',
+            status: (item.status === 'inativo' || item.status === 'Inativo') ? 'Inativo' : 'Ativo',
             segmento: item.segmento || current?.segmento || 'Geral',
             porteEmpresa: item.porte || item.porteEmpresa || current?.porteEmpresa || 'Médio',
             site: item.site || current?.site || '',
@@ -209,14 +222,16 @@ export const clienteService = {
           // Validar contra schema
           const parsed = clienteSchema.safeParse(candidate);
           if (parsed.success) {
-            localMap.set(id, parsed.data);
+            freshMap.set(id, parsed.data);
           } else {
-            localMap.set(id, candidate);
+            freshMap.set(id, candidate);
           }
         });
 
-        // Atualizar todas as chaves locais com a fusão consolidada
-        persistClientsToAllStores(Array.from(localMap.values()));
+        const syncedList = Array.from(freshMap.values());
+        // Atualizar todas as chaves locais com a lista real do banco de dados (removendo clientes apagados)
+        persistClientsToAllStores(syncedList);
+        return syncedList;
       }
 
       return Array.from(localMap.values());
@@ -434,8 +449,8 @@ export const clienteService = {
 
     try {
       const { error: err1 } = await supabase.from('clients').delete().eq('id', id);
-      if (err1 && (err1.code === '23503' || err1.message?.includes('foreign key') || err1.message?.includes('Conflict'))) {
-        await supabase.from('clients').update({ status: 'inativo', updated_at: new Date().toISOString() }).eq('id', id);
+      if (err1) {
+        await supabase.from('clients').update({ status: 'deleted', updated_at: new Date().toISOString() }).eq('id', id);
       }
     } catch (e) {
       console.warn('[clienteService.deleteCliente] Local delete complete:', e);
@@ -443,8 +458,8 @@ export const clienteService = {
 
     try {
       const { error: err2 } = await supabase.from('clientes').delete().eq('id', id);
-      if (err2 && (err2.code === '23503' || err2.message?.includes('foreign key') || err2.message?.includes('Conflict'))) {
-        await supabase.from('clientes').update({ status: 'inativo', updated_at: new Date().toISOString() }).eq('id', id);
+      if (err2) {
+        await supabase.from('clientes').update({ status: 'deleted', updated_at: new Date().toISOString() }).eq('id', id);
       }
     } catch {}
 

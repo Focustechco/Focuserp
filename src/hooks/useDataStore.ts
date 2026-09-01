@@ -846,12 +846,6 @@ export function useLocalStorageState<T extends { id: string }>(
                 };
               }) as T[];
 
-            localCached.forEach((lc: any) => {
-              if (lc && lc.id && !mapped.some((m: any) => m.id === lc.id) && !deletedSet.has(String(lc.id))) {
-                mapped.push(lc);
-              }
-            });
-
             setData(mapped);
             writeLocalCache(table, mapped);
             setError(null);
@@ -866,6 +860,7 @@ export function useLocalStorageState<T extends { id: string }>(
             .not('name', 'like', '__FOCUS_STATE_%')
             .not('name', 'like', '__FOCUS_USERS_STATE__%')
             .neq('status', 'deleted')
+            .neq('status', 'deletado')
             .order('created_at', { ascending: false });
 
           if (!isMountedRef.current) return;
@@ -875,7 +870,7 @@ export function useLocalStorageState<T extends { id: string }>(
               .filter((c: any) => {
                 if (deletedSet.has(String(c.id))) return false;
                 if (c.status === 'deleted' || c.status === 'deletado' || c.deleted === true) return false;
-                if (typeof c.name === 'string' && (c.name.startsWith('__DELETED__') || c.name.startsWith('__FOCUS_'))) return false;
+                if (typeof c.name === 'string' && (c.name.startsWith('__DELETED__') || c.name.startsWith('__FOCUS_') || c.name.startsWith('__USER_PROFILE__'))) return false;
                 return true;
               })
               .map((c: any) => {
@@ -899,7 +894,7 @@ export function useLocalStorageState<T extends { id: string }>(
                   razaoSocial: existing.razaoSocial || c.name || 'Cliente sem nome',
                   nomeFantasia: existing.nomeFantasia || c.name || 'Cliente sem nome',
                   documento: existing.documento || '00.000.000/0001-00',
-                  status: c.status === 'inativo' ? 'Inativo' : (existing.status || 'Ativo'),
+                  status: (c.status === 'inativo' || c.status === 'Inativo') ? 'Inativo' : 'Ativo',
                   segmento: existing.segmento || 'Geral',
                   endereco: {
                     cep,
@@ -930,12 +925,6 @@ export function useLocalStorageState<T extends { id: string }>(
                   ultimaAtualizacao: existing.ultimaAtualizacao || c.updated_at || new Date().toISOString(),
                 };
               }) as T[];
-
-            localCached.forEach((lc: any) => {
-              if (lc && lc.id && !mapped.some((m: any) => m.id === lc.id) && !deletedSet.has(String(lc.id))) {
-                mapped.push(lc);
-              }
-            });
 
             setData(mapped);
             writeLocalCache(table, mapped);
