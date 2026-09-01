@@ -18,7 +18,6 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Layers,
-  Sparkles,
   ShieldAlert,
   CheckCircle2,
 } from 'lucide-react';
@@ -127,7 +126,7 @@ export function ProjecoesSection() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" /> Projees de Fluxo de Caixa Futuro
+            <TrendingUp className="h-5 w-5 text-primary" /> Projeções de Fluxo de Caixa Futuro
           </h2>
           <p className="text-xs text-muted-foreground">
             Modelagem preditiva baseada estritamente nas obrigaes reais a pagar e ttulos a receber cadastrados

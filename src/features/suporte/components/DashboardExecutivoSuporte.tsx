@@ -9,7 +9,6 @@ import {
   AlertTriangle,
   Flame,
   Bug,
-  Sparkles,
   ShieldAlert,
   Users,
   Boxes,

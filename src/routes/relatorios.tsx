@@ -6,7 +6,7 @@ import { ReportCatalogView } from "@/features/relatorios/components/ReportCatalo
 import { ReportGeneratorWizard } from "@/features/relatorios/components/ReportGeneratorWizard";
 import { ReportHistoryView } from "@/features/relatorios/components/ReportHistoryView";
 import { ReportSchedulesView } from "@/features/relatorios/components/ReportSchedulesView";
-import { FileSpreadsheet, LayoutGrid, Wand2, Clock, Calendar, Sparkles, ShieldCheck } from "lucide-react";
+import { FileSpreadsheet, LayoutGrid, Wand2, Clock, Calendar, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 export const Route = createFileRoute("/relatorios")({

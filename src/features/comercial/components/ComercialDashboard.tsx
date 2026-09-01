@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { 
   DollarSign, TrendingUp, Target, Award, Users, FileText, 
-  BarChart3, CheckCircle2, ArrowUpRight, Flame, Clock, Sparkles, Layers
+  BarChart3, CheckCircle2, ArrowUpRight, Flame, Clock, Layers
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from 'recharts';
 import { useComercialStore } from '../hooks/useComercialStore';

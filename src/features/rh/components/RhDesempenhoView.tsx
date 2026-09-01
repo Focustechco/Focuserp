@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Target, Award, Star, TrendingUp, Users, Plus, 
-  CheckCircle2, Clock, Sparkles, MessageSquare 
+  CheckCircle2, Clock, MessageSquare 
 } from 'lucide-react';
 import { useLocalStorageState } from '@/hooks/useDataStore';
 import { useColaboradoresQuery } from '../hooks/useColaboradoresQuery';
@@ -216,7 +216,7 @@ export function RhDesempenhoView() {
           <div className="p-4 bg-muted/20 border rounded-2xl">
             <div className="mb-4">
               <h4 className="font-bold text-sm text-foreground flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4 text-orange-500" /> Matriz Nine Box - Mapeamento de Potencial & Desempenho
+                <Target className="w-4 h-4 text-orange-500" /> Matriz Nine Box - Mapeamento de Potencial & Desempenho
               </h4>
               <p className="text-xs text-muted-foreground">
                 Cruze a entrega de resultados no curto prazo com o potencial de crescimento e liderança de cada membro da organização.

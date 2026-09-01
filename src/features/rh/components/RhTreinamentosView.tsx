@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   GraduationCap, BookOpen, Award, CheckCircle2, Clock, 
-  Plus, Search, Users, Sparkles, ExternalLink, Play 
+  Plus, Search, Users, ExternalLink, Play 
 } from 'lucide-react';
 import { useLocalStorageState } from '@/hooks/useDataStore';
 import { useColaboradoresQuery } from '../hooks/useColaboradoresQuery';
@@ -189,7 +189,7 @@ export function RhTreinamentosView() {
         <Card className="border shadow-xs bg-card">
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-xs font-semibold text-muted-foreground">Média de Conclusão</CardTitle>
-            <Sparkles className="w-4 h-4 text-purple-600" />
+            <Award className="w-4 h-4 text-purple-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-purple-600">89.4%</div>

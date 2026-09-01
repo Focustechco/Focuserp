@@ -24,7 +24,6 @@ import {
   Maximize2,
   Copy,
   Check,
-  Sparkles,
   FileCode,
   FileSpreadsheet,
   ExternalLink,

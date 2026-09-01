@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
-  FileText, Copy, Star, Search, Plus, Tag, Check, Sparkles, User
+  FileText, Copy, Star, Search, Plus, Tag, Check, User
 } from 'lucide-react';
 import { useComercialStore } from '../hooks/useComercialStore';
 import { ScriptVenda } from '../types';

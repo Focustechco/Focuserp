@@ -5,7 +5,7 @@ import { DashboardExecutivo } from './DashboardExecutivo';
 import { CatalogoProdutos } from './CatalogoProdutos';
 import { WorkspaceProduto } from './WorkspaceProduto';
 import { ProdutoFocus } from '../types';
-import { Boxes, LayoutDashboard, Sparkles, Layers } from 'lucide-react';
+import { Boxes, LayoutDashboard, Layers } from 'lucide-react';
 
 export function ProdutosScreen() {
   const {
@@ -75,7 +75,7 @@ export function ProdutosScreen() {
               <LayoutDashboard className="h-4 w-4" /> Dashboard Executivo
             </TabsTrigger>
             <TabsTrigger value="workspace" disabled={!selectedProduto} className="text-xs font-semibold gap-1.5 shrink-0">
-              <Sparkles className="h-4 w-4" /> Workspace {selectedProduto ? `(${selectedProduto.nome})` : ''}
+              <Layers className="h-4 w-4" /> Workspace {selectedProduto ? `(${selectedProduto.nome})` : ''}
             </TabsTrigger>
           </TabsList>
         </div>

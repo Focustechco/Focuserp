@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
-  Sparkles, CheckCircle2, Target, Users, BookOpen, Plus, ArrowRight, User
+  Compass, CheckCircle2, Target, Users, BookOpen, Plus, ArrowRight, User
 } from 'lucide-react';
 import { useComercialStore } from '../hooks/useComercialStore';
 import { EstrategiaComercial } from '../types';
@@ -66,7 +66,7 @@ export function EstrategiasVendaView() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
           <h3 className="font-bold text-lg flex items-center gap-2 text-foreground">
-            <Sparkles className="w-5 h-5 text-orange-500" /> Estratégias Comerciais & Base de Conhecimento
+            <Compass className="w-5 h-5 text-orange-500" /> Estratégias Comerciais & Base de Conhecimento
           </h3>
           <p className="text-xs text-muted-foreground">
             Diretrizes operacionais, táticas de prospecção, réguas de follow-up e checklists para o time.
@@ -160,7 +160,7 @@ export function EstrategiasVendaView() {
         <DialogContent className="sm:max-w-lg rounded-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base font-bold">
-              <Sparkles className="w-5 h-5 text-orange-500" /> Cadastrar Nova Estratégia Comercial
+              <Compass className="w-5 h-5 text-orange-500" /> Cadastrar Nova Estratégia Comercial
             </DialogTitle>
           </DialogHeader>
 

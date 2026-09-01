@@ -17,8 +17,7 @@ import {
   Download,
   AlertTriangle,
   Play,
-  Settings,
-  Sparkles
+  Settings
 } from 'lucide-react';
 import { Link } from '@tanstack/react-router';
 import { Progress } from '@/components/ui/progress';

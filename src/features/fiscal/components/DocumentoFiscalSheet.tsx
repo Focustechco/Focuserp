@@ -34,7 +34,6 @@ import {
   Users, 
   Wallet, 
   Building2, 
-  Sparkles,
   CheckCircle2
 } from 'lucide-react';
 import { toast } from 'sonner';

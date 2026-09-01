@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { TrendingUp, Plus, DollarSign, Target, Sparkles, Building2 } from 'lucide-react';
+import { TrendingUp, Plus, DollarSign, Target, Building2 } from 'lucide-react';
 import { Cliente } from '@/features/clientes/types';
 import { CsExpansionOpportunity } from '../types';
 

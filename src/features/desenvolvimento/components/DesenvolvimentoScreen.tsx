@@ -5,7 +5,7 @@ import { DashboardExecutivoDelivery } from './DashboardExecutivoDelivery';
 import { ProjetosDeliveryList } from './ProjetosDeliveryList';
 import { WorkspaceDevProjeto } from './WorkspaceDevProjeto';
 import { Projeto } from '../projetos/types';
-import { Code2, LayoutDashboard, Sparkles, Terminal } from 'lucide-react';
+import { Code2, LayoutDashboard, Terminal } from 'lucide-react';
 
 export function DesenvolvimentoScreen() {
   const {
@@ -69,7 +69,7 @@ export function DesenvolvimentoScreen() {
               <LayoutDashboard className="h-4 w-4" /> Dashboard Executivo
             </TabsTrigger>
             <TabsTrigger value="workspace_individual" disabled={!selectedProjeto} className="text-xs font-semibold gap-1.5 shrink-0">
-              <Sparkles className="h-4 w-4" /> Workspace {selectedProjeto ? `(${selectedProjeto.nome})` : ''}
+              <Code2 className="h-4 w-4" /> Workspace {selectedProjeto ? `(${selectedProjeto.nome})` : ''}
             </TabsTrigger>
           </TabsList>
         </div>

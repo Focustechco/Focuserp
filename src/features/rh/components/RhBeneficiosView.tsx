@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Heart, Shield, Plus, Search, Edit3, Trash2, CheckCircle2, 
-  DollarSign, Users, Sparkles, Building2, Coffee 
+  DollarSign, Users, Gift, Building2, Coffee 
 } from 'lucide-react';
 import { useLocalStorageState } from '@/hooks/useDataStore';
 import { useColaboradoresQuery } from '../hooks/useColaboradoresQuery';
@@ -266,7 +266,7 @@ export function RhBeneficiosView() {
         <Card className="border shadow-xs bg-card">
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-xs font-semibold text-muted-foreground">Média por Colaborador</CardTitle>
-            <Sparkles className="w-4 h-4 text-purple-600" />
+            <Gift className="w-4 h-4 text-purple-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-purple-600">

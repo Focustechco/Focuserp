@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   UserPlus, UserMinus, CheckCircle2, Clock, Plus, 
-  ArrowRight, ShieldCheck, Laptop, FileText, Sparkles 
+  ArrowRight, ShieldCheck, Laptop, FileText 
 } from 'lucide-react';
 import { useLocalStorageState } from '@/hooks/useDataStore';
 import { useColaboradoresQuery } from '../hooks/useColaboradoresQuery';

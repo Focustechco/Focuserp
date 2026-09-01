@@ -7,7 +7,7 @@ import {
   Building2, User, MapPin, Phone, Mail, Globe, 
   CreditCard, DollarSign, FolderOpen, History, 
   Edit, Plus, Copy, ExternalLink, Download, Eye, 
-  Sparkles, CheckCircle2, AlertTriangle, MessageSquare, Clock
+  QrCode, CheckCircle2, AlertTriangle, MessageSquare, Clock
 } from 'lucide-react';
 import { Fornecedor } from '../types';
 import { useLocalStorageState } from '@/hooks/useDataStore';
@@ -282,7 +282,7 @@ export function FornecedorPerfilSheet({
               {/* Chave PIX */}
               <div className="p-4 border rounded-xl bg-blue-50/40 dark:bg-blue-950/20 border-blue-200/60 dark:border-blue-800/40 space-y-3">
                 <h4 className="font-semibold text-sm text-blue-900 dark:text-blue-200 flex items-center gap-1.5">
-                  <Sparkles className="w-4 h-4 text-blue-600" /> Chave PIX
+                  <QrCode className="w-4 h-4 text-blue-600" /> Chave PIX
                 </h4>
                 {dadosBanc?.chavePix || fornecedor.chavePix ? (
                   <div className="space-y-3">

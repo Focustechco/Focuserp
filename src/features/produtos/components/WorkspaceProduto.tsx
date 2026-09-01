@@ -28,7 +28,7 @@ import {
   Shield,
   LayoutGrid,
   List,
-  Sparkles,
+  Compass,
   Link as LinkIcon,
   BookOpen,
   UserCheck,
@@ -145,7 +145,7 @@ export function WorkspaceProduto({
               <Boxes className="h-3.5 w-3.5" /> Visão Geral
             </TabsTrigger>
             <TabsTrigger value="roadmap" className="text-xs gap-1.5 shrink-0">
-              <Sparkles className="h-3.5 w-3.5" /> Roadmap
+              <Compass className="h-3.5 w-3.5" /> Roadmap
             </TabsTrigger>
             <TabsTrigger value="funcionalidades" className="text-xs gap-1.5 shrink-0">
               <Layers className="h-3.5 w-3.5" /> Funcionalidades & Módulos

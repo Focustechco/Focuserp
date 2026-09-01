@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { 
   Users, Award, TrendingUp, Target, DollarSign, CheckCircle2, 
   MessageSquare, Calendar, Search, ArrowUpRight, BarChart3, Filter,
-  Building2, ExternalLink, Flame, Sparkles, RefreshCw, UserCheck
+  Building2, ExternalLink, Flame, RefreshCw, UserCheck
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useCrmStore } from '../hooks/useCrmStore';

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Lock, Mail, Eye, EyeOff, ArrowRight, ShieldCheck, Sparkles, AlertCircle, Loader2 } from 'lucide-react';
+import { Lock, Mail, Eye, EyeOff, ArrowRight, ShieldCheck, AlertCircle, Loader2 } from 'lucide-react';
 import focusLogoHq from '@/assets/focus-erp-logo-hq.png';
 import focusLogoHqDark from '@/assets/focus-erp-logo-hq-dark.png';
 import { toast } from 'sonner';
@@ -293,7 +293,7 @@ function LoginPage() {
                 disabled={isResetting}
                 className="text-xs bg-orange-600 hover:bg-orange-700 text-white rounded-lg gap-1.5"
               >
-                {isResetting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                {isResetting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArrowRight className="w-3.5 h-3.5" />}
                 Enviar Instruções
               </Button>
             </DialogFooter>

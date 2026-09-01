@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Search, Filter, Calendar, RefreshCw, ArrowUpRight, 
-  DollarSign, Clock, Sparkles, FileText, CheckCircle2, 
+  DollarSign, Clock, FileText, CheckCircle2, 
   TrendingDown, Layers, Building2, Trash2
 } from 'lucide-react';
 import {
@@ -315,7 +315,7 @@ export function PagamentosFuturosTab() {
         <div className="p-4 rounded-xl border bg-card/60 backdrop-blur shadow-xs space-y-1">
           <div className="flex items-center justify-between text-muted-foreground text-xs">
             <span className="font-medium">Total Previsto a Pagar</span>
-            <Sparkles className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+            <TrendingDown className="w-4 h-4 text-orange-600 dark:text-orange-400" />
           </div>
           <div className="text-2xl font-bold text-foreground">
             {formatCurrency(totalPrevisto)}
@@ -551,17 +551,6 @@ export function PagamentosFuturosTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Banner Informativo de Previsibilidade Financeira */}
-      <div className="p-3.5 bg-orange-50/60 dark:bg-orange-950/20 border border-orange-200/60 dark:border-orange-800/40 rounded-xl text-xs text-orange-900 dark:text-orange-200 flex items-start gap-3">
-        <Sparkles className="w-4 h-4 text-orange-600 shrink-0 mt-0.5" />
-        <div className="space-y-0.5">
-          <p className="font-semibold text-xs">Previsibilidade de Fluxo de Caixa:</p>
-          <p className="text-[11px] text-orange-700/90 dark:text-orange-300/80 leading-relaxed">
-            Os pagamentos futuros projetam os compromissos recorrentes e parcelas contratadas. Eles <strong>não debitam o saldo de caixa atual</strong> e permanecem como <strong>Programado</strong> até serem emitidos ou chegarem ao seu mês de vencimento.
-          </p>
-        </div>
-      </div>
     </div>
   );
 }

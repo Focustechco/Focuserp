@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   RefreshCw, CheckCircle2, ShieldCheck, Key, Database, AlertCircle, 
-  Trash2, Layers, ExternalLink, User, FolderTree, Sparkles, Clock, Globe,
+  Trash2, Layers, ExternalLink, User, FolderTree, Zap, Clock, Globe,
   Check, ArrowRight
 } from 'lucide-react';
 import { useCrmStore } from '../hooks/useCrmStore';
@@ -255,7 +255,7 @@ export function ClickUpConfigView() {
                   onClick={() => discoverAndLoadEverything(apiToken)}
                   className="h-7 text-xs gap-1.5 bg-orange-100 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 hover:bg-orange-200"
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-orange-500" />
+                  <Zap className="w-3.5 h-3.5 text-orange-500" />
                   {isDiscovering ? 'Conectando & Carregando...' : 'Conectar & Listar Quadros'}
                 </Button>
               </div>

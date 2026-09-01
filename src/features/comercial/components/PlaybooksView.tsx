@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Layers, CheckCircle2, FileText, ExternalLink, Sparkles, Plus } from 'lucide-react';
+import { BookOpen, Layers, CheckCircle2, FileText, ExternalLink, Plus } from 'lucide-react';
 import { useComercialStore } from '../hooks/useComercialStore';
 
 export function PlaybooksView() {

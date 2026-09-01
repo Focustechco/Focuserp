@@ -9,11 +9,9 @@ import { RhBeneficiosView } from "@/features/rh/components/RhBeneficiosView";
 import { RhDesempenhoView } from "@/features/rh/components/RhDesempenhoView";
 import { RhTreinamentosView } from "@/features/rh/components/RhTreinamentosView";
 import { RhOnboardingView } from "@/features/rh/components/RhOnboardingView";
-import { RhPontoFrequenciaView } from "@/features/rh/components/RhPontoFrequenciaView";
-import { RhDocumentosView } from "@/features/rh/components/RhDocumentosView";
 import { 
   Users, PieChart, Palmtree, Heart, Target, 
-  GraduationCap, UserPlus, Clock, FolderOpen, Network 
+  GraduationCap, UserPlus, Network 
 } from "lucide-react";
 import { useState } from "react";
 import { Colaborador } from "@/features/rh/types";
@@ -41,16 +39,16 @@ function RouteComponent() {
       <div>
         <h2 className="text-xl sm:text-3xl font-bold tracking-tight text-foreground">Recursos Humanos & Gestão de Pessoas</h2>
         <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-          Plataforma central de gestão de pessoas, diretório corporativo, benefícios, férias, desempenho e ponto.
+          Plataforma central de gestão de pessoas, diretório corporativo, benefícios, férias, desempenho e desenvolvimento.
         </p>
       </div>
       
-      {/* O módulo agora abre diretamente na aba 'diretorio' (Diretório & Organograma) */}
+      {/* O módulo abre diretamente na aba 'diretorio' (Diretório) */}
       <Tabs defaultValue="diretorio" className="space-y-4">
         <div className="border-b pb-2 w-full overflow-x-auto scrollbar-hide">
           <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
             <TabsTrigger value="diretorio" className="gap-2 shrink-0 font-medium">
-              <Users className="w-4 h-4" /> Diretório & Organograma
+              <Users className="w-4 h-4" /> Diretório
             </TabsTrigger>
             <TabsTrigger value="dashboard" className="gap-2 shrink-0 font-medium">
               <PieChart className="w-4 h-4" /> Painel Executivo
@@ -62,7 +60,7 @@ function RouteComponent() {
               <Heart className="w-4 h-4" /> Benefícios Corporativos
             </TabsTrigger>
             <TabsTrigger value="desempenho" className="gap-2 shrink-0 font-medium">
-              <Target className="w-4 h-4" /> Avaliação & 9-Box
+              <Target className="w-4 h-4" /> Avaliação
             </TabsTrigger>
             <TabsTrigger value="treinamentos" className="gap-2 shrink-0 font-medium">
               <GraduationCap className="w-4 h-4" /> Treinamentos (L&D)
@@ -70,16 +68,10 @@ function RouteComponent() {
             <TabsTrigger value="onboarding" className="gap-2 shrink-0 font-medium">
               <UserPlus className="w-4 h-4" /> Admissão & Onboarding
             </TabsTrigger>
-            <TabsTrigger value="ponto" className="gap-2 shrink-0 font-medium">
-              <Clock className="w-4 h-4" /> Ponto & Frequência
-            </TabsTrigger>
-            <TabsTrigger value="documentos" className="gap-2 shrink-0 font-medium">
-              <FolderOpen className="w-4 h-4" /> Documentos de RH
-            </TabsTrigger>
           </TabsList>
         </div>
 
-        {/* 1. DIRETÓRIO & ORGANOGRAMA (ABA INICIAL PADRÃO) */}
+        {/* 1. DIRETÓRIO (ABA INICIAL PADRÃO) */}
         <TabsContent value="diretorio" className="space-y-4 outline-none">
           <Tabs defaultValue="lista" className="space-y-4">
             <div className="flex justify-end">
@@ -119,7 +111,7 @@ function RouteComponent() {
           <RhBeneficiosView />
         </TabsContent>
 
-        {/* 5. AVALIAÇÃO & 9-BOX */}
+        {/* 5. AVALIAÇÃO */}
         <TabsContent value="desempenho" className="space-y-4 outline-none">
           <RhDesempenhoView />
         </TabsContent>
@@ -133,16 +125,6 @@ function RouteComponent() {
         <TabsContent value="onboarding" className="space-y-4 outline-none">
           <RhOnboardingView />
         </TabsContent>
-
-        {/* 8. PONTO & FREQUÊNCIA */}
-        <TabsContent value="ponto" className="space-y-4 outline-none">
-          <RhPontoFrequenciaView />
-        </TabsContent>
-
-        {/* 9. DOCUMENTOS DE RH & CONTRATOS */}
-        <TabsContent value="documentos" className="space-y-4 outline-none">
-          <RhDocumentosView />
-        </TabsContent>
       </Tabs>
 
       <ColaboradorSheet 
@@ -153,4 +135,3 @@ function RouteComponent() {
     </div>
   );
 }
-

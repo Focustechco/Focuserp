@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Star, Play, Filter, Sparkles, ShieldCheck } from 'lucide-react';
+import { Search, Star, Play, Filter, ShieldCheck } from 'lucide-react';
 import { useRelatoriosStore } from '../hooks/useRelatoriosStore';
 import { ReportCategory, ReportDefinition, GeneratedReportData } from '../types';
 import { ReportDocumentPreviewModal } from './ReportDocumentPreviewModal';

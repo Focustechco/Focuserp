@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Search, Filter, Calendar, RefreshCw, ArrowUpRight, 
-  DollarSign, Clock, Sparkles, FileText, CheckCircle2, 
+  DollarSign, Clock, FileText, CheckCircle2, 
   TrendingUp, Layers, ChevronRight, Trash2, UserX
 } from 'lucide-react';
 import {
@@ -390,7 +390,7 @@ export function RecebimentosFuturosTab() {
         <div className="p-4 rounded-xl border bg-card/60 backdrop-blur shadow-xs space-y-1">
           <div className="flex items-center justify-between text-muted-foreground text-xs">
             <span className="font-medium">Total Previsto Futuro</span>
-            <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <TrendingUp className="w-4 h-4 text-blue-600 dark:text-blue-400" />
           </div>
           <div className="text-2xl font-bold text-foreground">
             {formatCurrency(totalPrevisto)}
@@ -635,17 +635,6 @@ export function RecebimentosFuturosTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Banner Informativo de Regras */}
-      <div className="p-3.5 bg-blue-50/60 dark:bg-blue-950/20 border border-blue-200/60 dark:border-blue-800/40 rounded-xl text-xs text-blue-900 dark:text-blue-200 flex items-start gap-3">
-        <Sparkles className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-        <div className="space-y-0.5">
-          <p className="font-semibold text-xs">Regra de Previsibilidade Financeira & Recorrências:</p>
-          <p className="text-[11px] text-blue-700/90 dark:text-blue-300/80 leading-relaxed">
-            Ao excluir um cliente no sistema, suas <strong>recorrências ativas, contratos e previsões futuras são removidas automaticamente em cascata</strong> do Contas a Receber.
-          </p>
-        </div>
-      </div>
     </div>
   );
 }

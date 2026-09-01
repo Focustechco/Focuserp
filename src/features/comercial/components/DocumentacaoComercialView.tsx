@@ -5,7 +5,7 @@ import { ScriptsVendaView } from './ScriptsVendaView';
 import { EstrategiasVendaView } from './EstrategiasVendaView';
 import { PlaybooksView } from './PlaybooksView';
 import { 
-  FileText, Sparkles, Layers, BookOpen, FolderOpen 
+  FileText, Zap, Layers, BookOpen, FolderOpen 
 } from 'lucide-react';
 
 export function DocumentacaoComercialView() {
@@ -33,7 +33,7 @@ export function DocumentacaoComercialView() {
               <FileText className="w-3.5 h-3.5" /> Propostas Comerciais
             </TabsTrigger>
             <TabsTrigger value="scripts" className="gap-2 shrink-0 font-medium text-xs">
-              <Sparkles className="w-3.5 h-3.5" /> Scripts de Venda
+              <Zap className="w-3.5 h-3.5" /> Scripts de Venda
             </TabsTrigger>
             <TabsTrigger value="estrategias" className="gap-2 shrink-0 font-medium text-xs">
               <Layers className="w-3.5 h-3.5" /> Estratégias Comerciais

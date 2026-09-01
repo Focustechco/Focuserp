@@ -3,7 +3,7 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { 
   Bell, Search, Filter, CheckCheck, Archive, Trash2, Settings, ExternalLink, 
   Clock, ShieldAlert, Briefcase, Wallet, Target, ShoppingBag, FileText, 
-  Users, Calendar, Layers, Sparkles, CheckSquare, Square, BellRing, Smartphone,
+  Users, Calendar, Layers, CheckSquare, Square, BellRing, Smartphone,
   BellOff, Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -169,7 +169,7 @@ function NotificacoesPage() {
             onClick={handleSimularNotificacao}
             className="text-xs"
           >
-            <Sparkles className="w-3.5 h-3.5 mr-1.5 text-amber-500" /> Simular Notificação
+            <BellRing className="w-3.5 h-3.5 mr-1.5 text-amber-500" /> Simular Notificação
           </Button>
           {naoLidasCount > 0 && (
             <Button 

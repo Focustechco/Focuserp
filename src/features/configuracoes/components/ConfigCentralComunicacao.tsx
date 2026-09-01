@@ -23,7 +23,6 @@ import {
   Users,
   Calendar,
   Layers,
-  Sparkles,
   BellRing,
   Smartphone,
   BellOff,
@@ -161,7 +160,7 @@ export function ConfigCentralComunicacao() {
 
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={handleSimularNotificacao} className="text-xs">
-            <Sparkles className="w-3.5 h-3.5 mr-1.5 text-amber-500" /> Simular Notificao
+            <BellRing className="w-3.5 h-3.5 mr-1.5 text-amber-500" /> Simular Notificação
           </Button>
           {naoLidasCount > 0 && (
             <Button variant="outline" size="sm" onClick={marcarTodasComoLidas} className="text-xs">

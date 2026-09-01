@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { 
   Target, Plus, RefreshCw, CheckCircle2, ArrowRight, Building2, User, 
   Search, ExternalLink, Calendar, Tag, AlertCircle, Edit3, Check, 
-  DollarSign, Sparkles, ChevronRight, Layers, Flame, ArrowUp, ArrowDown, Minus, Copy
+  DollarSign, ChevronRight, Layers, Flame, ArrowUp, ArrowDown, Minus, Copy
 } from 'lucide-react';
 import { useCrmStore } from '../hooks/useCrmStore';
 import { OportunidadeCrm, PrioridadeOportunidade, ClickUpStatusItem } from '../types';

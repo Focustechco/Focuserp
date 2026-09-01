@@ -11,7 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { 
   Building2, User, MapPin, Phone, CreditCard, DollarSign, 
   FolderOpen, History, Plus, Search, UploadCloud, FileText, 
-  Download, Trash2, Globe, Sparkles, CheckCircle2, AlertCircle
+  Download, Trash2, Globe, QrCode, CheckCircle2, AlertCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLocalStorageState } from '@/hooks/useDataStore';
@@ -910,7 +910,7 @@ export function NovoFornecedorSheet({
               {/* Chave PIX */}
               <div className="p-3 bg-blue-50/50 dark:bg-blue-950/20 rounded-lg border border-blue-200/60 dark:border-blue-800/40 space-y-3">
                 <h4 className="text-xs font-semibold text-blue-900 dark:text-blue-200 flex items-center gap-1.5">
-                  <Sparkles className="w-4 h-4 text-blue-600" /> Chave PIX do Fornecedor
+                  <QrCode className="w-4 h-4 text-blue-600" /> Chave PIX do Fornecedor
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div className="space-y-1.5">

@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { User, Key, Shield, Lock, Globe, Laptop, History, Save, XCircle, Camera, Eye, EyeOff, Sparkles, Copy, Check } from 'lucide-react';
+import { User, Key, Shield, Lock, Globe, Laptop, History, Save, XCircle, Camera, Eye, EyeOff, RefreshCw, Copy, Check } from 'lucide-react';
 import { useLocalStorageState } from '@/hooks/useDataStore';
 import { Usuario, UserProfile, UserStatus } from '../types';
 import { INITIAL_USUARIOS } from '../data/initialData';
@@ -368,7 +368,7 @@ export function UserFormSheet({ isOpen, onClose, user }: UserFormSheetProps) {
                         onClick={handleGerarSenha}
                         className="h-7 text-xs gap-1 text-primary hover:text-primary/80"
                       >
-                        <Sparkles className="w-3 h-3" /> Gerar Senha
+                        <RefreshCw className="w-3 h-3" /> Gerar Senha
                       </Button>
                       <Button
                         type="button"

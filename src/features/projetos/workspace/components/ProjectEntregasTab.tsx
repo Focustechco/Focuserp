@@ -18,8 +18,7 @@ import {
   UserCheck, 
   Clock, 
   FileCheck2,
-  Send,
-  Sparkles
+  Send
 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 
