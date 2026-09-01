@@ -32,10 +32,13 @@ export function UserProfileModal({ open, onOpenChange }: UserProfileModalProps) 
     }
   }, [currentUser, open]);
 
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
   const handleFotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
     const file = files[0];
+    setSelectedFile(file);
     
     const reader = new FileReader();
     reader.onload = (evt) => {
@@ -78,12 +81,26 @@ export function UserProfileModal({ open, onOpenChange }: UserProfileModalProps) 
 
     setIsSaving(true);
     try {
+      let finalFoto = avatarUrl;
+
+      // Se houver arquivo selecionado ou imagem base64 nova, subir para o Supabase Storage
+      if (selectedFile || (avatarUrl && avatarUrl.startsWith('data:'))) {
+        try {
+          finalFoto = await userService.uploadUserAvatar(
+            currentUser?.id || currentUser?.email || 'user',
+            selectedFile || avatarUrl
+          );
+        } catch (uploadErr) {
+          console.warn('[UserProfileModal] Fallback no upload direto:', uploadErr);
+        }
+      }
+
       await updateCurrentUserProfile({
         nome: nome.trim(),
         nomeExibicao: nome.trim(),
         cargo: cargo.trim() || 'Colaborador Focus',
         email: email.trim(),
-        foto: avatarUrl,
+        foto: finalFoto,
       });
 
       toast.success("Perfil e foto sincronizados no Banco de Dados com sucesso!");

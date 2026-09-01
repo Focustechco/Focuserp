@@ -164,14 +164,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [allUsuarios]);
 
+  const currentUserRef = React.useRef(currentUser);
+  currentUserRef.current = currentUser;
+  const sessionRef = React.useRef(session);
+  sessionRef.current = session;
+
   useEffect(() => {
     initSession();
 
     // Ouvir alterações em tempo real de usuários no Supabase
     const unsubscribe = userService.subscribeUsers((freshUsers) => {
-      if (currentUser?.id || currentUser?.email) {
+      const activeUser = currentUserRef.current;
+      const activeSession = sessionRef.current;
+      const targetId = activeUser?.id || activeSession?.userId;
+      const targetEmail = activeUser?.email;
+
+      if (targetId || targetEmail) {
         const myFreshData = freshUsers.find(
-          (u) => u.id === currentUser.id || u.email.toLowerCase().trim() === currentUser.email?.toLowerCase().trim()
+          (u) =>
+            (targetId && (u.id === targetId || u.email.toLowerCase().trim() === targetId.toLowerCase().trim())) ||
+            (targetEmail && u.email.toLowerCase().trim() === targetEmail.toLowerCase().trim())
         );
         if (myFreshData) {
           setCurrentUser((prev) => (prev ? { ...prev, ...myFreshData } : myFreshData));

@@ -4,7 +4,6 @@ import { INITIAL_USUARIOS } from '@/features/usuarios/data/initialData';
 import { safeGetItem, safeSetItem } from '@/lib/safeStorage';
 
 const USERS_STORAGE_KEY = 'focus_app_focus_usuarios';
-const USERS_STATE_ROW_ID = '00000000-0000-4000-a000-000075736572'; // deterministic UUID for users state backup
 
 function broadcastUsersUpdate() {
   if (typeof window !== 'undefined') {
@@ -15,23 +14,51 @@ function broadcastUsersUpdate() {
   }
 }
 
+// Converte string base64 para Blob binário para upload no Supabase Storage
+function base64ToBlob(base64: string, contentType = 'image/jpeg'): Blob {
+  const byteCharacters = atob(base64.split(',')[1] || base64);
+  const byteArrays: Uint8Array[] = [];
+
+  for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+    const slice = byteCharacters.slice(offset, offset + 512);
+    const byteNumbers = new Array(slice.length);
+    for (let i = 0; i < slice.length; i++) {
+      byteNumbers[i] = slice.charCodeAt(i);
+    }
+    byteArrays.push(new Uint8Array(byteNumbers));
+  }
+
+  return new Blob(byteArrays, { type: contentType });
+}
+
+// Gera um UUID determinístico válido a partir de uma chave string
+function generateDeterministicUuid(seed: string): string {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    hash = (hash << 5) - hash + seed.charCodeAt(i);
+    hash |= 0;
+  }
+  const hex = Math.abs(hash).toString(16).padStart(12, '0').slice(-12);
+  return `00000000-0000-4000-a000-${hex}`;
+}
+
 /**
  * Service Central de Governança de Usuários e Autenticação
- * 100% Persistido no Banco de Dados Supabase / PostgreSQL com Sincronização Realtime Mobile (iOS/Android) e Desktop.
+ * 100% Persistido no Banco de Dados Relacional Supabase / PostgreSQL com Sincronização Realtime Mobile (iOS/Android) e Desktop.
  */
 export const userService = {
   /**
-   * Buscar todos os usuários cadastrados diretamente do Banco de Dados
+   * Buscar todos os usuários cadastrados diretamente do Banco de Dados Relacional
    */
   async getUsers(): Promise<Usuario[]> {
     const userMap = new Map<string, Usuario>();
 
-    // 1. Carregar base inicial padrão
+    // 1. Carregar base corporativa padrão
     INITIAL_USUARIOS.forEach((u) => {
       userMap.set(u.email.toLowerCase().trim(), u);
     });
 
-    // 2. Tentar carregar do cache local imediato
+    // 2. Carregar do cache local imediato
     try {
       const rawLocal = safeGetItem(USERS_STORAGE_KEY) || safeGetItem('focus_usuarios');
       if (rawLocal) {
@@ -61,6 +88,8 @@ export const userService = {
             const emailKey = (item.email || '').toLowerCase().trim();
             const existing = userMap.get(emailKey);
 
+            const fotoFromDb = item.foto || item.avatar_url || item.avatar || '';
+
             const mapped: Usuario = {
               id: item.id || existing?.id || crypto.randomUUID(),
               nome: item.nome || item.name || existing?.nome || 'Usuário',
@@ -68,7 +97,7 @@ export const userService = {
               email: item.email || existing?.email || '',
               senha: item.senha || existing?.senha || 'Focus@2026',
               telefone: item.telefone || existing?.telefone || '',
-              foto: item.foto || item.avatar_url || existing?.foto || '',
+              foto: fotoFromDb || existing?.foto || '',
               cargo: item.cargo || existing?.cargo || 'Colaborador Focus',
               departamento: item.departamento || existing?.departamento || 'Geral',
               matricula: item.matricula || existing?.matricula || `FT-${Math.floor(100 + Math.random() * 900)}`,
@@ -93,26 +122,51 @@ export const userService = {
       console.warn('[userService.getUsers] Aviso ao consultar tabela users:', e);
     }
 
-    // 4. Buscar do Banco de Dados Supabase (Tabela de Estado Global / Cloud Backup usando maybeSingle)
+    // 4. Buscar fotos e dados de perfil persistidos na tabela relacional 'clients' (profile rows)
     try {
-      const { data: cloudState } = await supabase
+      const { data: profileRows, error: profileErr } = await supabase
         .from('clients')
         .select('*')
-        .eq('id', USERS_STATE_ROW_ID)
-        .maybeSingle();
+        .eq('status', 'user_profile');
 
-      if (cloudState && cloudState.name && cloudState.name.startsWith('__FOCUS_USERS_STATE__:')) {
-        const jsonStr = cloudState.name.replace('__FOCUS_USERS_STATE__:', '');
-        const parsed: Usuario[] = JSON.parse(jsonStr);
-        if (Array.isArray(parsed)) {
-          parsed.forEach((u) => {
-            if (u && u.email) {
-              const key = u.email.toLowerCase().trim();
-              const existing = userMap.get(key);
-              userMap.set(key, { ...existing, ...u });
+      if (!profileErr && Array.isArray(profileRows) && profileRows.length > 0) {
+        profileRows.forEach((row: any) => {
+          if (row.contact_email) {
+            const emailKey = row.contact_email.toLowerCase().trim();
+            const existing = userMap.get(emailKey);
+            if (existing) {
+              const photoUrl = row.contact_phone || '';
+              if (photoUrl && (!existing.foto || existing.foto.startsWith('data:') || photoUrl.startsWith('http'))) {
+                existing.foto = photoUrl;
+              }
+              if (row.name && row.name.trim()) {
+                existing.nome = row.name;
+                existing.nomeExibicao = row.name;
+              }
             }
-          });
-        }
+          }
+        });
+      }
+    } catch {}
+
+    // 5. Buscar fotos sincronizadas na tabela relacional 'colaboradores'
+    try {
+      const { data: colabsData, error: colabsErr } = await supabase
+        .from('colaboradores')
+        .select('id, nome, email, foto, cargo, departamento');
+
+      if (!colabsErr && Array.isArray(colabsData) && colabsData.length > 0) {
+        colabsData.forEach((colab: any) => {
+          if (colab.email) {
+            const emailKey = colab.email.toLowerCase().trim();
+            const existing = userMap.get(emailKey);
+            if (existing && colab.foto) {
+              if (!existing.foto || colab.foto.startsWith('http')) {
+                existing.foto = colab.foto;
+              }
+            }
+          }
+        });
       }
     } catch {}
 
@@ -126,7 +180,7 @@ export const userService = {
   },
 
   /**
-   * Salvar usuário completamente no Banco de Dados Supabase e disparar sincronização Realtime
+   * Salvar usuário completamente no Banco de Dados Relacional Supabase e disparar sincronização Realtime
    */
   async saveUser(user: Usuario): Promise<Usuario> {
     const users = await this.getUsers();
@@ -148,7 +202,8 @@ export const userService = {
         nome_exibicao: user.nomeExibicao || user.nome,
         email: user.email,
         telefone: user.telefone,
-        foto: user.foto,
+        foto: user.foto || null,
+        avatar_url: user.foto || null,
         cargo: user.cargo,
         departamento: user.departamento,
         matricula: user.matricula,
@@ -162,22 +217,36 @@ export const userService = {
         updated_at: new Date().toISOString(),
       };
 
-      await supabase.from('users').upsert(payload);
+      await supabase.from('users').upsert(payload, { onConflict: 'id' });
     } catch (err: any) {
       console.warn('[userService.saveUser] Aviso ao salvar em users:', err?.message);
     }
 
-    // 3. Persistir Cloud Backup no Supabase para sincronização universal (iOS / Android / Desktop)
+    // 3. Persistir registro relacional de perfil do usuário na tabela 'clients' (para espelhamento 100% resiliente em mobile)
     try {
+      const profileRowId = generateDeterministicUuid(user.email.toLowerCase().trim());
       await supabase.from('clients').upsert({
-        id: USERS_STATE_ROW_ID,
-        name: `__FOCUS_USERS_STATE__:${JSON.stringify(updatedList)}`,
-        status: 'system_state',
+        id: profileRowId,
+        name: user.nome || user.nomeExibicao || 'Usuário Focus',
+        status: 'user_profile',
+        contact_email: user.email.toLowerCase().trim(),
+        contact_phone: user.foto || '',
         updated_at: new Date().toISOString(),
-      });
+      }, { onConflict: 'id' });
     } catch (err: any) {
-      console.warn('[userService.saveUser] Aviso ao salvar cloud state:', err?.message);
+      console.warn('[userService.saveUser] Aviso ao espelhar profile row em clients:', err?.message);
     }
+
+    // 4. Se o usuário existir na tabela colaboradores, atualizar foto lá também
+    try {
+      await supabase
+        .from('colaboradores')
+        .update({
+          foto: user.foto || null,
+          updated_at: new Date().toISOString(),
+        })
+        .ilike('email', user.email.trim());
+    } catch {}
 
     return user;
   },
@@ -190,14 +259,9 @@ export const userService = {
     safeSetItem('focus_usuarios', JSON.stringify(users));
     broadcastUsersUpdate();
 
-    try {
-      await supabase.from('clients').upsert({
-        id: USERS_STATE_ROW_ID,
-        name: `__FOCUS_USERS_STATE__:${JSON.stringify(users)}`,
-        status: 'system_state',
-        updated_at: new Date().toISOString(),
-      });
-    } catch {}
+    for (const u of users) {
+      await this.saveUser(u);
+    }
   },
 
   /**
@@ -223,16 +287,28 @@ export const userService = {
   },
 
   /**
-   * Upload de Foto de Perfil Otimizada para o Banco de Dados e Storage
-   * Compatível com Web, iOS e Android em tempo real
+   * Upload de Foto de Perfil Otimizada para o Supabase Storage e Banco de Dados Relacional
+   * Compatível com Web, iOS e Android com sincronização instantânea
    */
-  async uploadUserAvatar(userIdOrEmail: string, file: File | Blob): Promise<string> {
-    const base64Data = await new Promise<string>((resolve, reject) => {
+  async uploadUserAvatar(userIdOrEmail: string, fileOrBase64: File | Blob | string): Promise<string> {
+    let blob: Blob;
+    let base64Preview = '';
+
+    // Se for string base64
+    if (typeof fileOrBase64 === 'string') {
+      base64Preview = fileOrBase64;
+      blob = base64ToBlob(fileOrBase64, 'image/jpeg');
+    } else {
+      blob = fileOrBase64;
+    }
+
+    // Comprimir imagem para tamanho leve e alta resolução
+    const compressedBlob = await new Promise<Blob>((resolve) => {
+      const img = new Image();
       const reader = new FileReader();
       reader.onload = (e) => {
         const src = e.target?.result as string;
-        if (!src) return resolve('');
-        const img = new Image();
+        base64Preview = src;
         img.onload = () => {
           const canvas = document.createElement('canvas');
           const maxDim = 256;
@@ -250,41 +326,56 @@ export const userService = {
           const ctx = canvas.getContext('2d');
           if (ctx) {
             ctx.drawImage(img, 0, 0, w, h);
-            resolve(canvas.toDataURL('image/jpeg', 0.88));
+            canvas.toBlob((b) => resolve(b || blob), 'image/jpeg', 0.88);
           } else {
-            resolve(src);
+            resolve(blob);
           }
         };
-        img.onerror = () => resolve(src);
+        img.onerror = () => resolve(blob);
         img.src = src;
       };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
+      reader.onerror = () => resolve(blob);
+      reader.readAsDataURL(blob);
     });
 
-    let finalFotoUrl = base64Data;
+    let finalFotoUrl = base64Preview;
 
-    try {
-      const fileName = `avatar_${userIdOrEmail.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}.jpg`;
-      const { data: uploadRes, error: uploadErr } = await supabase.storage
-        .from('avatars')
-        .upload(fileName, file, {
-          upsert: true,
-          contentType: 'image/jpeg',
-        });
+    const sanitizedId = userIdOrEmail.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+    const fileName = `avatar_${sanitizedId}_${Date.now()}.jpg`;
 
-      if (!uploadErr && uploadRes) {
-        const { data: publicUrlData } = supabase.storage
-          .from('avatars')
-          .getPublicUrl(uploadRes.path);
+    // Tentar upload nos buckets do Supabase Storage ('avatars', 'documents', 'public')
+    const bucketsToTry = ['avatars', 'documents', 'public'];
+    let uploadedSuccessfully = false;
 
-        if (publicUrlData?.publicUrl) {
-          finalFotoUrl = publicUrlData.publicUrl;
+    for (const bucket of bucketsToTry) {
+      try {
+        const { data: uploadRes, error: uploadErr } = await supabase.storage
+          .from(bucket)
+          .upload(fileName, compressedBlob, {
+            upsert: true,
+            contentType: 'image/jpeg',
+          });
+
+        if (!uploadErr && uploadRes) {
+          const { data: publicUrlData } = supabase.storage
+            .from(bucket)
+            .getPublicUrl(uploadRes.path);
+
+          if (publicUrlData?.publicUrl) {
+            finalFotoUrl = publicUrlData.publicUrl;
+            uploadedSuccessfully = true;
+            break;
+          }
         }
+      } catch (err) {
+        console.warn(`[uploadUserAvatar] Tentativa no bucket '${bucket}' falhou:`, err);
       }
-    } catch {}
+    }
 
+    // Atualizar no Banco de Dados Relacional Supabase
     await this.updateUserProfile(userIdOrEmail, { foto: finalFotoUrl });
+    broadcastUsersUpdate();
+
     return finalFotoUrl;
   },
 
@@ -323,7 +414,17 @@ export const userService = {
         )
         .on(
           'postgres_changes',
-          { event: '*', schema: 'public', table: 'clients', filter: `id=eq.${USERS_STATE_ROW_ID}` },
+          { event: '*', schema: 'public', table: 'clients', filter: `status=eq.user_profile` },
+          async () => {
+            try {
+              const fresh = await userService.getUsers();
+              onUpdate(fresh);
+            } catch {}
+          }
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'colaboradores' },
           async () => {
             try {
               const fresh = await userService.getUsers();

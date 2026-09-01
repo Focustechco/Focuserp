@@ -148,6 +148,15 @@ export function UserFormSheet({ isOpen, onClose, user }: UserFormSheetProps) {
       return;
     }
 
+    let finalFoto = foto;
+    if (foto && foto.startsWith('data:')) {
+      try {
+        finalFoto = await userService.uploadUserAvatar(email.trim(), foto);
+      } catch (e) {
+        console.warn('[UserFormSheet] Erro ao subir foto no storage:', e);
+      }
+    }
+
     if (isEditing && user) {
       const updatedUser: Usuario = {
         ...user,
@@ -161,7 +170,7 @@ export function UserFormSheet({ isOpen, onClose, user }: UserFormSheetProps) {
         status,
         perfil,
         mfaHabilitado,
-        foto,
+        foto: finalFoto,
       };
       updateItem(user.id, updatedUser);
       await userService.saveUser(updatedUser);
@@ -169,7 +178,7 @@ export function UserFormSheet({ isOpen, onClose, user }: UserFormSheetProps) {
     } else {
       const novoUsuario: Usuario = {
         id: crypto.randomUUID(),
-        foto,
+        foto: finalFoto,
         nome: nome.trim(),
         nomeExibicao: nomeExibicao.trim() || nome.trim(),
         email: email.trim(),
