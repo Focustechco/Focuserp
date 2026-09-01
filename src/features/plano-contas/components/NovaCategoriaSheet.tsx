@@ -365,7 +365,7 @@ export function NovaCategoriaSheet({
                       <p className="text-2xl font-bold mt-1 text-foreground">{categoriaParaEditar?.qtdLancamentos || 0}</p>
                     </div>
                     <div className="border rounded-lg p-4 bg-background text-center shadow-xs">
-                      <p className="text-xs text-muted-foreground uppercase font-medium">Saldo Acumulado Real</p>
+                      <p className="text-xs text-muted-foreground uppercase font-medium">Saldo Acumulado</p>
                       <p className={`text-xl font-bold mt-1 ${categoriaParaEditar?.tipo === 'Receita' ? 'text-emerald-600' : 'text-rose-600'}`}>
                         R$ {(categoriaParaEditar?.saldoAcumuladoMensal || 0).toLocaleString('pt-BR')}
                       </p>

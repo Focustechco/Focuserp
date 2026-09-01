@@ -75,7 +75,7 @@ export function CategoriaLancamentosModal({
             </div>
           </div>
           <div className="p-3.5 border rounded-xl bg-card shadow-xs">
-            <span className="text-[11px] text-muted-foreground block">Qtd. de Lançamentos Reais</span>
+            <span className="text-[11px] text-muted-foreground block">Qtd. de Lançamentos</span>
             <div className="text-xl font-bold text-foreground">
               {lancamentos.length}
             </div>

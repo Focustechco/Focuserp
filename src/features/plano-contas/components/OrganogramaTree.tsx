@@ -173,10 +173,10 @@ export function OrganogramaTree() {
             )}
           </div>
 
-          {/* Dados Financeiros Reais */}
+          {/* Dados Financeiros */}
           <div className="pt-2 border-t flex items-center justify-between bg-muted/20 -mx-4 -mb-4 p-3 rounded-b-2xl">
             <div>
-              <span className="text-[10px] text-muted-foreground block font-medium">Saldo Acumulado Real</span>
+              <span className="text-[10px] text-muted-foreground block font-medium">Saldo Acumulado</span>
               <span className={`text-sm font-bold flex items-center gap-1 ${
                 isReceita ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
               }`}>
@@ -186,13 +186,13 @@ export function OrganogramaTree() {
             </div>
 
             <Button 
-              size="sm" 
+              size="icon" 
               variant="outline" 
-              className="h-7 text-xs px-2 gap-1 rounded-lg hover:bg-primary hover:text-primary-foreground"
+              className="h-7 w-7 rounded-lg hover:bg-primary hover:text-primary-foreground"
               onClick={() => setSelectedCategoria(node as any)}
+              title={`Ver ${node.qtdLancamentos || 0} lançamentos`}
             >
-              <Eye className="w-3 h-3" />
-              <span>{node.qtdLancamentos} lanç.</span>
+              <Eye className="w-3.5 h-3.5" />
             </Button>
           </div>
 

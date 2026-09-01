@@ -178,15 +178,15 @@ export function PlanoContasList() {
                 <Badge variant="outline" className="font-normal text-xs">{node.natureza}</Badge>
               </div>
               
-              <div className="w-24 text-right">
+              <div className="w-24 text-right flex justify-end">
                 <Button 
                   variant="ghost" 
-                  size="sm" 
-                  className="h-7 text-xs px-2 text-muted-foreground hover:text-foreground font-normal"
+                  size="icon" 
+                  className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-md"
                   onClick={() => setCategoriaLancamentos(node as any)}
+                  title={`Ver ${node.qtdLancamentos || 0} lançamentos`}
                 >
-                  <Eye className="w-3 h-3 mr-1" />
-                  {node.qtdLancamentos || 0} lanç.
+                  <Eye className="w-4 h-4" />
                 </Button>
               </div>
               
@@ -206,7 +206,7 @@ export function PlanoContasList() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={() => setCategoriaLancamentos(node as any)}>
-                      <Eye className="w-4 h-4 mr-2" /> Ver Lançamentos Reais
+                      <Eye className="w-4 h-4 mr-2" /> Ver Lançamentos
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => openEditarCategoria(node)}>
                       <Edit className="w-4 h-4 mr-2" /> Editar Categoria
@@ -273,8 +273,8 @@ export function PlanoContasList() {
           <div className="pl-14">Estrutura Contábil / Gerencial</div>
           <div className="flex items-center gap-4 sm:gap-6 pr-12">
             <div className="hidden md:block w-28 text-right">Natureza</div>
-            <div className="w-24 text-right">Lançamentos Reais</div>
-            <div className="w-32 text-right">Saldo Acumulado Real</div>
+            <div className="w-24 text-right">Lançamentos</div>
+            <div className="w-32 text-right">Saldo Acumulado</div>
           </div>
         </div>
 
