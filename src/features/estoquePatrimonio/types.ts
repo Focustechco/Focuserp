@@ -70,15 +70,19 @@ export interface Equipamento {
   updatedAt?: string;
 }
 
+export type EstadoConservacaoItem = 'Novo' | 'Excelente' | 'Bom' | 'Desgastado' | 'Danificado' | 'Em Manutenção';
+
 export interface EstoqueItem {
   id: string;
   codigo: string;
-  nome: string;
+  nome: string; // Título / Nome do item
+  descricao?: string; // Descrição detalhada do item (livro, alexa, tv, etc.)
   categoria: string;
-  quantidade: number;
-  quantidadeMinima: number;
-  localizacao: string;
-  status: 'Disponível' | 'Reservado' | 'Em Uso' | 'Manutenção';
+  quantidade: number; // Unidades
+  quantidadeMinima?: number;
+  estadoConservacao?: EstadoConservacaoItem; // Estado de conservação
+  localizacao: string; // Sala / Localização no escritório
+  status: 'Disponível' | 'Reservado' | 'Em Uso' | 'Emprestado' | 'Manutenção' | 'Baixado';
   valorUnitario?: number;
   responsavelId?: string;
   responsavelNome?: string;

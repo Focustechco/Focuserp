@@ -14,13 +14,109 @@ import { TituloReceber } from '@/features/contas-receber/types';
 import { contaPagarService } from '@/services/contaPagarService';
 import { contaReceberService } from '@/services/contaReceberService';
 
-const INITIAL_EQUIPAMENTOS: Equipamento[] = [];
-const INITIAL_ESTOQUE_ITENS: EstoqueItem[] = [];
-const INITIAL_LICENCAS: Licenca[] = [];
-const INITIAL_PATRIMONIOS: Patrimonio[] = [];
-const INITIAL_MOVIMENTACOES: Movimentacao[] = [];
-const INITIAL_INVENTARIOS: Inventario[] = [];
-const INITIAL_MANUTENCOES: Manutencao[] = [];
+const INITIAL_ESTOQUE_ITENS: EstoqueItem[] = [
+  {
+    id: 'esc-001',
+    codigo: 'ESC-001',
+    nome: 'Amazon Echo Dot (Alexa 5ª Geração)',
+    descricao: 'Smart speaker com Alexa para automação de som, alarmes e recados da sala',
+    categoria: 'Smart Devices & Alexa',
+    quantidade: 2,
+    quantidadeMinima: 1,
+    estadoConservacao: 'Excelente',
+    localizacao: 'Sala de Reunião Principal',
+    status: 'Em Uso',
+    valorUnitario: 399.0,
+    responsavelNome: 'Equipe Operações',
+    observacoes: 'Integrado à conta corporativa Amazon Focus',
+  },
+  {
+    id: 'esc-002',
+    codigo: 'ESC-002',
+    nome: 'Smart TV 4K 55" Crystal UHD Samsung',
+    descricao: 'Televisão para videoconferências, apresentações e dashboards de métricas',
+    categoria: 'Audiovisual & TV',
+    quantidade: 1,
+    quantidadeMinima: 1,
+    estadoConservacao: 'Excelente',
+    localizacao: 'Sala de Apresentações',
+    status: 'Em Uso',
+    valorUnitario: 2699.0,
+    responsavelNome: 'Diretoria Executiva',
+    observacoes: 'Fixada em suporte articulado com cabo HDMI 2.1',
+  },
+  {
+    id: 'esc-003',
+    codigo: 'ESC-003',
+    nome: 'Livro: Clean Code (Robert C. Martin)',
+    descricao: 'Manual de Boas Práticas e Arquitetura de Software Ágil',
+    categoria: 'Livros & Treinamento',
+    quantidade: 3,
+    quantidadeMinima: 1,
+    estadoConservacao: 'Bom',
+    localizacao: 'Biblioteca Focus',
+    status: 'Disponível',
+    valorUnitario: 98.0,
+    responsavelNome: 'Líder Técnico',
+    observacoes: 'Disponível para empréstimo interno da equipe',
+  },
+  {
+    id: 'esc-004',
+    codigo: 'ESC-004',
+    nome: 'Livro: A Arte da Guerra (Sun Tzu)',
+    descricao: 'Tratado clássico sobre estratégia, liderança e tomada de decisão',
+    categoria: 'Livros & Treinamento',
+    quantidade: 2,
+    quantidadeMinima: 1,
+    estadoConservacao: 'Excelente',
+    localizacao: 'Biblioteca Focus',
+    status: 'Disponível',
+    valorUnitario: 45.0,
+    responsavelNome: 'Comercial & Gestão',
+  },
+  {
+    id: 'esc-005',
+    codigo: 'ESC-005',
+    nome: 'Cafeteira Nespresso Vertuo Pop',
+    descricao: 'Cafeteira expressa em cápsulas para colaboradores e recepção de clientes',
+    categoria: 'Cozinha & Convivência',
+    quantidade: 1,
+    quantidadeMinima: 1,
+    estadoConservacao: 'Bom',
+    localizacao: 'Copa / Cozinha',
+    status: 'Em Uso',
+    valorUnitario: 580.0,
+    responsavelNome: 'Administração Predial',
+  },
+  {
+    id: 'esc-006',
+    codigo: 'ESC-006',
+    nome: 'Quadro Branco Magnético 120x90cm',
+    descricao: 'Lousa magnética com moldura em alumínio para dinâmicas e brainstorming',
+    categoria: 'Mobiliário & Escritório',
+    quantidade: 2,
+    quantidadeMinima: 1,
+    estadoConservacao: 'Bom',
+    localizacao: 'Sala de Brainstorming',
+    status: 'Em Uso',
+    valorUnitario: 240.0,
+    responsavelNome: 'Equipe de Produto',
+  },
+  {
+    id: 'esc-007',
+    codigo: 'ESC-007',
+    nome: 'Projetor Portátil Full HD 1080p',
+    descricao: 'Projetor com Wi-Fi/HDMI para reuniões com clientes e eventos externos',
+    categoria: 'Audiovisual & TV',
+    quantidade: 1,
+    quantidadeMinima: 1,
+    estadoConservacao: 'Excelente',
+    localizacao: 'Armário Multiuso',
+    status: 'Disponível',
+    valorUnitario: 1450.0,
+    responsavelNome: 'Suporte & TI',
+  },
+];
 
 export function useEstoquePatrimonio() {
   const {
@@ -38,13 +134,14 @@ export function useEstoquePatrimonio() {
   } = useLocalStorageState<EstoqueItem>('focus_itam_estoque_itens', INITIAL_ESTOQUE_ITENS);
 
   // Higienizar itens para evitar itens fantasmas ou NaN
-  const estoqueItens = (Array.isArray(estoqueItensRaw) ? estoqueItensRaw : [])
+  const estoqueItens = (Array.isArray(estoqueItensRaw) && estoqueItensRaw.length > 0 ? estoqueItensRaw : INITIAL_ESTOQUE_ITENS)
     .filter(item => item && (item.nome || item.codigo))
     .map(item => ({
       ...item,
       quantidade: Number(item.quantidade) || 0,
       quantidadeMinima: Number(item.quantidadeMinima) || 0,
       valorUnitario: Number(item.valorUnitario) || 0,
+      estadoConservacao: item.estadoConservacao || 'Bom',
     }));
 
   const {

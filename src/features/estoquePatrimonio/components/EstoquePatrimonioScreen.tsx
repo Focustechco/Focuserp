@@ -55,7 +55,7 @@ export function EstoquePatrimonioScreen() {
               <Laptop className="h-4 w-4" /> Equipamentos
             </TabsTrigger>
             <TabsTrigger value="estoque" className="gap-2 shrink-0 text-xs">
-              <Package className="h-4 w-4" /> Itens/Estoque
+              <Package className="h-4 w-4" /> Itens do Escritório
             </TabsTrigger>
             <TabsTrigger value="licencas" className="gap-2 shrink-0 text-xs">
               <KeyRound className="h-4 w-4" /> Licenças SaaS
