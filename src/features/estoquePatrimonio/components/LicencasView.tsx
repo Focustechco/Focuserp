@@ -213,7 +213,6 @@ export function LicencasView() {
           </div>
         ) : (
           filteredLicencas.map((lic) => {
-            const percUsado = Math.round(((Number(lic.quantidadeUsada) || 0) / (Number(lic.quantidadeTotal) || 1)) * 100);
             const isProximoVencimento =
               lic.vencimento &&
               (new Date(lic.vencimento).getTime() - new Date().getTime()) / (1000 * 3600 * 24) <= 60;
@@ -236,23 +235,7 @@ export function LicencasView() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3 p-4 pt-2 text-xs flex-1">
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs font-semibold">
-                      <span className="text-muted-foreground text-[11px]">Ocupação de Assentos</span>
-                      <span className={percUsado >= 90 ? 'text-rose-500 font-extrabold' : 'text-foreground'}>
-                        {lic.quantidadeUsada} / {lic.quantidadeTotal} ({percUsado}%)
-                      </span>
-                    </div>
-                    <Progress
-                      value={percUsado}
-                      className={`h-2 ${percUsado >= 90 ? 'bg-rose-100 dark:bg-rose-950' : ''}`}
-                    />
-                    <span className="text-[10px] text-muted-foreground block text-right">
-                      {lic.quantidadeDisponivel} assento(s) livre(s)
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-border/50">
+                  <div className="grid grid-cols-2 gap-2 text-xs pt-1">
                     <div>
                       <span className="text-[10px] text-muted-foreground block uppercase font-bold">Valor Mensal / Assinatura</span>
                       <span className="font-bold text-foreground text-sm">
