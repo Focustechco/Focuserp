@@ -42,6 +42,7 @@ import {
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { differenceInDays } from 'date-fns';
 import { NovoContratoSheet, downloadDocumentFile } from './NovoContratoSheet';
+import { ContratoDetalhesSheet } from './ContratoDetalhesSheet';
 import { toast } from 'sonner';
 
 const formatCurrency = (value?: number | null) => {
@@ -651,146 +652,19 @@ export function ContratosList({ filterTitularidade = 'Todos', filterEntidade }: 
         </div>
       )}
 
-      {/* MODAL DE DETALHES COMPLETOS DO CONTRATO */}
-      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
-          <DialogHeader className="p-6 pb-4 border-b bg-muted/20">
-            <div className="flex justify-between items-start">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  {selectedContrato && isContratoFocus(selectedContrato) ? (
-                    <Badge className="bg-purple-600 text-white text-[10px]">Contrato Focus Tecnologia Ltda</Badge>
-                  ) : (
-                    <Badge className="bg-blue-600 text-white text-[10px]">Contrato com Cliente</Badge>
-                  )}
-                  {selectedContrato && getStatusBadge(selectedContrato.status)}
-                </div>
-                <DialogTitle className="text-lg font-bold text-foreground">
-                  {selectedContrato?.numeroContrato} - {selectedContrato?.nome}
-                </DialogTitle>
-                <DialogDescription className="text-xs text-muted-foreground font-mono">
-                  Identificador: {selectedContrato?.codigo} • Responsável: {selectedContrato?.responsavelInterno}
-                </DialogDescription>
-              </div>
-            </div>
-          </DialogHeader>
-
-          {selectedContrato && (
-            <div className="flex-1 overflow-y-auto p-6 space-y-5 text-xs">
-              {/* Partes Envolvidas */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="p-3 rounded-lg border bg-muted/30 space-y-1">
-                  <span className="text-[10px] text-muted-foreground uppercase font-bold block">Contratada</span>
-                  <p className="font-bold text-sm text-foreground">FOCUS TECNOLOGIA E SISTEMAS LTDA</p>
-                  <p className="text-muted-foreground">CNPJ: 12.345.678/0001-99</p>
-                </div>
-
-                <div className="p-3 rounded-lg border bg-muted/30 space-y-1">
-                  <span className="text-[10px] text-muted-foreground uppercase font-bold block">Contratante / Contraparte</span>
-                  <p className="font-bold text-sm text-foreground">
-                    {isContratoFocus(selectedContrato) 
-                      ? (selectedContrato.fornecedorNome || selectedContrato.contraparteNome || 'Contraparte Corporativa')
-                      : (selectedContrato.clienteNome || 'Cliente Corporativo')}
-                  </p>
-                  <p className="text-muted-foreground">Vínculo: {selectedContrato.entidadeVinculo}</p>
-                </div>
-              </div>
-
-              {/* Valores & Condições */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="p-3 rounded-lg border bg-card">
-                  <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Valor Global</span>
-                  <span className="font-bold text-base text-foreground">{formatCurrency(selectedContrato.valorTotal)}</span>
-                </div>
-                <div className="p-3 rounded-lg border bg-card">
-                  <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Implementação</span>
-                  <span className="font-bold text-base text-blue-600">
-                    {selectedContrato.valorImplantacao ? formatCurrency(selectedContrato.valorImplantacao) : 'Isento'}
-                  </span>
-                </div>
-                <div className="p-3 rounded-lg border bg-card">
-                  <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Mensalidade</span>
-                  <span className="font-bold text-base text-emerald-600">{formatCurrency(selectedContrato.valorMensalidade)}</span>
-                </div>
-                <div className="p-3 rounded-lg border bg-card">
-                  <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Vigência</span>
-                  <span className="font-bold text-xs text-foreground">
-                    {selectedContrato.dataFinal ? new Date(selectedContrato.dataFinal).toLocaleDateString('pt-BR') : 'Indeterminada'}
-                  </span>
-                </div>
-              </div>
-
-              {/* Informações de Pagamento */}
-              {(selectedContrato.formaPagamento || selectedContrato.diaVencimento || selectedContrato.condicaoPagamento) && (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 rounded-lg border bg-muted/20 text-xs">
-                  {selectedContrato.formaPagamento && (
-                    <div>
-                      <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Forma de Pagamento</span>
-                      <span className="font-medium text-foreground">{selectedContrato.formaPagamento}</span>
-                    </div>
-                  )}
-                  {selectedContrato.diaVencimento && (
-                    <div>
-                      <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Dia de Vencimento</span>
-                      <span className="font-medium text-foreground">Todo dia {selectedContrato.diaVencimento}</span>
-                    </div>
-                  )}
-                  {selectedContrato.condicaoPagamento && (
-                    <div>
-                      <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Condição Setup</span>
-                      <span className="font-medium text-foreground">{selectedContrato.condicaoPagamento}</span>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Observações Financeiras */}
-              {selectedContrato.observacoesFinanceiras && (
-                <div className="space-y-1 border rounded-lg p-3 bg-muted/20">
-                  <span className="font-bold text-foreground text-[11px] uppercase block">Condições Financeiras & Reajuste</span>
-                  <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                    {selectedContrato.observacoesFinanceiras}
-                  </p>
-                </div>
-              )}
-
-              {/* Descrição / Objeto */}
-              <div className="space-y-1.5 border rounded-lg p-3.5 bg-muted/20">
-                <span className="font-bold text-foreground text-xs uppercase block">Objeto e Escopo do Contrato</span>
-                <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                  {selectedContrato.descricao || 'Nenhuma descrição informada.'}
-                </p>
-              </div>
-
-              {/* Arquivo Anexo */}
-              {selectedContrato.arquivoUrl && (
-                <div className="p-3.5 rounded-lg border border-emerald-500/30 bg-emerald-50/40 dark:bg-emerald-950/20 flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <FileText className="w-5 h-5 text-emerald-600" />
-                    <div>
-                      <p className="font-semibold text-xs text-foreground">{selectedContrato.arquivoNome || 'Documento do Contrato'}</p>
-                      <p className="text-[10px] text-muted-foreground">Documento oficial anexado e sincronizado no DMS</p>
-                    </div>
-                  </div>
-                  <Button 
-                    size="sm" 
-                    className="h-7 text-xs bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
-                    onClick={() => downloadDocumentFile(selectedContrato.arquivoUrl, selectedContrato.arquivoNome, selectedContrato.nome)}
-                  >
-                    <Download className="w-3.5 h-3.5" /> Baixar Arquivo
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
-
-          <DialogFooter className="p-4 border-t bg-muted/10">
-            <Button variant="outline" size="sm" onClick={() => setDetailsOpen(false)} className="text-xs">
-              Fechar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* GAVETA LATERAL DE DETALHES COMPLETOS E VISUALIZADOR DIRETO DO CONTRATO */}
+      <ContratoDetalhesSheet
+        contrato={selectedContrato}
+        open={detailsOpen}
+        onOpenChange={setDetailsOpen}
+        onEdit={(c) => {
+          setContratoToEdit(c);
+          setEditSheetOpen(true);
+        }}
+        onDelete={(c) => {
+          setContratoToDelete(c);
+        }}
+      />
 
       {/* MODAL EDITAR CONTRATO */}
       {contratoToEdit && (
