@@ -35,7 +35,8 @@ function AssinaturasPage() {
     certificados,
     addDocumento,
     assinarDocumento,
-    cancelarDocumento
+    cancelarDocumento,
+    zerarTodosDocumentos
   } = useAssinaturasStore();
 
   const [novoDocSheetOpen, setNovoDocSheetOpen] = useState(false);
@@ -70,6 +71,11 @@ function AssinaturasPage() {
         </div>
 
         <div className="flex items-center gap-2 w-full md:w-auto">
+          {documentos.length > 0 && (
+            <Button variant="ghost" className="gap-2 text-xs text-muted-foreground hover:text-destructive" onClick={zerarTodosDocumentos}>
+              Limpar Todos
+            </Button>
+          )}
           <Button variant="outline" className="gap-2 text-xs" onClick={() => setActiveTab("modelos")}>
             <Copy className="w-3.5 h-3.5" /> Modelos
           </Button>

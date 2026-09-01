@@ -149,11 +149,11 @@ export const userService = {
       }
     } catch {}
 
-    // 5. Buscar fotos sincronizadas na tabela relacional 'colaboradores'
+    // 5. Buscar fotos sincronizadas na tabela relacional 'colaboradores' (se colunas existirem)
     try {
       const { data: colabsData, error: colabsErr } = await supabase
         .from('colaboradores')
-        .select('id, nome, email, foto, cargo, departamento');
+        .select('*');
 
       if (!colabsErr && Array.isArray(colabsData) && colabsData.length > 0) {
         colabsData.forEach((colab: any) => {

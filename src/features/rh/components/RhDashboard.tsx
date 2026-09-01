@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useColaboradoresQuery } from '../hooks/useColaboradoresQuery';
 import { Colaborador } from '../types';
