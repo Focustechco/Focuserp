@@ -29,18 +29,37 @@ export function ReportCatalogView() {
     { id: 'Fiscal', label: 'Fiscal' },
   ];
 
-  const filteredCatalog = catalog.filter(item => {
-    const matchesSearch = item.title.toLowerCase().includes(search.toLowerCase()) || 
-      item.description.toLowerCase().includes(search.toLowerCase()) ||
-      item.tags.some(t => t.toLowerCase().includes(search.toLowerCase()));
+  const filteredCatalog = catalog
+    .filter(item => {
+      const matchesSearch = item.title.toLowerCase().includes(search.toLowerCase()) || 
+        item.description.toLowerCase().includes(search.toLowerCase()) ||
+        item.tags.some(t => t.toLowerCase().includes(search.toLowerCase()));
 
-    const matchesCategory = 
-      activeCategory === 'todos' ? true :
-      activeCategory === 'favoritos' ? favorites.includes(item.id) :
-      item.category === activeCategory;
+      const matchesCategory = 
+        activeCategory === 'todos' ? true :
+        activeCategory === 'favoritos' ? favorites.includes(item.id) :
+        item.category === activeCategory;
 
-    return matchesSearch && matchesCategory;
-  });
+      return matchesSearch && matchesCategory;
+    })
+    .sort((a, b) => {
+      const aFavIndex = favorites.indexOf(a.id);
+      const bFavIndex = favorites.indexOf(b.id);
+      const aIsFav = aFavIndex !== -1;
+      const bIsFav = bFavIndex !== -1;
+
+      // 1. Favoritos sempre aparecem no TOPO
+      if (aIsFav && !bIsFav) return -1;
+      if (!aIsFav && bIsFav) return 1;
+
+      // 2. Entre os favoritos, o mais recentemente favoritado (menor índice no array) fica no topo
+      if (aIsFav && bIsFav) {
+        return aFavIndex - bFavIndex;
+      }
+
+      // 3. Demais relatórios mantêm a ordem original do catálogo
+      return 0;
+    });
 
   const handleQuickGenerate = (def: ReportDefinition) => {
     const data = generateReportData(def.id, {
@@ -98,7 +117,7 @@ export function ReportCatalogView() {
           </h3>
           <p className="text-xs text-muted-foreground max-w-md mx-auto">
             {activeCategory === 'favoritos' 
-              ? 'Clique na estrela ⭐ no canto superior de qualquer modelo de relatório para fixá-lo como favorito e ter acesso rápido.'
+              ? 'Clique na estrela ⭐ no canto superior de qualquer modelo de relatório para fixá-lo como favorito no topo da página e ter acesso rápido.'
               : 'Tente buscar com outros termos ou selecione outra categoria.'}
           </p>
           {activeCategory === 'favoritos' && (
@@ -120,28 +139,37 @@ export function ReportCatalogView() {
             return (
               <Card 
                 key={item.id} 
-                className={`hover:border-primary/50 transition-all flex flex-col justify-between group ${
-                  isFav ? 'border-amber-400/40 shadow-sm' : ''
+                className={`transition-all flex flex-col justify-between group relative ${
+                  isFav 
+                    ? 'border-amber-400/70 shadow-sm bg-gradient-to-b from-amber-50/20 via-background to-background dark:from-amber-950/20 dark:via-background ring-1 ring-amber-400/30' 
+                    : 'hover:border-primary/50'
                 }`}
               >
                 <CardHeader className="pb-3">
                   <div className="flex justify-between items-start mb-2">
-                    <Badge variant="outline" className="text-[10px] font-semibold">
-                      {item.category}
-                    </Badge>
+                    <div className="flex items-center gap-1.5">
+                      <Badge variant="outline" className="text-[10px] font-semibold">
+                        {item.category}
+                      </Badge>
+                      {isFav && (
+                        <Badge className="text-[10px] font-medium bg-amber-500 hover:bg-amber-600 text-white border-0 py-0 h-5 gap-1">
+                          <Star className="w-3 h-3 fill-white" /> Fixado no Topo
+                        </Badge>
+                      )}
+                    </div>
                     <Button 
                       variant="ghost" 
                       size="icon" 
                       className={`h-8 w-8 rounded-full transition-all ${
                         isFav 
-                          ? 'text-amber-500 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 hover:text-amber-600' 
+                          ? 'text-amber-500 bg-amber-100/70 dark:bg-amber-950/60 hover:bg-amber-200 hover:text-amber-600' 
                           : 'text-muted-foreground hover:text-amber-500 hover:bg-muted'
                       }`}
                       onClick={(e) => {
                         e.stopPropagation();
                         toggleFavorite(item.id);
                       }}
-                      title={isFav ? "Remover dos favoritos" : "Marcar como favorito"}
+                      title={isFav ? "Remover dos favoritos" : "Marcar como favorito (Fixar no topo)"}
                     >
                       <Star className={`w-4 h-4 transition-transform active:scale-125 ${isFav ? 'fill-amber-400 text-amber-500' : ''}`} />
                     </Button>

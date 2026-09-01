@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useLocalStorageState } from "@/hooks/useDataStore";
 import { safeGetItem, safeSetItem } from "@/lib/safeStorage";
+import { supabase } from "@/lib/supabaseClient";
 import { toast } from "sonner";
 import { ReportExecutionHistory, ReportSchedule, ReportModelTemplate, ReportFilterConfig, GeneratedReportData, ReportFormat } from "../types";
 import { REPORT_CATALOG } from "../data/catalog";
@@ -16,35 +17,186 @@ import { useDocumentosStore } from "@/features/documentos/hooks/useDocumentosSto
 import { dmsService } from "@/services/dmsService";
 
 const FAVORITES_STORAGE_KEY = 'focus_relatorios_favorites';
+const FAVORITES_STATE_ID = '00000000-0000-4000-a000-0000000fa401';
+const FAVORITES_STATE_NAME = '__FOCUS_STATE__relatorios_favorites';
+
+function sanitizeFavorites(input: any): string[] {
+  if (!input) return [];
+  if (Array.isArray(input)) {
+    return input
+      .map((item: any) => {
+        if (typeof item === 'string') return item.trim();
+        if (item && typeof item === 'object') return (item.report_id || item.reportId || item.id || '').trim();
+        return '';
+      })
+      .filter((id: string) => Boolean(id) && id.length > 0);
+  }
+  return [];
+}
 
 function getStoredFavorites(): string[] {
   try {
     const raw = safeGetItem(FAVORITES_STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        return parsed.map((item: any) => typeof item === 'string' ? item : item?.id).filter(Boolean);
-      }
+      return sanitizeFavorites(parsed);
     }
   } catch {}
   return [];
 }
 
+function persistFavoritesLocally(favorites: string[]) {
+  const sanitized = sanitizeFavorites(favorites);
+  safeSetItem(FAVORITES_STORAGE_KEY, JSON.stringify(sanitized));
+  if (typeof window !== 'undefined') {
+    try {
+      window.dispatchEvent(new Event('focus_relatorios_favorites_updated'));
+      window.dispatchEvent(new Event('focus_storage_update'));
+      window.dispatchEvent(new Event('storage'));
+    } catch {}
+  }
+}
+
+/**
+ * Persiste a lista ordenada de favoritos diretamente no Banco de Dados Relacional (Supabase)
+ */
+async function syncFavoritesToDatabase(favorites: string[]) {
+  const sanitized = sanitizeFavorites(favorites);
+
+  // 1. Persistir na tabela 'clients' como estado relacional garantido
+  try {
+    const payload = {
+      id: FAVORITES_STATE_ID,
+      name: FAVORITES_STATE_NAME,
+      status: 'system_state',
+      contact_phone: JSON.stringify(sanitized),
+      contact_email: 'relatorios_favoritos@focuserp.com',
+      updated_at: new Date().toISOString(),
+    };
+    await supabase.from('clients').upsert(payload, { onConflict: 'id' });
+  } catch (err) {
+    console.warn('[useRelatoriosStore] Aviso ao salvar favoritos em clients:', err);
+  }
+
+  // 2. Persistir na tabela relacional 'relatorios_favoritos' se disponível
+  try {
+    const rows = sanitized.map((reportId, index) => ({
+      id: `fav-${reportId}`,
+      report_id: reportId,
+      ordem: index,
+      created_at: new Date().toISOString(),
+    }));
+    await supabase.from('relatorios_favoritos').upsert(rows, { onConflict: 'report_id' });
+  } catch {}
+}
+
+/**
+ * Busca a lista ordenada de favoritos diretamente do Banco de Dados Relacional (Supabase)
+ */
+async function fetchFavoritesFromDatabase(): Promise<string[] | null> {
+  // 1. Tentar tabela relacional 'relatorios_favoritos'
+  try {
+    const { data: relData, error: relErr } = await supabase
+      .from('relatorios_favoritos')
+      .select('*')
+      .order('ordem', { ascending: true });
+
+    if (!relErr && Array.isArray(relData) && relData.length > 0) {
+      return sanitizeFavorites(relData);
+    }
+  } catch {}
+
+  // 2. Buscar da tabela relacional 'clients'
+  try {
+    const { data: stateRows, error: stateErr } = await supabase
+      .from('clients')
+      .select('*')
+      .eq('name', FAVORITES_STATE_NAME)
+      .limit(1);
+
+    if (!stateErr && Array.isArray(stateRows) && stateRows.length > 0) {
+      const row = stateRows[0];
+      if (row.contact_phone) {
+        const parsed = JSON.parse(row.contact_phone);
+        const list = sanitizeFavorites(parsed);
+        if (list.length > 0) {
+          return list;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[useRelatoriosStore] Aviso ao buscar favoritos no Supabase:', err);
+  }
+
+  return null;
+}
+
 export function useRelatoriosStore() {
   const [favorites, setFavorites] = useState<string[]>(getStoredFavorites);
 
+  // Sincronização inicial com Banco de Dados Relacional + Realtime Cross-Device
   useEffect(() => {
-    const syncFavs = () => {
-      setFavorites(getStoredFavorites());
+    let isMounted = true;
+
+    // Buscar do banco no carregamento
+    fetchFavoritesFromDatabase().then((dbFavs) => {
+      if (isMounted && dbFavs && dbFavs.length > 0) {
+        setFavorites(dbFavs);
+        persistFavoritesLocally(dbFavs);
+      }
+    });
+
+    // Inscrição Realtime no Supabase
+    const channelName = `rt_relatorios_favs_${Math.random().toString(36).slice(2, 7)}`;
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'clients', filter: `name=eq.${FAVORITES_STATE_NAME}` },
+        async () => {
+          const fresh = await fetchFavoritesFromDatabase();
+          if (isMounted && fresh) {
+            setFavorites(fresh);
+            persistFavoritesLocally(fresh);
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'relatorios_favoritos' },
+        async () => {
+          const fresh = await fetchFavoritesFromDatabase();
+          if (isMounted && fresh) {
+            setFavorites(fresh);
+            persistFavoritesLocally(fresh);
+          }
+        }
+      )
+      .subscribe();
+
+    const handleLocalSync = () => {
+      if (isMounted) {
+        setFavorites(getStoredFavorites());
+      }
     };
+
     if (typeof window !== 'undefined') {
-      window.addEventListener('storage', syncFavs);
-      window.addEventListener('focus_storage_update', syncFavs);
+      window.addEventListener('focus_relatorios_favorites_updated', handleLocalSync);
+      window.addEventListener('focus_storage_update', handleLocalSync);
+      window.addEventListener('storage', handleLocalSync);
+      window.addEventListener('focus', handleLocalSync);
     }
+
     return () => {
+      isMounted = false;
+      try {
+        supabase.removeChannel(channel);
+      } catch {}
       if (typeof window !== 'undefined') {
-        window.removeEventListener('storage', syncFavs);
-        window.removeEventListener('focus_storage_update', syncFavs);
+        window.removeEventListener('focus_relatorios_favorites_updated', handleLocalSync);
+        window.removeEventListener('focus_storage_update', handleLocalSync);
+        window.removeEventListener('storage', handleLocalSync);
+        window.removeEventListener('focus', handleLocalSync);
       }
     };
   }, []);
@@ -65,23 +217,31 @@ export function useRelatoriosStore() {
 
   const { pastas, uploadDocument } = useDocumentosStore();
 
+  /**
+   * Alternar favorito com ordenação automática:
+   * Ao adicionar, o relatório é inserido no ÍNDICE 0 (topo da página)
+   * e persistido no Banco de Dados Relacional Supabase.
+   */
   const toggleFavorite = useCallback((id: string) => {
     setFavorites((prev) => {
       const current = Array.isArray(prev) ? prev : [];
-      const exists = current.includes(id);
-      const updated = exists ? current.filter((favId) => favId !== id) : [...current, id];
-      safeSetItem(FAVORITES_STORAGE_KEY, JSON.stringify(updated));
-      if (typeof window !== 'undefined') {
-        try {
-          window.dispatchEvent(new Event('focus_storage_update'));
-          window.dispatchEvent(new Event('storage'));
-        } catch {}
-      }
-      if (exists) {
+      const isAlreadyFavorited = current.includes(id);
+
+      let updated: string[];
+      if (isAlreadyFavorited) {
+        // Remover dos favoritos
+        updated = current.filter((favId) => favId !== id);
         toast.info('Relatório removido dos favoritos.');
       } else {
-        toast.success('Relatório adicionado aos favoritos! ⭐');
+        // Adicionar no TOPO (primeira posição da lista)
+        updated = [id, ...current.filter((favId) => favId !== id)];
+        toast.success('Relatório fixado no topo dos favoritos! ⭐');
       }
+
+      // Persistência local imediata + envio ao Banco de Dados Relacional
+      persistFavoritesLocally(updated);
+      syncFavoritesToDatabase(updated);
+
       return updated;
     });
   }, []);
