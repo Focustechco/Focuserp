@@ -223,6 +223,72 @@ export const userService = {
   },
 
   /**
+   * Upload de Foto de Perfil Otimizada para o Banco de Dados e Storage
+   * Compatível com Web, iOS e Android em tempo real
+   */
+  async uploadUserAvatar(userIdOrEmail: string, file: File | Blob): Promise<string> {
+    const base64Data = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const src = e.target?.result as string;
+        if (!src) return resolve('');
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const maxDim = 256;
+          let w = img.width;
+          let h = img.height;
+          if (w > h) {
+            h = Math.round((h * maxDim) / w);
+            w = maxDim;
+          } else {
+            w = Math.round((w * maxDim) / h);
+            h = maxDim;
+          }
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, w, h);
+            resolve(canvas.toDataURL('image/jpeg', 0.88));
+          } else {
+            resolve(src);
+          }
+        };
+        img.onerror = () => resolve(src);
+        img.src = src;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+    let finalFotoUrl = base64Data;
+
+    try {
+      const fileName = `avatar_${userIdOrEmail.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}.jpg`;
+      const { data: uploadRes, error: uploadErr } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file, {
+          upsert: true,
+          contentType: 'image/jpeg',
+        });
+
+      if (!uploadErr && uploadRes) {
+        const { data: publicUrlData } = supabase.storage
+          .from('avatars')
+          .getPublicUrl(uploadRes.path);
+
+        if (publicUrlData?.publicUrl) {
+          finalFotoUrl = publicUrlData.publicUrl;
+        }
+      }
+    } catch {}
+
+    await this.updateUserProfile(userIdOrEmail, { foto: finalFotoUrl });
+    return finalFotoUrl;
+  },
+
+  /**
    * Assinar alterações de usuários em tempo real via Supabase Realtime (Cross-device Sync Mobile / Desktop)
    */
   subscribeUsers(onUpdate: (users: Usuario[]) => void) {

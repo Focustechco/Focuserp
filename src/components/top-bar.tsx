@@ -7,13 +7,14 @@ import React, { useState, useEffect } from "react";
 import { 
   Search, Bell, Command, Moon, Sun, ArrowRight, LayoutDashboard, Wallet, 
   Users, FileText, Briefcase, BarChart3, FolderOpen, Plug, Plus, ChevronDown, 
-  TrendingUp, TrendingDown, Receipt, Target 
+  TrendingUp, TrendingDown, Receipt, Target, User 
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { 
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, 
   DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator 
@@ -24,6 +25,8 @@ import { useLocalStorageState } from "@/hooks/useDataStore";
 import { Cliente } from "@/features/clientes/types";
 import { Contrato } from "@/features/contratos/types";
 import { NotificationBellDropdown } from "@/features/notificacoes/components/NotificationBellDropdown";
+import { useAuth } from "@/features/auth/AuthContext";
+import { UserProfileModal } from "@/components/UserProfileModal";
 
 // Importação dos Formulários Oficiais dos Módulos
 import { NovoRecebimentoSheet } from "@/features/contas-receber/components/NovoRecebimentoSheet";
@@ -49,8 +52,10 @@ function checkIsIOS(): boolean {
 export function TopBar() {
   const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
+  const { currentUser, isSuperAdmin } = useAuth();
 
   const [openSearchModal, setOpenSearchModal] = useState(false);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [isIOS, setIsIOS] = useState(false);
 
@@ -101,22 +106,26 @@ export function TopBar() {
   );
 
   const handleNavigate = (url: string) => {
-    navigate({ to: url });
     setOpenSearchModal(false);
     setQuery("");
+    navigate({ to: url as any });
   };
 
-  // Determine light/dark logos for mobile iOS or general mobile
+  const getInitials = (nameStr: string) => {
+    return (nameStr || 'AD').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+  };
+
+  // Choose appropriate logo based on OS and theme
   const mobileLightLogo = isIOS ? focusLogoMobileIos : focusLogoMobile;
   const mobileDarkLogo = isIOS ? focusLogoMobileIosDark : focusLogoMobileDark;
 
   return (
     <>
-      <header className="sticky top-0 z-30 flex items-center gap-2 sm:gap-3 border-b bg-background/90 px-3 sm:px-4 backdrop-blur-md pt-[env(safe-area-inset-top,0px)] min-h-[3.75rem] py-1.5 transition-all">
-        <SidebarTrigger className="-ml-1 h-9 w-9 sm:h-8 sm:w-8 shrink-0 touch-manipulation text-foreground hover:bg-accent" />
+      <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center gap-3 border-b bg-background px-3 sm:px-6 shadow-2xs">
+        <SidebarTrigger className="-ml-1 text-muted-foreground hover:text-foreground" />
         
-        {/* Logo Focus no Mobile */}
-        <div className="flex sm:hidden items-center ml-0.5 shrink-0">
+        {/* LOGO MOBILE FOCUS ERP */}
+        <div className="flex md:hidden items-center mr-1">
           <Link to="/" className="flex items-center">
             <img
               src={mobileLightLogo}
@@ -147,7 +156,7 @@ export function TopBar() {
           </kbd>
         </div>
 
-        <div className="ml-auto flex items-center gap-2.5">
+        <div className="ml-auto flex items-center gap-2 sm:gap-2.5">
           <NotificationBellDropdown />
 
           {/* BOTÃO NOVA TRANSAÇÃO */}
@@ -176,7 +185,7 @@ export function TopBar() {
                   </div>
                   <div>
                     <div className="font-semibold text-xs text-foreground">Novo Recebimento (Entrada)</div>
-                    <div className="text-[10px] text-muted-foreground">Lana no Contas a Receber e Fluxo de Caixa</div>
+                    <div className="text-[10px] text-muted-foreground">Lança no Contas a Receber e Fluxo de Caixa</div>
                   </div>
                 </DropdownMenuItem>
               </NovoRecebimentoSheet>
@@ -187,8 +196,8 @@ export function TopBar() {
                     <TrendingDown className="w-4 h-4" />
                   </div>
                   <div>
-                    <div className="font-semibold text-xs text-foreground">Novo Pagamento (Sada)</div>
-                    <div className="text-[10px] text-muted-foreground">Lana no Contas a Pagar e Fluxo de Caixa</div>
+                    <div className="font-semibold text-xs text-foreground">Novo Pagamento (Saída)</div>
+                    <div className="text-[10px] text-muted-foreground">Lança no Contas a Pagar e Fluxo de Caixa</div>
                   </div>
                 </DropdownMenuItem>
               </NovaContaSheet>
@@ -202,7 +211,7 @@ export function TopBar() {
                   </div>
                   <div>
                     <div className="font-semibold text-xs text-foreground">Novo Cliente</div>
-                    <div className="text-[10px] text-muted-foreground">Cadastra cliente no diretrio da empresa</div>
+                    <div className="text-[10px] text-muted-foreground">Cadastra cliente no diretório da empresa</div>
                   </div>
                 </DropdownMenuItem>
               </NovoClienteSheet>
@@ -214,7 +223,7 @@ export function TopBar() {
                   </div>
                   <div>
                     <div className="font-semibold text-xs text-foreground">Novo Contrato</div>
-                    <div className="text-[10px] text-muted-foreground">Registra novo contrato de vendas/servios</div>
+                    <div className="text-[10px] text-muted-foreground">Registra novo contrato de vendas/serviços</div>
                   </div>
                 </DropdownMenuItem>
               </NovoContratoSheet>
@@ -226,8 +235,8 @@ export function TopBar() {
                   <Receipt className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="font-semibold text-xs text-foreground">Emisso de Nota Fiscal (NFe/NFSe)</div>
-                  <div className="text-[10px] text-muted-foreground">Emitir documento fiscal eletrnico</div>
+                  <div className="font-semibold text-xs text-foreground">Emissão de Nota Fiscal (NFe/NFSe)</div>
+                  <div className="text-[10px] text-muted-foreground">Emitir documento fiscal eletrônico</div>
                 </div>
               </DropdownMenuItem>
 
@@ -237,13 +246,33 @@ export function TopBar() {
                 </div>
                 <div>
                   <div className="font-semibold text-xs text-foreground">Nova Oportunidade (CRM)</div>
-                  <div className="text-[10px] text-muted-foreground">Adicionar negcio no pipeline do ClickUp</div>
+                  <div className="text-[10px] text-muted-foreground">Adicionar negócio no pipeline do ClickUp</div>
                 </div>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {/* PERFIL / AVATAR DO USUÁRIO SINCRONIZADO COM O BANCO DE DADOS */}
+          <div 
+            onClick={() => setProfileModalOpen(true)}
+            className="cursor-pointer flex items-center shrink-0"
+            title="Ver e editar meu perfil corporativo"
+          >
+            <Avatar className="h-8 w-8 border border-primary/20 hover:ring-2 hover:ring-primary/40 transition-all overflow-hidden">
+              <AvatarImage src={currentUser?.foto} className="object-cover w-full h-full" />
+              <AvatarFallback className="text-xs font-bold bg-orange-500/10 text-orange-600">
+                {getInitials(currentUser?.nome || 'AD')}
+              </AvatarFallback>
+            </Avatar>
+          </div>
         </div>
       </header>
+
+      {/* MODAL DE EDIÇÃO DE PERFIL DO USUÁRIO */}
+      <UserProfileModal 
+        open={profileModalOpen} 
+        onOpenChange={setProfileModalOpen} 
+      />
 
       {/* MODAL DE BUSCA GLOBAL (COMMAND PALETTE) */}
       <Dialog open={openSearchModal} onOpenChange={setOpenSearchModal}>
@@ -262,10 +291,10 @@ export function TopBar() {
           </DialogHeader>
 
           <div className="p-3 max-h-[380px] overflow-y-auto space-y-4 text-xs">
-            {/* Seo Mdulos da Plataforma */}
+            {/* Seção Módulos da Plataforma */}
             {filteredPages.length > 0 && (
               <div>
-                <p className="font-semibold text-muted-foreground mb-2 text-[10px] uppercase tracking-wider">Mdulos da Plataforma</p>
+                <p className="font-semibold text-muted-foreground mb-2 text-[10px] uppercase tracking-wider">Módulos da Plataforma</p>
                 <div className="space-y-1">
                   {filteredPages.map(page => {
                     const IconComponent = page.icon;
@@ -287,7 +316,7 @@ export function TopBar() {
               </div>
             )}
 
-            {/* Seo Clientes Cadastrados */}
+            {/* Seção Clientes Cadastrados */}
             {filteredClientes.length > 0 && (
               <div>
                 <p className="font-semibold text-muted-foreground mb-2 text-[10px] uppercase tracking-wider">Clientes Cadastrados</p>
@@ -309,7 +338,7 @@ export function TopBar() {
               </div>
             )}
 
-            {/* Seo Contratos */}
+            {/* Seção Contratos */}
             {filteredContratos.length > 0 && (
               <div>
                 <p className="font-semibold text-muted-foreground mb-2 text-[10px] uppercase tracking-wider">Contratos</p>

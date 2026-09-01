@@ -86,6 +86,7 @@ export function UserProfileModal({ open, onOpenChange }: UserProfileModalProps) 
         foto: avatarUrl,
       });
 
+      toast.success("Perfil e foto sincronizados no Banco de Dados com sucesso!");
       onOpenChange(false);
     } catch (err: any) {
       toast.error("Erro ao salvar perfil no banco de dados.");

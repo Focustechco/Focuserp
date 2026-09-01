@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Table,
   TableBody,
@@ -16,11 +16,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useLocalStorageState } from '@/hooks/useDataStore';
 import { INITIAL_USUARIOS } from '../data/initialData';
-import { Search, Filter, MoreHorizontal, KeyRound, ShieldAlert, UserCheck, UserX, Smartphone, Trash2, Key, Copy, Eye, EyeOff, UserSwitch } from 'lucide-react';
+import { Search, MoreHorizontal, KeyRound, ShieldAlert, UserCheck, UserX, Smartphone, Trash2, Key, Copy, Eye, EyeOff, Camera, UploadCloud } from 'lucide-react';
 import { UserFormSheet } from './UserFormSheet';
-import { Usuario, UserStatus } from '../types';
+import { Usuario } from '../types';
 import { toast } from 'sonner';
 import { useAuth } from '@/features/auth/AuthContext';
+import { userService } from '@/services/userService';
 
 export function UsuariosTable() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -31,6 +32,10 @@ export function UsuariosTable() {
   // Modal para Visualizar Senha (Exclusivo Super Admin)
   const [viewPasswordUser, setViewPasswordUser] = useState<Usuario | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [targetUploadUserId, setTargetUploadUserId] = useState<string | null>(null);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 
   const { data: usuarios, updateItem, deleteItem } = useLocalStorageState<Usuario>('focus_usuarios', INITIAL_USUARIOS);
   const { isSuperAdmin, currentUser, switchUser } = useAuth();
@@ -62,8 +67,43 @@ export function UsuariosTable() {
     });
   };
 
+  const handleTriggerAvatarUpload = (userId: string) => {
+    setTargetUploadUserId(userId);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !targetUploadUserId) return;
+
+    setIsUploadingPhoto(true);
+    const toastId = toast.loading('Processando e salvando foto de perfil no Banco de Dados...');
+    try {
+      const newFotoUrl = await userService.uploadUserAvatar(targetUploadUserId, file);
+      updateItem(targetUploadUserId, { foto: newFotoUrl });
+      toast.success('Foto de perfil salva e sincronizada no Banco de Dados com sucesso!', { id: toastId });
+    } catch (err: any) {
+      toast.error('Erro ao salvar foto no banco de dados.', { id: toastId });
+    } finally {
+      setIsUploadingPhoto(false);
+      setTargetUploadUserId(null);
+    }
+  };
+
   return (
     <div className="space-y-4 animate-fade-in pt-4">
+      {/* Hidden File Input for instant photo upload */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        accept="image/png,image/jpeg,image/webp,image/jpg"
+        className="hidden"
+      />
+
       {/* Barra de Ferramentas */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-card p-4 rounded-lg border shadow-sm">
         <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -71,13 +111,13 @@ export function UsuariosTable() {
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input 
               placeholder="Buscar por nome, e-mail, depto..." 
-              className="pl-9 bg-background"
+              className="pl-9 bg-background text-xs"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[140px] bg-background">
+            <SelectTrigger className="w-[140px] bg-background text-xs">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -90,7 +130,7 @@ export function UsuariosTable() {
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
           {isSuperAdmin ? (
-            <Button className="gap-2 w-full sm:w-auto" onClick={() => { setSelectedUser(null); setSheetOpen(true); }}>
+            <Button className="gap-2 w-full sm:w-auto bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold" onClick={() => { setSelectedUser(null); setSheetOpen(true); }}>
               <UserCheck className="w-4 h-4" /> Novo Usuário
             </Button>
           ) : (
@@ -101,9 +141,9 @@ export function UsuariosTable() {
         </div>
       </div>
 
-      {/* Tabela de Usuários */}
+      {/* Tabela de Usuários com Sincronização de Fotos Reais */}
       <div className="border rounded-lg bg-card shadow-sm overflow-hidden">
-        <Table>
+        <Table className="text-xs">
           <TableHeader className="bg-muted/50">
             <TableRow>
               <TableHead>Usuário</TableHead>
@@ -118,8 +158,8 @@ export function UsuariosTable() {
           <TableBody>
             {filteredUsers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
-                  Nenhum usuário encontrado com os filtros atuais.
+                <TableCell colSpan={7} className="h-32 text-center text-muted-foreground text-xs">
+                  Nenhum usuário encontrado no Banco de Dados.
                 </TableCell>
               </TableRow>
             ) : (
@@ -127,14 +167,25 @@ export function UsuariosTable() {
                 <TableRow key={user.id} className="hover:bg-muted/30">
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      <Avatar className="w-10 h-10 border border-primary/20 shadow-sm shrink-0">
-                        <AvatarImage src={user.foto} className="object-cover" />
-                        <AvatarFallback className="text-sm font-bold bg-primary/10 text-primary">
-                          {(user.nome || 'U').substring(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
+                      {/* Avatar Interativo com Upload Direto para o Banco de Dados */}
+                      <div 
+                        onClick={() => handleTriggerAvatarUpload(user.id)}
+                        className="relative group cursor-pointer"
+                        title="Clique para alterar foto de perfil salva no banco de dados"
+                      >
+                        <Avatar className="w-10 h-10 border border-primary/20 shadow-sm shrink-0 transition-transform group-hover:scale-105">
+                          <AvatarImage src={user.foto} className="object-cover w-full h-full" />
+                          <AvatarFallback className="text-xs font-bold bg-orange-500/10 text-orange-600">
+                            {(user.nome || 'U').substring(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="absolute inset-0 bg-black/60 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Camera className="w-4 h-4 text-white" />
+                        </div>
+                      </div>
+
                       <div>
-                        <div className="font-medium text-sm flex items-center gap-2">
+                        <div className="font-semibold text-sm flex items-center gap-2 text-foreground">
                           {user.nome}
                           {user.id === currentUser?.id && (
                             <Badge variant="secondary" className="text-[10px] py-0 px-1.5 bg-primary/10 text-primary border-primary/20">
@@ -147,11 +198,11 @@ export function UsuariosTable() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="font-medium text-sm">{user.departamento}</div>
-                    <div className="text-xs text-muted-foreground">{user.cargo}</div>
+                    <div className="font-medium text-xs text-foreground">{user.departamento}</div>
+                    <div className="text-[11px] text-muted-foreground">{user.cargo}</div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="secondary" className="font-normal">{user.perfil}</Badge>
+                    <Badge variant="secondary" className="font-normal text-xs">{user.perfil}</Badge>
                     {(user.rolesComplementares || []).length > 0 && (
                       <div className="text-[10px] text-muted-foreground mt-1">+{(user.rolesComplementares || []).length} roles</div>
                     )}
@@ -159,9 +210,9 @@ export function UsuariosTable() {
                   <TableCell>
                     <div className="flex items-center gap-1.5 text-xs">
                       {user.mfaHabilitado ? (
-                         <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400"><Smartphone className="w-3.5 h-3.5" /> 2FA ON</span>
+                         <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-medium"><Smartphone className="w-3.5 h-3.5" /> 2FA ON</span>
                       ) : (
-                         <span className="flex items-center gap-1 text-rose-500"><ShieldAlert className="w-3.5 h-3.5" /> 2FA OFF</span>
+                         <span className="flex items-center gap-1 text-rose-500 font-medium"><ShieldAlert className="w-3.5 h-3.5" /> 2FA OFF</span>
                       )}
                     </div>
                   </TableCell>
@@ -180,23 +231,27 @@ export function UsuariosTable() {
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-56">
+                      <DropdownMenuContent align="end" className="w-56 text-xs">
                         <DropdownMenuLabel>Ações Administrativas</DropdownMenuLabel>
                         
+                        <DropdownMenuItem onClick={() => handleTriggerAvatarUpload(user.id)} className="gap-2 cursor-pointer">
+                          <UploadCloud className="w-4 h-4 text-primary" /> Alterar Foto de Perfil
+                        </DropdownMenuItem>
+
                         {isSuperAdmin && (
-                          <DropdownMenuItem onClick={() => { setSelectedUser(user as unknown as Usuario); setSheetOpen(true); }}>
+                          <DropdownMenuItem onClick={() => { setSelectedUser(user as unknown as Usuario); setSheetOpen(true); }} className="cursor-pointer">
                             Editar Configurações IAM
                           </DropdownMenuItem>
                         )}
 
                         {isSuperAdmin && (
-                          <DropdownMenuItem onClick={() => { setViewPasswordUser(user); setShowPassword(false); }}>
+                          <DropdownMenuItem onClick={() => { setViewPasswordUser(user); setShowPassword(false); }} className="cursor-pointer">
                             <Key className="w-4 h-4 mr-2 text-primary" /> Visualizar / Copiar Senha
                           </DropdownMenuItem>
                         )}
 
                         {isSuperAdmin && user.id !== currentUser?.id && (
-                          <DropdownMenuItem onClick={() => switchUser(user.id)} className="text-blue-600 dark:text-blue-400">
+                          <DropdownMenuItem onClick={() => switchUser(user.id)} className="text-blue-600 dark:text-blue-400 cursor-pointer">
                             <KeyRound className="w-4 h-4 mr-2" /> Alternar para este Usuário
                           </DropdownMenuItem>
                         )}
@@ -206,29 +261,32 @@ export function UsuariosTable() {
                         {isSuperAdmin && (
                           <>
                             {user.status === 'Ativo' ? (
-                              <DropdownMenuItem className="text-amber-600" onClick={() => {
+                              <DropdownMenuItem className="text-amber-600 cursor-pointer" onClick={() => {
                                 updateItem(user.id, { status: 'Bloqueado' });
+                                userService.updateUserProfile(user.id, { status: 'Bloqueado' });
                                 toast.success(`Acesso bloqueado para o usuário ${user.nome}`);
                               }}>
                                 <ShieldAlert className="w-4 h-4 mr-2" /> Bloquear Acesso
                               </DropdownMenuItem>
                             ) : (
-                              <DropdownMenuItem className="text-emerald-600" onClick={() => {
+                              <DropdownMenuItem className="text-emerald-600 cursor-pointer" onClick={() => {
                                 updateItem(user.id, { status: 'Ativo' });
+                                userService.updateUserProfile(user.id, { status: 'Ativo' });
                                 toast.success(`Acesso desbloqueado para o usuário ${user.nome}`);
                               }}>
                                 <UserCheck className="w-4 h-4 mr-2" /> Desbloquear Acesso
                               </DropdownMenuItem>
                             )}
                             
-                            <DropdownMenuItem className="text-rose-600" onClick={() => {
+                            <DropdownMenuItem className="text-rose-600 cursor-pointer" onClick={() => {
                               updateItem(user.id, { status: 'Inativo' });
+                              userService.updateUserProfile(user.id, { status: 'Inativo' });
                               toast.success(`O usuário ${user.nome} foi inativado`);
                             }}>
                               <UserX className="w-4 h-4 mr-2" /> Inativar Usuário
                             </DropdownMenuItem>
 
-                            <DropdownMenuItem className="text-rose-600 font-semibold" onClick={() => {
+                            <DropdownMenuItem className="text-rose-600 font-semibold cursor-pointer" onClick={() => {
                               if (usuarios.length <= 1) {
                                 toast.error('Não é possível excluir o único usuário administrador do sistema.');
                                 return;
