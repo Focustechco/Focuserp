@@ -9,9 +9,11 @@ import { RhBeneficiosView } from "@/features/rh/components/RhBeneficiosView";
 import { RhDesempenhoView } from "@/features/rh/components/RhDesempenhoView";
 import { RhTreinamentosView } from "@/features/rh/components/RhTreinamentosView";
 import { RhOnboardingView } from "@/features/rh/components/RhOnboardingView";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { 
   Users, PieChart, Palmtree, Heart, Target, 
-  GraduationCap, UserPlus, Network 
+  GraduationCap, UserPlus, Network, Search 
 } from "lucide-react";
 import { useState } from "react";
 import { Colaborador } from "@/features/rh/types";
@@ -23,6 +25,7 @@ export const Route = createFileRoute("/rh")({
 function RouteComponent() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [colabParaEditar, setColabParaEditar] = useState<Colaborador | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const handleNewClick = () => {
     setColabParaEditar(null);
@@ -71,21 +74,45 @@ function RouteComponent() {
           </TabsList>
         </div>
 
-        {/* 1. DIRETÓRIO (ABA INICIAL PADRÃO) */}
+        {/* 1. DIRETÓRIO (ABA INICIAL PADRÃO) COM CONTROLES ALINHADOS NA MESMA LINHA */}
         <TabsContent value="diretorio" className="space-y-4 outline-none">
           <Tabs defaultValue="lista" className="space-y-4">
-            <div className="flex justify-end">
-              <TabsList className="grid w-[320px] grid-cols-2 bg-muted/60 p-1">
-                <TabsTrigger value="lista" className="gap-1.5 text-xs font-medium">
-                  <Users className="w-3.5 h-3.5" /> Lista de Colaboradores
-                </TabsTrigger>
-                <TabsTrigger value="arvore" className="gap-1.5 text-xs font-medium">
-                  <Network className="w-3.5 h-3.5" /> Organograma
-                </TabsTrigger>
-              </TabsList>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+              {/* Campo de Busca na Esquerda */}
+              <div className="relative w-full sm:w-80 md:w-96">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por nome, cargo, departamento ou PIX..."
+                  className="pl-8 text-xs h-9 rounded-xl"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+
+              {/* Sub-Abas [Lista | Organograma] e Botão [+ Novo Colaborador] na Direita na Mesma Linha */}
+              <div className="flex flex-wrap items-center gap-2.5 justify-between sm:justify-end">
+                <TabsList className="bg-muted/60 p-1 h-9 rounded-xl">
+                  <TabsTrigger value="lista" className="gap-1.5 text-xs font-medium h-7 rounded-lg">
+                    <Users className="w-3.5 h-3.5" /> Lista de Colaboradores
+                  </TabsTrigger>
+                  <TabsTrigger value="arvore" className="gap-1.5 text-xs font-medium h-7 rounded-lg">
+                    <Network className="w-3.5 h-3.5" /> Organograma
+                  </TabsTrigger>
+                </TabsList>
+
+                <Button 
+                  onClick={handleNewClick} 
+                  size="sm"
+                  className="gap-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold h-9 rounded-xl shadow-xs shrink-0 cursor-pointer"
+                >
+                  <UserPlus className="w-4 h-4" /> Novo Colaborador
+                </Button>
+              </div>
             </div>
+
             <TabsContent value="lista" className="space-y-4 outline-none">
               <ColaboradoresTable 
+                searchTerm={searchTerm}
                 onNewClick={handleNewClick} 
                 onEditClick={handleEditClick} 
               />

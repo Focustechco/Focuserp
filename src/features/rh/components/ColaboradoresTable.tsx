@@ -11,29 +11,35 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Search, Filter, MoreHorizontal, UserPlus, FileDown, Trash2, Edit3, CreditCard } from 'lucide-react';
+import { Search, MoreHorizontal, UserPlus, Trash2, Edit3, CreditCard } from 'lucide-react';
 import { useColaboradoresQuery } from '../hooks/useColaboradoresQuery';
 import { Colaborador } from '../types';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 interface ColaboradoresTableProps {
-  onNewClick: () => void;
+  onNewClick?: () => void;
   onEditClick: (colab: Colaborador) => void;
+  searchTerm?: string;
+  hideToolbar?: boolean;
 }
 
-export function ColaboradoresTable({ onNewClick, onEditClick }: ColaboradoresTableProps) {
-  const [searchTerm, setSearchTerm] = useState("");
+export function ColaboradoresTable({ onNewClick, onEditClick, searchTerm: externalSearch, hideToolbar }: ColaboradoresTableProps) {
+  const [internalSearch, setInternalSearch] = useState("");
   const { colaboradores, deleteColaborador } = useColaboradoresQuery();
+
+  const activeSearch = externalSearch !== undefined ? externalSearch : internalSearch;
 
   const filteredColabs = colaboradores.filter(c => {
     const nome = c.nomeCompleto || '';
     const cargo = c.cargo || '';
     const depto = c.departamento || '';
     const matricula = c.matricula || '';
-    return nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-           cargo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-           depto.toLowerCase().includes(searchTerm.toLowerCase()) ||
-           matricula.toLowerCase().includes(searchTerm.toLowerCase());
+    const pix = c.metodoPagamento?.chavePix || '';
+    return nome.toLowerCase().includes(activeSearch.toLowerCase()) ||
+           cargo.toLowerCase().includes(activeSearch.toLowerCase()) ||
+           depto.toLowerCase().includes(activeSearch.toLowerCase()) ||
+           pix.toLowerCase().includes(activeSearch.toLowerCase()) ||
+           matricula.toLowerCase().includes(activeSearch.toLowerCase());
   });
 
   const getStatusBadge = (status: string) => {
@@ -59,27 +65,31 @@ export function ColaboradoresTable({ onNewClick, onEditClick }: ColaboradoresTab
 
   return (
     <div className="space-y-4 animate-fade-in">
-      <div className="flex flex-col sm:flex-row justify-between gap-4">
-        <div className="flex gap-2 w-full sm:w-1/2">
-          <div className="relative flex-1">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por nome, cargo, departamento ou PIX..."
-              className="pl-8 text-xs"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+      {!hideToolbar && externalSearch === undefined && (
+        <div className="flex flex-col sm:flex-row justify-between gap-4">
+          <div className="flex gap-2 w-full sm:w-1/2">
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por nome, cargo, departamento ou PIX..."
+                className="pl-8 text-xs"
+                value={internalSearch}
+                onChange={(e) => setInternalSearch(e.target.value)}
+              />
+            </div>
           </div>
+          {onNewClick && (
+            <div className="flex gap-2">
+              <Button onClick={onNewClick} className="gap-2 bg-orange-600 hover:bg-orange-700 text-white text-xs">
+                <UserPlus className="w-4 h-4" /> Novo Colaborador
+              </Button>
+            </div>
+          )}
         </div>
-        <div className="flex gap-2">
-          <Button onClick={onNewClick} className="gap-2 bg-orange-600 hover:bg-orange-700 text-white text-xs">
-            <UserPlus className="w-4 h-4" /> Novo Colaborador
-          </Button>
-        </div>
-      </div>
+      )}
 
-      <div className="rounded-md border bg-card overflow-hidden">
-        <Table text-xs>
+      <div className="rounded-xl border bg-card overflow-hidden shadow-xs">
+        <Table className="text-xs">
           <TableHeader>
             <TableRow className="bg-muted/50">
               <TableHead>Colaborador</TableHead>
@@ -95,60 +105,66 @@ export function ColaboradoresTable({ onNewClick, onEditClick }: ColaboradoresTab
             {filteredColabs.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="text-center py-10 text-muted-foreground text-xs">
-                  Nenhum colaborador cadastrado.
+                  Nenhum colaborador encontrado.
                 </TableCell>
               </TableRow>
             ) : (
               filteredColabs.map((colab) => (
-                <TableRow key={colab.id} className="hover:bg-muted/30 cursor-pointer text-xs">
-                  <TableCell onClick={() => onEditClick(colab)}>
+                <TableRow key={colab.id} className="hover:bg-muted/30 transition-colors">
+                  <TableCell>
                     <div className="flex items-center gap-3">
-                      <Avatar className="h-9 w-9">
-                        <AvatarImage src={colab.foto} alt={colab.nomeCompleto} />
-                        <AvatarFallback className="font-bold bg-primary/10 text-primary">{getInitials(colab.nomeCompleto || '')}</AvatarFallback>
+                      <Avatar className="h-8 w-8 border">
+                        <AvatarImage src={colab.foto} />
+                        <AvatarFallback className="bg-primary/10 text-primary font-bold text-xs">
+                          {getInitials(colab.nomeCompleto)}
+                        </AvatarFallback>
                       </Avatar>
-                      <div className="flex flex-col">
-                        <span className="font-semibold text-slate-900 dark:text-slate-100">{colab.nomeCompleto}</span>
-                        <span className="text-[11px] text-muted-foreground">{colab.emailCorporativo || colab.telefone}</span>
+                      <div>
+                        <div className="font-semibold text-foreground">{colab.nomeCompleto}</div>
+                        <div className="text-[11px] text-muted-foreground">{colab.emailCorporativo || 'Sem e-mail'}</div>
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="font-mono text-muted-foreground">{colab.matricula}</TableCell>
-                  <TableCell>
-                    <div className="flex flex-col">
-                      <span className="font-medium">{colab.cargo}</span>
-                      <span className="text-[11px] text-muted-foreground">{colab.departamento}</span>
-                    </div>
+                  <TableCell className="font-mono text-xs font-medium">
+                    {colab.matricula}
                   </TableCell>
                   <TableCell>
-                    <div className="flex flex-col text-[11px]">
-                      <span className="font-medium flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-                        <CreditCard className="w-3 h-3" /> {colab.metodoPagamento?.formaPagamento || 'PIX'}
-                      </span>
-                      <span className="text-muted-foreground truncate max-w-[150px]">
-                        {colab.metodoPagamento?.chavePix ? `PIX: ${colab.metodoPagamento.chavePix}` : (colab.metodoPagamento?.banco || 'Itaú')}
-                      </span>
+                    <div className="font-medium">{colab.cargo}</div>
+                    <div className="text-[11px] text-muted-foreground">{colab.departamento}</div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1.5 font-medium">
+                      <CreditCard className="w-3.5 h-3.5 text-muted-foreground" />
+                      {colab.metodoPagamento?.formaPagamento || 'PIX'}
+                    </div>
+                    <div className="text-[11px] text-muted-foreground">
+                      {colab.metodoPagamento?.chavePix 
+                        ? `PIX: ${colab.metodoPagamento.chavePix}` 
+                        : (colab.metodoPagamento?.banco || 'Conta Bancária')}
                     </div>
                   </TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {colab.dataAdmissao ? new Date(colab.dataAdmissao).toLocaleDateString('pt-BR') : '-'}
+                  <TableCell className="text-xs">
+                    {colab.dataAdmissao || 'Não informada'}
                   </TableCell>
-                  <TableCell>{getStatusBadge(colab.status || 'Ativo')}</TableCell>
+                  <TableCell>
+                    {getStatusBadge(colab.status)}
+                  </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Button variant="ghost" size="icon" className="h-7 w-7">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => onEditClick(colab)}>
-                          <Edit3 className="w-4 h-4 mr-2" /> Ver / Editar Perfil
+                      <DropdownMenuContent align="end" className="text-xs">
+                        <DropdownMenuItem onClick={() => onEditClick(colab)} className="gap-2 cursor-pointer">
+                          <Edit3 className="w-3.5 h-3.5" /> Editar Perfil
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="text-red-600" onClick={() => {
-                          deleteColaborador(colab.id);
-                        }}>
-                          <Trash2 className="w-4 h-4 mr-2" /> Excluir Colaborador
+                        <DropdownMenuItem 
+                          onClick={() => deleteColaborador(colab.id)} 
+                          className="gap-2 text-destructive focus:text-destructive cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" /> Excluir
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
