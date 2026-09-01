@@ -38,6 +38,33 @@ function markClientAsDeletedLocally(id: string) {
   } catch {}
 }
 
+function sanitizeAddress(endereco: any) {
+  if (!endereco) return { cep: '', logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', estado: '', pais: 'Brasil' };
+  
+  let cidade = (endereco.cidade || '').trim();
+  let estado = (endereco.estado || '').trim();
+  const logradouro = (endereco.logradouro || '').trim();
+  const cep = (endereco.cep || '').trim();
+  const bairro = (endereco.bairro || '').trim();
+
+  // Se cidade for São Paulo e estado SP mas não tiver nenhum logradouro, cep ou bairro preenchido, era o default estático inserido pelo schema antigo
+  if (cidade.toLowerCase() === 'são paulo' && estado.toUpperCase() === 'SP' && !logradouro && !cep && !bairro) {
+    cidade = '';
+    estado = '';
+  }
+
+  return {
+    cep,
+    logradouro,
+    numero: (endereco.numero || '').trim(),
+    complemento: (endereco.complemento || '').trim(),
+    bairro,
+    cidade,
+    estado,
+    pais: (endereco.pais || '').trim() || 'Brasil'
+  };
+}
+
 function getLocalClients(): Map<string, ClienteDTO> {
   const map = new Map<string, ClienteDTO>();
   if (typeof window === 'undefined') return map;
@@ -52,10 +79,14 @@ function getLocalClients(): Map<string, ClienteDTO> {
         if (Array.isArray(parsed)) {
           for (const item of parsed) {
             if (item && item.id && !deletedIds.has(String(item.id))) {
+              const sanitizedItem = {
+                ...item,
+                endereco: sanitizeAddress(item.endereco)
+              };
               const current = map.get(String(item.id));
               // Manter o mais completo (com endereço e contatos preenchidos)
-              if (!current || (item.endereco?.logradouro && !current.endereco?.logradouro) || (item.contatos?.length && !current.contatos?.length)) {
-                map.set(String(item.id), item);
+              if (!current || (sanitizedItem.endereco?.cidade && !current.endereco?.cidade) || (sanitizedItem.endereco?.logradouro && !current.endereco?.logradouro) || (sanitizedItem.contatos?.length && !current.contatos?.length)) {
+                map.set(String(item.id), sanitizedItem);
               }
             }
           }
@@ -90,7 +121,22 @@ export const clienteService = {
       const localMap = getLocalClients();
       let dbItems: any[] = [];
 
-      // Buscar na tabela relacional 'clients'
+      // 1. Buscar na tabela 'clientes' (que possui colunas de endereço completas)
+      try {
+        const { data: clientesData, error: clientesErr } = await supabase
+          .from('clientes')
+          .select('*')
+          .neq('status', 'deleted')
+          .order('created_at', { ascending: false });
+
+        if (!clientesErr && clientesData) {
+          dbItems = [...dbItems, ...clientesData];
+        }
+      } catch (err) {
+        console.warn('[clienteService.getClientes] Warning fetching clientes:', err);
+      }
+
+      // 2. Buscar na tabela relacional 'clients' (para compatibilidade com registros adicionais)
       try {
         const { data: clientsData, error: clientsErr } = await supabase
           .from('clients')
@@ -107,28 +153,26 @@ export const clienteService = {
         console.warn('[clienteService.getClientes] Warning fetching clients:', err);
       }
 
-      // Buscar na tabela 'clientes'
-      try {
-        const { data: clientesData, error: clientesErr } = await supabase
-          .from('clientes')
-          .select('*')
-          .neq('status', 'deleted')
-          .order('created_at', { ascending: false });
-
-        if (!clientesErr && clientesData) {
-          dbItems = [...dbItems, ...clientesData];
-        }
-      } catch (err) {
-        console.warn('[clienteService.getClientes] Warning fetching clientes:', err);
-      }
-
-      // Mesclar dados do banco com o cache local (priorizando dados mais completos)
+      // Mesclar dados do banco com o cache local (priorizando dados reais de endereço)
       if (dbItems.length > 0) {
         dbItems.forEach(item => {
           if (!item.id || deletedIds.has(String(item.id))) return;
 
           const id = String(item.id);
           const current = localMap.get(id);
+
+          const rawEndereco = {
+            cep: item.cep || item.endereco?.cep || current?.endereco?.cep || '',
+            logradouro: item.logradouro || item.endereco?.logradouro || current?.endereco?.logradouro || '',
+            numero: item.numero || item.endereco?.numero || current?.endereco?.numero || '',
+            complemento: item.complemento || item.endereco?.complemento || current?.endereco?.complemento || '',
+            bairro: item.bairro || item.endereco?.bairro || current?.endereco?.bairro || '',
+            cidade: item.cidade || item.endereco?.cidade || current?.endereco?.cidade || '',
+            estado: item.estado || item.endereco?.estado || current?.endereco?.estado || '',
+            pais: item.pais || item.endereco?.pais || current?.endereco?.pais || 'Brasil',
+          };
+
+          const sanitizedEndereco = sanitizeAddress(rawEndereco);
 
           const candidate: ClienteDTO = {
             id,
@@ -145,16 +189,7 @@ export const clienteService = {
             porteEmpresa: item.porte || item.porteEmpresa || current?.porteEmpresa || 'Médio',
             site: item.site || current?.site || '',
             observacoes: item.observacoes || current?.observacoes || '',
-            endereco: {
-              cep: item.cep || item.endereco?.cep || current?.endereco?.cep || '',
-              logradouro: item.logradouro || item.endereco?.logradouro || current?.endereco?.logradouro || '',
-              numero: item.numero || item.endereco?.numero || current?.endereco?.numero || '',
-              complemento: item.complemento || item.endereco?.complemento || current?.endereco?.complemento || '',
-              bairro: item.bairro || item.endereco?.bairro || current?.endereco?.bairro || '',
-              cidade: item.cidade || item.endereco?.cidade || current?.endereco?.cidade || '',
-              estado: item.estado || item.endereco?.estado || current?.endereco?.estado || '',
-              pais: item.pais || item.endereco?.pais || current?.endereco?.pais || 'Brasil',
-            },
+            endereco: sanitizedEndereco,
             contatos: current?.contatos && current.contatos.length > 0 ? current.contatos : [
               {
                 id: `ct-${id}`,

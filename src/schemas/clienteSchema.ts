@@ -6,8 +6,8 @@ export const enderecoSchema = z.object({
   numero: z.string().default(''),
   complemento: z.string().optional().default(''),
   bairro: z.string().default(''),
-  cidade: z.string().default('São Paulo'),
-  estado: z.string().default('SP'),
+  cidade: z.string().default(''),
+  estado: z.string().default(''),
   pais: z.string().default('Brasil'),
 });
 

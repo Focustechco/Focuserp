@@ -643,14 +643,19 @@ export function useLocalStorageState<T extends { id: string }>(
               .map((item: any) => {
                 const existing = localMap.get(String(item.id)) || {};
                 const end = item.endereco || existing.endereco || {};
-                const cidade = item.cidade || end.cidade || '';
-                const estado = item.estado || end.estado || '';
+                let cidade = item.cidade || end.cidade || '';
+                let estado = item.estado || end.estado || '';
                 const cep = item.cep || end.cep || '';
                 const logradouro = item.logradouro || end.logradouro || '';
                 const numero = item.numero || end.numero || '';
                 const complemento = item.complemento || end.complemento || '';
                 const bairro = item.bairro || end.bairro || '';
                 const pais = item.pais || end.pais || 'Brasil';
+
+                if (cidade.toLowerCase() === 'são paulo' && estado.toUpperCase() === 'SP' && !logradouro && !cep && !bairro) {
+                  cidade = '';
+                  estado = '';
+                }
 
                 return {
                   ...existing,
@@ -759,14 +764,19 @@ export function useLocalStorageState<T extends { id: string }>(
               .map((c: any) => {
                 const existing = localMap.get(String(c.id)) || {};
                 const end = c.endereco || existing.endereco || {};
-                const cidade = c.cidade || end.cidade || '';
-                const estado = c.estado || end.estado || '';
+                let cidade = c.cidade || end.cidade || '';
+                let estado = c.estado || end.estado || '';
                 const cep = c.cep || end.cep || '';
                 const logradouro = c.logradouro || end.logradouro || '';
                 const numero = c.numero || end.numero || '';
                 const complemento = c.complemento || end.complemento || '';
                 const bairro = c.bairro || end.bairro || '';
                 const pais = c.pais || end.pais || 'Brasil';
+
+                if (cidade.toLowerCase() === 'são paulo' && estado.toUpperCase() === 'SP' && !logradouro && !cep && !bairro) {
+                  cidade = '';
+                  estado = '';
+                }
 
                 return {
                   ...existing,
