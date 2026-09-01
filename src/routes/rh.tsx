@@ -63,7 +63,7 @@ function RouteComponent() {
               <Heart className="w-4 h-4" /> Benefícios Corporativos
             </TabsTrigger>
             <TabsTrigger value="desempenho" className="gap-2 shrink-0 font-medium">
-              <Target className="w-4 h-4" /> Avaliação
+              <Target className="w-4 h-4" /> Feedbacks
             </TabsTrigger>
             <TabsTrigger value="treinamentos" className="gap-2 shrink-0 font-medium">
               <GraduationCap className="w-4 h-4" /> Treinamentos (L&D)
@@ -138,7 +138,7 @@ function RouteComponent() {
           <RhBeneficiosView />
         </TabsContent>
 
-        {/* 5. AVALIAÇÃO */}
+        {/* 5. FEEDBACKS */}
         <TabsContent value="desempenho" className="space-y-4 outline-none">
           <RhDesempenhoView />
         </TabsContent>
