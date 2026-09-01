@@ -49,13 +49,13 @@ export function RhDesempenhoView() {
     return [
       { id: 'q1', nome: 'Risco / Questionável', potencia: 'Baixo', desempenho: 'Baixo', cor: 'border-rose-300 bg-rose-50/40 dark:bg-rose-950/20 text-rose-700', colabs: [] },
       { id: 'q2', nome: 'Eficaz / Especialista', potencia: 'Baixo', desempenho: 'Médio', cor: 'border-amber-300 bg-amber-50/40 dark:bg-amber-950/20 text-amber-700', colabs: [] },
-      { id: 'q3', nome: 'Profissional Chave', potencia: 'Baixo', desempenho: 'Alto', cor: 'border-blue-300 bg-blue-50/40 dark:bg-blue-950/20 text-blue-700', colabs: ['Mariana Souza'] },
+      { id: 'q3', nome: 'Profissional Chave', potencia: 'Baixo', desempenho: 'Alto', cor: 'border-blue-300 bg-blue-50/40 dark:bg-blue-950/20 text-blue-700', colabs: [] },
       { id: 'q4', nome: 'Dilema / Enigma', potencia: 'Médio', desempenho: 'Baixo', cor: 'border-amber-300 bg-amber-50/40 dark:bg-amber-950/20 text-amber-700', colabs: [] },
-      { id: 'q5', nome: 'Mantenedor / Bom Desempenho', potencia: 'Médio', desempenho: 'Médio', cor: 'border-slate-300 bg-slate-50/40 dark:bg-slate-950/20 text-slate-700', colabs: ['Lucas Rodrigues', 'Camila Dias'] },
-      { id: 'q6', nome: 'Forte Desempenho', potencia: 'Médio', desempenho: 'Alto', cor: 'border-emerald-300 bg-emerald-50/40 dark:bg-emerald-950/20 text-emerald-700', colabs: ['Carlos Eduardo', 'Patrícia Rocha'] },
+      { id: 'q5', nome: 'Mantenedor / Bom Desempenho', potencia: 'Médio', desempenho: 'Médio', cor: 'border-slate-300 bg-slate-50/40 dark:bg-slate-950/20 text-slate-700', colabs: [] },
+      { id: 'q6', nome: 'Forte Desempenho', potencia: 'Médio', desempenho: 'Alto', cor: 'border-emerald-300 bg-emerald-50/40 dark:bg-emerald-950/20 text-emerald-700', colabs: [] },
       { id: 'q7', nome: 'Potencial a Lapidar', potencia: 'Alto', desempenho: 'Baixo', cor: 'border-purple-300 bg-purple-50/40 dark:bg-purple-950/20 text-purple-700', colabs: [] },
-      { id: 'q8', nome: 'Futuro Líder', potencia: 'Alto', desempenho: 'Médio', cor: 'border-indigo-300 bg-indigo-50/40 dark:bg-indigo-950/20 text-indigo-700', colabs: ['Felipe Santos'] },
-      { id: 'q9', nome: 'Top Talent / Alto Potencial', potencia: 'Alto', desempenho: 'Alto', cor: 'border-orange-400 bg-orange-50/60 dark:bg-orange-950/30 text-orange-700 shadow-xs', colabs: ['Adriano Leal'] },
+      { id: 'q8', nome: 'Futuro Líder', potencia: 'Alto', desempenho: 'Médio', cor: 'border-indigo-300 bg-indigo-50/40 dark:bg-indigo-950/20 text-indigo-700', colabs: [] },
+      { id: 'q9', nome: 'Top Talent / Alto Potencial', potencia: 'Alto', desempenho: 'Alto', cor: 'border-orange-400 bg-orange-50/60 dark:bg-orange-950/30 text-orange-700 shadow-xs', colabs: [] },
     ];
   }, []);
 
@@ -72,7 +72,7 @@ export function RhDesempenhoView() {
       periodo,
       dataInicio,
       dataFim,
-      totalParticipantes: colaboradores.length || 20,
+      totalParticipantes: colaboradores.length,
       concluidas: 0,
       status: 'Planejado',
       mediaGeralNota: 0

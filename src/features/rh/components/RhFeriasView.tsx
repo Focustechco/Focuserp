@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { 
   Palmtree, Calendar, AlertTriangle, CheckCircle2, Clock, 
-  Plus, Search, User, Check, X, ShieldAlert 
+  Plus, Search, User, Check, X, ShieldAlert, Trash2 
 } from 'lucide-react';
 import { useColaboradoresQuery } from '../hooks/useColaboradoresQuery';
 import { useLocalStorageState } from '@/hooks/useDataStore';
@@ -281,12 +281,26 @@ export function RhFeriasView() {
                           <Button 
                             size="sm" 
                             variant="ghost" 
-                            className="h-7 px-2 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 text-xs"
+                            className="h-7 px-2 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 text-xs cursor-pointer"
                             onClick={() => handleUpdateStatus(item.id, 'Concluída')}
                           >
                             Concluir
                           </Button>
                         )}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 w-7 p-0 text-muted-foreground hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 cursor-pointer"
+                          onClick={() => {
+                            if (window.confirm(`Excluir registro de férias de ${item.colaboradorNome}?`)) {
+                              removeItem(item.id);
+                              toast.success('Registro de férias excluído.');
+                            }
+                          }}
+                          title="Excluir férias"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
                       </div>
                     </td>
                   </tr>

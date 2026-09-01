@@ -115,6 +115,48 @@ function isValidItem(table: string, item: any): boolean {
   if (table.includes('cobrancas') || table.includes('cobranca')) {
     return Boolean(item.id && (item.cliente || item.valor !== undefined || item.tituloReferencia));
   }
+
+  // Expurgar dados mockados residuais antigos em RH, Comercial e Assinaturas
+  const LEGACY_MOCK_IDS = [
+    'fer-1', 'fer-2', 'fer-3',
+    'ben-1', 'ben-2', 'ben-3',
+    'ciclo-1', 'ciclo-2',
+    'doc-rh-1', 'doc-rh-2',
+    'onb-1', 'onb-2', 'onb-3',
+    'ponto-1', 'ponto-2', 'ponto-3',
+    'treina-1', 'treina-2',
+    'colab-1', 'colab-2', 'colab-3', 'colab-101', 'colab-102', 'colab-103', 'colab-104', 'colab-105', 'colab-106',
+    'doc-sign-1', 'doc-sign-2', 'doc-sign-3',
+    'mod-1', 'mod-2', 'mod-3',
+    'cert-1', 'cert-2',
+    'eq-1', 'eq-2', 'eq-3', 'eq-4',
+    'meta-1', 'meta-2', 'meta-3',
+    'okr-1', 'okr-2',
+    'prod-1', 'prod-2',
+    'serv-1',
+    'tab-1', 'tab-2',
+    'prop-1', 'prop-2',
+    'sc-1', 'sc-2',
+    'est-1', 'est-2',
+    'pb-1', 'pb-2',
+    'atv-1', 'atv-2', 'atv-3',
+    'ag-1', 'ag-2', 'ag-3',
+    'rc-1', 'rc-2',
+    'reg-com-1', 'reg-com-2'
+  ];
+
+  if (item.id && LEGACY_MOCK_IDS.includes(item.id)) {
+    return false;
+  }
+
+  // Verificar nomes de colaboradores mockados específicos do RH
+  if (table.startsWith('focus_rh_') || table.includes('ferias') || table.includes('colaborador')) {
+    const nomeColab = item.colaboradorNome || item.colaborador || item.nomeCompleto || item.nome || '';
+    if (['Mariana Souza', 'Lucas Rodrigues', 'Carlos Eduardo Oliveira', 'TechCorp'].includes(nomeColab)) {
+      return false;
+    }
+  }
+
   return true;
 }
 
