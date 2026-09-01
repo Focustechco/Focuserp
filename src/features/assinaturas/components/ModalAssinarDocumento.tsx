@@ -46,13 +46,13 @@ export function ModalAssinarDocumento({
 }: ModalAssinarDocumentoProps) {
   if (!documento) return null;
 
-  const [nomeDigitado, setNomeDigitado] = useState('Adriano Leal');
-  const [tokenSMS, setTokenSMS] = useState('884920');
+  const assinanteAtual = documento.assinantes.find(a => a.status === 'Pendente') || documento.assinantes[0];
+
+  const [nomeDigitado, setNomeDigitado] = useState(assinanteAtual?.nome || '');
+  const [tokenSMS, setTokenSMS] = useState('');
   const [simularGovBr, setSimularGovBr] = useState(false);
   const [simularICP, setSimularICP] = useState(false);
   const [metodoSelecionado, setMetodoSelecionado] = useState<TipoAssinatura>(documento.tipoAssinaturaExigida);
-
-  const assinanteAtual = documento.assinantes.find(a => a.status === 'Pendente') || documento.assinantes[0];
 
   const handleConfirmarAssinatura = () => {
     if (metodoSelecionado === 'Eletrônica Simples' && !nomeDigitado.trim()) {

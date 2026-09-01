@@ -115,35 +115,42 @@ export function AssinaturasDashboard({ documentos, onNovoDocumento, onVerDocumen
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {documentos.slice(0, 4).map((doc) => (
-                <div key={doc.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-xl border bg-card/60 hover:bg-accent/40 transition-colors gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                      <FileSignature className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-sm line-clamp-1">{doc.titulo}</h4>
-                      <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
-                        <span>{doc.categoria}</span>
-                        <span>•</span>
-                        <span className="font-mono">{doc.codigoValidacao}</span>
+              {documentos.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground text-xs border border-dashed rounded-xl">
+                  <FileSignature className="w-8 h-8 opacity-30 mx-auto mb-2" />
+                  <p>Nenhum documento registrado no fluxo de assinaturas.</p>
+                </div>
+              ) : (
+                documentos.slice(0, 4).map((doc) => (
+                  <div key={doc.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-xl border bg-card/60 hover:bg-accent/40 transition-colors gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                        <FileSignature className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-sm line-clamp-1">{doc.titulo}</h4>
+                        <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
+                          <span>{doc.categoria}</span>
+                          <span>•</span>
+                          <span className="font-mono">{doc.codigoValidacao}</span>
+                        </div>
                       </div>
                     </div>
+                    <div className="flex items-center gap-3 self-end sm:self-auto">
+                      <Badge variant="outline" className="text-xs font-normal">
+                        {doc.tipoAssinaturaExigida}
+                      </Badge>
+                      <Badge className={
+                        doc.status === 'Assinado' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' :
+                        doc.status === 'Aguardando Assinatura' ? 'bg-amber-500/10 text-amber-600 border-amber-500/20' :
+                        'bg-slate-500/10 text-slate-600'
+                      }>
+                        {doc.status}
+                      </Badge>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3 self-end sm:self-auto">
-                    <Badge variant="outline" className="text-xs font-normal">
-                      {doc.tipoAssinaturaExigida}
-                    </Badge>
-                    <Badge className={
-                      doc.status === 'Assinado' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' :
-                      doc.status === 'Aguardando Assinatura' ? 'bg-amber-500/10 text-amber-600 border-amber-500/20' :
-                      'bg-slate-500/10 text-slate-600'
-                    }>
-                      {doc.status}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </CardContent>
         </Card>

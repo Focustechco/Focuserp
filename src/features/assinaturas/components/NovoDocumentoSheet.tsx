@@ -31,9 +31,7 @@ export function NovoDocumentoSheet({ isOpen, onClose, onSubmit }: NovoDocumentoS
   const [moduloOrigem, setModuloOrigem] = useState('Contratos');
 
   // Assinantes
-  const [assinantes, setAssinantes] = useState([
-    { id: '1', nome: 'Adriano Leal', email: 'adriano.leal@focustecnologia.com.br', cpf: '344.592.108-90', papel: 'Assinante' as PapelAssinante },
-  ]);
+  const [assinantes, setAssinantes] = useState<{ id: string; nome: string; email: string; cpf?: string; papel: PapelAssinante }[]>([]);
 
   const [novoNome, setNovoNome] = useState('');
   const [novoEmail, setNovoEmail] = useState('');

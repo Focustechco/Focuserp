@@ -44,34 +44,42 @@ export function CertificadosManager({ certificados }: CertificadosManagerProps) 
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {certificados.map((cert) => (
-            <Card key={cert.id} className="hover:shadow-md transition-all">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <Badge className="bg-cyan-600 text-white text-[10px]">{cert.tipo}</Badge>
-                  <Badge variant="outline" className="text-emerald-600 border-emerald-300 bg-emerald-50 text-[10px]">{cert.status}</Badge>
-                </div>
-                <CardTitle className="text-sm font-bold mt-2">{cert.titular}</CardTitle>
-                <CardDescription className="text-xs font-mono">{cert.cpfCnpj}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-2 text-xs">
-                <div className="flex justify-between border-t pt-2">
-                  <span className="text-muted-foreground">Emissor:</span>
-                  <span className="font-medium text-right">{cert.emissor}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Validade:</span>
-                  <span className="font-medium">{new Date(cert.validade).toLocaleDateString('pt-BR')}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Serial Number:</span>
-                  <span className="font-mono text-[10px]">{cert.serialNumber}</span>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        {certificados.length === 0 ? (
+          <div className="p-12 text-center text-muted-foreground bg-muted/10 rounded-2xl border border-dashed my-4">
+            <Award className="w-12 h-12 text-cyan-500 opacity-40 mx-auto mb-3" />
+            <h4 className="font-bold text-sm text-foreground">Nenhum certificado digital A1 ou A3 importado.</h4>
+            <p className="text-xs mt-1">Importe o arquivo .pfx/.p12 do seu certificado corporativo para assinar documentos com validade ICP-Brasil.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {certificados.map((cert) => (
+              <Card key={cert.id} className="hover:shadow-md transition-all">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <Badge className="bg-cyan-600 text-white text-[10px]">{cert.tipo}</Badge>
+                    <Badge variant="outline" className="text-emerald-600 border-emerald-300 bg-emerald-50 text-[10px]">{cert.status}</Badge>
+                  </div>
+                  <CardTitle className="text-sm font-bold mt-2">{cert.titular}</CardTitle>
+                  <CardDescription className="text-xs font-mono">{cert.cpfCnpj}</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2 text-xs">
+                  <div className="flex justify-between border-t pt-2">
+                    <span className="text-muted-foreground">Emissor:</span>
+                    <span className="font-medium text-right">{cert.emissor}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Validade:</span>
+                    <span className="font-medium">{new Date(cert.validade).toLocaleDateString('pt-BR')}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Serial Number:</span>
+                    <span className="font-mono text-[10px]">{cert.serialNumber}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
 
     </div>
