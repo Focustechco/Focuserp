@@ -66,9 +66,10 @@ export function calculateClienteFinanceiro(
   clienteId: string,
   titulos: TituloReceber[] = [],
   recorrencias: RecorrenciaFinanceira[] = [],
-  contratos: Contrato[] = []
+  contratos: Contrato[] = [],
+  clienteData?: any
 ): ResumoFinanceiroCliente {
-  if (!clienteId) {
+  if (!clienteId && !clienteData) {
     return {
       valorEmAberto: 0,
       totalRecebido: 0,
@@ -80,23 +81,48 @@ export function calculateClienteFinanceiro(
   }
 
   const hoje = new Date().toISOString().split('T')[0];
+  const normalize = (s: any) => String(s || '').toLowerCase().trim().replace(/[^a-z0-9]/g, '');
 
-  // 1. Filtrar títulos pelo clientId
-  const titulosDoCliente = titulos.filter(t => t.clienteId === clienteId);
-  const recorrenciasDoCliente = recorrencias.filter(r => r.clientId === clienteId);
-  const contratosDoCliente = contratos.filter(c => c.clienteId === clienteId);
+  const targetId = clienteId || clienteData?.id || '';
+  const namesToMatch = [
+    normalize(clienteId),
+    normalize(clienteData?.nomeFantasia),
+    normalize(clienteData?.razaoSocial),
+    normalize(clienteData?.codigo),
+    (clienteData?.documento || '').replace(/\D/g, ''),
+  ].filter(Boolean);
+
+  const matchesClient = (item: any) => {
+    if (!item) return false;
+    if (targetId && (item.clienteId === targetId || item.clientId === targetId || item.id === targetId)) return true;
+    if (clienteData?.id && (item.clienteId === clienteData.id || item.clientId === clienteData.id)) return true;
+    if (clienteData?.codigo && (item.clienteId === clienteData.codigo || item.clientId === clienteData.codigo)) return true;
+
+    const itemDoc = (item.documento || item.cnpj || item.cpf || '').replace(/\D/g, '');
+    if (itemDoc && clienteData?.documento && itemDoc === (clienteData.documento || '').replace(/\D/g, '')) return true;
+
+    const itemNome = normalize(item.cliente || item.clienteNome || item.fornecedor || item.fornecedorNome || item.razaoSocial || item.nomeFantasia || item.nome || '');
+    if (itemNome && namesToMatch.some(n => n.length > 2 && (n === itemNome || itemNome.includes(n) || n.includes(itemNome)))) return true;
+
+    return false;
+  };
+
+  // 1. Filtrar títulos, recorrências e contratos
+  const titulosDoCliente = titulos.filter(matchesClient);
+  const recorrenciasDoCliente = recorrencias.filter(matchesClient);
+  const contratosDoCliente = contratos.filter(matchesClient);
 
   // 2. Valor em Aberto: soma de saldo dos títulos não recebidos e não cancelados
   const valorEmAberto = titulosDoCliente.reduce((acc, t) => {
-    if (t.status === 'Recebido' || t.status === 'Cancelado') return acc;
-    const saldo = typeof t.saldo === 'number' ? t.saldo : (t.valorOriginal - (t.valorRecebido || 0));
+    if (t.status === 'Recebido' || t.status === 'Cancelado' || (t as any).status === 'Pago') return acc;
+    const saldo = typeof t.saldo === 'number' ? t.saldo : ((t.valorOriginal || (t as any).valor || 0) - (t.valorRecebido || 0));
     return acc + Math.max(0, saldo);
   }, 0);
 
   // 3. Total Recebido: soma dos valores recebidos
   const totalRecebido = titulosDoCliente.reduce((acc, t) => {
-    if (t.status === 'Recebido') {
-      return acc + (t.valorRecebido > 0 ? t.valorRecebido : t.valorOriginal);
+    if (t.status === 'Recebido' || (t as any).status === 'Pago') {
+      return acc + (t.valorRecebido > 0 ? t.valorRecebido : (t.valorOriginal || (t as any).valor || 0));
     }
     return acc + (t.valorRecebido || 0);
   }, 0);
@@ -110,16 +136,16 @@ export function calculateClienteFinanceiro(
       return acc + getValorMensalEquivalente(r.valor, r.frequencia);
     }, 0);
   } else {
-    const contratoAtivo = contratosDoCliente.find(c => c.status === 'Vigente' || c.status === 'Assinado');
-    if (contratoAtivo && contratoAtivo.valorMensalidade > 0) {
-      mensalidade = Number(contratoAtivo.valorMensalidade);
+    const contratoAtivo = contratosDoCliente.find(c => c.status === 'Vigente' || c.status === 'Assinado' || (c as any).status === 'Ativo');
+    if (contratoAtivo) {
+      mensalidade = Number(contratoAtivo.valorMensalidade || (contratoAtivo as any).valorMensal || (contratoAtivo as any).valor_mensal || 0);
     }
   }
 
   // 5. Títulos Atrasados: vencimento < hoje e status aberto
   const titulosAtrasados = titulosDoCliente.filter(t => {
-    if (t.status === 'Recebido' || t.status === 'Cancelado') return false;
-    return t.dataVencimento < hoje;
+    if (t.status === 'Recebido' || t.status === 'Cancelado' || (t as any).status === 'Pago') return false;
+    return t.dataVencimento && t.dataVencimento < hoje;
   }).length;
 
   return {

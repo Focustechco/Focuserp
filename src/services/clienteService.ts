@@ -316,6 +316,7 @@ export const clienteService = {
     if (deletedClient) {
       if (deletedClient.nomeFantasia) clientNames.add(deletedClient.nomeFantasia.trim().toLowerCase());
       if (deletedClient.razaoSocial) clientNames.add(deletedClient.razaoSocial.trim().toLowerCase());
+      if (deletedClient.codigo) clientNames.add(deletedClient.codigo.trim().toLowerCase());
     }
 
     localMap.delete(id);
@@ -358,27 +359,78 @@ export const clienteService = {
 
     // 3. Excluir títulos em aberto / programados no Contas a Receber
     try {
-      const rawCR = safeGetItem('focus_contas_receber');
-      if (rawCR) {
-        const titulos = JSON.parse(rawCR);
-        if (Array.isArray(titulos)) {
-          const filteredCR = titulos.filter((t: any) => {
-            if (!t) return false;
-            if (t.clienteId === id || t.clientId === id) return false;
-            if (t.cliente && clientNames.has(t.cliente.trim().toLowerCase())) return false;
-            return true;
-          });
-          safeSetItem('focus_contas_receber', JSON.stringify(filteredCR));
+      ['focus_contas_receber', 'focus_app_focus_contas_receber', 'focus_app_contas_receber', 'focus_receivables'].forEach(key => {
+        const rawCR = safeGetItem(key);
+        if (rawCR) {
+          const titulos = JSON.parse(rawCR);
+          if (Array.isArray(titulos)) {
+            const filteredCR = titulos.filter((t: any) => {
+              if (!t) return false;
+              if (t.clienteId === id || t.clientId === id) return false;
+              if (t.cliente && clientNames.has(t.cliente.trim().toLowerCase())) return false;
+              if (t.clienteNome && clientNames.has(t.clienteNome.trim().toLowerCase())) return false;
+              return true;
+            });
+            safeSetItem(key, JSON.stringify(filteredCR));
+          }
         }
-      }
+      });
     } catch {}
 
-    // 4. Excluir do Supabase em cascata
+    // 4. Excluir contas e títulos vinculados no Contas a Pagar
+    try {
+      ['focus_contas_pagar', 'focus_app_focus_contas_pagar', 'focus_app_contas_pagar', 'focus_payables'].forEach(key => {
+        const rawCP = safeGetItem(key);
+        if (rawCP) {
+          const titulos = JSON.parse(rawCP);
+          if (Array.isArray(titulos)) {
+            const filteredCP = titulos.filter((t: any) => {
+              if (!t) return false;
+              if (t.clienteId === id || t.fornecedorId === id) return false;
+              if (t.fornecedor && clientNames.has(t.fornecedor.trim().toLowerCase())) return false;
+              if (t.fornecedorNome && clientNames.has(t.fornecedorNome.trim().toLowerCase())) return false;
+              if (t.descricao && Array.from(clientNames).some(cn => cn.length > 3 && t.descricao.toLowerCase().includes(cn))) return false;
+              return true;
+            });
+            safeSetItem(key, JSON.stringify(filteredCP));
+          }
+        }
+      });
+    } catch {}
+
+    // 5. Excluir Projetos vinculados
+    try {
+      ['focus_projetos', 'focus_app_focus_projetos'].forEach(key => {
+        const rawP = safeGetItem(key);
+        if (rawP) {
+          const projetos = JSON.parse(rawP);
+          if (Array.isArray(projetos)) {
+            const filteredP = projetos.filter((p: any) => {
+              if (!p) return false;
+              if (p.clienteId === id || p.idCliente === id) return false;
+              if (p.cliente && clientNames.has(p.cliente.trim().toLowerCase())) return false;
+              return true;
+            });
+            safeSetItem(key, JSON.stringify(filteredP));
+          }
+        }
+      });
+    } catch {}
+
+    // 6. Excluir do Supabase em cascata
     try { await supabase.from('recorrencias').delete().eq('client_id', id); } catch {}
     try { await supabase.from('recorrencias').delete().eq('cliente_id', id); } catch {}
     try { await supabase.from('contas_receber').delete().eq('cliente_id', id); } catch {}
+    try { await supabase.from('contas_pagar').delete().eq('fornecedor_id', id); } catch {}
     try { await supabase.from('contratos').delete().eq('cliente_id', id); } catch {}
     try { await supabase.from('projetos').delete().eq('cliente_id', id); } catch {}
+
+    for (const cName of clientNames) {
+      if (cName.length > 3) {
+        try { await supabase.from('contas_receber').delete().ilike('cliente_nome', `%${cName}%`); } catch {}
+        try { await supabase.from('contas_pagar').delete().ilike('fornecedor_nome', `%${cName}%`); } catch {}
+      }
+    }
 
     try {
       const { error: err1 } = await supabase.from('clients').delete().eq('id', id);

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetFooter } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,7 +7,7 @@ import {
   Building2, User, Mail, Phone, MapPin, DollarSign, FileText, 
   Calendar, RefreshCw, CheckCircle2, Clock, AlertTriangle, ShieldCheck, 
   Tag, Info, ExternalLink, Download, Eye, FolderOpen, Briefcase, 
-  TrendingUp, MessageSquare, Edit3, Globe, Check
+  MessageSquare, Edit3, Globe, Check, ArrowUpRight, ArrowDownRight, Upload, Plus
 } from 'lucide-react';
 import { Cliente } from '../types';
 import { useLocalStorageState } from '@/hooks/useDataStore';
@@ -18,9 +18,9 @@ import { calculateClienteFinanceiro, generateRecorrenciaDates } from '@/features
 import { dmsService } from '@/services/dmsService';
 import { DocumentoDMS } from '@/features/documentos/types';
 import { DmsPreviewModal } from '@/features/documentos/components/DmsPreviewModal';
-import { OportunidadeCrm } from '@/features/crm/types';
-import { INITIAL_OPORTUNIDADES } from '@/features/crm/data/initialData';
 import { Link } from '@tanstack/react-router';
+import { formatDateBrasilia, formatDateTimeBrasilia } from '@/lib/dateUtils';
+import { toast } from 'sonner';
 
 interface ClientePerfilSheetProps {
   cliente: Cliente | null;
@@ -41,8 +41,6 @@ export interface ItemTituloCronograma {
   cicloInfo?: string;
 }
 
-import { formatDateBrasilia, formatDateTimeBrasilia } from '@/lib/dateUtils';
-
 function formatCurrency(val: any): string {
   const num = typeof val === 'number' ? val : parseFloat(String(val || 0)) || 0;
   return num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -58,27 +56,74 @@ function formatDateTimeSafe(dateVal: any): string {
 
 export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: ClientePerfilSheetProps) {
   const { data: titulos = [] } = useLocalStorageState<TituloReceber>('focus_contas_receber');
+  const { data: contasPagar = [] } = useLocalStorageState<any>('focus_contas_pagar');
   const { data: recorrencias = [] } = useLocalStorageState<RecorrenciaFinanceira>('focus_recorrencias');
   const { data: contratos = [] } = useLocalStorageState<Contrato>('focus_contratos');
-  const { data: oportunidades = [] } = useLocalStorageState<OportunidadeCrm>('focus_crm_oportunidades', INITIAL_OPORTUNIDADES);
   const { data: projetos = [] } = useLocalStorageState<any>('focus_projetos', []);
+  const { data: docsState = [] } = useLocalStorageState<DocumentoDMS>('focus_dms_documentos');
 
   const [selectedDocPreview, setSelectedDocPreview] = useState<DocumentoDMS | null>(null);
+  const [financeiroSubTab, setFinanceiroSubTab] = useState<'entradas' | 'saidas'>('entradas');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const nomeOficial = cliente?.nomeFantasia || cliente?.razaoSocial || 'Cliente';
-  const financeiro = calculateClienteFinanceiro(cliente?.id || '', titulos, recorrencias, contratos);
-  const recorrenciaAtiva = (financeiro?.recorrenciasDoCliente || []).find(r => r.status === 'Ativa');
   const contatos = Array.isArray(cliente?.contatos) ? cliente.contatos : [];
 
-  const safeNome = String(nomeOficial || '').toLowerCase();
+  const matchesClient = useMemo(() => {
+    if (!cliente) return () => false;
+    const normalize = (s: any) => String(s || '').toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+    const cliId = cliente.id || '';
+    const cliCodigo = cliente.codigo || '';
+    const cliRazao = normalize(cliente.razaoSocial);
+    const cliFantasia = normalize(cliente.nomeFantasia);
+    const cliDoc = (cliente.documento || '').replace(/\D/g, '');
 
-  // Monta a lista completa de títulos recebidos, pendentes e meses futuros da recorrência
-  const cronogramaRecebimentos = React.useMemo(() => {
+    return (item: any) => {
+      if (!item) return false;
+      if (item.clienteId && (item.clienteId === cliId || item.clienteId === cliCodigo)) return true;
+      if (item.clientId && (item.clientId === cliId || item.clientId === cliCodigo)) return true;
+      if (item.fornecedorId && (item.fornecedorId === cliId || item.fornecedorId === cliCodigo)) return true;
+
+      const itemDoc = (item.documento || item.cnpj || item.cpf || '').replace(/\D/g, '');
+      if (itemDoc && cliDoc && itemDoc === cliDoc) return true;
+
+      const itemNome = normalize(item.cliente || item.clienteNome || item.fornecedor || item.fornecedorNome || item.razaoSocial || item.nomeFantasia || item.nome || '');
+      if (itemNome && (itemNome === cliRazao || itemNome === cliFantasia)) return true;
+      if (cliFantasia && itemNome && (itemNome.includes(cliFantasia) || cliFantasia.includes(itemNome))) return true;
+      if (cliRazao && itemNome && (itemNome.includes(cliRazao) || cliRazao.includes(itemNome))) return true;
+
+      const itemDesc = normalize(item.descricao || '');
+      if (itemDesc && cliFantasia && cliFantasia.length > 3 && itemDesc.includes(cliFantasia)) return true;
+      if (itemDesc && cliRazao && cliRazao.length > 3 && itemDesc.includes(cliRazao)) return true;
+
+      return false;
+    };
+  }, [cliente]);
+
+  const financeiro = useMemo(() => {
+    return calculateClienteFinanceiro(cliente?.id || '', titulos, recorrencias, contratos, cliente);
+  }, [cliente, titulos, recorrencias, contratos]);
+
+  const despesasDoCliente = useMemo(() => {
+    if (!cliente) return [];
+    return (contasPagar || []).filter(matchesClient);
+  }, [cliente, contasPagar, matchesClient]);
+
+  const totalDespesas = useMemo(() => {
+    return despesasDoCliente.reduce((acc, p) => {
+      const v = Number(p.valorOriginal ?? p.valor ?? p.valorPago ?? 0);
+      return acc + (isNaN(v) ? 0 : v);
+    }, 0);
+  }, [despesasDoCliente]);
+
+  const recorrenciaAtiva = (financeiro?.recorrenciasDoCliente || []).find(r => r.status === 'Ativa');
+
+  const cronogramaRecebimentos = useMemo(() => {
     if (!cliente) return [];
     const titulosEfetivos: ItemTituloCronograma[] = (financeiro?.titulosDoCliente || []).map(t => ({
       id: t.id,
-      numero: t.numero,
-      descricao: t.descricao,
+      numero: t.numero || `REC-${t.id.slice(0, 4).toUpperCase()}`,
+      descricao: t.descricao || 'Recebimento de Cliente',
       dataEmissao: t.dataEmissao,
       dataVencimento: t.dataVencimento,
       valor: t.valorOriginal || (t as any).valor || 0,
@@ -90,21 +135,15 @@ export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: Clie
     const hoje = new Date().toISOString().split('T')[0];
 
     const datasTitulosExistentes = new Set(
-      titulosEfetivos.map(t => {
-        const v = t.dataVencimento || '';
-        return v.substring(0, 7); // 'YYYY-MM'
-      })
+      titulosEfetivos.map(t => (t.dataVencimento || '').substring(0, 7))
     );
 
     const titulosFuturos: ItemTituloCronograma[] = [];
-
     recorrenciasCliente.forEach(rec => {
       const qtdCiclos = rec.quantidade && rec.quantidade > 0 ? rec.quantidade : 12;
       const datas = generateRecorrenciaDates(rec, qtdCiclos);
-
       datas.forEach((dataVencStr, idx) => {
         const mesAno = dataVencStr.substring(0, 7);
-        // Se já existe um título para este mês/ano, não duplica como futuro
         if (!datasTitulosExistentes.has(mesAno) && dataVencStr >= hoje) {
           titulosFuturos.push({
             id: `proj-${rec.id}-${dataVencStr}`,
@@ -122,55 +161,72 @@ export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: Clie
     });
 
     const listaUnificada = [...titulosEfetivos, ...titulosFuturos];
-    // Ordenar por data de vencimento crescente
     listaUnificada.sort((a, b) => (a.dataVencimento || '').localeCompare(b.dataVencimento || ''));
 
     return listaUnificada;
   }, [cliente, financeiro]);
 
+  const contratosDoCliente = useMemo(() => {
+    if (!cliente) return [];
+    return (contratos || []).filter(matchesClient);
+  }, [cliente, contratos, matchesClient]);
+
+  const documentosDoCliente = useMemo(() => {
+    if (!cliente) return [];
+    const todosDocumentos = dmsService.getDocumentos() || [];
+    const docsFromClient: any[] = (cliente as any)?.documentos || (cliente as any)?.anexos || [];
+    
+    const mapDocs = new Map<string, DocumentoDMS>();
+    docsFromClient.forEach((d: any) => { if (d?.id) mapDocs.set(d.id, d); });
+    todosDocumentos.forEach((d: any) => { 
+      if (d && (matchesClient(d) || d.clienteId === cliente.id || (Array.isArray(d.tags) && d.tags.includes(cliente.id)))) {
+        mapDocs.set(d.id, d); 
+      }
+    });
+    docsState.forEach((d: any) => {
+      if (d && (matchesClient(d) || d.clienteId === cliente.id || (Array.isArray(d.tags) && d.tags.includes(cliente.id)))) {
+        mapDocs.set(d.id, d);
+      }
+    });
+
+    return Array.from(mapDocs.values());
+  }, [cliente, docsState, matchesClient]);
+
+  const projetosDoCliente = useMemo(() => {
+    if (!cliente) return [];
+    return (projetos || []).filter(matchesClient);
+  }, [cliente, projetos, matchesClient]);
+
+  const handleUploadDocumento = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !cliente) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const base64 = reader.result as string;
+        dmsService.uploadFileFromModule({
+          nome: file.name,
+          tamanho: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
+          tamanhoBytes: file.size,
+          moduloOrigem: 'Clientes',
+          clienteId: cliente.id,
+          clienteNome: nomeOficial,
+          categoria: 'Documento Anexo',
+          urlConteudo: base64,
+          tags: ['Cliente', nomeOficial, cliente.id],
+          responsavelUpload: 'Módulo Clientes',
+        });
+        toast.success(`Documento "${file.name}" anexado e sincronizado no DMS com sucesso!`);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      } catch (err: any) {
+        toast.error(`Erro ao anexar arquivo: ${err?.message || 'Falha no upload'}`);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   if (!cliente) return null;
-
-  // 1. Documentos vinculados estritamente a este cliente (Isolamento por ID)
-  const todosDocumentos = dmsService.getDocumentos() || [];
-  const docsFromClient: any[] = (cliente as any)?.documentos || [];
-  const docsDMS = todosDocumentos.filter(d => {
-    if (!d) return false;
-    if (d.clienteId === cliente.id) return true;
-    if (Array.isArray(d.tags) && d.tags.includes(cliente.id)) return true;
-    return false;
-  });
-
-  const mapDocs = new Map<string, any>();
-  docsFromClient.forEach(d => { if (d?.id) mapDocs.set(d.id, d); });
-  docsDMS.forEach(d => { if (d?.id && !mapDocs.has(d.id)) mapDocs.set(d.id, d); });
-  const documentosDoCliente = Array.from(mapDocs.values());
-
-  // 2. Contratos vinculados
-  const contratosDoCliente = (contratos || []).filter(c => {
-    if (!c) return false;
-    if (c.clienteId === cliente.id) return true;
-    if (c.clienteNome && String(c.clienteNome).toLowerCase() === safeNome) return true;
-    if (c.nome && String(c.nome).toLowerCase().includes(safeNome)) return true;
-    return false;
-  });
-
-  // 3. Projetos vinculados
-  const projetosDoCliente = (projetos || []).filter((p: any) => {
-    if (!p) return false;
-    if (p.clienteId === cliente.id) return true;
-    if (p.cliente && String(p.cliente).toLowerCase() === safeNome) return true;
-    if (p.clienteNome && String(p.clienteNome).toLowerCase() === safeNome) return true;
-    return false;
-  });
-
-  // 4. Oportunidades / CRM Deals
-  const oportunidadesDoCliente = (oportunidades || []).filter(op => {
-    if (!op) return false;
-    if (op.clienteId === cliente.id) return true;
-    if (op.empresa && String(op.empresa).toLowerCase() === safeNome) return true;
-    if (op.titulo && String(op.titulo).toLowerCase().includes(safeNome)) return true;
-    return false;
-  });
 
   const dataCadastroFormatada = formatDateTimeSafe(cliente.dataCadastro);
   const ultimaAtualizacaoFormatada = formatDateTimeSafe(cliente.ultimaAtualizacao || cliente.dataCadastro);
@@ -190,7 +246,6 @@ export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: Clie
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="sm:max-w-4xl overflow-y-auto w-full">
-        {/* Header do Perfil 360 */}
         <SheetHeader className="pb-4 border-b space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
             <div>
@@ -224,7 +279,6 @@ export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: Clie
               <SheetDescription className="text-xs text-muted-foreground mt-0.5">
                 {cliente.tipo} • {cliente.documento} 
                 {cliente.inscricaoEstadual && cliente.inscricaoEstadual !== 'Isento' ? ` • IE: ${cliente.inscricaoEstadual}` : ''}
-                {cliente.inscricaoMunicipal ? ` • IM: ${cliente.inscricaoMunicipal}` : ''}
               </SheetDescription>
             </div>
 
@@ -242,7 +296,6 @@ export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: Clie
             )}
           </div>
 
-          {/* Banner de Auditoria de Criação */}
           <div className="bg-muted/30 rounded-lg p-3 text-xs flex flex-wrap items-center justify-between gap-2 border">
             <div className="flex items-center gap-1.5 text-muted-foreground">
               <Calendar className="w-3.5 h-3.5 text-primary" />
@@ -255,14 +308,15 @@ export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: Clie
           </div>
         </SheetHeader>
 
-        {/* Conteúdo em Abas Integradas 360 */}
         <Tabs defaultValue="dados" className="w-full mt-4">
           <div className="overflow-x-auto pb-2 scrollbar-hide">
             <TabsList className="w-max inline-flex p-1 h-auto gap-1">
               <TabsTrigger value="dados" className="text-xs">Dados Cadastrais</TabsTrigger>
               <TabsTrigger value="endereco" className="text-xs">Endereço</TabsTrigger>
               <TabsTrigger value="contatos" className="text-xs">Contatos ({contatos.length})</TabsTrigger>
-              <TabsTrigger value="financeiro" className="text-xs">Financeiro ({financeiro?.titulosDoCliente?.length || 0})</TabsTrigger>
+              <TabsTrigger value="financeiro" className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                Financeiro ({cronogramaRecebimentos.length + despesasDoCliente.length})
+              </TabsTrigger>
               <TabsTrigger value="contratos" className="text-xs font-semibold text-primary">
                 Contratos ({contratosDoCliente.length})
               </TabsTrigger>
@@ -270,11 +324,9 @@ export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: Clie
                 Documentos DMS ({documentosDoCliente.length})
               </TabsTrigger>
               <TabsTrigger value="projetos" className="text-xs">Projetos ({projetosDoCliente.length})</TabsTrigger>
-              <TabsTrigger value="crm" className="text-xs">CRM & Negócios ({oportunidadesDoCliente.length})</TabsTrigger>
             </TabsList>
           </div>
 
-          {/* 1. DADOS CADASTRAIS */}
           <TabsContent value="dados" className="space-y-4 mt-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
               <div className="p-3.5 rounded-lg border bg-card">
@@ -478,32 +530,40 @@ export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: Clie
             )}
           </TabsContent>
 
-          {/* 4. FINANCEIRO & RECORRÊNCIA INTEGRADA */}
+          {/* 4. FINANCEIRO & RECORRÊNCIA INTEGRADA (ENTRADAS E SAÍDAS) */}
           <TabsContent value="financeiro" className="space-y-4 mt-3">
-            {/* Cards KPI */}
+            {/* Cards KPI Financeiros Completos */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               <div className="p-3.5 rounded-lg border bg-card">
-                <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Valor em Aberto</div>
+                <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1">
+                  <ArrowDownRight className="w-3 h-3 text-rose-500" /> A Receber (Aberto)
+                </div>
                 <div className="font-bold text-base text-rose-600 dark:text-rose-400 mt-1">
                   R$ {formatCurrency(financeiro?.valorEmAberto)}
                 </div>
               </div>
               <div className="p-3.5 rounded-lg border bg-card">
-                <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Total Recebido</div>
+                <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1">
+                  <ArrowUpRight className="w-3 h-3 text-emerald-500" /> Total Recebido
+                </div>
                 <div className="font-bold text-base text-emerald-600 dark:text-emerald-400 mt-1">
                   R$ {formatCurrency(financeiro?.totalRecebido)}
                 </div>
               </div>
               <div className="p-3.5 rounded-lg border bg-card">
-                <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Mensalidade (MRR)</div>
-                <div className="font-bold text-base text-foreground mt-1">
-                  R$ {formatCurrency(financeiro?.mensalidade)}
+                <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1">
+                  <ArrowDownRight className="w-3 h-3 text-amber-500" /> Total Despesas / Saídas
+                </div>
+                <div className="font-bold text-base text-amber-600 dark:text-amber-400 mt-1">
+                  R$ {formatCurrency(totalDespesas)}
                 </div>
               </div>
               <div className="p-3.5 rounded-lg border bg-card">
-                <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Títulos Atrasados</div>
-                <div className={`font-bold text-base mt-1 ${(financeiro?.titulosAtrasados || 0) > 0 ? 'text-amber-600' : 'text-muted-foreground'}`}>
-                  {financeiro?.titulosAtrasados || 0}
+                <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider flex items-center gap-1">
+                  <RefreshCw className="w-3 h-3 text-primary" /> Mensalidade (MRR)
+                </div>
+                <div className="font-bold text-base text-foreground mt-1">
+                  R$ {formatCurrency(financeiro?.mensalidade)}
                 </div>
               </div>
             </div>
@@ -538,67 +598,145 @@ export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: Clie
               </div>
             )}
 
-            {/* Títulos a Receber e Cronograma de Meses da Recorrência */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Títulos a Receber & Cronograma Recorrente ({cronogramaRecebimentos.length})
-                </span>
-                <Link to="/contas-a-receber" className="text-xs text-primary hover:underline flex items-center gap-1">
-                  Ver no Contas a Receber <ExternalLink className="w-3 h-3" />
-                </Link>
+            {/* Alternador de Visão: Entradas vs Saídas */}
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-2">
+                <div className="flex items-center gap-1">
+                  <Button 
+                    variant={financeiroSubTab === 'entradas' ? 'default' : 'outline'} 
+                    size="sm" 
+                    onClick={() => setFinanceiroSubTab('entradas')}
+                    className="h-7 text-xs gap-1.5"
+                  >
+                    <ArrowUpRight className="w-3.5 h-3.5 text-emerald-500" />
+                    Entradas & Títulos ({cronogramaRecebimentos.length})
+                  </Button>
+                  <Button 
+                    variant={financeiroSubTab === 'saidas' ? 'default' : 'outline'} 
+                    size="sm" 
+                    onClick={() => setFinanceiroSubTab('saidas')}
+                    className="h-7 text-xs gap-1.5"
+                  >
+                    <ArrowDownRight className="w-3.5 h-3.5 text-amber-500" />
+                    Saídas & Despesas ({despesasDoCliente.length})
+                  </Button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Link to="/contas-a-receber" className="text-xs text-primary hover:underline flex items-center gap-1">
+                    Contas a Receber <ExternalLink className="w-3 h-3" />
+                  </Link>
+                  <span className="text-muted-foreground text-xs">•</span>
+                  <Link to="/contas-a-pagar" className="text-xs text-primary hover:underline flex items-center gap-1">
+                    Contas a Pagar <ExternalLink className="w-3 h-3" />
+                  </Link>
+                </div>
               </div>
 
-              {cronogramaRecebimentos.length === 0 ? (
-                <div className="p-8 text-center text-xs text-muted-foreground border border-dashed rounded-lg">
-                  <DollarSign className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                  Nenhum título ou recebimento programado para este cliente.
-                </div>
-              ) : (
-                <div className="divide-y border rounded-lg max-h-80 overflow-y-auto bg-card">
-                  {cronogramaRecebimentos.map(titulo => (
-                    <div key={titulo.id} className="p-3 flex items-center justify-between text-xs hover:bg-muted/30 transition-colors">
-                      <div className="space-y-0.5">
-                        <div className="font-medium text-foreground flex items-center gap-2">
-                          <span className={`font-mono font-bold ${titulo.isRecorrenciaFutura ? 'text-blue-600 dark:text-blue-400' : 'text-primary'}`}>
-                            {titulo.numero}
-                          </span>
-                          <span>• {titulo.descricao}</span>
-                          {titulo.cicloInfo && (
-                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-normal">
-                              {titulo.cicloInfo}
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="text-[11px] text-muted-foreground">
-                          {titulo.dataEmissao && `Emissão: ${formatDateSafe(titulo.dataEmissao)} • `}
-                          Vencimento: <strong className="text-foreground">{formatDateSafe(titulo.dataVencimento)}</strong>
-                          {titulo.isRecorrenciaFutura && (
-                            <span className="text-blue-600 dark:text-blue-400 ml-2 font-medium">• Lançamento Futuro Programado</span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-bold text-sm text-foreground">
-                          R$ {formatCurrency(titulo.valor)}
-                        </div>
-                        <Badge 
-                          variant="outline" 
-                          className={`text-[10px] mt-0.5 ${
-                            titulo.status === 'Recebido' || (titulo as any).status === 'Pago'
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300' 
-                              : titulo.status === 'Atrasado'
-                              ? 'bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950/40 dark:text-rose-300'
-                              : titulo.status === 'Programado'
-                              ? 'bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950/40 dark:text-blue-300'
-                              : 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300'
-                          }`}
-                        >
-                          {titulo.status}
-                        </Badge>
-                      </div>
+              {/* Sub-Aba de ENTRADAS */}
+              {financeiroSubTab === 'entradas' && (
+                <div>
+                  {cronogramaRecebimentos.length === 0 ? (
+                    <div className="p-8 text-center text-xs text-muted-foreground border border-dashed rounded-lg">
+                      <DollarSign className="w-8 h-8 mx-auto mb-2 opacity-40 text-emerald-500" />
+                      Nenhum título ou recebimento programado para este cliente.
                     </div>
-                  ))}
+                  ) : (
+                    <div className="divide-y border rounded-lg max-h-80 overflow-y-auto bg-card">
+                      {cronogramaRecebimentos.map(titulo => (
+                        <div key={titulo.id} className="p-3 flex items-center justify-between text-xs hover:bg-muted/30 transition-colors">
+                          <div className="space-y-0.5">
+                            <div className="font-medium text-foreground flex items-center gap-2">
+                              <span className={`font-mono font-bold ${titulo.isRecorrenciaFutura ? 'text-blue-600 dark:text-blue-400' : 'text-primary'}`}>
+                                {titulo.numero}
+                              </span>
+                              <span>• {titulo.descricao}</span>
+                              {titulo.cicloInfo && (
+                                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-normal">
+                                  {titulo.cicloInfo}
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="text-[11px] text-muted-foreground">
+                              {titulo.dataEmissao && `Emissão: ${formatDateSafe(titulo.dataEmissao)} • `}
+                              Vencimento: <strong className="text-foreground">{formatDateSafe(titulo.dataVencimento)}</strong>
+                              {titulo.isRecorrenciaFutura && (
+                                <span className="text-blue-600 dark:text-blue-400 ml-2 font-medium">• Lançamento Futuro Programado</span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-bold text-sm text-foreground">
+                              R$ {formatCurrency(titulo.valor)}
+                            </div>
+                            <Badge 
+                              variant="outline" 
+                              className={`text-[10px] mt-0.5 ${
+                                titulo.status === 'Recebido' || (titulo as any).status === 'Pago'
+                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300' 
+                                  : titulo.status === 'Atrasado'
+                                  ? 'bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950/40 dark:text-rose-300'
+                                  : titulo.status === 'Programado'
+                                  ? 'bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950/40 dark:text-blue-300'
+                                  : 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300'
+                              }`}
+                            >
+                              {titulo.status}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Sub-Aba de SAÍDAS */}
+              {financeiroSubTab === 'saidas' && (
+                <div>
+                  {despesasDoCliente.length === 0 ? (
+                    <div className="p-8 text-center text-xs text-muted-foreground border border-dashed rounded-lg">
+                      <DollarSign className="w-8 h-8 mx-auto mb-2 opacity-40 text-amber-500" />
+                      Nenhuma saída ou despesa vinculada diretamente a este cliente.
+                    </div>
+                  ) : (
+                    <div className="divide-y border rounded-lg max-h-80 overflow-y-auto bg-card">
+                      {despesasDoCliente.map((despesa: any) => (
+                        <div key={despesa.id} className="p-3 flex items-center justify-between text-xs hover:bg-muted/30 transition-colors">
+                          <div className="space-y-0.5">
+                            <div className="font-medium text-foreground flex items-center gap-2">
+                              <span className="font-mono font-bold text-amber-600 dark:text-amber-400">
+                                {despesa.numero || `PAG-${(despesa.id || '').slice(0, 4).toUpperCase()}`}
+                              </span>
+                              <span>• {despesa.descricao || 'Despesa Operacional'}</span>
+                            </div>
+                            <div className="text-[11px] text-muted-foreground">
+                              {despesa.categoria && <Badge variant="secondary" className="text-[10px] mr-1.5 px-1 py-0">{despesa.categoria}</Badge>}
+                              Vencimento: <strong className="text-foreground">{formatDateSafe(despesa.dataVencimento || despesa.data_vencimento)}</strong>
+                              {despesa.dataPagamento && ` • Pago em: ${formatDateSafe(despesa.dataPagamento)}`}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-bold text-sm text-foreground">
+                              R$ {formatCurrency(despesa.valorOriginal || despesa.valor || despesa.valorPago)}
+                            </div>
+                            <Badge 
+                              variant="outline" 
+                              className={`text-[10px] mt-0.5 ${
+                                despesa.status === 'Pago' || despesa.status === 'Liquidado'
+                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300'
+                                  : despesa.status === 'Atrasado'
+                                  ? 'bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950/40 dark:text-rose-300'
+                                  : 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300'
+                              }`}
+                            >
+                              {despesa.status || 'Pendente'}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -626,18 +764,18 @@ export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: Clie
                   <div key={contrato.id} className="p-3.5 rounded-lg border bg-card flex items-center justify-between text-xs hover:border-primary/50 transition-colors">
                     <div className="space-y-1">
                       <div className="font-semibold text-foreground flex items-center gap-2">
-                        <span>{contrato.nome}</span>
-                        <Badge variant="outline" className="text-[10px] font-mono">{contrato.numeroContrato || contrato.codigo}</Badge>
+                        <span>{contrato.nome || contrato.objetoContrato || 'Contrato de Prestação de Serviços'}</span>
+                        <Badge variant="outline" className="text-[10px] font-mono">{contrato.numeroContrato || contrato.codigo || 'CTR'}</Badge>
                       </div>
                       <p className="text-muted-foreground text-[11px]">
-                        {contrato.tipoServico} • Vigência: {formatDateSafe(contrato.dataInicio)} até {contrato.dataFim ? formatDateSafe(contrato.dataFim) : 'Indeterminado'}
+                        {contrato.tipoServico || contrato.tipoContrato || 'Serviços'} • Vigência: {formatDateSafe(contrato.dataInicio)} até {contrato.dataFim ? formatDateSafe(contrato.dataFim) : 'Indeterminado'}
                       </p>
                       <p className="text-muted-foreground text-[11px]">
-                        Valor Total: <strong>R$ {formatCurrency(contrato.valorTotal || (contrato as any).valor)}</strong> • Mensal: R$ {formatCurrency(contrato.valorMensal || (contrato as any).valorMensalidade)}
+                        Valor Total: <strong>R$ {formatCurrency(contrato.valorTotal || (contrato as any).valor)}</strong> • Mensal: R$ {formatCurrency(contrato.valorMensal || (contrato as any).valorMensalidade || (contrato as any).valor_mensal)}
                       </p>
                     </div>
-                    <Badge className={contrato.status === 'Ativo' ? 'bg-emerald-600' : 'bg-slate-500'}>
-                      {contrato.status}
+                    <Badge className={contrato.status === 'Ativo' || contrato.status === 'Vigente' ? 'bg-emerald-600' : 'bg-slate-500'}>
+                      {contrato.status || 'Ativo'}
                     </Badge>
                   </div>
                 ))}
@@ -647,22 +785,45 @@ export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: Clie
 
           {/* 6. DOCUMENTOS DMS */}
           <TabsContent value="documentos" className="space-y-3 mt-3">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Repositório de Documentos no DMS ({documentosDoCliente.length})
                 </span>
                 <p className="text-[11px] text-muted-foreground">Pasta central: <code>/Clientes/{nomeOficial}</code></p>
               </div>
-              <Link to="/documentos" className="text-xs text-orange-600 hover:underline flex items-center gap-1 font-medium">
-                Explorador DMS <ExternalLink className="w-3 h-3" />
-              </Link>
+              <div className="flex items-center gap-2">
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  onChange={handleUploadDocumento} 
+                  className="hidden" 
+                />
+                <Button 
+                  size="sm" 
+                  onClick={() => fileInputRef.current?.click()} 
+                  className="h-7 text-xs gap-1.5 bg-orange-600 hover:bg-orange-700 text-white"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Anexar Documento
+                </Button>
+                <Link to="/documentos" className="text-xs text-orange-600 hover:underline flex items-center gap-1 font-medium ml-1">
+                  Explorador DMS <ExternalLink className="w-3 h-3" />
+                </Link>
+              </div>
             </div>
 
             {documentosDoCliente.length === 0 ? (
               <div className="p-8 text-center text-xs text-muted-foreground border border-dashed rounded-lg">
                 <FolderOpen className="w-8 h-8 mx-auto mb-2 opacity-40 text-orange-500" />
-                Nenhum documento anexado ainda para este cliente.
+                <p>Nenhum documento anexado ainda para este cliente.</p>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={() => fileInputRef.current?.click()} 
+                  className="mt-3 text-xs gap-1.5"
+                >
+                  <Upload className="w-3.5 h-3.5 text-orange-600" /> Fazer Upload de Documento
+                </Button>
               </div>
             ) : (
               <div className="space-y-2">
@@ -735,41 +896,6 @@ export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: Clie
                     </div>
                     <Badge variant="outline" className="text-xs">
                       {proj.status || 'Em Andamento'}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            )}
-          </TabsContent>
-
-          {/* 8. CRM & NEGÓCIOS */}
-          <TabsContent value="crm" className="space-y-3 mt-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Oportunidades no Pipeline CRM ({oportunidadesDoCliente.length})
-              </span>
-              <Link to="/crm" className="text-xs text-primary hover:underline flex items-center gap-1">
-                Abrir Funil CRM <ExternalLink className="w-3 h-3" />
-              </Link>
-            </div>
-
-            {oportunidadesDoCliente.length === 0 ? (
-              <div className="p-8 text-center text-xs text-muted-foreground border border-dashed rounded-lg">
-                <TrendingUp className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                Nenhuma oportunidade aberta no CRM para este cliente.
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {oportunidadesDoCliente.map(op => (
-                  <div key={op.id} className="p-3.5 rounded-lg border bg-card flex items-center justify-between text-xs">
-                    <div className="space-y-1">
-                      <div className="font-semibold text-foreground">{op.titulo}</div>
-                      <p className="text-[11px] text-muted-foreground">
-                        Valor Estimado: <strong className="text-foreground">R$ {formatCurrency(op.valor)}</strong> • Probabilidade: {op.probabilidade || 0}%
-                      </p>
-                    </div>
-                    <Badge variant="secondary" className="text-xs">
-                      {op.etapa}
                     </Badge>
                   </div>
                 ))}
