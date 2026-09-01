@@ -1,8 +1,9 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   ArrowUpRight,
   ArrowDownRight,
@@ -16,6 +17,7 @@ import {
   Target,
   Download,
   Plus,
+  Calendar,
 } from "lucide-react";
 import {
   Area,
@@ -43,13 +45,31 @@ import { ContaPagar } from "@/features/contas-pagar/types";
 import { Cliente } from "@/features/clientes/types";
 import { Contrato } from "@/features/contratos/types";
 import { RecorrenciaFinanceira } from "@/features/recorrencias/types";
+import { MetaComercial } from "@/features/comercial/types";
 import { calculateTotalMRR } from "@/features/recorrencias/services/recorrenciaEngine";
 import { NovoRecebimentoSheet } from "@/features/contas-receber/components/NovoRecebimentoSheet";
-import { formatDateBrasilia } from "@/lib/dateUtils";
+import { formatDateBrasilia, getBrasiliaTodayIso, parseDateSafe } from "@/lib/dateUtils";
 
 const currency = (v?: number | null) => {
   const num = typeof v === "number" && !isNaN(v) ? v : 0;
   return num.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 2 });
+};
+
+const getMesAno = (dtStr?: string | null): string => {
+  if (!dtStr) return '';
+  const str = String(dtStr).trim();
+  if (/^\d{4}-\d{2}/.test(str)) return str.slice(0, 7);
+  if (str.includes('/')) {
+    const parts = str.split('/');
+    if (parts.length === 3) return `${parts[2]}-${parts[1].padStart(2, '0')}`;
+  }
+  try {
+    const d = parseDateSafe(str);
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    return `${d.getFullYear()}-${m}`;
+  } catch {
+    return '';
+  }
 };
 
 interface MetricCardProps {
@@ -91,9 +111,9 @@ function MetricCard({ title, value, delta, hint, icon: Icon, accent = "orange" }
             }`}
           >
             {up ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-            {Math.abs(delta)}%
+            {delta > 0 ? `+${delta}%` : `${delta}%`}
           </span>
-          {hint && <span className="text-muted-foreground">{hint}</span>}
+          {hint && <span className="text-muted-foreground truncate">{hint}</span>}
         </div>
       </CardContent>
     </Card>
@@ -101,6 +121,14 @@ function MetricCard({ title, value, delta, hint, icon: Icon, accent = "orange" }
 }
 
 export function Dashboard() {
+  const todayIso = getBrasiliaTodayIso();
+  const nowIsoMonth = todayIso.slice(0, 7); // Ex: '2026-08'
+
+  // Mês anterior para cálculo de comparativo (delta)
+  const [curYear, curMonth] = nowIsoMonth.split('-').map(Number);
+  const prevMonthDate = new Date(curYear, curMonth - 2, 1);
+  const prevIsoMonth = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, '0')}`;
+
   const { data: localTitulos = [] } = useLocalStorageState<TituloReceber>("focus_contas_receber");
   const { titulos: queryTitulos = [] } = useContasReceberQuery();
 
@@ -141,40 +169,39 @@ export function Dashboard() {
       queryClientes.forEach((c) => { if (c && c.id && !map.has(c.id)) map.set(c.id, c); });
     }
     return Array.from(map.values()).filter((c) => {
-      const n = String(c?.name || c?.razaoSocial || '');
+      const n = String(c?.name || c?.razaoSocial || c?.nomeFantasia || '');
       return !n.startsWith('__DELETED__') && !n.startsWith('__FOCUS_');
     });
   }, [localClientes, queryClientes]);
 
   const { data: contratos = [] } = useLocalStorageState<Contrato>("focus_contratos");
   const { data: recorrencias = [] } = useLocalStorageState<RecorrenciaFinanceira>("focus_recorrencias");
+  const { data: metasComerciais = [] } = useLocalStorageState<MetaComercial>("focus_comercial_metas");
 
-  const nowIsoMonth = new Date().toISOString().slice(0, 7); // 'YYYY-MM'
-
-  // 1. Receitas e Despesas Realizadas Globais (Saldo Real em Caixa)
-  const totalRecebido = contasReceber
+  // 1. Receitas e Despesas Realizadas Globais (Saldo Real em Caixa Efetivo)
+  const totalRecebidoHistorico = contasReceber
     .filter((c) => {
       const st = String(c.status || '').trim().toLowerCase();
       return st === 'recebido' || st === 'liquidado' || st === 'pago';
     })
     .reduce((acc, c) => acc + (Number(c.valorRecebido || c.valorOriginal) || 0), 0);
 
-  const totalPago = listContasPagar
+  const totalPagoHistorico = listContasPagar
     .filter((c) => {
       const st = String(c.status || '').trim().toLowerCase();
       return st === 'pago' || st === 'liquidado';
     })
     .reduce((acc, c) => acc + (Number(c.valorPago || c.valorOriginal) || 0), 0);
 
-  const saldoEmCaixa = totalRecebido - totalPago;
+  const saldoEmCaixa = totalRecebidoHistorico - totalPagoHistorico;
 
   // 2. Receitas do Mês: Realizadas vs Previstas
   const receitasDoMes = contasReceber
     .filter((c) => {
       const st = String(c.status || '').trim().toLowerCase();
       const isLiquidado = st === 'recebido' || st === 'liquidado' || st === 'pago';
-      const dt = String(c.dataRecebimento || c.dataVencimento || '');
-      return isLiquidado && dt.startsWith(nowIsoMonth);
+      const mesAno = getMesAno(c.dataRecebimento || c.dataVencimento || c.dataEmissao);
+      return isLiquidado && mesAno === nowIsoMonth;
     })
     .reduce((acc, c) => acc + (Number(c.valorRecebido || c.valorOriginal) || 0), 0);
 
@@ -182,18 +209,32 @@ export function Dashboard() {
     .filter((c) => {
       const st = String(c.status || '').trim().toLowerCase();
       const isAberto = st !== 'recebido' && st !== 'liquidado' && st !== 'pago' && st !== 'cancelado';
-      const dt = String(c.dataVencimento || '');
-      return isAberto && dt.startsWith(nowIsoMonth);
+      const mesAno = getMesAno(c.dataVencimento || c.dataEmissao);
+      return isAberto && mesAno === nowIsoMonth;
     })
     .reduce((acc, c) => acc + (Number(c.saldo || c.valorOriginal) || 0), 0);
+
+  // Receitas do Mês Anterior (para cálculo do Delta real)
+  const receitasMesAnterior = contasReceber
+    .filter((c) => {
+      const st = String(c.status || '').trim().toLowerCase();
+      const isLiquidado = st === 'recebido' || st === 'liquidado' || st === 'pago';
+      const mesAno = getMesAno(c.dataRecebimento || c.dataVencimento || c.dataEmissao);
+      return isLiquidado && mesAno === prevIsoMonth;
+    })
+    .reduce((acc, c) => acc + (Number(c.valorRecebido || c.valorOriginal) || 0), 0);
+
+  const deltaReceitas = receitasMesAnterior > 0
+    ? Math.round(((receitasDoMes - receitasMesAnterior) / receitasMesAnterior) * 100)
+    : (receitasDoMes > 0 ? 100 : 0);
 
   // 3. Despesas do Mês: Pagas vs Previstas
   const despesasDoMes = listContasPagar
     .filter((c) => {
       const st = String(c.status || '').trim().toLowerCase();
       const isPago = st === 'pago' || st === 'liquidado';
-      const dt = String(c.dataPagamento || c.dataVencimento || '');
-      return isPago && dt.startsWith(nowIsoMonth);
+      const mesAno = getMesAno(c.dataPagamento || c.dataVencimento || c.dataEmissao);
+      return isPago && mesAno === nowIsoMonth;
     })
     .reduce((acc, c) => acc + (Number(c.valorPago || c.valorOriginal) || 0), 0);
 
@@ -201,32 +242,69 @@ export function Dashboard() {
     .filter((c) => {
       const st = String(c.status || '').trim().toLowerCase();
       const isAberto = st !== 'pago' && st !== 'liquidado' && st !== 'cancelado';
-      const dt = String(c.dataVencimento || '');
-      return isAberto && dt.startsWith(nowIsoMonth);
+      const mesAno = getMesAno(c.dataVencimento || c.dataEmissao);
+      return isAberto && mesAno === nowIsoMonth;
     })
     .reduce((acc, c) => acc + (Number(c.saldo || c.valorOriginal) || 0), 0);
 
-  const lucroLiquido = receitasDoMes - despesasDoMes;
+  const despesasMesAnterior = listContasPagar
+    .filter((c) => {
+      const st = String(c.status || '').trim().toLowerCase();
+      const isPago = st === 'pago' || st === 'liquidado';
+      const mesAno = getMesAno(c.dataPagamento || c.dataVencimento || c.dataEmissao);
+      return isPago && mesAno === prevIsoMonth;
+    })
+    .reduce((acc, c) => acc + (Number(c.valorPago || c.valorOriginal) || 0), 0);
 
+  const deltaDespesas = despesasMesAnterior > 0
+    ? Math.round(((despesasDoMes - despesasMesAnterior) / despesasMesAnterior) * 100)
+    : (despesasDoMes > 0 ? 100 : 0);
+
+  // 4. Lucro Líquido
+  const lucroLiquido = receitasDoMes - despesasDoMes;
+  const lucroMesAnterior = receitasMesAnterior - despesasMesAnterior;
+  const deltaLucro = lucroMesAnterior !== 0
+    ? Math.round(((lucroLiquido - lucroMesAnterior) / Math.abs(lucroMesAnterior)) * 100)
+    : (lucroLiquido !== 0 ? 100 : 0);
+
+  // 5. MRR & ARR
   const mrr = calculateTotalMRR(Array.isArray(recorrencias) ? recorrencias : [], Array.isArray(contratos) ? contratos : []);
   const arr = mrr * 12;
+
+  // 6. Clientes Ativos
   const clientesAtivosCount = allClientes.filter((c) => String(c.status || '').trim().toLowerCase() !== 'inativo').length;
 
+  // 7. Inadimplência Real
+  const titulosVencidos = contasReceber.filter((c) => {
+    const st = String(c.status || '').trim().toLowerCase();
+    const isNaoPago = st !== "recebido" && st !== "liquidado" && st !== "pago" && st !== "cancelado";
+    const dataVenc = c.dataVencimento || '';
+    return isNaoPago && dataVenc < todayIso;
+  });
+  const valorInadimplente = titulosVencidos.reduce((acc, c) => acc + (Number(c.saldo || c.valorOriginal) || 0), 0);
+  const totalReceitasProjetadas = receitasDoMes + receitasPrevistasDoMes;
+  const percentualInadimplencia = totalReceitasProjetadas > 0
+    ? ((valorInadimplente / totalReceitasProjetadas) * 100).toFixed(1)
+    : "0.0";
+
+  // 8. Meta de Faturamento
+  const metaAtiva = metasComerciais.find(m => m.tipo === 'Faturamento' || m.tipo === 'Vendas');
+  const valorMetaFaturamento = Number(metaAtiva?.valorMeta || metaAtiva?.valorAlvo || (mrr > 0 ? mrr * 1.2 : (receitasDoMes + receitasPrevistasDoMes || 10000)));
+  const percentualMetaAtingida = valorMetaFaturamento > 0
+    ? Math.min(100, Math.round((receitasDoMes / valorMetaFaturamento) * 100))
+    : 0;
+
+  // Próximos recebimentos pendentes
   const titulosEmAberto = contasReceber.filter((c) => {
     const st = String(c.status || '').trim().toLowerCase();
     return st !== "recebido" && st !== "liquidado" && st !== "pago" && st !== "cancelado";
   });
-  const valorEmAberto = titulosEmAberto.reduce((acc, c) => acc + (Number(c.saldo || c.valorOriginal) || 0), 0);
-  const totalReceitasProjetadas = receitasDoMes + receitasPrevistasDoMes;
-  const percentualInadimplencia = totalReceitasProjetadas > 0 ? ((valorEmAberto / totalReceitasProjetadas) * 100).toFixed(1) : "0.0";
-
-  // Próximos recebimentos pendentes
   const proximosRecebimentos = titulosEmAberto.slice(0, 6);
 
   // Timeline Dinâmica de 6 Meses para o Gráfico de Fluxo de Caixa e MRR
   const { cashflowData, mrrData } = useMemo(() => {
     const monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-    const now = new Date();
+    const now = parseDateSafe(todayIso);
     const currentMonthIdx = now.getMonth();
     const currentYear = now.getFullYear();
 
@@ -244,8 +322,8 @@ export function Dashboard() {
       let entMonth = contasReceber.reduce((acc, c) => {
         const st = String(c.status || '').trim().toLowerCase();
         const isLiquidado = st === 'recebido' || st === 'liquidado' || st === 'pago';
-        const dt = String(c.dataRecebimento || c.dataVencimento || '');
-        if (isLiquidado && dt.startsWith(monthPrefix)) {
+        const dt = getMesAno(c.dataRecebimento || c.dataVencimento || c.dataEmissao);
+        if (isLiquidado && dt === monthPrefix) {
           return acc + (Number(c.valorRecebido || c.valorOriginal) || 0);
         }
         return acc;
@@ -255,27 +333,17 @@ export function Dashboard() {
       let saiMonth = listContasPagar.reduce((acc, c) => {
         const st = String(c.status || '').trim().toLowerCase();
         const isPago = st === 'pago' || st === 'liquidado';
-        const dt = String(c.dataPagamento || c.dataVencimento || '');
-        if (isPago && dt.startsWith(monthPrefix)) {
+        const dt = getMesAno(c.dataPagamento || c.dataVencimento || c.dataEmissao);
+        if (isPago && dt === monthPrefix) {
           return acc + (Number(c.valorPago || c.valorOriginal) || 0);
         }
         return acc;
       }, 0);
 
-      // Para o mês atual
-      if (i === 0) {
-        if (entMonth === 0 && receitasDoMes > 0) entMonth = receitasDoMes;
-        if (saiMonth === 0 && despesasDoMes > 0) saiMonth = despesasDoMes;
-      } else {
-        // Se meses anteriores não tiverem dados históricos cadastrados, projetar uma curva proporcional e visual realista
-        if (entMonth === 0 && receitasDoMes > 0) {
-          const factor = Math.max(0.45, 1 - (i * 0.11));
-          entMonth = Math.round(receitasDoMes * factor);
-        }
-        if (saiMonth === 0 && despesasDoMes > 0) {
-          const factor = Math.max(0.4, 1 - (i * 0.1));
-          saiMonth = Math.round(despesasDoMes * factor);
-        }
+      // Para o mês atual, garantir sinc com as métricas calculadas
+      if (monthPrefix === nowIsoMonth) {
+        entMonth = receitasDoMes;
+        saiMonth = despesasDoMes;
       }
 
       cfList.push({
@@ -294,7 +362,7 @@ export function Dashboard() {
     }
 
     return { cashflowData: cfList, mrrData: mrrList };
-  }, [contasReceber, listContasPagar, receitasDoMes, despesasDoMes, mrr]);
+  }, [contasReceber, listContasPagar, receitasDoMes, despesasDoMes, mrr, todayIso, nowIsoMonth]);
 
   // Agrupamento por Categoria para Receita
   const catMapReceita: Record<string, number> = {};
@@ -317,22 +385,27 @@ export function Dashboard() {
     : [{ name: "Sem despesas", value: 0 }];
 
   return (
-    <div className="space-y-6 p-6 lg:p-8 animate-fade-in">
+    <div className="space-y-6 p-4 sm:p-6 lg:p-8 animate-fade-in max-w-7xl mx-auto w-full">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="mt-1 text-3xl font-semibold tracking-tight">Dashboard</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
+          <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
             Visão consolidada em tempo real do desempenho financeiro da Focus Tecnologia.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="h-9 gap-1.5 text-xs">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => window.print()}
+            className="h-9 gap-1.5 text-xs rounded-xl font-semibold cursor-pointer"
+          >
             <Download className="h-4 w-4" />
-            Exportar
+            Exportar / Imprimir
           </Button>
           <NovoRecebimentoSheet>
-            <Button size="sm" className="h-9 gap-1.5 bg-orange-600 hover:bg-orange-700 text-white text-xs shadow-sm">
+            <Button size="sm" className="h-9 gap-1.5 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold rounded-xl shadow-sm cursor-pointer">
               <Plus className="h-4 w-4" />
               Novo Recebimento
             </Button>
@@ -340,7 +413,7 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* Grid de 8 Métricas Principais */}
+      {/* Grid de 8 Métricas Principais Estritamente Reais */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard
           title="Saldo em Caixa"
@@ -353,7 +426,7 @@ export function Dashboard() {
         <MetricCard
           title="Receitas do Mês"
           value={currency(receitasDoMes)}
-          delta={0}
+          delta={deltaReceitas}
           hint={`+ ${currency(receitasPrevistasDoMes)} a receber`}
           icon={TrendingUp}
           accent="emerald"
@@ -361,7 +434,7 @@ export function Dashboard() {
         <MetricCard
           title="Despesas do Mês"
           value={currency(despesasDoMes)}
-          delta={0}
+          delta={deltaDespesas}
           hint={`+ ${currency(despesasPrevistasDoMes)} a pagar`}
           icon={TrendingDown}
           accent="rose"
@@ -369,7 +442,7 @@ export function Dashboard() {
         <MetricCard
           title="Lucro Líquido"
           value={currency(lucroLiquido)}
-          delta={0}
+          delta={deltaLucro}
           hint="receitas - despesas"
           icon={PiggyBank}
           accent={lucroLiquido >= 0 ? "emerald" : "rose"}
@@ -394,15 +467,15 @@ export function Dashboard() {
           title="Inadimplência"
           value={`${percentualInadimplencia}%`}
           delta={0}
-          hint={`${currency(valorEmAberto)} em aberto`}
+          hint={`${currency(valorInadimplente)} em atraso`}
           icon={AlertTriangle}
           accent="rose"
         />
         <MetricCard
           title="Meta de Faturamento"
-          value="0%"
-          delta={0}
-          hint="acompanhamento em tempo real"
+          value={`${percentualMetaAtingida}%`}
+          delta={deltaReceitas}
+          hint={`${currency(receitasDoMes)} de ${currency(valorMetaFaturamento)}`}
           icon={Target}
           accent="blue"
         />
@@ -411,11 +484,11 @@ export function Dashboard() {
       {/* Gráficos Principais */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {/* Fluxo de Caixa */}
-        <Card className="lg:col-span-2 shadow-sm border-border/80">
+        <Card className="lg:col-span-2 shadow-sm border-border/80 rounded-2xl">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <div>
-              <CardTitle className="text-base font-semibold">Fluxo de Caixa</CardTitle>
-              <CardDescription className="text-xs">Entradas vs Saídas consolidadas (últimos 6 meses)</CardDescription>
+              <CardTitle className="text-base font-semibold">Fluxo de Caixa Consolidado</CardTitle>
+              <CardDescription className="text-xs">Entradas vs Saídas liquidadas (últimos 6 meses)</CardDescription>
             </div>
             <div className="flex items-center gap-4 text-xs">
               <span className="flex items-center gap-1.5 font-medium text-emerald-600 dark:text-emerald-400">
@@ -455,7 +528,7 @@ export function Dashboard() {
         </Card>
 
         {/* Receita por Categoria */}
-        <Card className="shadow-sm border-border/80 hover:border-orange-500/40 transition-all">
+        <Card className="shadow-sm border-border/80 hover:border-orange-500/40 transition-all rounded-2xl">
           <CardHeader>
             <CardTitle className="text-base font-semibold">Receita por Categoria</CardTitle>
             <CardDescription className="text-xs">Distribuição de entradas</CardDescription>
@@ -480,7 +553,7 @@ export function Dashboard() {
 
       {/* Seção Inferior */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Card className="shadow-sm border-border/80 hover:border-orange-500/40 transition-all">
+        <Card className="shadow-sm border-border/80 hover:border-orange-500/40 transition-all rounded-2xl">
           <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
             <div>
               <CardTitle className="text-base font-semibold">MRR — Receita Recorrente</CardTitle>
@@ -508,7 +581,7 @@ export function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-2 shadow-sm border-border/80 hover:border-orange-500/40 transition-all">
+        <Card className="lg:col-span-2 shadow-sm border-border/80 hover:border-orange-500/40 transition-all rounded-2xl">
           <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
             <div>
               <CardTitle className="text-base font-semibold">Despesas por Categoria</CardTitle>
@@ -532,9 +605,9 @@ export function Dashboard() {
         </Card>
       </div>
 
-      {/* Lista de Próximos Recebimentos */}
+      {/* Lista de Próximos Recebimentos & Resumo de Metas */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2 shadow-sm border-border/80">
+        <Card className="lg:col-span-2 shadow-sm border-border/80 rounded-2xl">
           <CardHeader className="flex flex-row items-start justify-between space-y-0">
             <div>
               <CardTitle className="text-base font-semibold">Próximos Recebimentos</CardTitle>
@@ -559,16 +632,16 @@ export function Dashboard() {
                   const valorExibir = r.saldo ?? r.valorOriginal ?? 0;
                   return (
                     <div key={r.id} className="flex items-center justify-between gap-3 px-6 py-3.5">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-xs font-semibold">
+                      <div className="flex items-center gap-3 truncate">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
                           {initials}
                         </div>
-                        <div className="min-w-0">
+                        <div className="min-w-0 truncate">
                           <p className="truncate text-sm font-medium">{clienteNome}</p>
-                          <p className="text-xs text-muted-foreground">{r.descricao || "Título"} · Vence em {r.dataVencimento ? formatDateBrasilia(r.dataVencimento) : "A vencer"}</p>
+                          <p className="text-xs text-muted-foreground truncate">{r.descricao || "Título"} · Vence em {r.dataVencimento ? formatDateBrasilia(r.dataVencimento) : "A vencer"}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 shrink-0">
                         <span className="text-sm font-semibold">{currency(valorExibir)}</span>
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/40">
                           <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
@@ -584,26 +657,34 @@ export function Dashboard() {
         </Card>
 
         {/* Resumo de Metas */}
-        <Card className="shadow-sm border-border/80">
+        <Card className="shadow-sm border-border/80 rounded-2xl">
           <CardHeader>
             <CardTitle className="text-base font-semibold">Meta Financeira</CardTitle>
-            <CardDescription className="text-xs">Progresso do faturamento do mês</CardDescription>
+            <CardDescription className="text-xs">Progresso do faturamento do mês ({nowIsoMonth})</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Faturamento Realizado</span>
-                <span className="font-semibold">{currency(totalRecebido)}</span>
+                <span className="font-semibold">{currency(receitasDoMes)}</span>
               </div>
-              <Progress value={receitasDoMes > 0 ? Math.min(100, (totalRecebido / receitasDoMes) * 100) : 0} className="h-2" />
+              <Progress value={percentualMetaAtingida} className="h-2" />
+              <div className="flex justify-between text-[11px] text-muted-foreground">
+                <span>{percentualMetaAtingida}% atingido</span>
+                <span>Meta: {currency(valorMetaFaturamento)}</span>
+              </div>
             </div>
-            <div className="rounded-lg border bg-muted/40 p-3 text-xs text-muted-foreground space-y-1.5">
+            <div className="rounded-xl border bg-muted/40 p-3.5 text-xs text-muted-foreground space-y-2">
               <div className="flex justify-between">
-                <span>Receitas Previstas:</span>
-                <strong className="text-foreground">{currency(receitasDoMes)}</strong>
+                <span>Receitas Previstas (Mês):</span>
+                <strong className="text-foreground">{currency(receitasPrevistasDoMes)}</strong>
               </div>
               <div className="flex justify-between">
-                <span>Saldo em Caixa:</span>
+                <span>Despesas Realizadas (Mês):</span>
+                <strong className="text-rose-600 dark:text-rose-400">{currency(despesasDoMes)}</strong>
+              </div>
+              <div className="flex justify-between border-t pt-1.5">
+                <span>Saldo em Caixa Efetivo:</span>
                 <strong className="text-emerald-600 dark:text-emerald-400">{currency(saldoEmCaixa)}</strong>
               </div>
             </div>
