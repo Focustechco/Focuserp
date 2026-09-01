@@ -1,4 +1,7 @@
+import { useState, useEffect, useCallback } from "react";
 import { useLocalStorageState } from "@/hooks/useDataStore";
+import { safeGetItem, safeSetItem } from "@/lib/safeStorage";
+import { toast } from "sonner";
 import { ReportExecutionHistory, ReportSchedule, ReportModelTemplate, ReportFilterConfig, GeneratedReportData, ReportFormat } from "../types";
 import { REPORT_CATALOG } from "../data/catalog";
 import { TituloReceber } from "@/features/contas-receber/types";
@@ -12,13 +15,45 @@ import { Cobranca } from "@/features/cobrancas/types";
 import { useDocumentosStore } from "@/features/documentos/hooks/useDocumentosStore";
 import { dmsService } from "@/services/dmsService";
 
+const FAVORITES_STORAGE_KEY = 'focus_relatorios_favorites';
+
+function getStoredFavorites(): string[] {
+  try {
+    const raw = safeGetItem(FAVORITES_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed.map((item: any) => typeof item === 'string' ? item : item?.id).filter(Boolean);
+      }
+    }
+  } catch {}
+  return [];
+}
+
 export function useRelatoriosStore() {
-  const { data: favorites, addItem: addFav, removeItem: removeFav } = useLocalStorageState<string>('focus_relatorios_favorites');
+  const [favorites, setFavorites] = useState<string[]>(getStoredFavorites);
+
+  useEffect(() => {
+    const syncFavs = () => {
+      setFavorites(getStoredFavorites());
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('storage', syncFavs);
+      window.addEventListener('focus_storage_update', syncFavs);
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('storage', syncFavs);
+        window.removeEventListener('focus_storage_update', syncFavs);
+      }
+    };
+  }, []);
+
   const { data: history, addItem: addHistory } = useLocalStorageState<ReportExecutionHistory>('focus_relatorios_history');
   const { data: schedules, addItem: addSchedule, updateItem: updateSchedule, removeItem: removeSchedule } = useLocalStorageState<ReportSchedule>('focus_relatorios_schedules');
   const { data: templates, addItem: addTemplate } = useLocalStorageState<ReportModelTemplate>('focus_relatorios_templates');
 
-  // Consumo EXCLUSIVO de dados reais da aplicao
+  // Consumo EXCLUSIVO de dados reais da aplicação
   const { data: contasReceber } = useLocalStorageState<TituloReceber>('focus_contas_receber', []);
   const { data: contasPagar } = useLocalStorageState<ContaPagar>('focus_contas_pagar', []);
   const { data: clientes } = useLocalStorageState<Cliente>('focus_clientes', []);
@@ -30,13 +65,26 @@ export function useRelatoriosStore() {
 
   const { pastas, uploadDocument } = useDocumentosStore();
 
-  const toggleFavorite = (id: string) => {
-    if (favorites.includes(id)) {
-      removeFav(id);
-    } else {
-      addFav(id);
-    }
-  };
+  const toggleFavorite = useCallback((id: string) => {
+    setFavorites((prev) => {
+      const current = Array.isArray(prev) ? prev : [];
+      const exists = current.includes(id);
+      const updated = exists ? current.filter((favId) => favId !== id) : [...current, id];
+      safeSetItem(FAVORITES_STORAGE_KEY, JSON.stringify(updated));
+      if (typeof window !== 'undefined') {
+        try {
+          window.dispatchEvent(new Event('focus_storage_update'));
+          window.dispatchEvent(new Event('storage'));
+        } catch {}
+      }
+      if (exists) {
+        toast.info('Relatório removido dos favoritos.');
+      } else {
+        toast.success('Relatório adicionado aos favoritos! ⭐');
+      }
+      return updated;
+    });
+  }, []);
 
   const generateReportData = (reportId: string, filters: ReportFilterConfig): GeneratedReportData => {
     const definition = REPORT_CATALOG.find(r => r.id === reportId) || REPORT_CATALOG[0];
