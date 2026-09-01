@@ -27,7 +27,7 @@ export function EstrategiasVendaView() {
   const [quandoUtilizar, setQuandoUtilizar] = useState('');
   const [etapasText, setEtapasText] = useState('');
   const [checklistText, setChecklistText] = useState('');
-  const [responsavel, setResponsavel] = useState('Adriano Leal');
+  const [responsavel, setResponsavel] = useState('');
 
   const handleCreate = () => {
     if (!titulo.trim() || !objetivo.trim()) {
@@ -43,10 +43,10 @@ export function EstrategiasVendaView() {
       titulo: titulo.trim(),
       categoria,
       objetivo: objetivo.trim(),
-      publicoAlvo: publicoAlvo.trim() || 'Decisores C-Level e Gerentes',
-      quandoUtilizar: quandoUtilizar.trim() || 'Durante o ciclo comercial',
-      etapas: etapas.length > 0 ? etapas : ['Planejamento', 'Execução', 'Acompanhamento'],
-      checklist: checklist.length > 0 ? checklist : [{ item: 'Validar dados do cliente', concluido: false }],
+      publicoAlvo: publicoAlvo.trim() || undefined,
+      quandoUtilizar: quandoUtilizar.trim() || undefined,
+      etapas: etapas.length > 0 ? etapas : ['Planejamento', 'Execução'],
+      checklist: checklist,
       responsavel
     });
 

@@ -27,18 +27,18 @@ export function PropostasComerciaisView() {
 
   // Form State
   const [clienteId, setClienteId] = useState(clientes[0]?.id || '');
-  const [responsavelNome, setResponsavelNome] = useState('Adriano Leal');
+  const [responsavelNome, setResponsavelNome] = useState('');
   const [produtoId, setProdutoId] = useState(produtos[0]?.id || '');
   const [qtd, setQtd] = useState('1');
-  const [condicoes, setCondicoes] = useState('30% de entrada + 12x no boleto');
+  const [condicoes, setCondicoes] = useState('');
 
   const handleCreateProposta = () => {
     const selectedCliente = clientes.find(c => c.id === clienteId) || clientes[0];
     const selectedProd = produtos.find(p => p.id === produtoId) || produtos[0];
 
-    const clienteName = selectedCliente?.razaoSocial || selectedCliente?.nomeFantasia || 'Cliente B2B';
-    const prodName = selectedProd?.nome || 'Focus ERP Enterprise';
-    const prodPrice = selectedProd?.precoBaseR$ || 4500;
+    const clienteName = selectedCliente?.razaoSocial || selectedCliente?.nomeFantasia || 'Cliente';
+    const prodName = selectedProd?.nome || 'Item Comercial';
+    const prodPrice = selectedProd?.precoBaseR$ || 0;
 
     const quantidade = parseInt(qtd) || 1;
     const valorTotal = prodPrice * quantidade;

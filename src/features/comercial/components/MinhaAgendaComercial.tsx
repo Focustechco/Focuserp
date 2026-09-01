@@ -26,7 +26,7 @@ export function MinhaAgendaComercial() {
   const [tipo, setTipo] = useState<AgendaComercialItem['tipo']>('Reunião Hoje');
   const [horario, setHorario] = useState('14:00');
   const [data, setData] = useState(new Date().toISOString().split('T')[0]);
-  const [responsavel, setResponsavel] = useState('Adriano Leal');
+  const [responsavel, setResponsavel] = useState('');
   const [prioridade, setPrioridade] = useState<'Urgente' | 'Alta' | 'Média'>('Alta');
 
   const pendentes = agenda.filter(a => a.status === 'Pendente');

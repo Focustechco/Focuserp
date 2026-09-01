@@ -37,10 +37,9 @@ export function ComissoesView() {
   const [aliquota, setAliquota] = useState('8');
   const [criterio, setCriterio] = useState<RegraComissao['criterioLiberacao']>('Na Assinatura');
   const [regraStatus, setRegraStatus] = useState<'Ativa' | 'Inativa'>('Ativa');
-
   // Form Registro
   const [clienteNome, setClienteNome] = useState('');
-  const [consultorNome, setConsultorNome] = useState(equipe[0]?.nome || 'Adriano Leal');
+  const [consultorNome, setConsultorNome] = useState(equipe[0]?.nome || '');
   const [valorVenda, setValorVenda] = useState('');
   const [percentualAplicado, setPercentualAplicado] = useState('8');
   const [dataFechamento, setDataFechamento] = useState(new Date().toISOString().split('T')[0]);

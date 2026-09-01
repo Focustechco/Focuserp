@@ -140,17 +140,24 @@ export function ComercialDashboard() {
           </CardHeader>
           <CardContent>
             <div className="h-[270px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartVendasVsMeta}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.15} />
-                  <XAxis dataKey="name" fontSize={11} tickLine={false} axisLine={false} />
-                  <YAxis fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `R$ ${(v/1000).toFixed(0)}k`} />
-                  <RechartsTooltip formatter={(v: any) => formatCurrency(v)} />
-                  <Legend />
-                  <Bar dataKey="Receita Fechada" fill="#10b981" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="Meta Mensal" fill="#94a3b8" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              {chartVendasVsMeta.length === 0 ? (
+                <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground text-xs border border-dashed rounded-xl">
+                  <BarChart3 className="w-8 h-8 opacity-30 mb-2" />
+                  <p>Nenhum consultor ou meta cadastrada para exibir no gráfico.</p>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartVendasVsMeta}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.15} />
+                    <XAxis dataKey="name" fontSize={11} tickLine={false} axisLine={false} />
+                    <YAxis fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `R$ ${(v/1000).toFixed(0)}k`} />
+                    <RechartsTooltip formatter={(v: any) => formatCurrency(v)} />
+                    <Legend />
+                    <Bar dataKey="Receita Fechada" fill="#10b981" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="Meta Mensal" fill="#94a3b8" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -175,7 +182,7 @@ export function ComercialDashboard() {
                     className="h-full rounded-full transition-all" 
                     style={{ 
                       backgroundColor: item.fill,
-                      width: `${Math.max(8, (item.valor / (funilConversao[0].valor || 1)) * 100)}%` 
+                      width: `${funilConversao[0].valor > 0 ? Math.max(8, (item.valor / funilConversao[0].valor) * 100) : 0}%` 
                     }} 
                   />
                 </div>
@@ -216,61 +223,69 @@ export function ComercialDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {teamRanking.map((m, idx) => {
-                  const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}º`;
+                {teamRanking.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="p-8 text-center text-muted-foreground">
+                      Nenhum membro ou meta cadastrada na equipe comercial.
+                    </td>
+                  </tr>
+                ) : (
+                  teamRanking.map((m, idx) => {
+                    const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}º`;
 
-                  return (
-                    <tr key={m.id} className="hover:bg-muted/30 transition-colors">
-                      <td className="p-3">
-                        <div className="flex items-center gap-2.5">
-                          <span className="text-sm font-bold">{medal}</span>
-                          <div>
-                            <div className="font-bold text-foreground text-xs">{m.nome}</div>
-                            <div className="text-[10px] text-muted-foreground">{m.email}</div>
+                    return (
+                      <tr key={m.id} className="hover:bg-muted/30 transition-colors">
+                        <td className="p-3">
+                          <div className="flex items-center gap-2.5">
+                            <span className="text-sm font-bold">{medal}</span>
+                            <div>
+                              <div className="font-bold text-foreground text-xs">{m.nome}</div>
+                              <div className="text-[10px] text-muted-foreground">{m.email}</div>
+                            </div>
                           </div>
-                        </div>
-                      </td>
+                        </td>
 
-                      <td className="p-3 font-medium text-muted-foreground">
-                        <Badge variant="secondary" className="text-[10px]">{m.funcao}</Badge>
-                      </td>
+                        <td className="p-3 font-medium text-muted-foreground">
+                          <Badge variant="secondary" className="text-[10px]">{m.funcao}</Badge>
+                        </td>
 
-                      <td className="p-3 text-center font-bold text-foreground">
-                        {m.totalOportunidades}
-                      </td>
+                        <td className="p-3 text-center font-bold text-foreground">
+                          {m.totalOportunidades}
+                        </td>
 
-                      <td className="p-3 text-center">
-                        <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-xs font-bold">
-                          {m.vendasFechadas}
-                        </Badge>
-                      </td>
+                        <td className="p-3 text-center">
+                          <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-xs font-bold">
+                            {m.vendasFechadas}
+                          </Badge>
+                        </td>
 
-                      <td className="p-3 text-right text-muted-foreground">
-                        {formatCurrency(m.metaMensalR$)}
-                      </td>
+                        <td className="p-3 text-right text-muted-foreground">
+                          {formatCurrency(m.metaMensalR$)}
+                        </td>
 
-                      <td className="p-3 text-right font-extrabold text-foreground">
-                        {formatCurrency(m.receitaRealizada)}
-                      </td>
+                        <td className="p-3 text-right font-extrabold text-foreground">
+                          {formatCurrency(m.receitaRealizada)}
+                        </td>
 
-                      <td className="p-3 text-center font-bold">
-                        <span className={m.percentualMeta >= 100 ? 'text-emerald-600' : 'text-amber-600'}>
-                          {m.percentualMeta}%
-                        </span>
-                      </td>
+                        <td className="p-3 text-center font-bold">
+                          <span className={m.percentualMeta >= 100 ? 'text-emerald-600' : 'text-amber-600'}>
+                            {m.percentualMeta}%
+                          </span>
+                        </td>
 
-                      <td className="p-3 text-center">
-                        <Badge variant="outline" className={
-                          m.percentualMeta >= 100 ? 'bg-emerald-50 text-emerald-700 border-emerald-300' :
-                          m.percentualMeta >= 50 ? 'bg-blue-50 text-blue-700 border-blue-300' :
-                          'bg-amber-50 text-amber-700 border-amber-300'
-                        }>
-                          {m.percentualMeta >= 100 ? 'Meta Atingida' : m.percentualMeta >= 50 ? 'No Ritmo' : 'Em Risco'}
-                        </Badge>
-                      </td>
-                    </tr>
-                  );
-                })}
+                        <td className="p-3 text-center">
+                          <Badge variant="outline" className={
+                            m.percentualMeta >= 100 ? 'bg-emerald-50 text-emerald-700 border-emerald-300' :
+                            m.percentualMeta >= 50 ? 'bg-blue-50 text-blue-700 border-blue-300' :
+                            'bg-amber-50 text-amber-700 border-amber-300'
+                          }>
+                            {m.percentualMeta >= 100 ? 'Meta Atingida' : m.percentualMeta >= 50 ? 'No Ritmo' : 'Em Risco'}
+                          </Badge>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>

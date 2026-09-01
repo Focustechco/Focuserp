@@ -17,12 +17,13 @@ const formatCurrency = (value?: number | null) => {
 
 export function MinhaPerformanceView() {
   const { equipe, oportunidades, atividades, propostas, regrasComissao } = useComercialStore();
-  const [selectedConsultor, setSelectedConsultor] = useState(equipe[0]?.nome || 'Adriano Leal');
+  const [selectedConsultor, setSelectedConsultor] = useState(equipe[0]?.nome || '');
 
   // Dados do Consultor Selecionado
   const consultor = equipe.find(e => e.nome === selectedConsultor) || equipe[0];
 
   const consultorOps = useMemo(() => {
+    if (!selectedConsultor) return [];
     return oportunidades.filter(o => o.responsavel === selectedConsultor);
   }, [oportunidades, selectedConsultor]);
 
@@ -38,10 +39,10 @@ export function MinhaPerformanceView() {
     return vendasGanhas.reduce((acc, o) => acc + (o.valorR$ || 0), 0);
   }, [vendasGanhas]);
 
-  const metaMensal = consultor?.metaMensalR$ || 150000;
+  const metaMensal = consultor?.metaMensalR$ || 0;
   const percentualMeta = metaMensal > 0 ? ((receitaGerada / metaMensal) * 100).toFixed(1) : '0.0';
 
-  const comissaoPercentual = consultor?.comissaoPercentual || 8;
+  const comissaoPercentual = consultor?.comissaoPercentual || 0;
   const comissaoPrevista = (receitaGerada * comissaoPercentual) / 100;
 
   const ticketMedio = vendasGanhas.length > 0 ? (receitaGerada / vendasGanhas.length) : 0;
@@ -49,6 +50,7 @@ export function MinhaPerformanceView() {
 
   // Atividades do Consultor
   const consultorAtividades = useMemo(() => {
+    if (!selectedConsultor) return [];
     return atividades.filter(a => a.responsavel === selectedConsultor);
   }, [atividades, selectedConsultor]);
 
@@ -57,6 +59,16 @@ export function MinhaPerformanceView() {
   const totalReunioes = consultorAtividades.filter(a => a.tipo === 'Reunião' || a.tipo === 'Demonstração').length;
   const totalEmails = consultorAtividades.filter(a => a.tipo === 'E-mail').length;
   const totalFollowUps = consultorAtividades.filter(a => a.tipo === 'Follow-up').length;
+
+  if (equipe.length === 0) {
+    return (
+      <div className="p-12 text-center text-muted-foreground bg-muted/10 rounded-2xl border border-dashed my-4 animate-fade-in">
+        <User className="w-12 h-12 text-orange-500 opacity-40 mx-auto mb-3" />
+        <h4 className="font-bold text-sm text-foreground">Nenhum membro cadastrado na equipe comercial.</h4>
+        <p className="text-xs mt-1">Cadastre executivos de contas, SDRs ou closers na aba "Equipe Comercial" para acompanhar a performance individual.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in pt-1">

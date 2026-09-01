@@ -27,7 +27,7 @@ export function AtividadesContatosView() {
   // Form State
   const [empresa, setEmpresa] = useState('');
   const [contato, setContato] = useState('');
-  const [responsavel, setResponsavel] = useState(equipe[0]?.nome || 'Adriano Leal');
+  const [responsavel, setResponsavel] = useState(equipe[0]?.nome || '');
   const [tipo, setTipo] = useState<TipoAtividade>('WhatsApp');
   const [resultado, setResultado] = useState<ResultadoAtividade>('Positivo / Avançou');
   const [observacoes, setObservacoes] = useState('');

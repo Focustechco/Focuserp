@@ -29,9 +29,9 @@ export function EquipeComercialView() {
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [funcao, setFuncao] = useState<FuncaoComercial>('Consultor Comercial');
-  const [supervisor, setSupervisor] = useState('Adriano Leal');
-  const [metaMensal, setMetaMensal] = useState('120000');
-  const [comissaoPercent, setComissaoPercent] = useState('7');
+  const [supervisor, setSupervisor] = useState('');
+  const [metaMensal, setMetaMensal] = useState('');
+  const [comissaoPercent, setComissaoPercent] = useState('5');
   const [status, setStatus] = useState<'Ativo' | 'Inativo'>('Ativo');
 
   const handleOpenCreate = () => {
@@ -39,9 +39,9 @@ export function EquipeComercialView() {
     setNome('');
     setEmail('');
     setFuncao('Consultor Comercial');
-    setSupervisor('Adriano Leal');
-    setMetaMensal('120000');
-    setComissaoPercent('7');
+    setSupervisor('');
+    setMetaMensal('');
+    setComissaoPercent('5');
     setStatus('Ativo');
     setOpenModal(true);
   };

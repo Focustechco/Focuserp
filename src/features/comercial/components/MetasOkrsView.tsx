@@ -23,8 +23,8 @@ export function MetasOkrsView() {
     categoriaTarget: 'Receita Total',
     status: 'Em Andamento',
     valorRealizado: 0,
-    valorMeta: 100000,
-    periodo: 'Março 2026',
+    valorMeta: 0,
+    periodo: '',
     aplicadaA: 'Equipe Geral'
   });
 
@@ -34,8 +34,8 @@ export function MetasOkrsView() {
   const [novoOkr, setNovoOkr] = useState<Partial<OkrComercial>>({
     status: 'No Prazo',
     percentualConclusao: 0,
-    periodo: 'Q1 2026',
-    responsavel: 'Adriano Leal'
+    periodo: '',
+    responsavel: ''
   });
 
   // Handlers para Metas
@@ -47,8 +47,8 @@ export function MetasOkrsView() {
       categoriaTarget: 'Receita Total',
       status: 'Em Andamento',
       valorRealizado: 0,
-      valorMeta: 100000,
-      periodo: 'Março 2026',
+      valorMeta: 0,
+      periodo: '',
       aplicadaA: 'Equipe Geral'
     });
     setOpenMeta(true);
