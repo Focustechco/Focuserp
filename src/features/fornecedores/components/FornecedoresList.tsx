@@ -217,8 +217,12 @@ export function FornecedoresList() {
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col text-xs">
-                          <span className="text-foreground">{fornecedor.endereco?.cidade || 'N/D'}</span>
-                          <span className="text-[11px] text-muted-foreground">{fornecedor.endereco?.estado || ''}</span>
+                          <span className="text-foreground">
+                            {fornecedor.endereco?.cidade ? `${fornecedor.endereco.cidade}${fornecedor.endereco.estado ? ` - ${fornecedor.endereco.estado}` : ''}` : '-'}
+                          </span>
+                          {fornecedor.endereco?.bairro && (
+                            <span className="text-[11px] text-muted-foreground">{fornecedor.endereco.bairro}</span>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -405,7 +409,7 @@ export function FornecedoresList() {
                           <MapPin className="w-3.5 h-3.5 text-muted-foreground shrink-0" /> Localidade:
                         </span>
                         <span className="text-foreground font-medium truncate max-w-[170px]">
-                          {fornecedor.endereco?.cidade ? `${fornecedor.endereco.cidade} - ${fornecedor.endereco.estado || ''}` : '-'}
+                          {fornecedor.endereco?.cidade ? `${fornecedor.endereco.cidade}${fornecedor.endereco.estado ? ` - ${fornecedor.endereco.estado}` : ''}` : '-'}
                         </span>
                       </div>
 

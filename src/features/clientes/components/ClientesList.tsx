@@ -148,7 +148,9 @@ export function ClientesList() {
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col text-xs">
-                          <span className="text-foreground">{cliente.endereco?.cidade || '-'} - {cliente.endereco?.estado || '-'}</span>
+                          <span className="text-foreground">
+                            {cliente.endereco?.cidade ? `${cliente.endereco.cidade}${cliente.endereco.estado ? ` - ${cliente.endereco.estado}` : ''}` : '-'}
+                          </span>
                           {cliente.endereco?.bairro && (
                             <span className="text-[11px] text-muted-foreground">{cliente.endereco.bairro}</span>
                           )}
@@ -347,7 +349,7 @@ export function ClientesList() {
                           <MapPin className="w-3.5 h-3.5 text-muted-foreground shrink-0" /> Localidade:
                         </span>
                         <span className="text-foreground font-medium truncate max-w-[170px]">
-                          {cliente.endereco?.cidade ? `${cliente.endereco.cidade} - ${cliente.endereco.estado || ''}` : '-'}
+                          {cliente.endereco?.cidade ? `${cliente.endereco.cidade}${cliente.endereco.estado ? ` - ${cliente.endereco.estado}` : ''}` : '-'}
                         </span>
                       </div>
                     </CardContent>

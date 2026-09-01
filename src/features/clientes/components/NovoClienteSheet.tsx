@@ -585,8 +585,8 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
         numero: numero.trim(),
         complemento: complemento.trim() || undefined,
         bairro: bairro.trim(),
-        cidade: cidade.trim() || 'São Paulo',
-        estado: estado.trim() || 'SP',
+        cidade: cidade.trim(),
+        estado: estado.trim(),
         pais: pais.trim() || 'Brasil'
       },
       contatos: [

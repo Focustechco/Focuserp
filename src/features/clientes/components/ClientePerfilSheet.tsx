@@ -392,7 +392,7 @@ export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: Clie
                 </div>
                 <div>
                   <span className="text-muted-foreground block text-[11px]">Cidade / Estado</span>
-                  <span className="font-semibold text-sm text-foreground">{cliente.endereco?.cidade || 'Não informado'} - {cliente.endereco?.estado || 'UF'}</span>
+                  <span className="font-semibold text-sm text-foreground">{cliente.endereco?.cidade ? `${cliente.endereco.cidade}${cliente.endereco.estado ? ` - ${cliente.endereco.estado}` : ''}` : 'Não informado'}</span>
                 </div>
                 <div>
                   <span className="text-muted-foreground block text-[11px]">CEP</span>

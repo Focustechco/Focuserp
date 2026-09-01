@@ -131,8 +131,8 @@ function PerfilClientePage() {
         <Card>
           <CardContent className="p-6 flex flex-col gap-2">
             <div className="text-sm font-medium text-muted-foreground flex items-center gap-2"><MapPin className="w-4 h-4" /> Localização</div>
-            <div className="font-medium">{cliente.endereco?.cidade || 'N/D'} - {cliente.endereco?.estado || 'N/D'}</div>
-            <div className="text-xs text-muted-foreground">{cliente.endereco?.logradouro || 'Sem endereço'}, {cliente.endereco?.numero || 'S/N'}</div>
+            <div className="font-medium">{cliente.endereco?.cidade ? `${cliente.endereco.cidade}${cliente.endereco.estado ? ` - ${cliente.endereco.estado}` : ''}` : 'Não informada'}</div>
+            <div className="text-xs text-muted-foreground">{cliente.endereco?.logradouro ? `${cliente.endereco.logradouro}${cliente.endereco.numero ? `, ${cliente.endereco.numero}` : ''}` : 'Sem endereço cadastrado'}</div>
           </CardContent>
         </Card>
         <Card>

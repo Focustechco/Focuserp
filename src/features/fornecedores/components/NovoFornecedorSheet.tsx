@@ -374,13 +374,13 @@ export function NovoFornecedorSheet({
       observacoes: observacoes.trim() || undefined,
 
       endereco: {
-        cep: cep.trim() || '00000-000',
-        logradouro: logradouro.trim() || 'Não informado',
-        numero: numero.trim() || 'S/N',
+        cep: cep.trim(),
+        logradouro: logradouro.trim(),
+        numero: numero.trim(),
         complemento: complemento.trim() || undefined,
-        bairro: bairro.trim() || 'Centro',
-        cidade: cidade.trim() || 'São Paulo',
-        estado: estado.trim() || 'SP',
+        bairro: bairro.trim(),
+        cidade: cidade.trim(),
+        estado: estado.trim(),
         pais: pais.trim() || 'Brasil'
       },
 

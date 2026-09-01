@@ -199,11 +199,11 @@ export function FornecedorPerfilSheet({
                   <MapPin className="w-4 h-4 text-primary" /> Endereço Completo
                 </h4>
                 <div className="space-y-2 text-muted-foreground">
-                  <div>Logradouro: <strong className="text-foreground">{fornecedor.endereco?.logradouro || 'Não informado'}, {fornecedor.endereco?.numero || 'S/N'}</strong></div>
+                  <div>Logradouro: <strong className="text-foreground">{fornecedor.endereco?.logradouro ? `${fornecedor.endereco.logradouro}${fornecedor.endereco.numero ? `, ${fornecedor.endereco.numero}` : ''}` : 'Não informado'}</strong></div>
                   {fornecedor.endereco?.complemento && <div>Complemento: <strong className="text-foreground">{fornecedor.endereco.complemento}</strong></div>}
-                  <div>Bairro: <strong className="text-foreground">{fornecedor.endereco?.bairro || 'Centro'}</strong></div>
-                  <div>Cidade / UF: <strong className="text-foreground">{fornecedor.endereco?.cidade || 'São Paulo'} - {fornecedor.endereco?.estado || 'SP'}</strong></div>
-                  <div>CEP: <strong className="text-foreground font-mono">{fornecedor.endereco?.cep || '00000-000'}</strong></div>
+                  <div>Bairro: <strong className="text-foreground">{fornecedor.endereco?.bairro || 'Não informado'}</strong></div>
+                  <div>Cidade / UF: <strong className="text-foreground">{fornecedor.endereco?.cidade ? `${fornecedor.endereco.cidade}${fornecedor.endereco.estado ? ` - ${fornecedor.endereco.estado}` : ''}` : 'Não informada'}</strong></div>
+                  <div>CEP: <strong className="text-foreground font-mono">{fornecedor.endereco?.cep || 'Não informado'}</strong></div>
                   <div>País: <strong className="text-foreground">{fornecedor.endereco?.pais || 'Brasil'}</strong></div>
                 </div>
               </div>
