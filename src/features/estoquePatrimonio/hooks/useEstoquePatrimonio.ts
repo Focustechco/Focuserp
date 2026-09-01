@@ -14,6 +14,13 @@ import { TituloReceber } from '@/features/contas-receber/types';
 import { contaPagarService } from '@/services/contaPagarService';
 import { contaReceberService } from '@/services/contaReceberService';
 
+const INITIAL_EQUIPAMENTOS: Equipamento[] = [];
+const INITIAL_LICENCAS: Licenca[] = [];
+const INITIAL_PATRIMONIOS: Patrimonio[] = [];
+const INITIAL_MOVIMENTACOES: Movimentacao[] = [];
+const INITIAL_INVENTARIOS: Inventario[] = [];
+const INITIAL_MANUTENCOES: Manutencao[] = [];
+
 const INITIAL_ESTOQUE_ITENS: EstoqueItem[] = [
   {
     id: 'esc-001',
