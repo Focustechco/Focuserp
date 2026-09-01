@@ -28,44 +28,7 @@ export interface CicloAvaliacao {
   mediaGeralNota: number;
 }
 
-const INITIAL_CICLOS: CicloAvaliacao[] = [
-  {
-    id: 'ciclo-1',
-    titulo: 'Ciclo de Desempenho & Competências 2026.1',
-    tipo: 'Avaliação 360°',
-    periodo: '1º Semestre 2026',
-    dataInicio: '2026-06-01',
-    dataFim: '2026-07-15',
-    totalParticipantes: 22,
-    concluidas: 19,
-    status: 'Em Andamento',
-    mediaGeralNota: 4.6
-  },
-  {
-    id: 'ciclo-2',
-    titulo: 'Avaliação de Período de Experiência (45/90 dias)',
-    tipo: 'Avaliação de Experiência',
-    periodo: 'Contínuo 2026',
-    dataInicio: '2026-01-10',
-    dataFim: '2026-12-31',
-    totalParticipantes: 5,
-    concluidas: 5,
-    status: 'Em Andamento',
-    mediaGeralNota: 4.8
-  },
-  {
-    id: 'ciclo-3',
-    titulo: 'Revisão Anual de Metas Individuais 2025',
-    tipo: 'Metas & OKRs Individuais',
-    periodo: 'Ano 2025',
-    dataInicio: '2025-11-01',
-    dataFim: '2025-12-20',
-    totalParticipantes: 18,
-    concluidas: 18,
-    status: 'Encerrado',
-    mediaGeralNota: 4.4
-  }
-];
+const INITIAL_CICLOS: CicloAvaliacao[] = [];
 
 export function RhDesempenhoView() {
   const { colaboradores } = useColaboradoresQuery();

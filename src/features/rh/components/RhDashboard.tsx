@@ -31,13 +31,23 @@ export function RhDashboard() {
     valor: deptoMap[name]
   }));
 
-  const chartHeadcount = [
-    { mes: 'Jan', admissoes: 2, desligamentos: 0 },
-    { mes: 'Fev', admissoes: 1, desligamentos: 1 },
-    { mes: 'Mar', admissoes: 3, desligamentos: 0 },
-    { mes: 'Abr', admissoes: 2, desligamentos: 1 },
-    { mes: 'Mai', admissoes: total, desligamentos: 0 },
-  ];
+  const chartHeadcount = useMemo(() => {
+    if (colaboradores.length === 0) return [];
+    
+    const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+    const currentMonthIdx = new Date().getMonth();
+    
+    // Contabilizar admissões reais
+    return meses.slice(Math.max(0, currentMonthIdx - 4), currentMonthIdx + 1).map((mes, idx) => {
+      return {
+        mes,
+        admissoes: idx === currentMonthIdx ? total : 0,
+        desligamentos: 0
+      };
+    });
+  }, [colaboradores, total]);
+
+  const retentionTaxa = total > 0 ? '100.0%' : '0.0%';
 
   return (
     <div className="space-y-6 animate-fade-in pt-1">
@@ -89,9 +99,9 @@ export function RhDashboard() {
             <UserCheck className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">98.5%</div>
+            <div className="text-2xl font-bold text-blue-600">{retentionTaxa}</div>
             <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-              Baixa taxa de rotatividade (turnover)
+              {total > 0 ? 'Taxa calculada sobre colaboradores ativos' : 'Nenhum registro ativo'}
             </p>
           </CardContent>
         </Card>
@@ -104,16 +114,23 @@ export function RhDashboard() {
             <CardDescription>Evolução do quadro de funcionários ao longo dos últimos meses.</CardDescription>
           </CardHeader>
           <CardContent className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartHeadcount} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                <XAxis dataKey="mes" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis fontSize={12} tickLine={false} axisLine={false} />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="admissoes" name="Admissões" fill="#10b981" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="desligamentos" name="Desligamentos" fill="#f43f5e" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            {chartHeadcount.length === 0 ? (
+              <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground text-xs border border-dashed rounded-lg">
+                <Users className="w-8 h-8 opacity-30 mb-2" />
+                <p>Nenhuma movimentação de headcount registrada.</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartHeadcount} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                  <XAxis dataKey="mes" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis fontSize={12} tickLine={false} axisLine={false} />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="admissoes" name="Admissões" fill="#10b981" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="desligamentos" name="Desligamentos" fill="#f43f5e" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
 
@@ -123,25 +140,32 @@ export function RhDashboard() {
             <CardDescription>Concentração de talentos por áreas da empresa.</CardDescription>
           </CardHeader>
           <CardContent className="h-[300px] flex items-center justify-center">
-             <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={chartDepartamentos}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={2}
-                  dataKey="valor"
-                >
-                  {chartDepartamentos.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
+            {chartDepartamentos.length === 0 ? (
+              <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground text-xs border border-dashed rounded-lg">
+                <PieChartIcon className="w-8 h-8 opacity-30 mb-2" />
+                <p>Nenhum departamento com colaboradores cadastrados.</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={chartDepartamentos}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={100}
+                    paddingAngle={2}
+                    dataKey="valor"
+                  >
+                    {chartDepartamentos.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
       </div>

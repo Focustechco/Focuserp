@@ -29,50 +29,7 @@ export interface RegistroPonto {
   ocorrencia: 'Normal' | 'Horas Extras' | 'Atraso' | 'Falta Justificada (Atestado)' | 'Folga Compensatória';
 }
 
-const INITIAL_REGISTROS_PONTO: RegistroPonto[] = [
-  {
-    id: 'pt-1',
-    colaboradorId: 'colab-1',
-    colaboradorNome: 'Adriano Leal',
-    departamento: 'Diretoria / Tecnologia',
-    data: new Date().toISOString().split('T')[0],
-    entrada1: '09:00',
-    saida1: '12:00',
-    entrada2: '13:00',
-    saida2: '18:00',
-    totalHorasTrabalhadas: '08:00',
-    saldoBancoHorasMinutos: 0,
-    ocorrencia: 'Normal'
-  },
-  {
-    id: 'pt-2',
-    colaboradorId: 'colab-2',
-    colaboradorNome: 'Mariana Souza',
-    departamento: 'Comercial',
-    data: new Date().toISOString().split('T')[0],
-    entrada1: '08:45',
-    saida1: '12:00',
-    entrada2: '13:00',
-    saida2: '18:45',
-    totalHorasTrabalhadas: '09:00',
-    saldoBancoHorasMinutos: 60,
-    ocorrencia: 'Horas Extras'
-  },
-  {
-    id: 'pt-3',
-    colaboradorId: 'colab-3',
-    colaboradorNome: 'Lucas Rodrigues',
-    departamento: 'Engenharia',
-    data: new Date().toISOString().split('T')[0],
-    entrada1: '09:15',
-    saida1: '12:00',
-    entrada2: '13:00',
-    saida2: '18:00',
-    totalHorasTrabalhadas: '07:45',
-    saldoBancoHorasMinutos: -15,
-    ocorrencia: 'Atraso'
-  }
-];
+const INITIAL_REGISTROS_PONTO: RegistroPonto[] = [];
 
 export function RhPontoFrequenciaView() {
   const { colaboradores } = useColaboradoresQuery();

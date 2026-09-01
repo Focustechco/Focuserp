@@ -27,41 +27,7 @@ export interface ProcessoAdmissao {
   checklists: { item: string; concluido: boolean }[];
 }
 
-const INITIAL_PROCESSOS: ProcessoAdmissao[] = [
-  {
-    id: 'onb-1',
-    candidatoNome: 'Gabriel Tavares',
-    cargo: 'Engenheiro de Software Frontend',
-    departamento: 'Engenharia & Produto',
-    dataPrevistaInicio: '2026-09-08',
-    etapa: 'Setup & Equipamentos',
-    mentorResponsavel: 'Adriano Leal',
-    checklists: [
-      { item: 'Coleta de RG, CPF, CTPS e Comprovante de Residência', concluido: true },
-      { item: 'Exame Médico Admissional (ASO emitido)', concluido: true },
-      { item: 'Contrato de Trabalho & NDA assinado no Módulo de Assinaturas', concluido: true },
-      { item: 'Configuração de E-mail corporativo & Acessos AWS/GitHub', concluido: true },
-      { item: 'Envio de MacBook Pro & Kit Boas-Vindas', concluido: false },
-      { item: 'Reunião de Alinhamento 1º Dia com a Diretoria', concluido: false }
-    ]
-  },
-  {
-    id: 'onb-2',
-    candidatoNome: 'Juliana Mendes',
-    cargo: 'Analista de Customer Success',
-    departamento: 'Customer Success',
-    dataPrevistaInicio: '2026-09-15',
-    etapa: 'Documentação',
-    mentorResponsavel: 'Mariana Souza',
-    checklists: [
-      { item: 'Coleta de RG, CPF, CTPS e Comprovante de Residência', concluido: true },
-      { item: 'Exame Médico Admissional agendado', concluido: false },
-      { item: 'Contrato de Trabalho gerado', concluido: false },
-      { item: 'Configuração de E-mail corporativo', concluido: false },
-      { item: 'Entrega de Equipamentos', concluido: false }
-    ]
-  }
-];
+const INITIAL_PROCESSOS: ProcessoAdmissao[] = [];
 
 export function RhOnboardingView() {
   const { colaboradores } = useColaboradoresQuery();

@@ -26,52 +26,7 @@ export interface CursoTreinamento {
   status: 'Disponível' | 'Em Andamento' | 'Concluído';
 }
 
-const INITIAL_TREINAMENTOS: CursoTreinamento[] = [
-  {
-    id: 'tr-1',
-    titulo: 'Segurança da Informação & Diretrizes LGPD 2026',
-    categoria: 'Compliance & Segurança',
-    cargaHorariaHoras: 4,
-    obrigatorio: true,
-    totalMatriculados: 22,
-    concluidos: 20,
-    instrutorOuPlataforma: 'Focus Academy / Jurídico',
-    status: 'Disponível'
-  },
-  {
-    id: 'tr-2',
-    titulo: 'Arquitetura de Microsserviços & Cloud Native',
-    categoria: 'Técnico & Engenharia',
-    cargaHorariaHoras: 16,
-    obrigatorio: false,
-    totalMatriculados: 8,
-    concluidos: 6,
-    instrutorOuPlataforma: 'Plataforma Alura Corporate',
-    status: 'Em Andamento'
-  },
-  {
-    id: 'tr-3',
-    titulo: 'Metodologia de Vendas B2B & Negociação SPIN Selling',
-    categoria: 'Comercial & Vendas',
-    cargaHorariaHoras: 8,
-    obrigatorio: true,
-    totalMatriculados: 7,
-    concluidos: 7,
-    instrutorOuPlataforma: 'Focus Academy Comercial',
-    status: 'Concluído'
-  },
-  {
-    id: 'tr-4',
-    titulo: 'Liderança Humanizada & Gestão de Pessoas 4.0',
-    categoria: 'Liderança & Gestão',
-    cargaHorariaHoras: 12,
-    obrigatorio: false,
-    totalMatriculados: 6,
-    concluidos: 4,
-    instrutorOuPlataforma: 'Consultoria Externa de Liderança',
-    status: 'Disponível'
-  }
-];
+const INITIAL_TREINAMENTOS: CursoTreinamento[] = [];
 
 export function RhTreinamentosView() {
   const { colaboradores } = useColaboradoresQuery();

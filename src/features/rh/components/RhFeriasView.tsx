@@ -31,53 +31,7 @@ export interface SolicitacaoFerias {
   solicitadoEm: string;
 }
 
-const INITIAL_FERIAS: SolicitacaoFerias[] = [
-  {
-    id: 'fer-1',
-    colaboradorId: 'colab-1',
-    colaboradorNome: 'Adriano Leal',
-    departamento: 'Diretoria / Tecnologia',
-    periodoAquisitivo: '2025/2026',
-    dataInicio: '2026-09-15',
-    dataFim: '2026-09-30',
-    dias: 15,
-    adiantamento13: true,
-    venderDias: false,
-    status: 'Aprovada',
-    observacoes: 'Férias regulares programadas.',
-    solicitadoEm: '2026-08-01'
-  },
-  {
-    id: 'fer-2',
-    colaboradorId: 'colab-2',
-    colaboradorNome: 'Mariana Souza',
-    departamento: 'Comercial',
-    periodoAquisitivo: '2024/2025',
-    dataInicio: '2026-10-01',
-    dataFim: '2026-10-20',
-    dias: 20,
-    adiantamento13: false,
-    venderDias: true,
-    status: 'Pendente',
-    observacoes: 'Solicitação de 20 dias + 10 dias de abono pecuniário.',
-    solicitadoEm: '2026-08-20'
-  },
-  {
-    id: 'fer-3',
-    colaboradorId: 'colab-3',
-    colaboradorNome: 'Lucas Rodrigues',
-    departamento: 'Engenharia',
-    periodoAquisitivo: '2024/2025',
-    dataInicio: '2026-08-10',
-    dataFim: '2026-08-25',
-    dias: 15,
-    adiantamento13: false,
-    venderDias: false,
-    status: 'Concluída',
-    observacoes: 'Gozo concluído sem pendências.',
-    solicitadoEm: '2026-07-05'
-  }
-];
+const INITIAL_FERIAS: SolicitacaoFerias[] = [];
 
 export function RhFeriasView() {
   const { colaboradores } = useColaboradoresQuery();

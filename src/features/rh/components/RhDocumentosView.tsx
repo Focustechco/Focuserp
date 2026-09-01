@@ -28,38 +28,7 @@ export interface DocumentoRhItem {
   urlConteudo?: string;
 }
 
-const INITIAL_DOCS_RH: DocumentoRhItem[] = [
-  {
-    id: 'doc-rh-1',
-    nome: 'Contrato_Individual_Trabalho_Adriano_Leal.pdf',
-    colaboradorId: 'colab-1',
-    colaboradorNome: 'Adriano Leal',
-    categoria: 'Contrato de Trabalho (CLT/PJ)',
-    extensao: 'pdf',
-    tamanho: '450 KB',
-    dataUpload: '2026-01-15'
-  },
-  {
-    id: 'doc-rh-2',
-    nome: 'Termo_Confidencialidade_NDA_Mariana_Souza.pdf',
-    colaboradorId: 'colab-2',
-    colaboradorNome: 'Mariana Souza',
-    categoria: 'Termo de Confidencialidade (NDA)',
-    extensao: 'pdf',
-    tamanho: '320 KB',
-    dataUpload: '2026-03-10'
-  },
-  {
-    id: 'doc-rh-3',
-    nome: 'Termo_Responsabilidade_MacBook_Pro_Gabriel_Tavares.pdf',
-    colaboradorId: 'colab-3',
-    colaboradorNome: 'Gabriel Tavares',
-    categoria: 'Termo de Equipamentos (Patrimônio)',
-    extensao: 'pdf',
-    tamanho: '280 KB',
-    dataUpload: '2026-08-20'
-  }
-];
+const INITIAL_DOCS_RH: DocumentoRhItem[] = [];
 
 export function RhDocumentosView() {
   const { colaboradores } = useColaboradoresQuery();
