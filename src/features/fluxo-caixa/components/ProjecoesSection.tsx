@@ -54,11 +54,14 @@ export function ProjecoesSection() {
     return dt >= hoje && dt <= dataLimite;
   });
 
+  // Saldo Atual Realizado (soma das movimentações confirmadas)
+  const saldoAtualRealizado = fluxoConsolidado.length > 0 ? fluxoConsolidado[fluxoConsolidado.length - 1].saldoAcumuladoDia : 0;
+
   // Cálculo das entradas e saídas no período selecionado
   const entradasBase = titulosFuturos.reduce((acc, t) => acc + (t.valorOriginal - (t.valorRecebido || 0)), 0);
   const saidasBase = contasFuturas.reduce((acc, c) => acc + (c.valorOriginal - (c.valorPago || 0)), 0);
 
-  // Ajustes de Cenrios
+  // Ajustes de Cenários
   let fatorEntrada = 1.0;
   let fatorSaida = 1.0;
 
@@ -66,7 +69,7 @@ export function ProjecoesSection() {
     fatorEntrada = 1.1; // +10% novos contratos/recebimentos
     fatorSaida = 0.95; // -5% economia operacional
   } else if (cenario === 'pessimista') {
-    fatorEntrada = 0.85; // 15% de inadimplncia/atraso
+    fatorEntrada = 0.85; // 15% de inadimplência/atraso
     fatorSaida = 1.05; // +5% de imprevistos
   }
 
