@@ -121,57 +121,60 @@ export function TopBar() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center gap-3 border-b bg-background px-3 sm:px-6 shadow-2xs">
-        <SidebarTrigger className="-ml-1 text-muted-foreground hover:text-foreground" />
-        
-        {/* LOGO MOBILE FOCUS ERP */}
-        <div className="flex md:hidden items-center mr-1">
-          <Link to="/" className="flex items-center">
-            <img
-              src={mobileLightLogo}
-              alt="Focus ERP"
-              className="h-7 sm:h-8 w-auto max-w-[135px] object-contain dark:hidden"
+      <header className="sticky top-0 z-40 w-full flex flex-col justify-center border-b bg-background/95 backdrop-blur-md px-2.5 sm:px-6 shadow-2xs pt-[env(safe-area-inset-top,0px)] transition-all">
+        <div className="flex h-14 w-full items-center justify-between gap-2 sm:gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
+            <SidebarTrigger className="-ml-1 text-muted-foreground hover:text-foreground h-9 w-9 shrink-0 cursor-pointer" />
+            
+            {/* LOGO MOBILE FOCUS ERP */}
+            <div className="flex md:hidden items-center mr-1 shrink-0">
+              <Link to="/" className="flex items-center">
+                <img
+                  src={mobileLightLogo}
+                  alt="Focus ERP"
+                  className="h-7 sm:h-8 w-auto max-w-[125px] sm:max-w-[140px] object-contain dark:hidden"
+                />
+                <img
+                  src={mobileDarkLogo}
+                  alt="Focus ERP"
+                  className="h-7 sm:h-8 w-auto max-w-[125px] sm:max-w-[140px] object-contain hidden dark:block"
+                />
+              </Link>
+            </div>
+          </div>
+          
+          {/* BUSCADOR GLOBAL INTERATIVO */}
+          <div 
+            onClick={() => setOpenSearchModal(true)}
+            className="relative hidden md:block cursor-pointer group"
+          >
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground group-hover:text-primary transition-colors" />
+            <Input
+              readOnly
+              placeholder="Buscar em toda a plataforma (Ctrl+K)..."
+              className="h-9 w-[320px] pl-8 pr-16 lg:w-[420px] cursor-pointer bg-muted/40 hover:bg-muted/80 transition-colors text-xs"
             />
-            <img
-              src={mobileDarkLogo}
-              alt="Focus ERP"
-              className="h-7 sm:h-8 w-auto max-w-[135px] object-contain hidden dark:block"
-            />
-          </Link>
-        </div>
-        
-        {/* BUSCADOR GLOBAL INTERATIVO */}
-        <div 
-          onClick={() => setOpenSearchModal(true)}
-          className="relative hidden md:block cursor-pointer group"
-        >
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground group-hover:text-primary transition-colors" />
-          <Input
-            readOnly
-            placeholder="Buscar em toda a plataforma (Ctrl+K)..."
-            className="h-9 w-[320px] pl-8 pr-16 lg:w-[420px] cursor-pointer bg-muted/40 hover:bg-muted/80 transition-colors text-xs"
-          />
-          <kbd className="pointer-events-none absolute right-2 top-1/2 hidden -translate-y-1/2 items-center gap-1 rounded border bg-background px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground sm:flex shadow-xs">
-            <Command className="h-3 w-3" />K
-          </kbd>
-        </div>
+            <kbd className="pointer-events-none absolute right-2 top-1/2 hidden -translate-y-1/2 items-center gap-1 rounded border bg-background px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground sm:flex shadow-xs">
+              <Command className="h-3 w-3" />K
+            </kbd>
+          </div>
 
-        <div className="ml-auto flex items-center gap-2 sm:gap-2.5">
-          <NotificationBellDropdown />
+          <div className="ml-auto flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+            <NotificationBellDropdown />
 
-          {/* BOTÃO NOVA TRANSAÇÃO */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="inline-flex items-center gap-1.5 h-8 px-2 sm:px-3 text-xs font-semibold border-orange-500/30 text-orange-600 dark:text-orange-400 bg-orange-50/50 hover:bg-orange-100/80 dark:bg-orange-950/30 dark:hover:bg-orange-900/50 transition-all rounded-lg shadow-xs"
-              >
-                <Plus className="h-3.5 w-3.5 text-orange-500" />
-                <span className="hidden sm:inline">Nova Transação</span>
-                <ChevronDown className="hidden sm:inline h-3 w-3 opacity-60 ml-0.5" />
-              </Button>
-            </DropdownMenuTrigger>
+            {/* BOTÃO NOVA TRANSAÇÃO */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="inline-flex items-center gap-1.5 h-8 px-2 sm:px-3 text-xs font-semibold border-orange-500/30 text-orange-600 dark:text-orange-400 bg-orange-50/50 hover:bg-orange-100/80 dark:bg-orange-950/30 dark:hover:bg-orange-900/50 transition-all rounded-lg shadow-xs cursor-pointer"
+                >
+                  <Plus className="h-3.5 w-3.5 text-orange-500 shrink-0" />
+                  <span className="hidden sm:inline">Nova Transação</span>
+                  <ChevronDown className="hidden sm:inline h-3 w-3 opacity-60 ml-0.5 shrink-0" />
+                </Button>
+              </DropdownMenuTrigger>
 
             <DropdownMenuContent align="end" className="w-72 p-1.5 space-y-1">
               <DropdownMenuLabel className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider px-2 py-1">
@@ -265,6 +268,7 @@ export function TopBar() {
               </AvatarFallback>
             </Avatar>
           </div>
+        </div>
         </div>
       </header>
 

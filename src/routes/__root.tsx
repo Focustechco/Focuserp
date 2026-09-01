@@ -190,7 +190,7 @@ function ProtectedAppLayout() {
         <AppSidebar />
         <SidebarInset className="flex min-w-0 flex-1 flex-col w-full max-w-[100vw]">
           <TopBar />
-          <main className="flex-1 overflow-x-hidden w-full max-w-[100vw]">
+          <main className="flex-1 overflow-x-hidden w-full max-w-[100vw] pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
             <RouteAccessGate />
           </main>
         </SidebarInset>

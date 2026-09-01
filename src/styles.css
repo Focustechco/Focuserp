@@ -163,22 +163,49 @@
   scrollbar-width: none;
 }
 
-/* Suporte a iOS PWA Safe Area (Notch / Dynamic Island) */
+/* Suporte a iOS PWA Safe Area (Notch / Dynamic Island / Home Indicator) */
 .pt-safe {
   padding-top: env(safe-area-inset-top, 0px);
 }
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
+.pl-safe {
+  padding-left: env(safe-area-inset-left, 0px);
+}
+.pr-safe {
+  padding-right: env(safe-area-inset-right, 0px);
+}
 .mt-safe {
   margin-top: env(safe-area-inset-top, 0px);
 }
+.mb-safe {
+  margin-bottom: env(safe-area-inset-bottom, 0px);
+}
+.h-safe-screen {
+  height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+}
+.min-h-safe-screen {
+  min-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+}
 
-/* Otimizacao de toque para telas mobile iOS */
-@media (max-width: 640px) {
-  button, a, input, select {
+/* Otimizacao de toque e inputs para telas mobile iOS (Previne Auto-Zoom e Deslocamento) */
+@media screen and (max-width: 768px) {
+  button, a, input, select, textarea {
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  /* Previne sobreposições e quebras de container em telas pequenas */
+  .page-container, main {
+    max-width: 100vw;
+    overflow-x: hidden;
   }
 }
 
