@@ -71,6 +71,11 @@ function isValidItem(table: string, item: any): boolean {
     return false;
   }
 
+  // Profile rows de usuário pertencem ao userService e não devem aparecer em outras tabelas
+  if (!table.includes('usuario') && !table.includes('user') && item.name && typeof item.name === 'string' && item.name.startsWith('__USER_PROFILE__')) {
+    return false;
+  }
+
   if (table.includes('plano_contas') || table.includes('categorias')) {
     return Boolean(item.nome && typeof item.nome === 'string' && item.nome.trim().length > 0);
   }
@@ -801,6 +806,7 @@ export function useLocalStorageState<T extends { id: string }>(
               .filter((c: any) => {
                 if (deletedSet.has(String(c.id))) return false;
                 if (c.status === 'deleted' || c.status === 'deletado' || c.deleted === true) return false;
+                if (c.name && typeof c.name === 'string' && c.name.startsWith('__USER_PROFILE__')) return false;
                 return true;
               })
               .map((c: any) => {

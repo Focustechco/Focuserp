@@ -143,6 +143,8 @@ export const clienteService = {
           .select('*')
           .not('name', 'like', '__FOCUS_STATE__%')
           .not('name', 'like', '__DELETED__%')
+          .not('name', 'like', '__USER_PROFILE__%')
+          .neq('status', 'user_profile')
           .neq('status', 'deleted')
           .order('created_at', { ascending: false });
 
