@@ -40,6 +40,7 @@ export function RhOnboardingView() {
   const [candidatoNome, setCandidatoNome] = useState('');
   const [cargo, setCargo] = useState('');
   const [departamento, setDepartamento] = useState('Tecnologia');
+  const [dataInicio, setDataInicio] = useState(new Date().toISOString().split('T')[0]);
   const [mentor, setMentor] = useState(colaboradores[0]?.nomeCompleto || '');
 
   const handleToggleCheck = (processoId: string, itemIdx: number) => {

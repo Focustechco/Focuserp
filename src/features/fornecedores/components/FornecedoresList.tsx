@@ -13,6 +13,16 @@ import {
   UserX, UserCheck
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle 
+} from '@/components/ui/alert-dialog';
 import { NovoFornecedorSheet } from './NovoFornecedorSheet';
 import { FornecedorPerfilSheet } from './FornecedorPerfilSheet';
 import { fornecedorService } from '@/services/fornecedorService';
@@ -30,9 +40,32 @@ export function FornecedoresList() {
   const [isPerfilOpen, setIsPerfilOpen] = useState(false);
   const [selectedFornecedorEdit, setSelectedFornecedorEdit] = useState<Fornecedor | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [fornecedorToDelete, setFornecedorToDelete] = useState<Fornecedor | null>(null);
 
   const { data: fornecedores = [], updateItem, deleteItem } = useLocalStorageState<Fornecedor>('focus_fornecedores');
   const navigate = useNavigate();
+
+  const handleConfirmDelete = async () => {
+    if (!fornecedorToDelete) return;
+    const target = fornecedorToDelete;
+    const nome = target.nomeFantasia || target.razaoSocial || 'Fornecedor';
+    try {
+      deleteItem(target.id);
+      await fornecedorService.deleteFornecedor(target.id).catch(err => {
+        console.warn('Supabase delete warning (local cache synced):', err);
+      });
+      toast.success(`Fornecedor "${nome}" removido com sucesso!`);
+    } catch (err: any) {
+      deleteItem(target.id);
+      toast.success(`Fornecedor "${nome}" removido.`);
+    } finally {
+      setFornecedorToDelete(null);
+      if (selectedFornecedorPerfil?.id === target.id) {
+        setIsPerfilOpen(false);
+        setSelectedFornecedorPerfil(null);
+      }
+    }
+  };
 
   const safeFornecedores = Array.isArray(fornecedores) ? fornecedores : [];
 
@@ -334,13 +367,8 @@ export function FornecedoresList() {
               <DropdownMenuSeparator />
 
               <DropdownMenuItem 
-                className="text-rose-600 focus:text-rose-600 focus:bg-rose-50 dark:focus:bg-rose-950/30 cursor-pointer" 
-                onClick={() => {
-                  if (window.confirm(`Tem certeza que deseja excluir o fornecedor "${fornecedor.nomeFantasia || fornecedor.razaoSocial}"?`)) {
-                    deleteItem(fornecedor.id);
-                    toast.success("Fornecedor removido com sucesso!");
-                  }
-                }}
+                className="text-rose-600 focus:text-rose-600 focus:bg-rose-50 dark:focus:bg-rose-950/30 cursor-pointer font-medium" 
+                onClick={() => setFornecedorToDelete(fornecedor)}
               >
                 <Trash2 className="w-3.5 h-3.5 mr-2" />
                 Excluir Fornecedor
@@ -477,13 +505,8 @@ export function FornecedoresList() {
                 <DropdownMenuSeparator />
 
                 <DropdownMenuItem 
-                  className="text-rose-600 focus:text-rose-600 focus:bg-rose-50 dark:focus:bg-rose-950/30 cursor-pointer" 
-                  onClick={() => {
-                    if (window.confirm(`Tem certeza que deseja excluir o fornecedor "${fornecedor.nomeFantasia || fornecedor.razaoSocial}"?`)) {
-                      deleteItem(fornecedor.id);
-                      toast.success("Fornecedor removido com sucesso!");
-                    }
-                  }}
+                  className="text-rose-600 focus:text-rose-600 focus:bg-rose-50 dark:focus:bg-rose-950/30 cursor-pointer font-medium" 
+                  onClick={() => setFornecedorToDelete(fornecedor)}
                 >
                   <Trash2 className="w-3.5 h-3.5 mr-2" />
                   Excluir Fornecedor
@@ -691,6 +714,7 @@ export function FornecedoresList() {
         open={isPerfilOpen}
         onOpenChange={setIsPerfilOpen}
         onEdit={(forn) => handleOpenEdit(forn)}
+        onDelete={(forn) => setFornecedorToDelete(forn)}
       />
 
       {/* Sheet de Edição Completa */}
@@ -699,6 +723,29 @@ export function FornecedoresList() {
         open={isEditOpen}
         onOpenChange={setIsEditOpen}
       />
+
+      {/* Modal de Confirmação de Exclusão */}
+      <AlertDialog open={Boolean(fornecedorToDelete)} onOpenChange={(op) => !op && setFornecedorToDelete(null)}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-base font-bold text-foreground">
+              Excluir Fornecedor
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-xs text-muted-foreground leading-relaxed">
+              Tem certeza que deseja excluir o fornecedor <strong className="text-foreground">{fornecedorToDelete?.nomeFantasia || fornecedorToDelete?.razaoSocial}</strong>? Esta ação removerá o cadastro do sistema.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2">
+            <AlertDialogCancel className="text-xs h-8">Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleConfirmDelete} 
+              className="bg-rose-600 hover:bg-rose-700 text-white text-xs h-8 font-semibold cursor-pointer"
+            >
+              Sim, Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

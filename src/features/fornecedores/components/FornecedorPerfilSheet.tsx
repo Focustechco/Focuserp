@@ -7,7 +7,7 @@ import {
   Building2, User, MapPin, Phone, Mail, Globe, 
   CreditCard, DollarSign, FolderOpen, History, 
   Edit, Plus, Copy, ExternalLink, Download, Eye, 
-  QrCode, CheckCircle2, AlertTriangle, MessageSquare, Clock
+  QrCode, CheckCircle2, AlertTriangle, MessageSquare, Clock, Trash2
 } from 'lucide-react';
 import { Fornecedor } from '../types';
 import { useLocalStorageState } from '@/hooks/useDataStore';
@@ -23,6 +23,7 @@ interface FornecedorPerfilSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onEdit: (fornecedor: Fornecedor) => void;
+  onDelete?: (fornecedor: Fornecedor) => void;
 }
 
 const formatCurrency = (val?: number | null) => {
@@ -33,7 +34,8 @@ export function FornecedorPerfilSheet({
   fornecedor, 
   open, 
   onOpenChange, 
-  onEdit 
+  onEdit,
+  onDelete
 }: FornecedorPerfilSheetProps) {
   const [selectedDocPreview, setSelectedDocPreview] = useState<DocumentoDMS | null>(null);
 
@@ -106,6 +108,19 @@ export function FornecedorPerfilSheet({
             </div>
 
             <div className="flex items-center gap-2">
+              {onDelete && (
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={() => {
+                    onDelete(fornecedor);
+                  }}
+                  className="gap-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:hover:bg-rose-950/30 border-rose-200 cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Excluir
+                </Button>
+              )}
               <Button 
                 size="sm" 
                 variant="default"
@@ -113,7 +128,7 @@ export function FornecedorPerfilSheet({
                   onOpenChange(false);
                   onEdit(fornecedor);
                 }}
-                className="gap-1.5 text-xs font-semibold"
+                className="gap-1.5 text-xs font-semibold cursor-pointer"
               >
                 <Edit className="w-3.5 h-3.5" />
                 Editar Fornecedor
