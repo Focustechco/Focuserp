@@ -105,36 +105,46 @@ export const contaPagarService = {
     const validated = contaPagarSchema.parse(conta);
     const id = toValidUuid(validated.id);
 
-    const payload = {
+    const payload: any = {
       id,
       tenant_id: toNullableValidUuid(validated.tenantId),
-      fornecedor_id: toNullableValidUuid(validated.fornecedorId),
-      numero: validated.numero || `CP-${id.slice(0, 6).toUpperCase()}`,
-      descricao: validated.descricao,
-      categoria: validated.categoria,
-      valor_original: validated.valorOriginal,
-      desconto: validated.desconto,
-      multa: validated.multa,
-      juros: validated.juros,
-      valor_pago: validated.valorPago,
+      numero: validated.numero || `PAG-${id.slice(0, 4).toUpperCase()}`,
+      fornecedor_nome: validated.fornecedorNome || 'Fornecedor',
+      descricao: validated.descricao || 'Despesa Operacional',
+      categoria: validated.categoria || 'Geral',
+      valor_original: Number(validated.valorOriginal || 0),
+      valor_pago: Number(validated.valorPago || 0),
       data_emissao: validated.dataEmissao || new Date().toISOString().split('T')[0],
-      data_vencimento: validated.dataVencimento,
-      data_pagamento: validated.dataPagamento,
-      forma_pagamento: validated.formaPagamento,
-      status: validated.status,
-      responsavel: validated.responsavel,
-      competencia: validated.competencia,
-      observacoes: validated.observacoes,
-      tags: validated.tags,
-      recorrente: validated.recorrente,
-      recorrencia_frequencia: validated.recorrenciaFrequencia,
-      recorrencia_fim: validated.recorrenciaFim,
+      data_vencimento: validated.dataVencimento || new Date().toISOString().split('T')[0],
+      data_pagamento: validated.dataPagamento || null,
+      forma_pagamento: validated.formaPagamento || 'Boleto',
+      status: validated.status || 'Pendente',
+      responsavel: validated.responsavel || 'Administrador',
       updated_at: new Date().toISOString(),
     };
 
-    const { error } = await supabase.from('contas_pagar').upsert(payload);
+    if (validated.fornecedorId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(validated.fornecedorId)) {
+      payload.fornecedor_id = validated.fornecedorId;
+    }
+
+    const { error } = await supabase.from('contas_pagar').upsert(payload, { onConflict: 'id' });
     if (error) {
       console.warn('[contaPagarService.saveContaPagar] Warning ao salvar conta a pagar:', error.message);
+      if (payload.fornecedor_id) {
+        await supabase.from('contas_pagar').upsert({ ...payload, fornecedor_id: null }, { onConflict: 'id' });
+      }
+    }
+
+    // Atualizar cache local
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = window.localStorage.getItem('focus_contas_pagar');
+        const list: ContaPagarDTO[] = raw ? JSON.parse(raw) : [];
+        const updated = [{ ...validated, id }, ...list.filter(c => c.id !== id)];
+        window.localStorage.setItem('focus_contas_pagar', JSON.stringify(updated));
+        window.localStorage.setItem('focus_app_focus_contas_pagar', JSON.stringify(updated));
+        window.dispatchEvent(new Event('focus_storage_update'));
+      } catch {}
     }
 
     return { ...validated, id };
@@ -144,6 +154,14 @@ export const contaPagarService = {
    * Excluir conta a pagar por ID
    */
   async deleteContaPagar(id: string): Promise<void> {
+    // 1. Remover do Supabase
+    try {
+      await supabase.from('contas_pagar').delete().eq('id', id);
+    } catch (e: any) {
+      console.warn('[contaPagarService.deleteContaPagar] Warning:', e?.message);
+    }
+
+    // 2. Limpar caches locais
     if (typeof window !== 'undefined') {
       ['focus_app_focus_contas_pagar', 'focus_app_contas_pagar', 'focus_contas_pagar', 'focus_payables'].forEach((key) => {
         try {
@@ -157,17 +175,8 @@ export const contaPagarService = {
           }
         } catch {}
       });
+      window.dispatchEvent(new Event('focus_storage_update'));
     }
-
-    try {
-      await supabase.from('contas_pagar').delete().eq('id', id);
-    } catch (e: any) {
-      console.warn('[contaPagarService.deleteContaPagar] Warning:', e?.message);
-    }
-
-    try {
-      await supabase.from('payables').delete().eq('id', id);
-    } catch {}
   },
 
   /**

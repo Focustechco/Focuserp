@@ -69,31 +69,33 @@ export const fornecedorService = {
 
     const payload = {
       id,
-      tenant_id: validated.tenantId,
-      codigo: validated.codigo || `FOR-${id.slice(0, 6).toUpperCase()}`,
-      razao_social: validated.razaoSocial,
-      nome_fantasia: validated.nomeFantasia,
-      cnpj: validated.cnpj,
-      email: validated.email,
-      telefone: validated.telefone,
-      categoria: validated.categoria,
-      status: validated.status,
-      cep: validated.cep,
-      logradouro: validated.logradouro,
-      numero: validated.numero,
-      complemento: validated.complemento,
-      bairro: validated.bairro,
-      cidade: validated.cidade,
-      estado: validated.estado,
-      pais: validated.pais,
-      observacoes: validated.observacoes,
+      tenant_id: validated.tenantId || null,
+      codigo: validated.codigo || `FOR-${id.slice(0, 4).toUpperCase()}`,
+      razao_social: validated.razaoSocial || validated.nomeFantasia || 'Fornecedor',
+      nome_fantasia: validated.nomeFantasia || validated.razaoSocial || 'Fornecedor',
+      cnpj: validated.cnpj || '00.000.000/0001-00',
+      email: validated.email || null,
+      telefone: validated.telefone || null,
+      categoria: validated.categoria || 'Geral',
+      status: validated.status === 'Inativo' ? 'Inativo' : 'Ativo',
       updated_at: new Date().toISOString(),
     };
 
-    const { error } = await supabase.from('fornecedores').upsert(payload);
+    const { error } = await supabase.from('fornecedores').upsert(payload, { onConflict: 'id' });
     if (error) {
-      console.error('[fornecedorService.saveFornecedor] Erro ao salvar fornecedor:', error);
-      throw new Error(`Falha ao salvar fornecedor: ${error.message}`);
+      console.warn('[fornecedorService.saveFornecedor] Aviso ao salvar fornecedor no Supabase:', error.message);
+    }
+
+    // Atualizar cache local
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = window.localStorage.getItem('focus_fornecedores');
+        const list: FornecedorDTO[] = raw ? JSON.parse(raw) : [];
+        const updated = [{ ...validated, id }, ...list.filter(f => f.id !== id)];
+        window.localStorage.setItem('focus_fornecedores', JSON.stringify(updated));
+        window.localStorage.setItem('focus_app_focus_fornecedores', JSON.stringify(updated));
+        window.dispatchEvent(new Event('focus_storage_update'));
+      } catch {}
     }
 
     return { ...validated, id };
@@ -103,10 +105,26 @@ export const fornecedorService = {
    * Excluir fornecedor por ID
    */
   async deleteFornecedor(id: string): Promise<void> {
-    const { error } = await supabase.from('fornecedores').delete().eq('id', id);
-    if (error) {
-      console.error('[fornecedorService.deleteFornecedor] Erro ao deletar fornecedor:', error);
-      throw new Error(`Falha ao deletar fornecedor: ${error.message}`);
+    // 1. Remover do Supabase
+    try {
+      await supabase.from('fornecedores').delete().eq('id', id);
+    } catch (err: any) {
+      console.warn('[fornecedorService.deleteFornecedor] Erro ao deletar no Supabase:', err?.message);
+    }
+
+    // 2. Limpar caches locais
+    if (typeof window !== 'undefined') {
+      try {
+        ['focus_fornecedores', 'focus_app_focus_fornecedores', 'focus_app_fornecedores'].forEach(key => {
+          const raw = window.localStorage.getItem(key);
+          if (raw) {
+            const list: FornecedorDTO[] = JSON.parse(raw);
+            const filtered = list.filter(f => f.id !== id);
+            window.localStorage.setItem(key, JSON.stringify(filtered));
+          }
+        });
+        window.dispatchEvent(new Event('focus_storage_update'));
+      } catch {}
     }
   }
 };

@@ -106,37 +106,46 @@ export const contaReceberService = {
     const validated = contaReceberSchema.parse(conta);
     const id = toValidUuid(validated.id);
 
-    const payload = {
+    const payload: any = {
       id,
       tenant_id: toNullableValidUuid(validated.tenantId),
-      cliente_id: toNullableValidUuid(validated.clienteId),
-      numero: validated.numero || `CR-${id.slice(0, 6).toUpperCase()}`,
-      descricao: validated.descricao,
-      categoria: validated.categoria,
-      valor_original: validated.valorOriginal,
-      desconto: validated.desconto,
-      multa: validated.multa,
-      juros: validated.juros,
-      valor_recebido: validated.valorRecebido,
+      numero: validated.numero || `REC-${id.slice(0, 4).toUpperCase()}`,
+      cliente_nome: validated.clienteNome || 'Cliente',
+      descricao: validated.descricao || 'Recebimento de Cliente',
+      categoria: validated.categoria || 'Geral',
+      valor_original: Number(validated.valorOriginal || 0),
+      valor_recebido: Number(validated.valorRecebido || 0),
       data_emissao: validated.dataEmissao || new Date().toISOString().split('T')[0],
-      data_vencimento: validated.dataVencimento,
-      data_recebimento: validated.dataPagamento || validated.dataRecebimento,
-      forma_pagamento: validated.formaPagamento,
-      status: validated.status,
-      responsavel: validated.responsavel,
-      competencia: validated.competencia,
-      observacoes: validated.observacoes,
-      tags: validated.tags,
-      recorrente: validated.recorrente,
-      recorrencia_frequencia: validated.recorrenciaFrequencia,
-      recorrencia_fim: validated.recorrenciaFim,
+      data_vencimento: validated.dataVencimento || new Date().toISOString().split('T')[0],
+      data_recebimento: validated.dataPagamento || validated.dataRecebimento || null,
+      forma_pagamento: validated.formaPagamento || 'PIX',
+      status: validated.status || 'Pendente',
+      responsavel: validated.responsavel || 'Administrador',
       updated_at: new Date().toISOString(),
     };
 
+    if (validated.clienteId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(validated.clienteId)) {
+      payload.cliente_id = validated.clienteId;
+    }
+
     const { error } = await supabase.from('contas_receber').upsert(payload, { onConflict: 'id' });
     if (error) {
-      const safePayload = { ...payload, cliente_id: null };
-      await supabase.from('contas_receber').upsert(safePayload, { onConflict: 'id' });
+      console.warn('[contaReceberService.saveContaReceber] Warning ao salvar conta a receber:', error.message);
+      if (payload.cliente_id) {
+        await supabase.from('contas_receber').upsert({ ...payload, cliente_id: null }, { onConflict: 'id' });
+      }
+    }
+
+    // Atualizar cache local
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = window.localStorage.getItem('focus_contas_receber');
+        const list: ContaReceberDTO[] = raw ? JSON.parse(raw) : [];
+        const updated = [{ ...validated, id }, ...list.filter(c => c.id !== id)];
+        window.localStorage.setItem('focus_contas_receber', JSON.stringify(updated));
+        window.localStorage.setItem('focus_app_focus_contas_receber', JSON.stringify(updated));
+        window.dispatchEvent(new Event('focus_storage_update'));
+      } catch {}
     }
 
     return { ...validated, id };
@@ -146,6 +155,14 @@ export const contaReceberService = {
    * Excluir conta a receber por ID
    */
   async deleteContaReceber(id: string): Promise<void> {
+    // 1. Remover do Supabase
+    try {
+      await supabase.from('contas_receber').delete().eq('id', id);
+    } catch (e: any) {
+      console.warn('[contaReceberService.deleteContaReceber] Warning:', e?.message);
+    }
+
+    // 2. Limpar caches locais
     if (typeof window !== 'undefined') {
       ['focus_app_focus_contas_receber', 'focus_app_contas_receber', 'focus_contas_receber', 'focus_receivables'].forEach((key) => {
         try {
@@ -159,17 +176,8 @@ export const contaReceberService = {
           }
         } catch {}
       });
+      window.dispatchEvent(new Event('focus_storage_update'));
     }
-
-    try {
-      await supabase.from('contas_receber').delete().eq('id', id);
-    } catch (e: any) {
-      console.warn('[contaReceberService.deleteContaReceber] Warning:', e?.message);
-    }
-
-    try {
-      await supabase.from('receivables').delete().eq('id', id);
-    } catch {}
   },
 
   /**

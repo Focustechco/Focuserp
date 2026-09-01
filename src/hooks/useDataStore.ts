@@ -354,9 +354,12 @@ export function useLocalStorageState<T extends { id: string }>(
               nome: item.nome || item.titulo || 'Novo Projeto',
               cliente_id: toNullableValidUuid(item.clienteId),
               tipo: item.tipo || 'Desenvolvimento',
+              categoria: item.categoria || 'Geral',
+              prioridade: item.prioridade || 'Média',
               status: item.status || 'Planejamento',
-              valor_contratado: Number(item.valorContratado ?? item.valor ?? 0) || 0,
-              valor_recebido: Number(item.valorRecebido ?? 0) || 0,
+              valor_recebido: Number(item.valorRecebido ?? item.valorContratado ?? item.valor ?? 0) || 0,
+              data_inicio: item.dataInicio || new Date().toISOString().split('T')[0],
+              descricao: item.descricao || item.descricaoGeral || '',
               updated_at: new Date().toISOString(),
             };
           });
@@ -372,24 +375,16 @@ export function useLocalStorageState<T extends { id: string }>(
           const payload = items.map((item: any) => {
             const validId = toValidUuid(item.id);
             item.id = validId;
-            const end = item.endereco || {};
             return {
               id: validId,
               razao_social: item.razaoSocial || item.nome || 'Fornecedor',
-              nome_fantasia: item.nomeFantasia || item.nome || 'Fornecedor',
+              nome_fantasia: item.nomeFantasia || item.razaoSocial || item.nome || 'Fornecedor',
+              codigo: item.codigo || `FOR-${validId.slice(0, 4).toUpperCase()}`,
               cnpj: item.cnpj || item.documento || '00.000.000/0001-00',
               email: item.email || item.contatos?.[0]?.email || null,
               telefone: item.telefone || item.contatos?.[0]?.celular || null,
               categoria: item.categoria || 'Geral',
-              status: item.status || 'Ativo',
-              cep: end.cep || item.cep || null,
-              logradouro: end.logradouro || item.logradouro || null,
-              numero: end.numero || item.numero || null,
-              complemento: end.complemento || item.complemento || null,
-              bairro: end.bairro || item.bairro || null,
-              cidade: end.cidade || item.cidade || null,
-              estado: end.estado || item.estado || null,
-              pais: end.pais || item.pais || 'Brasil',
+              status: item.status === 'Inativo' ? 'Inativo' : 'Ativo',
               updated_at: new Date().toISOString(),
             };
           });
@@ -404,13 +399,12 @@ export function useLocalStorageState<T extends { id: string }>(
             return {
               id: validId,
               matricula: item.matricula || `COL-${validId.slice(0, 4).toUpperCase()}`,
-              nome: item.nome || item.name || 'Colaborador',
+              nome: item.nome || item.nomeCompleto || item.name || 'Colaborador',
               cargo: item.cargo || 'Especialista',
-              departamento: item.departamento || 'Tecnologia',
-              email: item.email || null,
-              telefone: item.telefone || null,
+              departamento: item.departamento || 'Geral',
+              email: item.email || item.emailCorporativo || null,
               cpf: item.cpf || item.documento || null,
-              salario: Number(item.salario ?? 0) || 0,
+              tipo_contrato: item.tipoContrato || item.tipo_contrato || 'CLT',
               status: item.status || 'Ativo',
               data_admissao: item.dataAdmissao || item.data_admissao || new Date().toISOString().split('T')[0],
               updated_at: new Date().toISOString(),
@@ -427,7 +421,7 @@ export function useLocalStorageState<T extends { id: string }>(
             return {
               id: validId,
               name: item.nomeFantasia || item.razaoSocial || item.name || 'Novo Cliente',
-              status: String(item.status || 'ativo').toLowerCase(),
+              status: String(item.status || 'ativo').toLowerCase() === 'inativo' ? 'inativo' : 'ativo',
               contact_email: item.contatos?.[0]?.email || item.email || item.contact_email || null,
               contact_phone: item.contatos?.[0]?.celular || item.telefone || item.contact_phone || null,
               updated_at: new Date().toISOString(),
@@ -442,20 +436,16 @@ export function useLocalStorageState<T extends { id: string }>(
               razao_social: item.razaoSocial || item.nomeFantasia || item.name || 'Cliente',
               nome_fantasia: item.nomeFantasia || item.razaoSocial || item.name || 'Cliente',
               documento: item.documento || item.cnpj || item.cpf || '00.000.000/0001-00',
+              inscricao_estadual: item.inscricaoEstadual || item.inscricao_estadual || 'Isento',
               tipo: item.tipo || 'Pessoa Jurídica',
-              status: String(item.status || 'Ativo'),
+              status: String(item.status || 'Ativo') === 'Inativo' ? 'Inativo' : 'Ativo',
+              segmento: item.segmento || 'Geral',
               cep: end.cep || item.cep || null,
               logradouro: end.logradouro || item.logradouro || null,
               numero: end.numero || item.numero || null,
-              complemento: end.complemento || item.complemento || null,
               bairro: end.bairro || item.bairro || null,
               cidade: end.cidade || item.cidade || null,
               estado: end.estado || item.estado || null,
-              pais: end.pais || item.pais || 'Brasil',
-              segmento: item.segmento || null,
-              porte: item.porte || item.porteEmpresa || null,
-              site: item.site || null,
-              observacoes: item.observacoes || null,
               updated_at: new Date().toISOString(),
             };
           });
@@ -1113,16 +1103,26 @@ export function useLocalStorageState<T extends { id: string }>(
         const current = Array.isArray(prev) ? prev : [];
         const updated = current.filter((it) => it.id !== id);
         writeLocalCache(table, updated);
-
-        if (primaryDbTable) {
-          Promise.resolve(supabase.from(primaryDbTable).delete().eq('id', id)).catch(() => {});
-        }
-
-        syncToCloud(updated);
         return updated;
       });
+
+      if (primaryDbTable) {
+        try {
+          await supabase.from(primaryDbTable).delete().eq('id', id);
+        } catch (err) {
+          console.warn(`[useDataStore] Erro ao deletar no Supabase (${primaryDbTable}):`, err);
+        }
+      }
+      if (isClientsTable) {
+        try { await supabase.from('clients').delete().eq('id', id); } catch {}
+        try { await supabase.from('clientes').delete().eq('id', id); } catch {}
+      }
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('focus_storage_update'));
+      }
     },
-    [primaryDbTable, syncToCloud, table]
+    [isClientsTable, primaryDbTable, table]
   );
 
   const saveItem = useCallback(

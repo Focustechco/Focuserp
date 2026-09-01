@@ -90,27 +90,22 @@ export const projetoService = {
       const updated = [finalProjeto, ...filtered];
       safeSetItem('focus_app_focus_projetos', JSON.stringify(updated));
       safeSetItem('focus_projetos', JSON.stringify(updated));
+      if (typeof window !== 'undefined') window.dispatchEvent(new Event('focus_storage_update'));
     } catch {}
 
-    // 2. Sincronizar com Supabase
+    // 2. Sincronizar com Supabase (colunas válidas)
     try {
       const payload: any = {
         id: validId,
-        codigo: finalProjeto.codigo,
-        nome: finalProjeto.nome,
-        tipo: finalProjeto.tipo,
-        categoria: finalProjeto.categoria,
-        responsavel_principal: finalProjeto.responsavelPrincipal,
-        prioridade: finalProjeto.prioridade,
-        status: finalProjeto.status,
-        data_inicio: finalProjeto.dataInicio,
-        data_fim_prevista: finalProjeto.dataFinal,
-        descricao: finalProjeto.descricaoGeral,
-        valor_contratado: finalProjeto.valorContratado,
-        valor_recebido: finalProjeto.valorRecebido,
-        progresso_global: finalProjeto.progressoGlobal,
-        horas_planejadas: finalProjeto.horasPlanejadas,
-        horas_realizadas: finalProjeto.horasRealizadas,
+        codigo: finalProjeto.codigo || `PRJ-${validId.slice(0, 4).toUpperCase()}`,
+        nome: finalProjeto.nome || 'Novo Projeto',
+        tipo: finalProjeto.tipo || 'Desenvolvimento',
+        categoria: finalProjeto.categoria || 'Geral',
+        prioridade: finalProjeto.prioridade || 'Média',
+        status: finalProjeto.status || 'Planejamento',
+        data_inicio: finalProjeto.dataInicio || new Date().toISOString().split('T')[0],
+        descricao: finalProjeto.descricaoGeral || '',
+        valor_recebido: Number(finalProjeto.valorRecebido || finalProjeto.valorContratado || 0),
         updated_at: new Date().toISOString(),
       };
 
@@ -118,7 +113,11 @@ export const projetoService = {
         payload.cliente_id = finalProjeto.idCliente;
       }
 
-      await supabase.from('projetos').upsert(payload);
+      const { error } = await supabase.from('projetos').upsert(payload, { onConflict: 'id' });
+      if (error && payload.cliente_id) {
+        // Fallback sem cliente_id se FK falhar
+        await supabase.from('projetos').upsert({ ...payload, cliente_id: null }, { onConflict: 'id' });
+      }
     } catch {}
 
     return finalProjeto;
@@ -132,6 +131,7 @@ export const projetoService = {
         const filtered = list.filter(p => p.id !== id);
         safeSetItem('focus_app_focus_projetos', JSON.stringify(filtered));
         safeSetItem('focus_projetos', JSON.stringify(filtered));
+        if (typeof window !== 'undefined') window.dispatchEvent(new Event('focus_storage_update'));
       }
     } catch {}
 

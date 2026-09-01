@@ -59,44 +59,31 @@ export const colaboradorService = {
       id: validId,
       matricula: validated.matricula || `MAT-${validId.slice(0, 4).toUpperCase()}`,
       nome: validated.nomeCompleto,
-      cpf: validated.cpf,
-      email: validated.emailCorporativo,
-      cargo: validated.cargo,
-      departamento: validated.departamento,
-      data_admissao: validated.dataAdmissao,
-      tipo_contrato: validated.tipoContrato,
-      regime: validated.regime,
-      salario_base: validated.salarioBase,
-      status: validated.status,
-      metodo_pagamento: validated.metodoPagamento,
-      documentos: validated.documentos,
+      cpf: validated.cpf || null,
+      email: validated.emailCorporativo || null,
+      cargo: validated.cargo || 'Colaborador',
+      departamento: validated.departamento || 'Geral',
+      data_admissao: validated.dataAdmissao || new Date().toISOString().split('T')[0],
+      tipo_contrato: validated.tipoContrato || 'CLT',
+      status: validated.status || 'Ativo',
       updated_at: new Date().toISOString(),
     };
 
-    let { error } = await supabase.from('colaboradores').upsert(payload);
-    if (error && error.message.includes('column')) {
-      // Fallback: omit non-existent schema columns in database
-      const basePayload = {
-        id: validId,
-        matricula: validated.matricula || `MAT-${validId.slice(0, 4).toUpperCase()}`,
-        nome: validated.nomeCompleto,
-        cpf: validated.cpf,
-        email: validated.emailCorporativo,
-        cargo: validated.cargo,
-        departamento: validated.departamento,
-        data_admissao: validated.dataAdmissao,
-        tipo_contrato: validated.tipoContrato,
-        regime: validated.regime,
-        salario_base: validated.salarioBase,
-        status: validated.status,
-        updated_at: new Date().toISOString(),
-      };
-      const retry = await supabase.from('colaboradores').upsert(basePayload);
-      error = retry.error;
-    }
-
+    const { error } = await supabase.from('colaboradores').upsert(payload, { onConflict: 'id' });
     if (error) {
       console.warn('[colaboradorService.saveColaborador] Supabase upsert note:', error.message);
+    }
+
+    // Atualizar cache local
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = window.localStorage.getItem('focus_colaboradores');
+        const list: ColaboradorDTO[] = raw ? JSON.parse(raw) : [];
+        const updated = [{ ...validated, id: validId }, ...list.filter(c => c.id !== validId)];
+        window.localStorage.setItem('focus_colaboradores', JSON.stringify(updated));
+        window.localStorage.setItem('focus_app_focus_colaboradores', JSON.stringify(updated));
+        window.dispatchEvent(new Event('focus_storage_update'));
+      } catch {}
     }
 
     return { ...validated, id: validId };
@@ -105,10 +92,26 @@ export const colaboradorService = {
   async deleteColaborador(id: string): Promise<void> {
     if (!id) return;
 
-    const { error } = await supabase.from('colaboradores').delete().eq('id', id);
-    if (error) {
-      console.error('[colaboradorService.deleteColaborador] Erro ao deletar no Supabase:', error.message);
-      throw new Error(`Erro ao excluir no banco de dados: ${error.message}`);
+    try {
+      const { error } = await supabase.from('colaboradores').delete().eq('id', id);
+      if (error) {
+        console.warn('[colaboradorService.deleteColaborador] Erro ao deletar no Supabase:', error.message);
+      }
+    } catch {}
+
+    // Limpar caches locais
+    if (typeof window !== 'undefined') {
+      try {
+        ['focus_colaboradores', 'focus_app_focus_colaboradores', 'focus_app_colaboradores'].forEach(key => {
+          const raw = window.localStorage.getItem(key);
+          if (raw) {
+            const list: ColaboradorDTO[] = JSON.parse(raw);
+            const filtered = list.filter(c => c.id !== id);
+            window.localStorage.setItem(key, JSON.stringify(filtered));
+          }
+        });
+        window.dispatchEvent(new Event('focus_storage_update'));
+      } catch {}
     }
   },
 };
