@@ -54,10 +54,7 @@ export function ProjecoesSection() {
     return dt >= hoje && dt <= dataLimite;
   });
 
-  // Saldo Atual Realizado (soma das movimentaes confirmadas)
-  const saldoAtualRealizado = fluxoConsolidado.length > 0 ? fluxoConsolidado[fluxoConsolidado.length - 1].saldoAcumuladoDia : 0;
-
-  // Clculo das entradas e sadas no perodo selecionado
+  // Cálculo das entradas e saídas no período selecionado
   const entradasBase = titulosFuturos.reduce((acc, t) => acc + (t.valorOriginal - (t.valorRecebido || 0)), 0);
   const saidasBase = contasFuturas.reduce((acc, c) => acc + (c.valorOriginal - (c.valorPago || 0)), 0);
 
@@ -200,7 +197,7 @@ export function ProjecoesSection() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Sadas Projetadas ({horizonteDias}d)
+              Saídas Projetadas ({horizonteDias}d)
             </CardTitle>
             <ArrowDownRight className="h-4 w-4 text-rose-600" />
           </CardHeader>
@@ -232,18 +229,18 @@ export function ProjecoesSection() {
         </Card>
       </div>
 
-      {/* TABELA DE PROJEO SEMANAL */}
+      {/* TABELA DE PROJEÇÃO SEMANAL */}
       <Card>
         <CardHeader className="py-4">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-sm font-semibold">Evoluo Projetada por Perodo</CardTitle>
+              <CardTitle className="text-sm font-semibold">Evolução Projetada por Período</CardTitle>
               <CardDescription className="text-xs">
                 Demonstrativo semana a semana do fluxo financeiro previsto
               </CardDescription>
             </div>
             <Badge variant="outline" className="text-[10px] capitalize">
-              Cenrio: {cenario}
+              Cenário: {cenario}
             </Badge>
           </div>
         </CardHeader>
@@ -251,10 +248,10 @@ export function ProjecoesSection() {
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
-                <TableHead className="text-xs">Perodo Semanal</TableHead>
+                <TableHead className="text-xs">Período Semanal</TableHead>
                 <TableHead className="text-xs text-right">Entradas Previstas</TableHead>
-                <TableHead className="text-xs text-right">Sadas Previstas</TableHead>
-                <TableHead className="text-xs text-right">Resultado do Perodo</TableHead>
+                <TableHead className="text-xs text-right">Saídas Previstas</TableHead>
+                <TableHead className="text-xs text-right">Resultado do Período</TableHead>
                 <TableHead className="text-xs text-right bg-muted/20">Saldo Projetado Final</TableHead>
               </TableRow>
             </TableHeader>
@@ -262,7 +259,7 @@ export function ProjecoesSection() {
               {projecoesSemanais.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center py-8 text-xs text-muted-foreground">
-                    Sem lanamentos futuros para os prximos {horizonteDias} dias.
+                    Sem lançamentos futuros para os próximos {horizonteDias} dias.
                   </TableCell>
                 </TableRow>
               ) : (
