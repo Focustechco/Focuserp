@@ -259,19 +259,21 @@ export function ContratosList({ filterTitularidade = 'Todos', filterEntidade }: 
         </div>
       </div>
 
-      {/* MODO CARDS DETALHADOS */}
+      {/* MODO CARDS COM ESTÉTICA DE DOCUMENTO / ARQUIVO / DOSSIÊ */}
       {viewMode === 'cards' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredData.length === 0 ? (
-            <div className="col-span-full py-12 text-center text-muted-foreground text-xs bg-card rounded-lg border">
-              <Landmark className="w-8 h-8 opacity-30 mx-auto mb-2" />
-              <p className="font-semibold text-foreground text-sm">Nenhum contrato encontrado</p>
-              <p className="mt-1">
+            <div className="col-span-full py-14 text-center text-muted-foreground text-xs bg-card rounded-xl border border-dashed p-8 shadow-xs">
+              <div className="w-12 h-12 rounded-full bg-orange-500/10 text-orange-600 flex items-center justify-center mx-auto mb-3">
+                <FileText className="w-6 h-6" />
+              </div>
+              <p className="font-bold text-foreground text-base">Nenhum contrato encontrado</p>
+              <p className="mt-1 max-w-md mx-auto text-xs text-muted-foreground">
                 {filterTitularidade === 'Focus Tecnologia' 
                   ? 'Nenhum contrato corporativo da Focus Tecnologia Ltda registrado nesta categoria.'
                   : filterTitularidade === 'Cliente'
-                  ? 'Nenhum contrato com clientes cadastrado.'
-                  : 'Clique em "Novo Contrato" para adicionar seu primeiro contrato.'}
+                  ? 'Nenhum contrato com clientes cadastrado no diretório de CLM.'
+                  : 'Clique em "Novo Contrato" para registrar e anexar um novo instrumento jurídico.'}
               </p>
             </div>
           ) : (
@@ -294,116 +296,177 @@ export function ContratosList({ filterTitularidade = 'Todos', filterEntidade }: 
               return (
                 <div 
                   key={contrato.id} 
-                  className="bg-card border rounded-xl p-5 hover:border-orange-500/50 hover:shadow-md transition-all flex flex-col justify-between group cursor-pointer"
+                  className="relative group bg-card border border-border/80 hover:border-orange-500/60 rounded-xl transition-all duration-200 shadow-sm hover:shadow-xl overflow-hidden flex flex-col justify-between cursor-pointer"
                   onClick={() => handleOpenDetails(contrato)}
                 >
-                  {/* Topo do Card */}
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-start gap-2">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
-                          <span className="font-mono text-[10px] font-bold text-foreground bg-muted px-1.5 py-0.5 rounded">
-                            {contrato.codigo}
-                          </span>
-                          
-                          {/* Badge de Titularidade */}
-                          {isFocus ? (
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 font-semibold gap-1">
-                              <Building2 className="w-3 h-3" /> Focus Tecnologia
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 font-semibold gap-1">
-                              <User className="w-3 h-3" /> Cliente
-                            </Badge>
-                          )}
+                  {/* Faixa Superior de Dossiê / Arquivo */}
+                  <div className="h-1.5 w-full bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600" />
+
+                  {/* Aba do Documento (Folder Tab Index) */}
+                  <div className="flex items-center justify-between px-4 pt-3 pb-1 border-b border-border/40 bg-muted/20">
+                    <div className="flex items-center gap-1.5">
+                      <span className="inline-flex items-center gap-1 font-mono text-[10px] font-bold text-orange-600 dark:text-orange-400 bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 rounded shadow-2xs">
+                        <FileText className="w-3 h-3" />
+                        {contrato.codigo || `CTR-${contrato.id.slice(0, 4).toUpperCase()}`}
+                      </span>
+
+                      {/* Tag de Titularidade */}
+                      {isFocus ? (
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 font-semibold gap-1">
+                          <Building2 className="w-3 h-3" /> Focus Tecnologia
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 font-semibold gap-1">
+                          <User className="w-3 h-3" /> Cliente
+                        </Badge>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0" onClick={e => e.stopPropagation()}>
+                      {getStatusBadge(contrato.status)}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48 text-xs">
+                          <DropdownMenuItem onClick={() => handleOpenDetails(contrato)} className="gap-2 cursor-pointer">
+                            <Eye className="w-3.5 h-3.5 text-primary" /> Visualizar Dossiê
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => handleOpenEdit(contrato, e)} className="gap-2 cursor-pointer text-blue-600">
+                            <Edit3 className="w-3.5 h-3.5" /> Editar Contrato
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => handleDownload(contrato, e)} className="gap-2 cursor-pointer text-emerald-600">
+                            <Download className="w-3.5 h-3.5" /> Baixar Documento
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => setContratoToDelete(contrato)} className="gap-2 cursor-pointer text-rose-600 focus:text-rose-600">
+                            <Trash2 className="w-3.5 h-3.5" /> Excluir Contrato
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+
+                  {/* Corpo do Documento / Instrumento Jurídico */}
+                  <div className="p-4 space-y-3.5">
+                    {/* Cabeçalho do Documento com Ícone Realista de Arquivo */}
+                    <div className="flex items-start gap-3">
+                      {/* Miniatura do Documento com cantoneira dobrada */}
+                      <div className="relative w-10 h-12 rounded-sm border border-rose-500/30 bg-rose-500/10 dark:bg-rose-950/40 flex flex-col items-center justify-between p-1 shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                        <div className="w-full flex justify-between items-center">
+                          <div className="w-2 h-0.5 bg-rose-400/60 rounded"></div>
+                          <div className="w-2.5 h-2.5 border-t-2 border-r-2 border-rose-500/50 -mr-1 -mt-1 rotate-45"></div>
                         </div>
+                        <FileText className="w-5 h-5 text-rose-600 dark:text-rose-400" />
+                        <span className="text-[7.5px] font-black tracking-tighter text-rose-700 dark:text-rose-300 uppercase">
+                          {contrato.arquivoNome?.endsWith('.docx') ? 'DOCX' : 'PDF/CLM'}
+                        </span>
+                      </div>
 
-                        <h3 className="font-bold text-sm sm:text-base text-foreground group-hover:text-orange-600 transition-colors line-clamp-1">
-                          {contrato.numeroContrato} - {contrato.nome}
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[11px] font-mono text-muted-foreground uppercase tracking-wider font-semibold">
+                          {contrato.numeroContrato || 'CTR-2026'}
+                        </div>
+                        <h3 className="font-bold text-sm text-foreground group-hover:text-orange-600 transition-colors line-clamp-2 leading-tight">
+                          {contrato.nome || contrato.objetoContrato || 'Contrato de Prestação de Serviços'}
                         </h3>
-                      </div>
-
-                      <div className="flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
-                        {getStatusBadge(contrato.status)}
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-48 text-xs">
-                            <DropdownMenuItem onClick={() => handleOpenDetails(contrato)} className="gap-2 cursor-pointer">
-                              <Eye className="w-3.5 h-3.5 text-primary" /> Visualizar Detalhes
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={(e) => handleOpenEdit(contrato, e)} className="gap-2 cursor-pointer text-blue-600">
-                              <Edit3 className="w-3.5 h-3.5" /> Editar Contrato
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={(e) => handleDownload(contrato, e)} className="gap-2 cursor-pointer text-emerald-600">
-                              <Download className="w-3.5 h-3.5" /> Baixar Documento
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => setContratoToDelete(contrato)} className="gap-2 cursor-pointer text-rose-600 focus:text-rose-600">
-                              <Trash2 className="w-3.5 h-3.5" /> Excluir Contrato
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <div className="text-[10px] text-muted-foreground font-medium mt-0.5 truncate">
+                          {contrato.tipoServico || 'Tecnologia & Desenvolvimento'}
+                        </div>
                       </div>
                     </div>
 
-                    {/* Vínculo de Contraparte */}
-                    <div className="space-y-1 bg-muted/30 p-2.5 rounded-lg border text-xs">
-                      <div className="flex items-center gap-1.5 text-foreground font-semibold truncate">
-                        {isFocus ? <Building2 className="w-3.5 h-3.5 text-purple-600 shrink-0" /> : <User className="w-3.5 h-3.5 text-blue-600 shrink-0" />}
-                        <span className="truncate">{nomeContraparte}</span>
+                    {/* Preâmbulo / Partes Contratantes */}
+                    <div className="bg-muted/30 dark:bg-muted/20 p-2.5 rounded-lg border border-border/60 text-xs space-y-1.5">
+                      <div className="flex items-center justify-between text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                        <span>Contraparte / Titular</span>
+                        <span>Gestor</span>
                       </div>
-                      <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-0.5">
-                        <span className="truncate">{contrato.tipoServico}</span>
-                        <span>Resp: <strong>{contrato.responsavelInterno || 'Gestor'}</strong></span>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 text-foreground font-semibold truncate min-w-0">
+                          {isFocus ? (
+                            <Building2 className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+                          ) : (
+                            <User className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                          )}
+                          <span className="truncate">{nomeContraparte}</span>
+                        </div>
+                        <div className="text-[11px] text-muted-foreground font-medium shrink-0 flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
+                          <strong>{contrato.responsavelInterno || 'Gestor Focus'}</strong>
+                        </div>
                       </div>
                     </div>
 
-                    {/* Dados Financeiros */}
-                    <div className="grid grid-cols-2 gap-2 pt-2 border-t text-xs">
+                    {/* Cláusula Financeira / Tabela de Valores */}
+                    <div className="bg-muted/10 p-2.5 rounded-lg border border-border/50 grid grid-cols-2 gap-2 text-xs">
                       <div>
-                        <span className="text-[10px] text-muted-foreground uppercase font-bold block">Valor Global</span>
-                        <span className="font-bold text-xs sm:text-sm text-foreground">
+                        <span className="text-[9.5px] text-muted-foreground uppercase font-bold tracking-wider block">
+                          Valor Global do Contrato
+                        </span>
+                        <span className="font-bold text-sm text-foreground block">
                           {formatCurrency(contrato.valorTotal)}
                         </span>
+                        {Number(contrato.valorImplantacao || 0) > 0 && (
+                          <span className="text-[10px] text-muted-foreground">
+                            Setup: {formatCurrency(contrato.valorImplantacao)}
+                          </span>
+                        )}
                       </div>
 
                       <div className="text-right">
-                        <span className="text-[10px] text-muted-foreground uppercase font-bold block">Mensalidade</span>
-                        <span className="font-semibold text-xs sm:text-sm text-emerald-600">
-                          {contrato.valorMensalidade > 0 ? `${formatCurrency(contrato.valorMensalidade)}/mês` : '-'}
+                        <span className="text-[9.5px] text-muted-foreground uppercase font-bold tracking-wider block">
+                          Mensalidade (MRR)
                         </span>
+                        <span className="font-bold text-sm text-emerald-600 dark:text-emerald-400 block">
+                          {Number(contrato.valorMensalidade || 0) > 0 ? `${formatCurrency(contrato.valorMensalidade)}/mês` : '-'}
+                        </span>
+                        {contrato.formaPagamento && (
+                          <span className="text-[10px] text-muted-foreground truncate block">
+                            {contrato.formaPagamento} {contrato.diaVencimento ? `(Dia ${contrato.diaVencimento})` : ''}
+                          </span>
+                        )}
                       </div>
                     </div>
 
-                    {/* Arquivo Anexo se houver */}
-                    {contrato.arquivoUrl && (
-                      <div className="flex items-center justify-between bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1.5 rounded-md text-[11px]">
-                        <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300 truncate">
-                          <FileText className="w-3.5 h-3.5 shrink-0" />
-                          <span className="truncate">{contrato.arquivoNome || 'Documento Anexado'}</span>
+                    {/* Arquivo Digital Anexo */}
+                    {contrato.arquivoUrl ? (
+                      <div className="flex items-center justify-between bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1.5 rounded-lg text-[11px]">
+                        <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-300 truncate min-w-0">
+                          <div className="w-5 h-5 rounded bg-emerald-500/20 flex items-center justify-center shrink-0">
+                            <FileText className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                          </div>
+                          <span className="truncate font-medium">{contrato.arquivoNome || 'Instrumento_Contratual_Assinado.pdf'}</span>
                         </div>
                         <Button 
                           size="sm" 
                           variant="ghost" 
-                          className="h-6 px-1.5 text-[10px] text-emerald-700 hover:text-emerald-800 dark:text-emerald-300 gap-1 font-semibold"
+                          className="h-6 px-2 text-[10px] text-emerald-700 hover:text-emerald-800 dark:text-emerald-300 gap-1 font-semibold hover:bg-emerald-500/20 rounded"
                           onClick={(e) => handleDownload(contrato, e)}
+                          title="Baixar arquivo original"
                         >
                           <Download className="w-3 h-3" /> Baixar
                         </Button>
                       </div>
+                    ) : (
+                      <div className="flex items-center gap-1.5 text-[10.5px] text-muted-foreground px-1">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />
+                        <span>Minuta digital registrada no CLM Focus</span>
+                      </div>
                     )}
                   </div>
 
-                  {/* Rodapé do Card com Ação */}
-                  <div className="pt-4 mt-3 border-t flex items-center justify-between gap-2">
+                  {/* Rodapé do Dossiê com Vigência e Botão de Detalhes */}
+                  <div className="px-4 py-3 border-t bg-muted/20 flex items-center justify-between gap-2">
                     <div className="text-[11px] text-muted-foreground flex flex-col">
-                      <span>Vigência: Até {formatDateSafe(contrato.dataFinal)}</span>
+                      <span className="font-medium flex items-center gap-1">
+                        <Calendar className="w-3 h-3 text-muted-foreground" />
+                        {contrato.dataInicial ? formatDateSafe(contrato.dataInicial) : 'Início'} — {contrato.dataFinal ? formatDateSafe(contrato.dataFinal) : 'Indeterminado'}
+                      </span>
                       {isVencendo && (
-                        <span className="text-[10px] text-orange-600 font-semibold flex items-center gap-0.5">
+                        <span className="text-[10px] text-orange-600 dark:text-orange-400 font-semibold flex items-center gap-0.5 mt-0.5">
                           <CalendarClock className="w-3 h-3" /> Vence em {dias} dias
                         </span>
                       )}
@@ -412,10 +475,10 @@ export function ContratosList({ filterTitularidade = 'Todos', filterEntidade }: 
                     <Button 
                       size="sm" 
                       variant="ghost" 
-                      className="h-7 px-2.5 text-xs text-orange-600 hover:text-orange-700 hover:bg-orange-50 dark:hover:bg-orange-950/30 gap-1 font-semibold"
+                      className="h-7 px-2.5 text-xs text-orange-600 dark:text-orange-400 hover:text-orange-700 hover:bg-orange-50 dark:hover:bg-orange-950/30 gap-1 font-semibold rounded-md"
                       onClick={() => handleOpenDetails(contrato)}
                     >
-                      Ver Detalhes <ArrowRight className="w-3 h-3" />
+                      Abrir Dossiê <ArrowRight className="w-3 h-3" />
                     </Button>
                   </div>
                 </div>
