@@ -58,6 +58,11 @@ export interface Contrato {
   valorTotal: number;
   valorImplantacao: number;
   valorMensalidade: number;
+  formaPagamento?: string;
+  diaVencimento?: string | number;
+  condicaoPagamento?: string;
+  observacoesFinanceiras?: string;
+  mesesVigencia?: number;
   reajuste?: string;
   indiceCorrecao?: 'IPCA' | 'IGP-M' | 'INPC' | 'Nenhum';
   multaPercentual: number;

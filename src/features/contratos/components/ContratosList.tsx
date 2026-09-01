@@ -644,22 +644,62 @@ export function ContratosList({ filterTitularidade = 'Todos', filterEntidade }: 
               </div>
 
               {/* Valores & Condições */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="p-3 rounded-lg border bg-card">
                   <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Valor Global</span>
                   <span className="font-bold text-base text-foreground">{formatCurrency(selectedContrato.valorTotal)}</span>
                 </div>
                 <div className="p-3 rounded-lg border bg-card">
+                  <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Implementação</span>
+                  <span className="font-bold text-base text-blue-600">
+                    {selectedContrato.valorImplantacao ? formatCurrency(selectedContrato.valorImplantacao) : 'Isento'}
+                  </span>
+                </div>
+                <div className="p-3 rounded-lg border bg-card">
                   <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Mensalidade</span>
                   <span className="font-bold text-base text-emerald-600">{formatCurrency(selectedContrato.valorMensalidade)}</span>
                 </div>
-                <div className="p-3 rounded-lg border bg-card col-span-2 sm:col-span-1">
+                <div className="p-3 rounded-lg border bg-card">
                   <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Vigência</span>
                   <span className="font-bold text-xs text-foreground">
                     {selectedContrato.dataFinal ? new Date(selectedContrato.dataFinal).toLocaleDateString('pt-BR') : 'Indeterminada'}
                   </span>
                 </div>
               </div>
+
+              {/* Informações de Pagamento */}
+              {(selectedContrato.formaPagamento || selectedContrato.diaVencimento || selectedContrato.condicaoPagamento) && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 rounded-lg border bg-muted/20 text-xs">
+                  {selectedContrato.formaPagamento && (
+                    <div>
+                      <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Forma de Pagamento</span>
+                      <span className="font-medium text-foreground">{selectedContrato.formaPagamento}</span>
+                    </div>
+                  )}
+                  {selectedContrato.diaVencimento && (
+                    <div>
+                      <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Dia de Vencimento</span>
+                      <span className="font-medium text-foreground">Todo dia {selectedContrato.diaVencimento}</span>
+                    </div>
+                  )}
+                  {selectedContrato.condicaoPagamento && (
+                    <div>
+                      <span className="text-[10px] text-muted-foreground uppercase font-semibold block">Condição Setup</span>
+                      <span className="font-medium text-foreground">{selectedContrato.condicaoPagamento}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Observações Financeiras */}
+              {selectedContrato.observacoesFinanceiras && (
+                <div className="space-y-1 border rounded-lg p-3 bg-muted/20">
+                  <span className="font-bold text-foreground text-[11px] uppercase block">Condições Financeiras & Reajuste</span>
+                  <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                    {selectedContrato.observacoesFinanceiras}
+                  </p>
+                </div>
+              )}
 
               {/* Descrição / Objeto */}
               <div className="space-y-1.5 border rounded-lg p-3.5 bg-muted/20">

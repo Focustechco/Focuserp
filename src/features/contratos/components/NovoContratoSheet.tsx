@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,8 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { 
   Upload, FileText, Plus, Clock, ShieldAlert, CheckCircle2, 
-  Trash2, Edit3, Download, Building2, User, Landmark, Briefcase, Handshake
+  Trash2, Edit3, Download, Building2, User, Landmark, Briefcase, Handshake,
+  DollarSign, Calculator, RefreshCw, CreditCard, Calendar, Sparkles, Receipt, Check, Wrench
 } from "lucide-react";
 
 import { useLocalStorageState } from '@/hooks/useDataStore';
@@ -59,6 +60,19 @@ export function downloadDocumentFile(fileUrl?: string, fileName?: string, defaul
   URL.revokeObjectURL(url);
 }
 
+// Função auxiliar para calcular quantidade de meses entre duas datas
+function calculateMonthsBetween(startDate: string, endDate: string): number {
+  try {
+    const d1 = new Date(startDate);
+    const d2 = new Date(endDate);
+    if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return 12;
+    const months = (d2.getFullYear() - d1.getFullYear()) * 12 + (d2.getMonth() - d1.getMonth());
+    return months > 0 ? months : 12;
+  } catch {
+    return 12;
+  }
+}
+
 export function NovoContratoSheet({ 
   children, 
   contratoToEdit, 
@@ -74,7 +88,7 @@ export function NovoContratoSheet({
   // Titularidade: Contrato de Cliente ou Contrato da Focus Tecnologia Ltda
   const [titularidade, setTitularidade] = useState<'Cliente' | 'Focus Tecnologia'>(defaultTitularidade);
 
-  // Form States
+  // Form States - Dados Gerais
   const [numeroContrato, setNumeroContrato] = useState("");
   const [nome, setNome] = useState("");
   const [categoria, setCategoria] = useState<CategoriaContrato>("Receita");
@@ -98,9 +112,16 @@ export function NovoContratoSheet({
   );
   const [renovacaoAutomatica, setRenovacaoAutomatica] = useState(true);
 
-  // Valores
-  const [valorTotal, setValorTotal] = useState<number>(120000);
+  // Valores & Pagamentos
+  const [valorImplantacao, setValorImplantacao] = useState<number>(0);
   const [valorMensalidade, setValorMensalidade] = useState<number>(10000);
+  const [mesesVigencia, setMesesVigencia] = useState<number>(12);
+  const [valorTotal, setValorTotal] = useState<number>(120000);
+  const [isCalculoAutomatico, setIsCalculoAutomatico] = useState<boolean>(true);
+  const [formaPagamento, setFormaPagamento] = useState<string>("Boleto Bancário");
+  const [diaVencimento, setDiaVencimento] = useState<string>("10");
+  const [condicaoImplantacao, setCondicaoImplantacao] = useState<string>("À Vista no Início");
+  const [observacoesFinanceiras, setObservacoesFinanceiras] = useState<string>("");
 
   // Upload Arquivo
   const [arquivo, setArquivo] = useState<{
@@ -116,6 +137,25 @@ export function NovoContratoSheet({
   const { data: fornecedores = [] } = useLocalStorageState<Fornecedor>('focus_fornecedores', []);
   const { pastas, uploadDocument } = useDocumentosStore();
   const { notificar } = useNotificacoesStore();
+
+  // Recalcular meses de vigência quando as datas de início e fim mudam
+  useEffect(() => {
+    if (dataInicial && dataFinal) {
+      const calculatedMonths = calculateMonthsBetween(dataInicial, dataFinal);
+      setMesesVigencia(calculatedMonths);
+    }
+  }, [dataInicial, dataFinal]);
+
+  // Recalcular automaticamente o valor total do contrato: Implementação + (Mensalidade * Meses)
+  useEffect(() => {
+    if (isCalculoAutomatico) {
+      const implantacao = Number(valorImplantacao) || 0;
+      const mensalidade = Number(valorMensalidade) || 0;
+      const meses = Number(mesesVigencia) || 12;
+      const totalCalculado = implantacao + (mensalidade * meses);
+      setValorTotal(totalCalculado);
+    }
+  }, [valorImplantacao, valorMensalidade, mesesVigencia, isCalculoAutomatico]);
 
   // Carregar dados para edição se contratoToEdit for informado
   useEffect(() => {
@@ -138,12 +178,24 @@ export function NovoContratoSheet({
       setDepartamento(contratoToEdit.departamento || (isFocus ? "Operações" : "Comercial"));
       setStatus(contratoToEdit.status || "Vigente");
       setDescricao(contratoToEdit.descricao || "");
+      
+      const dtIni = contratoToEdit.dataInicial ? contratoToEdit.dataInicial.split('T')[0] : new Date().toISOString().split('T')[0];
+      const dtFim = contratoToEdit.dataFinal ? contratoToEdit.dataFinal.split('T')[0] : new Date(Date.now() + 365 * 86400000).toISOString().split('T')[0];
+      
       setDataAssinatura(contratoToEdit.dataAssinatura ? contratoToEdit.dataAssinatura.split('T')[0] : new Date().toISOString().split('T')[0]);
-      setDataInicial(contratoToEdit.dataInicial ? contratoToEdit.dataInicial.split('T')[0] : new Date().toISOString().split('T')[0]);
-      setDataFinal(contratoToEdit.dataFinal ? contratoToEdit.dataFinal.split('T')[0] : new Date(Date.now() + 365 * 86400000).toISOString().split('T')[0]);
+      setDataInicial(dtIni);
+      setDataFinal(dtFim);
       setRenovacaoAutomatica(contratoToEdit.renovacaoAutomatica !== false);
-      setValorTotal(contratoToEdit.valorTotal || 120000);
+
+      const calculatedMonths = calculateMonthsBetween(dtIni, dtFim);
+      setMesesVigencia(contratoToEdit.mesesVigencia || calculatedMonths || 12);
+      setValorImplantacao(contratoToEdit.valorImplantacao || 0);
       setValorMensalidade(contratoToEdit.valorMensalidade || 10000);
+      setValorTotal(contratoToEdit.valorTotal || (Number(contratoToEdit.valorImplantacao || 0) + (Number(contratoToEdit.valorMensalidade || 10000) * (contratoToEdit.mesesVigencia || calculatedMonths || 12))));
+      setFormaPagamento(contratoToEdit.formaPagamento || "Boleto Bancário");
+      setDiaVencimento(String(contratoToEdit.diaVencimento || "10"));
+      setCondicaoImplantacao(contratoToEdit.condicaoPagamento || "À Vista no Início");
+      setObservacoesFinanceiras(contratoToEdit.observacoesFinanceiras || "");
 
       if (contratoToEdit.arquivoNome) {
         setArquivo({
@@ -169,6 +221,15 @@ export function NovoContratoSheet({
       setDepartamento(defaultTitularidade === 'Focus Tecnologia' ? "Operações" : "Comercial");
       setStatus("Vigente");
       setDescricao("");
+      setValorImplantacao(0);
+      setValorMensalidade(10000);
+      setMesesVigencia(12);
+      setValorTotal(120000);
+      setIsCalculoAutomatico(true);
+      setFormaPagamento("Boleto Bancário");
+      setDiaVencimento("10");
+      setCondicaoImplantacao("À Vista no Início");
+      setObservacoesFinanceiras("");
       setArquivo(null);
     }
   }, [contratoToEdit, open, defaultTitularidade]);
@@ -236,9 +297,17 @@ export function NovoContratoSheet({
       dataInicial,
       dataFinal,
       renovacaoAutomatica,
+      
+      // Valores & Pagamentos
       valorTotal: Number(valorTotal) || 0,
-      valorImplantacao: 0,
+      valorImplantacao: Number(valorImplantacao) || 0,
       valorMensalidade: Number(valorMensalidade) || 0,
+      mesesVigencia: Number(mesesVigencia) || 12,
+      formaPagamento,
+      diaVencimento,
+      condicaoPagamento: condicaoImplantacao,
+      observacoesFinanceiras: observacoesFinanceiras.trim() || undefined,
+      
       indiceCorrecao: 'IPCA',
       multaPercentual: 2,
       jurosAoMes: 1,
@@ -299,6 +368,8 @@ export function NovoContratoSheet({
     setOpen(false);
   };
 
+  const totalCalculadoTempoReal = (Number(valorImplantacao) || 0) + ((Number(valorMensalidade) || 0) * (Number(mesesVigencia) || 12));
+
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       {!isControlled && (
@@ -306,7 +377,7 @@ export function NovoContratoSheet({
           {children || <Button className="bg-orange-600 hover:bg-orange-700 text-white"><Plus className="mr-2 h-4 w-4" /> Novo Contrato</Button>}
         </SheetTrigger>
       )}
-      <SheetContent side="right" className="w-[95vw] sm:w-[800px] sm:max-w-[800px] flex flex-col p-0 bg-background">
+      <SheetContent side="right" className="w-[95vw] sm:w-[820px] sm:max-w-[820px] flex flex-col p-0 bg-background">
         
         {/* Header */}
         <div className="p-6 pb-4 border-b bg-muted/20">
@@ -326,10 +397,18 @@ export function NovoContratoSheet({
         <Tabs defaultValue="gerais" className="flex-1 flex flex-col overflow-hidden">
           <div className="px-6 border-b overflow-x-auto scrollbar-hide bg-card">
             <TabsList className="w-full justify-start h-auto p-0 bg-transparent flex-nowrap min-w-max pb-1">
-              <TabsTrigger value="gerais" className="data-[state=active]:border-b-2 data-[state=active]:border-orange-600 rounded-none px-4 py-2 text-xs">Dados Gerais & Titularidade</TabsTrigger>
-              <TabsTrigger value="documento" className="data-[state=active]:border-b-2 data-[state=active]:border-orange-600 rounded-none px-4 py-2 text-xs">Upload de Contrato (PDF/DOC)</TabsTrigger>
-              <TabsTrigger value="vigencia" className="data-[state=active]:border-b-2 data-[state=active]:border-orange-600 rounded-none px-4 py-2 text-xs">Vigência & Prazos</TabsTrigger>
-              <TabsTrigger value="valores" className="data-[state=active]:border-b-2 data-[state=active]:border-orange-600 rounded-none px-4 py-2 text-xs">Valores & Pagamento</TabsTrigger>
+              <TabsTrigger value="gerais" className="data-[state=active]:border-b-2 data-[state=active]:border-orange-600 rounded-none px-4 py-2 text-xs font-semibold">
+                Dados Gerais
+              </TabsTrigger>
+              <TabsTrigger value="documento" className="data-[state=active]:border-b-2 data-[state=active]:border-orange-600 rounded-none px-4 py-2 text-xs font-semibold">
+                Upload de Contrato
+              </TabsTrigger>
+              <TabsTrigger value="vigencia" className="data-[state=active]:border-b-2 data-[state=active]:border-orange-600 rounded-none px-4 py-2 text-xs font-semibold">
+                Vigência & Prazos
+              </TabsTrigger>
+              <TabsTrigger value="valores" className="data-[state=active]:border-b-2 data-[state=active]:border-orange-600 rounded-none px-4 py-2 text-xs font-semibold">
+                Valores & Pagamentos
+              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -584,7 +663,7 @@ export function NovoContratoSheet({
               </div>
             </TabsContent>
 
-            {/* 2. UPLOAD DE DOCUMENTO / PDF */}
+            {/* 2. UPLOAD DE CONTRATO */}
             <TabsContent value="documento" className="space-y-4 mt-0 outline-none">
               <div className="space-y-4">
                 <div className="border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center bg-muted/10 hover:bg-muted/30 transition-colors cursor-pointer text-center relative">
@@ -625,7 +704,7 @@ export function NovoContratoSheet({
               </div>
             </TabsContent>
 
-            {/* 3. VIGÊNCIA */}
+            {/* 3. VIGÊNCIA & PRAZOS */}
             <TabsContent value="vigencia" className="space-y-4 mt-0 outline-none">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2 col-span-2 sm:col-span-1">
@@ -640,6 +719,13 @@ export function NovoContratoSheet({
                   <Label>Data Final (Término)</Label>
                   <Input type="date" value={dataFinal} onChange={e => setDataFinal(e.target.value)} />
                 </div>
+                <div className="space-y-2 col-span-2 sm:col-span-1">
+                  <Label>Duração Calculada</Label>
+                  <div className="flex items-center gap-2 h-9 px-3 border rounded-md bg-muted/40 text-xs font-semibold">
+                    <Calendar className="w-3.5 h-3.5 text-orange-600" />
+                    <span>{mesesVigencia} {mesesVigencia === 1 ? 'mês de vigência' : 'meses de vigência'}</span>
+                  </div>
+                </div>
               </div>
 
               <div className="flex items-center justify-between border rounded-xl p-4 bg-muted/20">
@@ -651,28 +737,245 @@ export function NovoContratoSheet({
               </div>
             </TabsContent>
 
-            {/* 4. VALORES */}
-            <TabsContent value="valores" className="space-y-4 mt-0 outline-none">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2 col-span-2 sm:col-span-1">
-                  <Label>Valor Total Global (R$)</Label>
+            {/* 4. VALORES & PAGAMENTOS */}
+            <TabsContent value="valores" className="space-y-5 mt-0 outline-none">
+              
+              {/* CARD RESUMO CONSOLIDADO DO CONTRATO */}
+              <div className="p-4 rounded-xl border bg-gradient-to-br from-orange-500/10 via-background to-muted/40 border-orange-500/20 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-orange-500/20 text-orange-600 flex items-center justify-center font-bold">
+                      <Calculator className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-xs text-foreground uppercase tracking-wide">
+                        Demonstrativo Financeiro do Contrato
+                      </h4>
+                      <p className="text-[11px] text-muted-foreground">
+                        Soma da taxa de implementação + mensalidades ao longo do período
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <Badge variant={isCalculoAutomatico ? "default" : "outline"} className={`text-[10px] ${isCalculoAutomatico ? 'bg-emerald-600 hover:bg-emerald-700' : ''}`}>
+                      <Sparkles className="w-3 h-3 mr-1" />
+                      {isCalculoAutomatico ? 'Cálculo Automático Ativo' : 'Valor Manual'}
+                    </Badge>
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-6 text-[10px] px-1.5 text-muted-foreground hover:text-foreground"
+                      onClick={() => setIsCalculoAutomatico(!isCalculoAutomatico)}
+                    >
+                      {isCalculoAutomatico ? 'Editar Manualmente' : 'Restaurar Cálculo Auto'}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 border-t border-dashed">
+                  <div className="p-2.5 rounded-lg bg-background/80 border space-y-0.5">
+                    <span className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
+                      <Wrench className="w-3 h-3 text-blue-500" /> Implementação / Setup:
+                    </span>
+                    <p className="font-bold text-sm text-foreground">
+                      R$ {(Number(valorImplantacao) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                  </div>
+
+                  <div className="p-2.5 rounded-lg bg-background/80 border space-y-0.5">
+                    <span className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
+                      <RefreshCw className="w-3 h-3 text-emerald-500" /> Mensalidade ({mesesVigencia}x):
+                    </span>
+                    <p className="font-bold text-sm text-emerald-600">
+                      R$ {(Number(valorMensalidade) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} /mês
+                    </p>
+                  </div>
+
+                  <div className="p-2.5 rounded-lg bg-orange-500/15 border border-orange-500/30 space-y-0.5">
+                    <span className="text-[10px] text-orange-700 dark:text-orange-300 font-bold flex items-center gap-1">
+                      <DollarSign className="w-3 h-3 text-orange-600" /> Total Global do Contrato:
+                    </span>
+                    <p className="font-bold text-base text-orange-600 dark:text-orange-400">
+                      R$ {(Number(valorTotal) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* CAMPOS DE VALORES: IMPLEMENTAÇÃO, MENSALIDADE, MESES E TOTAL */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                
+                {/* 1. Taxa de Implementação */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold flex items-center gap-1.5">
+                      <Wrench className="w-3.5 h-3.5 text-blue-500" />
+                      Valor de Implementação / Setup (R$)
+                    </Label>
+                    <span className="text-[10px] text-muted-foreground">Taxa única inicial</span>
+                  </div>
                   <Input 
                     type="number" 
-                    value={valorTotal} 
-                    onChange={e => setValorTotal(Number(e.target.value))} 
-                    placeholder="120000"
+                    value={valorImplantacao} 
+                    onChange={e => setValorImplantacao(Number(e.target.value))} 
+                    placeholder="0"
+                    className="font-mono text-xs"
                   />
                 </div>
-                <div className="space-y-2 col-span-2 sm:col-span-1">
-                  <Label>Valor Mensal Recorrente (R$)</Label>
+
+                {/* 2. Condição da Implementação */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold">Condição de Pagamento da Implementação</Label>
+                  <Select value={condicaoImplantacao} onValueChange={setCondicaoImplantacao}>
+                    <SelectTrigger className="text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="À Vista no Início">À Vista no Início (Setup Imediato)</SelectItem>
+                      <SelectItem value="Parcelado em 2x">Parcelado em 2x (Entrada + 30 dias)</SelectItem>
+                      <SelectItem value="Parcelado em 3x">Parcelado em 3x (Entrada + 30 + 60 dias)</SelectItem>
+                      <SelectItem value="Faturado em 30 dias">Faturado em 30 dias após Entrega</SelectItem>
+                      <SelectItem value="Sem Taxa de Implementação">Sem Taxa de Implementação (Isento)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* 3. Mensalidade Recorrente */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold flex items-center gap-1.5">
+                      <RefreshCw className="w-3.5 h-3.5 text-emerald-500" />
+                      Valor Mensal Recorrente / Mensalidade (R$) *
+                    </Label>
+                    <span className="text-[10px] text-muted-foreground">MRR faturado</span>
+                  </div>
                   <Input 
                     type="number" 
                     value={valorMensalidade} 
                     onChange={e => setValorMensalidade(Number(e.target.value))} 
                     placeholder="10000"
+                    className="font-mono text-xs"
                   />
                 </div>
+
+                {/* 4. Quantidade de Meses de Vigência */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-orange-500" />
+                      Meses de Vigência / Parcelas
+                    </Label>
+                    <div className="flex gap-1">
+                      {[6, 12, 24, 36].map((m) => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => setMesesVigencia(m)}
+                          className={`px-1.5 py-0.5 rounded text-[10px] font-semibold border transition-all ${
+                            mesesVigencia === m 
+                              ? 'bg-orange-500 text-white border-orange-500' 
+                              : 'bg-muted/40 hover:bg-muted text-muted-foreground border-border'
+                          }`}
+                        >
+                          {m}m
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <Input 
+                    type="number" 
+                    min={1}
+                    value={mesesVigencia} 
+                    onChange={e => setMesesVigencia(Math.max(1, Number(e.target.value) || 1))} 
+                    placeholder="12"
+                    className="font-mono text-xs"
+                  />
+                </div>
+
+                {/* 5. Valor Total Consolidado do Contrato */}
+                <div className="space-y-2 col-span-1 sm:col-span-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <DollarSign className="w-4 h-4 text-orange-600" />
+                      Valor Total do Contrato (R$) *
+                    </Label>
+                    <span className="text-[11px] text-muted-foreground">
+                      {isCalculoAutomatico ? 'Calculado: Implementação + (Mensalidade × Meses)' : 'Editado manualmente'}
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <Input 
+                      type="number" 
+                      value={valorTotal} 
+                      onChange={e => {
+                        setIsCalculoAutomatico(false);
+                        setValorTotal(Number(e.target.value));
+                      }} 
+                      placeholder="120000"
+                      className="font-mono text-sm font-bold pl-8 border-orange-500/40 focus-visible:ring-orange-500"
+                    />
+                    <DollarSign className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-orange-600 pointer-events-none" />
+                  </div>
+                </div>
+
               </div>
+
+              {/* FORMAS DE PAGAMENTO E VENCIMENTO */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t">
+                
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold flex items-center gap-1.5">
+                    <CreditCard className="w-3.5 h-3.5 text-primary" />
+                    Forma de Pagamento Principal *
+                  </Label>
+                  <Select value={formaPagamento} onValueChange={setFormaPagamento}>
+                    <SelectTrigger className="text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Boleto Bancário">Boleto Bancário (Com Registro)</SelectItem>
+                      <SelectItem value="PIX">PIX (Chave / QR Code Dinâmico)</SelectItem>
+                      <SelectItem value="Cartão de Crédito">Cartão de Crédito (Recorrência Automática)</SelectItem>
+                      <SelectItem value="Transferência / TED">Transferência Bancária / TED / DOC</SelectItem>
+                      <SelectItem value="Depósito em Conta">Depósito em Conta Corrente</SelectItem>
+                      <SelectItem value="Faturamento Direto">Faturamento Direto com Emissão de NFSe</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-semibold flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5 text-primary" />
+                    Dia de Vencimento da Mensalidade
+                  </Label>
+                  <Select value={diaVencimento} onValueChange={setDiaVencimento}>
+                    <SelectTrigger className="text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="01">Todo dia 01 do mês</SelectItem>
+                      <SelectItem value="05">Todo dia 05 do mês</SelectItem>
+                      <SelectItem value="10">Todo dia 10 do mês (Padrão)</SelectItem>
+                      <SelectItem value="15">Todo dia 15 do mês</SelectItem>
+                      <SelectItem value="20">Todo dia 20 do mês</SelectItem>
+                      <SelectItem value="25">Todo dia 25 do mês</SelectItem>
+                      <SelectItem value="30">Todo dia 30 do mês</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+              </div>
+
+              {/* ESPAÇO PARA DESCRIÇÃO E CONDIÇÕES FINANCEIRAS */}
+              <div className="space-y-2 pt-2 border-t">
+                <Label className="text-xs font-semibold flex items-center gap-1.5">
+                  <Receipt className="w-3.5 h-3.5 text-orange-600" />
+                  Descrição dos Valores, Regras de Reajuste e Condições Financeiras
+                </Label>
+                <Textarea 
+                  placeholder="Descreva detalhes de faturamento, prazos de pagamento da implementação, índice de reajuste (ex: IPCA após 12 meses), condições de rescisão, multas ou bonificações acordadas..."
+                  className="h-24 text-xs resize-y" 
+                  value={observacoesFinanceiras}
+                  onChange={e => setObservacoesFinanceiras(e.target.value)}
+                />
+              </div>
+
             </TabsContent>
 
           </ScrollArea>
