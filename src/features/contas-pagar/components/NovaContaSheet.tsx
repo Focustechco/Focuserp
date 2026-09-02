@@ -22,10 +22,17 @@ import { INITIAL_CATEGORIAS } from '@/features/plano-contas/mockData';
 import { CentroCusto } from '@/features/centro-de-custos/types';
 import { INITIAL_CENTROS } from '@/features/centro-de-custos/data/initialData';
 import { useNotificacoesStore } from '@/features/notificacoes/useNotificacoesStore';
-import { addDays } from 'date-fns';
+interface NovaContaSheetProps {
+  children?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
 
-export function NovaContaSheet({ children }: { children: React.ReactNode }) {
-  const [open, setOpen] = useState(false);
+export function NovaContaSheet({ children, open: controlledOpen, onOpenChange: setControlledOpen }: NovaContaSheetProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = isControlled ? (setControlledOpen || (() => {})) : setInternalOpen;
   const [parcelado, setParcelado] = useState(false);
   const [recorrente, setRecorrente] = useState(false);
   const [fornecedor, setFornecedor] = useState('');
@@ -244,9 +251,11 @@ export function NovaContaSheet({ children }: { children: React.ReactNode }) {
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        {children}
-      </SheetTrigger>
+      {children && (
+        <SheetTrigger asChild>
+          {children}
+        </SheetTrigger>
+      )}
       <SheetContent className="sm:max-w-2xl overflow-y-auto">
         <SheetHeader className="mb-6">
           <SheetTitle>Nova Despesa</SheetTitle>

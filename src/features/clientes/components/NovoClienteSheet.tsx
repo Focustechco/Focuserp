@@ -113,8 +113,23 @@ function computeQuantidadeFromDates(dataInicioStr: string, dataFimStr: string, f
   return String(Math.max(1, months));
 }
 
-export function NovoClienteSheet({ children, clienteToEdit }: { children: React.ReactNode, clienteToEdit?: Cliente }) {
-  const [open, setOpen] = useState(false);
+export interface NovoClienteSheetProps {
+  children?: React.ReactNode;
+  clienteToEdit?: Cliente | null;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export function NovoClienteSheet({ 
+  children, 
+  clienteToEdit,
+  open: controlledOpen,
+  onOpenChange: setControlledOpen
+}: NovoClienteSheetProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = isControlled ? (setControlledOpen || (() => {})) : setInternalOpen;
   
   // Dados Gerais
   const [tipoPessoa, setTipoPessoa] = useState(clienteToEdit?.tipo === 'Pessoa Física' ? 'pf' : 'pj');
@@ -707,9 +722,11 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        {children}
-      </SheetTrigger>
+      {children && (
+        <SheetTrigger asChild>
+          {children}
+        </SheetTrigger>
+      )}
       <SheetContent side="right" className="w-full sm:max-w-4xl overflow-y-auto">
         <SheetHeader className="pb-4">
           <SheetTitle>{clienteToEdit ? 'Editar Cliente' : 'Cadastro de Cliente'}</SheetTitle>
@@ -737,6 +754,41 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
 
           {/* 1. DADOS GERAIS */}
           <TabsContent value="gerais" className="space-y-4">
+            {/* Banner de Consulta Automática de CNPJ na Receita */}
+            {tipoPessoa === 'pj' && (
+              <div className="p-3.5 rounded-xl border border-primary/25 bg-primary/5 dark:bg-primary/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-1.5 font-semibold text-xs text-foreground">
+                    <Search className="w-3.5 h-3.5 text-primary" />
+                    <span>Autopreenchimento via CNPJ (Receita Federal)</span>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Insira os 14 dígitos do CNPJ abaixo e clique em Buscar para puxar dados cadastrais.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="default"
+                  disabled={isConsultandoCnpj || !documento.trim()}
+                  onClick={handleConsultarCnpj}
+                  className="w-full sm:w-auto text-xs font-semibold gap-1.5 h-8 shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm cursor-pointer"
+                >
+                  {isConsultandoCnpj ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      Consultando...
+                    </>
+                  ) : (
+                    <>
+                      <Search className="w-3.5 h-3.5" />
+                      Consultar CNPJ
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label className="font-semibold">Tipo de Pessoa *</Label>
@@ -762,6 +814,12 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
                     placeholder={tipoPessoa === 'pj' ? "00.000.000/0000-00" : "000.000.000-00"} 
                     value={documento}
                     onChange={e => setDocumento(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && tipoPessoa === 'pj') {
+                        e.preventDefault();
+                        handleConsultarCnpj();
+                      }
+                    }}
                     className="font-mono"
                   />
                   {tipoPessoa === 'pj' && (
@@ -774,7 +832,7 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
                       className="text-xs gap-1 shrink-0 font-medium hover:bg-primary hover:text-primary-foreground transition-colors cursor-pointer"
                     >
                       <Search className="w-3.5 h-3.5" />
-                      {isConsultandoCnpj ? 'Buscando...' : 'Buscar CNPJ'}
+                      {isConsultandoCnpj ? '...' : 'Buscar'}
                     </Button>
                   )}
                 </div>

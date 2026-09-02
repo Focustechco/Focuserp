@@ -59,6 +59,12 @@ export function TopBar() {
   const [query, setQuery] = useState("");
   const [isIOS, setIsIOS] = useState(false);
 
+  // States controlados para modais/sheets rápidos (evita bug de foco do DropdownMenu)
+  const [novoRecebimentoOpen, setNovoRecebimentoOpen] = useState(false);
+  const [novoPagamentoOpen, setNovoPagamentoOpen] = useState(false);
+  const [novoClienteOpen, setNovoClienteOpen] = useState(false);
+  const [novoContratoOpen, setNovoContratoOpen] = useState(false);
+
   useEffect(() => {
     setIsIOS(checkIsIOS());
   }, []);
@@ -181,55 +187,47 @@ export function TopBar() {
                 Criar Nova Transação / Lançamento
               </DropdownMenuLabel>
               
-              <NovoRecebimentoSheet>
-                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer gap-2.5 py-2 rounded-md hover:bg-emerald-50 dark:hover:bg-emerald-950/30">
-                  <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
-                    <TrendingUp className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="font-semibold text-xs text-foreground">Novo Recebimento (Entrada)</div>
-                    <div className="text-[10px] text-muted-foreground">Lança no Contas a Receber e Fluxo de Caixa</div>
-                  </div>
-                </DropdownMenuItem>
-              </NovoRecebimentoSheet>
+              <DropdownMenuItem onClick={() => setNovoRecebimentoOpen(true)} className="cursor-pointer gap-2.5 py-2 rounded-md hover:bg-emerald-50 dark:hover:bg-emerald-950/30">
+                <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+                  <TrendingUp className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="font-semibold text-xs text-foreground">Novo Recebimento (Entrada)</div>
+                  <div className="text-[10px] text-muted-foreground">Lança no Contas a Receber e Fluxo de Caixa</div>
+                </div>
+              </DropdownMenuItem>
 
-              <NovaContaSheet>
-                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer gap-2.5 py-2 rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/30">
-                  <div className="w-7 h-7 rounded-lg bg-rose-500/10 text-rose-600 flex items-center justify-center shrink-0">
-                    <TrendingDown className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="font-semibold text-xs text-foreground">Novo Pagamento (Saída)</div>
-                    <div className="text-[10px] text-muted-foreground">Lança no Contas a Pagar e Fluxo de Caixa</div>
-                  </div>
-                </DropdownMenuItem>
-              </NovaContaSheet>
+              <DropdownMenuItem onClick={() => setNovoPagamentoOpen(true)} className="cursor-pointer gap-2.5 py-2 rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/30">
+                <div className="w-7 h-7 rounded-lg bg-rose-500/10 text-rose-600 flex items-center justify-center shrink-0">
+                  <TrendingDown className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="font-semibold text-xs text-foreground">Novo Pagamento (Saída)</div>
+                  <div className="text-[10px] text-muted-foreground">Lança no Contas a Pagar e Fluxo de Caixa</div>
+                </div>
+              </DropdownMenuItem>
 
               <DropdownMenuSeparator />
 
-              <NovoClienteSheet>
-                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer gap-2.5 py-2 rounded-md">
-                  <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-600 flex items-center justify-center shrink-0">
-                    <Users className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="font-semibold text-xs text-foreground">Novo Cliente</div>
-                    <div className="text-[10px] text-muted-foreground">Cadastra cliente no diretório da empresa</div>
-                  </div>
-                </DropdownMenuItem>
-              </NovoClienteSheet>
+              <DropdownMenuItem onClick={() => setNovoClienteOpen(true)} className="cursor-pointer gap-2.5 py-2 rounded-md">
+                <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-600 flex items-center justify-center shrink-0">
+                  <Users className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="font-semibold text-xs text-foreground">Novo Cliente</div>
+                  <div className="text-[10px] text-muted-foreground">Cadastra cliente no diretório da empresa</div>
+                </div>
+              </DropdownMenuItem>
 
-              <NovoContratoSheet>
-                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer gap-2.5 py-2 rounded-md">
-                  <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
-                    <FileText className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="font-semibold text-xs text-foreground">Novo Contrato</div>
-                    <div className="text-[10px] text-muted-foreground">Registra novo contrato de vendas/serviços</div>
-                  </div>
-                </DropdownMenuItem>
-              </NovoContratoSheet>
+              <DropdownMenuItem onClick={() => setNovoContratoOpen(true)} className="cursor-pointer gap-2.5 py-2 rounded-md">
+                <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
+                  <FileText className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="font-semibold text-xs text-foreground">Novo Contrato</div>
+                  <div className="text-[10px] text-muted-foreground">Registra novo contrato de vendas/serviços</div>
+                </div>
+              </DropdownMenuItem>
 
               <DropdownMenuSeparator />
 
@@ -372,6 +370,12 @@ export function TopBar() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Sheets de Ações Rápidas renderizados no nível raiz para liberar foco e digitação */}
+      <NovoRecebimentoSheet open={novoRecebimentoOpen} onOpenChange={setNovoRecebimentoOpen} />
+      <NovaContaSheet open={novoPagamentoOpen} onOpenChange={setNovoPagamentoOpen} />
+      <NovoClienteSheet open={novoClienteOpen} onOpenChange={setNovoClienteOpen} />
+      <NovoContratoSheet open={novoContratoOpen} onOpenChange={setNovoContratoOpen} />
     </>
   );
 }

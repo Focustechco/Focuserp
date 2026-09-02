@@ -26,7 +26,8 @@ export function ClientesList() {
   const [clientePerfil, setClientePerfil] = useState<Cliente | null>(null);
   const [perfilOpen, setPerfilOpen] = useState(false);
 
-  // Estado para Edição rápida disparada pelo Perfil
+  // Estados para Criação e Edição de Cliente (controlados no topo)
+  const [novoClienteOpen, setNovoClienteOpen] = useState(false);
   const [clienteParaEditar, setClienteParaEditar] = useState<Cliente | null>(null);
 
   const filteredData = useMemo(() => {
@@ -241,12 +242,13 @@ export function ClientesList() {
                 Ver Perfil Completo
               </DropdownMenuItem>
               
-              <NovoClienteSheet clienteToEdit={cliente}>
-                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer">
-                  <Edit3 className="w-4 h-4 mr-2 text-slate-500" />
-                  Editar Cadastro
-                </DropdownMenuItem>
-              </NovoClienteSheet>
+              <DropdownMenuItem 
+                className="cursor-pointer"
+                onClick={() => setClienteParaEditar(cliente)}
+              >
+                <Edit3 className="w-4 h-4 mr-2 text-slate-500" />
+                Editar Cadastro
+              </DropdownMenuItem>
 
               <Link to="/contas-a-receber">
                 <DropdownMenuItem className="cursor-pointer">Ver Financeiro</DropdownMenuItem>
@@ -383,12 +385,13 @@ export function ClientesList() {
                 Ver Perfil
               </DropdownMenuItem>
               
-              <NovoClienteSheet clienteToEdit={cliente}>
-                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer">
-                  <Edit3 className="w-4 h-4 mr-2 text-slate-500" />
-                  Editar Cadastro
-                </DropdownMenuItem>
-              </NovoClienteSheet>
+              <DropdownMenuItem 
+                className="cursor-pointer"
+                onClick={() => setClienteParaEditar(cliente)}
+              >
+                <Edit3 className="w-4 h-4 mr-2 text-slate-500" />
+                Editar Cadastro
+              </DropdownMenuItem>
 
               <Link to="/contas-a-receber">
                 <DropdownMenuItem className="cursor-pointer">Ver Financeiro</DropdownMenuItem>
@@ -487,12 +490,14 @@ export function ClientesList() {
             </Button>
           </div>
 
-          <NovoClienteSheet>
-            <Button size="sm" className="bg-orange-600 hover:bg-orange-700 text-white h-8 text-xs font-semibold">
-              <Plus className="mr-1.5 h-3.5 w-3.5" />
-              Novo Cliente
-            </Button>
-          </NovoClienteSheet>
+          <Button 
+            size="sm" 
+            onClick={() => setNovoClienteOpen(true)}
+            className="bg-orange-600 hover:bg-orange-700 text-white h-8 text-xs font-semibold cursor-pointer"
+          >
+            <Plus className="mr-1.5 h-3.5 w-3.5" />
+            Novo Cliente
+          </Button>
         </div>
       </div>
 
@@ -651,12 +656,19 @@ export function ClientesList() {
         }}
       />
 
-      {/* Disparador de Edição a partir do Perfil */}
-      {clienteParaEditar && (
-        <NovoClienteSheet clienteToEdit={clienteParaEditar}>
-          <button id="btn-trigger-edit-from-profile" className="hidden" />
-        </NovoClienteSheet>
-      )}
+      {/* Modais / Sheets de Criação e Edição (desacoplados para garantir foco e digitação 100% livres) */}
+      <NovoClienteSheet 
+        open={novoClienteOpen} 
+        onOpenChange={setNovoClienteOpen} 
+      />
+
+      <NovoClienteSheet 
+        clienteToEdit={clienteParaEditar}
+        open={!!clienteParaEditar}
+        onOpenChange={(open) => {
+          if (!open) setClienteParaEditar(null);
+        }}
+      />
     </div>
   );
 }
