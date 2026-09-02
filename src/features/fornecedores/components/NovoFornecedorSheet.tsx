@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { useLocalStorageState } from '@/hooks/useDataStore';
 import { Fornecedor, StatusFornecedor, TipoFornecedor } from '../types';
 import { dmsService, DocumentoDMS } from '@/services/dmsService';
+import { consultarCnpj, formatarCnpj, formatarCep, formatarTelefone } from '@/services/cnpjService';
 import { useNotificacoesStore } from '@/features/notificacoes/useNotificacoesStore';
 import { TituloPagar } from '@/features/contas-pagar/types';
 
@@ -250,23 +251,28 @@ export function NovoFornecedorSheet({
     }
   };
 
-  // Consulta automática de CNPJ via BrasilAPI / ReceitaWS
+  // Consulta automática de CNPJ via Multi-provedor (BrasilAPI, MinhaReceita, OpenCNPJ)
   const handleConsultarCnpj = async () => {
-    const limpo = documento.replace(/\D/g, '');
+    const limpo = (documento || '').replace(/\D/g, '');
     if (limpo.length !== 14) {
-      toast.error("Informe um CNPJ válido com 14 dígitos.");
+      toast.error("Informe um CNPJ válido com 14 dígitos numéricos.");
       return;
     }
     setIsConsultandoCnpj(true);
+    toast.loading("Consultando CNPJ na Receita Federal...", { id: "forn-cnpj-toast" });
     try {
-      const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${limpo}`);
-      if (!res.ok) throw new Error("Erro na consulta");
-      const data = await res.json();
+      const data = await consultarCnpj(limpo);
       
-      setRazaoSocial(data.razao_social || razaoSocial);
-      setNomeFantasia(data.nome_fantasia || data.razao_social || nomeFantasia);
+      setDocumento(data.cnpjFormatado);
+      if (data.razaoSocial) setRazaoSocial(data.razaoSocial);
+      if (data.nomeFantasia) {
+        setNomeFantasia(data.nomeFantasia);
+      } else if (data.razaoSocial) {
+        setNomeFantasia(data.razaoSocial);
+      }
+
       if (data.cep) {
-        setCep(data.cep);
+        setCep(data.cepFormatado || data.cep);
         setLogradouro(data.logradouro || '');
         setNumero(data.numero || '');
         setComplemento(data.complemento || '');
@@ -275,10 +281,14 @@ export function NovoFornecedorSheet({
         setEstado(data.uf || 'SP');
       }
       if (data.email) setContatoEmail(data.email);
-      if (data.ddd_telefone_1) setContatoTelefone(data.ddd_telefone_1);
-      toast.success("Dados cadastrais do fornecedor preenchidos via Receita Federal!");
-    } catch {
-      toast.error("Não foi possível consultar o CNPJ automaticamente.");
+      if (data.telefone) setContatoTelefone(data.telefone);
+      if (data.cnaeDescricao && !categoria) {
+        setCategoria(data.cnaeDescricao);
+      }
+
+      toast.success(`CNPJ localizado: ${data.razaoSocial} (${data.situacaoCadastral || 'Ativa'})`, { id: "forn-cnpj-toast" });
+    } catch (err: any) {
+      toast.error(err.message || "Não foi possível consultar o CNPJ automaticamente.", { id: "forn-cnpj-toast" });
     } finally {
       setIsConsultandoCnpj(false);
     }

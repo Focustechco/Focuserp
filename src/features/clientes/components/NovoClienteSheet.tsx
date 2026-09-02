@@ -25,6 +25,7 @@ import { RecorrenciaFinanceira, FrequenciaRecorrencia, StatusRecorrencia } from 
 import { calculateClienteFinanceiro, syncRecorrenciaTitulos } from '@/features/recorrencias/services/recorrenciaEngine';
 import { useNotificacoesStore } from '@/features/notificacoes/useNotificacoesStore';
 import { dmsService } from '@/services/dmsService';
+import { consultarCnpj, formatarCnpj, formatarCep, formatarTelefone } from '@/services/cnpjService';
 import { DocumentoDMS } from '@/features/documentos/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { getBrasiliaTodayIso, formatDateBrasilia } from '@/lib/dateUtils';
@@ -360,50 +361,71 @@ export function NovoClienteSheet({ children, clienteToEdit }: { children: React.
     }
   };
 
-  // Consulta Inteligente de CNPJ na base da Receita Federal
+  // Consulta Inteligente de CNPJ na base da Receita Federal com Multi-provedor e Fallback
   const handleConsultarCnpj = async () => {
-    const cleanCnpj = documento.replace(/\D/g, '');
+    const cleanCnpj = (documento || '').replace(/\D/g, '');
     if (cleanCnpj.length !== 14) {
-      toast.error('Informe um CNPJ válido com 14 dígitos para consultar.');
+      toast.error('Informe um CNPJ válido com 14 dígitos numéricos para consultar.');
       return;
     }
 
     setIsConsultandoCnpj(true);
+    toast.loading('Consultando CNPJ na Receita Federal...', { id: 'cnpj-toast' });
     try {
-      const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cleanCnpj}`);
-      if (!res.ok) throw new Error('Falha ao consultar CNPJ');
-      const data = await res.json();
+      const data = await consultarCnpj(cleanCnpj);
 
-      setRazaoSocial(data.razao_social || razaoSocial);
-      setNomeFantasia(data.nome_fantasia || data.razao_social || nomeFantasia);
-      if (data.data_inicio_atividade) {
-        setDataFundacao(data.data_inicio_atividade);
+      // 1. Atualizar documento e tipo de pessoa
+      setDocumento(data.cnpjFormatado);
+      setTipoPessoa('pj');
+
+      // 2. Razão Social e Nome Fantasia
+      if (data.razaoSocial) setRazaoSocial(data.razaoSocial);
+      if (data.nomeFantasia) {
+        setNomeFantasia(data.nomeFantasia);
+      } else if (data.razaoSocial) {
+        setNomeFantasia(data.razaoSocial);
       }
-      if (data.cnae_fiscal_descricao) {
-        setSegmento(data.cnae_fiscal_descricao);
+
+      // 3. Informações societárias e fiscais
+      if (data.dataAbertura) {
+        setDataFundacao(data.dataAbertura);
+      }
+      if (data.cnaeDescricao) {
+        setSegmento(data.cnaeDescricao);
       }
       if (data.porte) {
         setPorte(data.porte);
       }
+      if (data.simplesNacional) {
+        setRegimeTributario('Simples Nacional');
+      }
+
+      // 4. Endereço completo
       if (data.cep) {
-        setCep(data.cep);
+        setCep(data.cepFormatado || data.cep);
         setLogradouro(data.logradouro || '');
         setNumero(data.numero || '');
         setComplemento(data.complemento || '');
         setBairro(data.bairro || '');
         setCidade(data.municipio || '');
         setEstado(data.uf || '');
-        setPais('Brasil');
+        setPais(data.pais || 'Brasil');
       }
-      if (data.email) {
+
+      // 5. Contatos principais
+      if (data.email && (!contatoEmail || contatoEmail.includes('exemplo'))) {
         setContatoEmail(data.email);
       }
-      if (data.ddd_telefone_1) {
-        setContatoTelefone(data.ddd_telefone_1);
+      if (data.telefone && !contatoTelefone) {
+        setContatoTelefone(data.telefone);
       }
-      toast.success('Dados do cliente preenchidos automaticamente via Receita Federal!');
-    } catch {
-      toast.error('Não foi possível consultar o CNPJ automaticamente.');
+      if (data.qsa && data.qsa.length > 0 && !contatoNome) {
+        setContatoNome(data.qsa[0].nome);
+      }
+
+      toast.success(`CNPJ localizado: ${data.razaoSocial} (${data.situacaoCadastral || 'Ativa'})`, { id: 'cnpj-toast' });
+    } catch (err: any) {
+      toast.error(err.message || 'Não foi possível consultar o CNPJ automaticamente.', { id: 'cnpj-toast' });
     } finally {
       setIsConsultandoCnpj(false);
     }
