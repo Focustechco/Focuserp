@@ -203,101 +203,107 @@ export function NovoClienteSheet({
 
   const clienteNomeOficial = nomeFantasia || razaoSocial || 'Cliente';
   const currentClienteId = clienteToEdit?.id || '';
+  const hasInitializedRef = React.useRef(false);
 
-  // Carregar dados e documentos existentes ao abrir
+  // Carregar dados e documentos existentes estritamente ao abrir o modal (evita sobrescrever campos enquanto o usuário digita)
   useEffect(() => {
     if (open) {
-      setTipoPessoa(clienteToEdit?.tipo === 'Pessoa Física' ? 'pf' : 'pj');
-      setDocumento(clienteToEdit?.documento || '');
-      setRazaoSocial(clienteToEdit?.razaoSocial || '');
-      setNomeFantasia(clienteToEdit?.nomeFantasia || '');
-      setIe(clienteToEdit?.inscricaoEstadual || '');
-      setIm(clienteToEdit?.inscricaoMunicipal || '');
-      setDataFundacao(clienteToEdit?.dataFundacaoNascimento || '');
-      setSegmento(clienteToEdit?.segmento || 'Tecnologia');
-      setPorte(clienteToEdit?.porteEmpresa || 'Médio');
-      setSite(clienteToEdit?.site || '');
-      setObservacoes(clienteToEdit?.observacoes || '');
-      setStatusCliente(clienteToEdit?.status || 'Ativo');
+      if (!hasInitializedRef.current) {
+        hasInitializedRef.current = true;
+        setTipoPessoa(clienteToEdit?.tipo === 'Pessoa Física' ? 'pf' : 'pj');
+        setDocumento(clienteToEdit?.documento || '');
+        setRazaoSocial(clienteToEdit?.razaoSocial || '');
+        setNomeFantasia(clienteToEdit?.nomeFantasia || '');
+        setIe(clienteToEdit?.inscricaoEstadual || '');
+        setIm(clienteToEdit?.inscricaoMunicipal || '');
+        setDataFundacao(clienteToEdit?.dataFundacaoNascimento || '');
+        setSegmento(clienteToEdit?.segmento || 'Tecnologia');
+        setPorte(clienteToEdit?.porteEmpresa || 'Médio');
+        setSite(clienteToEdit?.site || '');
+        setObservacoes(clienteToEdit?.observacoes || '');
+        setStatusCliente(clienteToEdit?.status || 'Ativo');
 
-      // Endereço
-      setCep(clienteToEdit?.endereco?.cep || '');
-      setLogradouro(clienteToEdit?.endereco?.logradouro || '');
-      setNumero(clienteToEdit?.endereco?.numero || '');
-      setComplemento(clienteToEdit?.endereco?.complemento || '');
-      setBairro(clienteToEdit?.endereco?.bairro || '');
-      setCidade(clienteToEdit?.endereco?.cidade || '');
-      setEstado(clienteToEdit?.endereco?.estado || '');
-      setPais(clienteToEdit?.endereco?.pais || 'Brasil');
-      
-      // Contatos
-      const principal = clienteToEdit?.contatos?.find(c => c.principal) || clienteToEdit?.contatos?.[0];
-      setContatoNome(principal?.nome || '');
-      setContatoCargo(principal?.cargo || 'Responsável Comercial');
-      setContatoDepartamento(principal?.departamento || 'Diretoria');
-      setContatoEmail(principal?.email || '');
-      setContatoCelular(principal?.celular || '');
-      setContatoTelefone(principal?.telefone || '');
-      setContatoWhatsapp(principal?.whatsapp ?? true);
-
-      // Carregar documentos estritamente vinculados a este cliente (Isolamento por ID)
-      if (clienteToEdit?.id) {
-        const docsFromClient: DocumentoAnexoLocal[] = (clienteToEdit as any)?.documentos || [];
-        const todosDocs = dmsService.getDocumentos() || [];
+        // Endereço
+        setCep(clienteToEdit?.endereco?.cep || '');
+        setLogradouro(clienteToEdit?.endereco?.logradouro || '');
+        setNumero(clienteToEdit?.endereco?.numero || '');
+        setComplemento(clienteToEdit?.endereco?.complemento || '');
+        setBairro(clienteToEdit?.endereco?.bairro || '');
+        setCidade(clienteToEdit?.endereco?.cidade || '');
+        setEstado(clienteToEdit?.endereco?.estado || '');
+        setPais(clienteToEdit?.endereco?.pais || 'Brasil');
         
-        const docsDMS: DocumentoAnexoLocal[] = todosDocs.filter(
-          d => d && (
-               d.clienteId === clienteToEdit.id || 
-               (Array.isArray(d.tags) && d.tags.includes(clienteToEdit.id))
-          )
-        ).map(d => ({
-          id: d.id,
-          nome: d.nome,
-          tamanho: d.tamanho,
-          tamanhoBytes: d.tamanhoBytes,
-          dataUpload: d.dataUpload,
-          urlConteudo: d.urlConteudo,
-          categoria: d.categoria
-        }));
+        // Contatos
+        const principal = clienteToEdit?.contatos?.find(c => c.principal) || clienteToEdit?.contatos?.[0];
+        setContatoNome(principal?.nome || '');
+        setContatoCargo(principal?.cargo || 'Responsável Comercial');
+        setContatoDepartamento(principal?.departamento || 'Diretoria');
+        setContatoEmail(principal?.email || '');
+        setContatoCelular(principal?.celular || '');
+        setContatoTelefone(principal?.telefone || '');
+        setContatoWhatsapp(principal?.whatsapp ?? true);
 
-        const mapDocs = new Map<string, DocumentoAnexoLocal>();
-        docsFromClient.forEach((d: DocumentoAnexoLocal) => {
-          if (d && d.id) mapDocs.set(d.id, d);
-        });
-        docsDMS.forEach((d: DocumentoAnexoLocal) => {
-          if (d && d.id && !mapDocs.has(d.id)) mapDocs.set(d.id, d);
-        });
+        // Carregar documentos estritamente vinculados a este cliente (Isolamento por ID)
+        if (clienteToEdit?.id) {
+          const docsFromClient: DocumentoAnexoLocal[] = (clienteToEdit as any)?.documentos || [];
+          const todosDocs = dmsService.getDocumentos() || [];
+          
+          const docsDMS: DocumentoAnexoLocal[] = todosDocs.filter(
+            d => d && (
+                 d.clienteId === clienteToEdit.id || 
+                 (Array.isArray(d.tags) && d.tags.includes(clienteToEdit.id))
+            )
+          ).map(d => ({
+            id: d.id,
+            nome: d.nome,
+            tamanho: d.tamanho,
+            tamanhoBytes: d.tamanhoBytes,
+            dataUpload: d.dataUpload,
+            urlConteudo: d.urlConteudo,
+            categoria: d.categoria
+          }));
 
-        setDocumentosAnexados(Array.from(mapDocs.values()));
-      } else {
-        // Novo cliente começa sempre limpo, sem documentos de outros clientes
-        setDocumentosAnexados([]);
-      }
+          const mapDocs = new Map<string, DocumentoAnexoLocal>();
+          docsFromClient.forEach((d: DocumentoAnexoLocal) => {
+            if (d && d.id) mapDocs.set(d.id, d);
+          });
+          docsDMS.forEach((d: DocumentoAnexoLocal) => {
+            if (d && d.id && !mapDocs.has(d.id)) mapDocs.set(d.id, d);
+          });
 
-      // Carregar recorrência existente se houver
-      if (clienteToEdit?.id) {
-        const recExistente = recorrencias.find(r => r.clientId === clienteToEdit.id);
-        if (recExistente) {
-          setRecorrenciaHabilitada(true);
-          setRecorrenciaId(recExistente.id);
-          setRecorrenciaDescricao(recExistente.descricao || '');
-          setRecorrenciaValor(String(recExistente.valor || ''));
-          setRecorrenciaFrequencia(recExistente.frequencia || 'Mensal');
-          setRecorrenciaDataInicio(recExistente.dataInicio || '');
-          const calculatedDataFinal = recExistente.dataFim || recExistente.dataFinal || computeDataFinal(recExistente.dataInicio || '', String(recExistente.quantidade || ''), recExistente.frequencia || 'Mensal');
-          setRecorrenciaDataFinal(calculatedDataFinal);
-          setRecorrenciaDiaVencimento(String(recExistente.diaVencimento || '10'));
-          setRecorrenciaQuantidade(recExistente.quantidade ? String(recExistente.quantidade) : '');
-          setRecorrenciaStatus(recExistente.status || 'Ativa');
-          setRecorrenciaObservacoes(recExistente.observacoes || '');
+          setDocumentosAnexados(Array.from(mapDocs.values()));
         } else {
-          resetRecorrenciaFields(clienteToEdit?.nomeFantasia || clienteToEdit?.razaoSocial || '');
+          // Novo cliente começa sempre limpo, sem documentos de outros clientes
+          setDocumentosAnexados([]);
         }
-      } else {
-        resetRecorrenciaFields('');
+
+        // Carregar recorrência existente se houver
+        if (clienteToEdit?.id) {
+          const recExistente = recorrencias.find(r => r.clientId === clienteToEdit.id);
+          if (recExistente) {
+            setRecorrenciaHabilitada(true);
+            setRecorrenciaId(recExistente.id);
+            setRecorrenciaDescricao(recExistente.descricao || '');
+            setRecorrenciaValor(String(recExistente.valor || ''));
+            setRecorrenciaFrequencia(recExistente.frequencia || 'Mensal');
+            setRecorrenciaDataInicio(recExistente.dataInicio || '');
+            const calculatedDataFinal = recExistente.dataFim || recExistente.dataFinal || computeDataFinal(recExistente.dataInicio || '', String(recExistente.quantidade || ''), recExistente.frequencia || 'Mensal');
+            setRecorrenciaDataFinal(calculatedDataFinal);
+            setRecorrenciaDiaVencimento(String(recExistente.diaVencimento || '10'));
+            setRecorrenciaQuantidade(recExistente.quantidade ? String(recExistente.quantidade) : '');
+            setRecorrenciaStatus(recExistente.status || 'Ativa');
+            setRecorrenciaObservacoes(recExistente.observacoes || '');
+          } else {
+            resetRecorrenciaFields(clienteToEdit?.nomeFantasia || clienteToEdit?.razaoSocial || '');
+          }
+        } else {
+          resetRecorrenciaFields('');
+        }
       }
+    } else {
+      hasInitializedRef.current = false;
     }
-  }, [open, clienteToEdit, recorrencias]);
+  }, [open, clienteToEdit?.id]);
 
   const resetRecorrenciaFields = (nome: string) => {
     const hoje = getBrasiliaTodayIso();
@@ -378,7 +384,9 @@ export function NovoClienteSheet({
 
   // Consulta Inteligente de CNPJ na base da Receita Federal com Multi-provedor e Fallback
   const handleConsultarCnpj = async () => {
-    let cleanCnpj = (documento || '').replace(/\D/g, '');
+    const inputEl = document.getElementById('doc') as HTMLInputElement | null;
+    const currentVal = (inputEl?.value || documento || '').trim();
+    let cleanCnpj = currentVal.replace(/\D/g, '');
     if (cleanCnpj.length === 13) {
       cleanCnpj = '0' + cleanCnpj;
     }
@@ -388,13 +396,16 @@ export function NovoClienteSheet({
       return;
     }
 
+    setDocumento(currentVal);
     setIsConsultandoCnpj(true);
-    toast.loading('Consultando CNPJ na Receita Federal...', { id: 'cnpj-toast' });
+    const toastId = toast.loading('Consultando CNPJ na Receita Federal...');
     try {
       const data = await consultarCnpj(cleanCnpj);
 
       // 1. Atualizar documento e tipo de pessoa
-      setDocumento(data.cnpjFormatado || cleanCnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5'));
+      const docFmt = data.cnpjFormatado || cleanCnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+      setDocumento(docFmt);
+      if (inputEl) inputEl.value = docFmt;
       setTipoPessoa('pj');
 
       // 2. Razão Social e Nome Fantasia
@@ -444,10 +455,10 @@ export function NovoClienteSheet({
         setContatoNome(data.qsa[0].nome);
       }
 
-      toast.success(`CNPJ localizado: ${data.razaoSocial}`, { id: 'cnpj-toast' });
+      toast.success(`CNPJ localizado: ${data.razaoSocial}`, { id: toastId });
     } catch (err: any) {
       console.error('Erro na consulta CNPJ:', err);
-      toast.error(err.message || 'Não foi possível consultar o CNPJ automaticamente.', { id: 'cnpj-toast' });
+      toast.error(err.message || 'Não foi possível consultar o CNPJ automaticamente.', { id: toastId });
     } finally {
       setIsConsultandoCnpj(false);
     }
@@ -786,6 +797,11 @@ export function NovoClienteSheet({
                     placeholder={tipoPessoa === 'pj' ? "00.000.000/0000-00" : "000.000.000-00"} 
                     value={documento}
                     onChange={e => setDocumento(e.target.value)}
+                    onInput={e => setDocumento((e.target as HTMLInputElement).value)}
+                    onBlur={e => {
+                      const v = (e.target as HTMLInputElement).value;
+                      if (v) setDocumento(v);
+                    }}
                     onKeyDown={e => {
                       if (e.key === 'Enter' && tipoPessoa === 'pj') {
                         e.preventDefault();

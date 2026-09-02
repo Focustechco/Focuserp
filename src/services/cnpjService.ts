@@ -271,6 +271,54 @@ async function consultarOpenCnpja(cleanCnpj: string): Promise<CnpjLookupResult |
 }
 
 /**
+ * Provedor 3: CNPJ.ws (API Pública)
+ */
+async function consultarCnpjWs(cleanCnpj: string): Promise<CnpjLookupResult | null> {
+  try {
+    const res = await fetchWithTimeout(`https://publica.cnpj.ws/cnpj/${cleanCnpj}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+
+    if (!data || !data.razao_social) return null;
+
+    const est = data.estabelecimento || {};
+    const cidade = est.cidade?.nome || '';
+    const estado = est.estado?.sigla || '';
+    const logradouro = [est.tipo_logradouro, est.logradouro].filter(Boolean).join(' ') || est.logradouro || '';
+    const tel = est.ddd1 && est.telefone1 ? formatarTelefone(`${est.ddd1}${est.telefone1}`) : '';
+    const cep = est.cep ? est.cep.replace(/\D/g, '') : '';
+
+    return {
+      cnpj: cleanCnpj,
+      cnpjFormatado: formatarCnpj(cleanCnpj),
+      razaoSocial: data.razao_social || '',
+      nomeFantasia: est.nome_fantasia || data.razao_social || '',
+      dataAbertura: est.data_inicio_atividade || '',
+      situacaoCadastral: est.situacao_cadastral || 'Ativa',
+      cnaeCodigo: est.atividade_principal?.id ? String(est.atividade_principal.id) : '',
+      cnaeDescricao: est.atividade_principal?.descricao || '',
+      porte: data.porte?.descricao || '',
+      naturezaJuridica: data.natureza_juridica?.descricao || '',
+      cep: cep,
+      cepFormatado: cep ? formatarCep(cep) : '',
+      logradouro: logradouro,
+      numero: est.numero || '',
+      complemento: est.complemento || '',
+      bairro: est.bairro || '',
+      municipio: cidade,
+      uf: estado,
+      pais: 'Brasil',
+      email: est.email || '',
+      telefone: tel,
+      simplesNacional: Boolean(data.simples?.optante),
+      mei: Boolean(data.simples?.optante_simei),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Consulta de CNPJ com Resiliência Total e Fallback em Cascata
  */
 export async function consultarCnpj(cnpjInput: string): Promise<CnpjLookupResult> {
@@ -284,11 +332,15 @@ export async function consultarCnpj(cnpjInput: string): Promise<CnpjLookupResult
   let result = await consultarMinhaReceita(cleanCnpj);
   if (result) return result;
 
-  // Tentativa 2: BrasilAPI
+  // Tentativa 2: CNPJ.ws (API Pública)
+  result = await consultarCnpjWs(cleanCnpj);
+  if (result) return result;
+
+  // Tentativa 3: BrasilAPI
   result = await consultarBrasilApi(cleanCnpj);
   if (result) return result;
 
-  // Tentativa 3: OpenCNPJa
+  // Tentativa 4: OpenCNPJa
   result = await consultarOpenCnpja(cleanCnpj);
   if (result) return result;
 

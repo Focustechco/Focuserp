@@ -251,9 +251,12 @@ export function NovoFornecedorSheet({
     }
   };
 
-  // Consulta automática de CNPJ via Multi-provedor (BrasilAPI, MinhaReceita, OpenCNPJ)
+  // Consulta automática de CNPJ via Multi-provedor (MinhaReceita, CNPJ.ws, BrasilAPI, OpenCNPJ)
   const handleConsultarCnpj = async () => {
-    const limpo = (documento || '').replace(/\D/g, '');
+    let limpo = (documento || '').replace(/\D/g, '');
+    if (limpo.length === 13) {
+      limpo = '0' + limpo;
+    }
     if (limpo.length !== 14) {
       toast.error("Informe um CNPJ válido com 14 dígitos numéricos.");
       return;
