@@ -121,10 +121,6 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutM
     const res = await fetch(url, {
       ...options,
       signal: controller.signal,
-      headers: {
-        Accept: 'application/json',
-        ...(options.headers || {}),
-      },
     });
     return res;
   } finally {
@@ -212,7 +208,7 @@ async function consultarMinhaReceita(cleanCnpj: string): Promise<CnpjLookupResul
       naturezaJuridica: data.natureza_juridica || '',
       cep: data.cep ? data.cep.replace(/\D/g, '') : '',
       cepFormatado: data.cep ? formatarCep(data.cep) : '',
-      logradouro: data.logradouro || '',
+      logradouro: [data.descricao_tipo_de_logradouro, data.logradouro].filter(Boolean).join(' ') || data.logradouro || '',
       numero: data.numero || '',
       complemento: data.complemento || '',
       bairro: data.bairro || '',
@@ -284,12 +280,12 @@ export async function consultarCnpj(cnpjInput: string): Promise<CnpjLookupResult
     throw new Error('Informe um CNPJ válido contendo exatamente 14 dígitos numéricos.');
   }
 
-  // Tentativa 1: BrasilAPI
-  let result = await consultarBrasilApi(cleanCnpj);
+  // Tentativa 1: MinhaReceita (Mirror Oficial da Receita Federal - Rápido e Sem 403)
+  let result = await consultarMinhaReceita(cleanCnpj);
   if (result) return result;
 
-  // Tentativa 2: MinhaReceita (Mirror Oficial da Receita Federal)
-  result = await consultarMinhaReceita(cleanCnpj);
+  // Tentativa 2: BrasilAPI
+  result = await consultarBrasilApi(cleanCnpj);
   if (result) return result;
 
   // Tentativa 3: OpenCNPJa

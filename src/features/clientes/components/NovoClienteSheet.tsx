@@ -378,7 +378,11 @@ export function NovoClienteSheet({
 
   // Consulta Inteligente de CNPJ na base da Receita Federal com Multi-provedor e Fallback
   const handleConsultarCnpj = async () => {
-    const cleanCnpj = (documento || '').replace(/\D/g, '');
+    let cleanCnpj = (documento || '').replace(/\D/g, '');
+    if (cleanCnpj.length === 13) {
+      cleanCnpj = '0' + cleanCnpj;
+    }
+
     if (cleanCnpj.length !== 14) {
       toast.error('Informe um CNPJ válido com 14 dígitos numéricos para consultar.');
       return;
@@ -390,7 +394,7 @@ export function NovoClienteSheet({
       const data = await consultarCnpj(cleanCnpj);
 
       // 1. Atualizar documento e tipo de pessoa
-      setDocumento(data.cnpjFormatado);
+      setDocumento(data.cnpjFormatado || cleanCnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5'));
       setTipoPessoa('pj');
 
       // 2. Razão Social e Nome Fantasia
@@ -409,10 +413,12 @@ export function NovoClienteSheet({
         setSegmento(data.cnaeDescricao);
       }
       if (data.porte) {
-        setPorte(data.porte);
-      }
-      if (data.simplesNacional) {
-        setRegimeTributario('Simples Nacional');
+        const porteUpper = String(data.porte).toUpperCase();
+        if (porteUpper.includes('MEI')) setPorte('MEI');
+        else if (porteUpper.includes('MICRO') || porteUpper === 'ME' || porteUpper.includes('01')) setPorte('Micro');
+        else if (porteUpper.includes('PEQUENO') || porteUpper.includes('EPP') || porteUpper.includes('03')) setPorte('Pequeno');
+        else if (porteUpper.includes('GRANDE') || porteUpper.includes('DEMAIS')) setPorte('Grande');
+        else setPorte('Médio');
       }
 
       // 4. Endereço completo
@@ -438,8 +444,9 @@ export function NovoClienteSheet({
         setContatoNome(data.qsa[0].nome);
       }
 
-      toast.success(`CNPJ localizado: ${data.razaoSocial} (${data.situacaoCadastral || 'Ativa'})`, { id: 'cnpj-toast' });
+      toast.success(`CNPJ localizado: ${data.razaoSocial}`, { id: 'cnpj-toast' });
     } catch (err: any) {
+      console.error('Erro na consulta CNPJ:', err);
       toast.error(err.message || 'Não foi possível consultar o CNPJ automaticamente.', { id: 'cnpj-toast' });
     } finally {
       setIsConsultandoCnpj(false);
@@ -754,41 +761,6 @@ export function NovoClienteSheet({
 
           {/* 1. DADOS GERAIS */}
           <TabsContent value="gerais" className="space-y-4">
-            {/* Banner de Consulta Automática de CNPJ na Receita */}
-            {tipoPessoa === 'pj' && (
-              <div className="p-3.5 rounded-xl border border-primary/25 bg-primary/5 dark:bg-primary/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-1.5 font-semibold text-xs text-foreground">
-                    <Search className="w-3.5 h-3.5 text-primary" />
-                    <span>Autopreenchimento via CNPJ (Receita Federal)</span>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground">
-                    Insira os 14 dígitos do CNPJ abaixo e clique em Buscar para puxar dados cadastrais.
-                  </p>
-                </div>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="default"
-                  disabled={isConsultandoCnpj || !documento.trim()}
-                  onClick={handleConsultarCnpj}
-                  className="w-full sm:w-auto text-xs font-semibold gap-1.5 h-8 shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm cursor-pointer"
-                >
-                  {isConsultandoCnpj ? (
-                    <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      Consultando...
-                    </>
-                  ) : (
-                    <>
-                      <Search className="w-3.5 h-3.5" />
-                      Consultar CNPJ
-                    </>
-                  )}
-                </Button>
-              </div>
-            )}
-
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label className="font-semibold">Tipo de Pessoa *</Label>
@@ -832,7 +804,7 @@ export function NovoClienteSheet({
                       className="text-xs gap-1 shrink-0 font-medium hover:bg-primary hover:text-primary-foreground transition-colors cursor-pointer"
                     >
                       <Search className="w-3.5 h-3.5" />
-                      {isConsultandoCnpj ? '...' : 'Buscar'}
+                      {isConsultandoCnpj ? 'Buscando...' : 'Buscar'}
                     </Button>
                   )}
                 </div>
