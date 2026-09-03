@@ -25,7 +25,7 @@ import { RecorrenciaFinanceira, FrequenciaRecorrencia, StatusRecorrencia } from 
 import { calculateClienteFinanceiro, syncRecorrenciaTitulos } from '@/features/recorrencias/services/recorrenciaEngine';
 import { useNotificacoesStore } from '@/features/notificacoes/useNotificacoesStore';
 import { dmsService } from '@/services/dmsService';
-import { formatarCnpj, formatarCep, formatarTelefone } from '@/services/cnpjService';
+import { consultarCnpj, formatarCnpj, formatarCep, formatarTelefone } from '@/services/cnpjService';
 import { DocumentoDMS } from '@/features/documentos/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { getBrasiliaTodayIso, formatDateBrasilia } from '@/lib/dateUtils';
@@ -155,6 +155,7 @@ export function NovoClienteSheet({
   const [estado, setEstado] = useState(clienteToEdit?.endereco?.estado || '');
   const [pais, setPais] = useState(clienteToEdit?.endereco?.pais || 'Brasil');
   const [isBuscandoCep, setIsBuscandoCep] = useState(false);
+  const [isConsultandoCnpj, setIsConsultandoCnpj] = useState(false);
 
   // Contatos
   const contatoPrincipal = clienteToEdit?.contatos?.find(c => c.principal) || clienteToEdit?.contatos?.[0];
@@ -381,7 +382,87 @@ export function NovoClienteSheet({
     }
   };
 
+  // Consulta Inteligente de CNPJ na base da Receita Federal com Multi-provedor e Fallback
+  const handleConsultarCnpj = async (cnpjParam?: string) => {
+    const inputEl = document.getElementById('doc') as HTMLInputElement | null;
+    const currentVal = (typeof cnpjParam === 'string' ? cnpjParam : (inputEl?.value || documento || '')).trim();
+    let cleanCnpj = currentVal.replace(/\D/g, '');
+    if (cleanCnpj.length === 13) {
+      cleanCnpj = '0' + cleanCnpj;
+    }
 
+    if (cleanCnpj.length !== 14) {
+      toast.error('Informe um CNPJ válido com 14 dígitos numéricos para consultar.');
+      return;
+    }
+
+    setDocumento(currentVal);
+    setIsConsultandoCnpj(true);
+    const toastId = toast.loading('Buscando dados da empresa na Receita Federal...');
+    try {
+      const data = await consultarCnpj(cleanCnpj);
+
+      // 1. Atualizar documento formatado e tipo de pessoa
+      const docFmt = data.cnpjFormatado || cleanCnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
+      setDocumento(docFmt);
+      if (inputEl) inputEl.value = docFmt;
+      setTipoPessoa('pj');
+
+      // 2. Razão Social e Nome Fantasia
+      if (data.razaoSocial) setRazaoSocial(data.razaoSocial);
+      if (data.nomeFantasia) {
+        setNomeFantasia(data.nomeFantasia);
+      } else if (data.razaoSocial) {
+        setNomeFantasia(data.razaoSocial);
+      }
+
+      // 3. Informações societárias e fiscais
+      if (data.dataAbertura) {
+        setDataFundacao(data.dataAbertura);
+      }
+      if (data.cnaeDescricao) {
+        setSegmento(data.cnaeDescricao);
+      }
+      if (data.porte) {
+        const porteUpper = String(data.porte).toUpperCase();
+        if (porteUpper.includes('MEI')) setPorte('MEI');
+        else if (porteUpper.includes('MICRO') || porteUpper === 'ME' || porteUpper.includes('01')) setPorte('Micro');
+        else if (porteUpper.includes('PEQUENO') || porteUpper.includes('EPP') || porteUpper.includes('03')) setPorte('Pequeno');
+        else if (porteUpper.includes('GRANDE') || porteUpper.includes('DEMAIS')) setPorte('Grande');
+        else setPorte('Médio');
+      }
+
+      // 4. Endereço completo
+      if (data.cep) {
+        setCep(data.cepFormatado || data.cep);
+        setLogradouro(data.logradouro || '');
+        setNumero(data.numero || '');
+        setComplemento(data.complemento || '');
+        setBairro(data.bairro || '');
+        setCidade(data.municipio || '');
+        setEstado(data.uf || '');
+        setPais(data.pais || 'Brasil');
+      }
+
+      // 5. Contatos principais
+      if (data.email && (!contatoEmail || contatoEmail.includes('exemplo'))) {
+        setContatoEmail(data.email);
+      }
+      if (data.telefone && !contatoTelefone) {
+        setContatoTelefone(data.telefone);
+      }
+      if (data.qsa && data.qsa.length > 0 && !contatoNome) {
+        setContatoNome(data.qsa[0].nome);
+      }
+
+      toast.success(`CNPJ localizado: ${data.razaoSocial}`, { id: toastId });
+    } catch (err: any) {
+      console.error('Erro na consulta CNPJ:', err);
+      toast.error(err.message || 'Não foi possível consultar o CNPJ automaticamente.', { id: toastId });
+    } finally {
+      setIsConsultandoCnpj(false);
+    }
+  };
 
   // Upload de Documentos com Salvamento Direto no DMS
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -502,16 +583,26 @@ export function NovoClienteSheet({
     setContratoMensalidade('');
   };
 
-  const handleSave = () => {
-    if (!documento || documento.trim() === '') {
+  const handleSave = async () => {
+    const docInputEl = document.getElementById('doc') as HTMLInputElement | null;
+    const razaoInputEl = document.getElementById('razao') as HTMLInputElement | null;
+    const fantasiaInputEl = document.getElementById('fantasia') as HTMLInputElement | null;
+
+    const docFinal = (docInputEl?.value || documento || '').trim();
+    const razaoFinalTyped = (razaoInputEl?.value || razaoSocial || '').trim();
+    const fantasiaFinalTyped = (fantasiaInputEl?.value || nomeFantasia || '').trim();
+
+    if (!docFinal) {
       toast.error(tipoPessoa === 'pj' ? "O CNPJ é obrigatório!" : "O CPF é obrigatório!");
       return;
     }
 
-    if (!razaoSocial && !nomeFantasia) {
-      toast.error("Informe a Razão Social ou Nome do Cliente.");
-      return;
-    }
+    const nomeFinal = fantasiaFinalTyped || razaoFinalTyped || `Cliente ${docFinal}`;
+    const razaoFinal = razaoFinalTyped || fantasiaFinalTyped || nomeFinal;
+
+    setDocumento(docFinal);
+    setRazaoSocial(razaoFinal);
+    setNomeFantasia(nomeFinal);
 
     // Validações da Recorrência se habilitada
     if (recorrenciaHabilitada) {
@@ -531,11 +622,7 @@ export function NovoClienteSheet({
     }
 
     const clienteId = clienteToEdit?.id || crypto.randomUUID();
-    const nomeFinal = (nomeFantasia.trim() || razaoSocial.trim() || 'Cliente Sem Nome');
-    const razaoFinal = (razaoSocial.trim() || nomeFantasia.trim() || 'Cliente Sem Nome');
-
-    const docInputEl = document.getElementById('doc') as HTMLInputElement | null;
-    const docFinal = (docInputEl?.value || documento || '').trim();
+    const cleanEmail = (contatoEmail || '').trim();
 
     const clienteData = {
       id: clienteId,
@@ -579,74 +666,81 @@ export function NovoClienteSheet({
       ]
     };
 
-    // 1. Salvar ou Atualizar Cliente
-    if (clienteToEdit) {
-      saveCliente({
-        ...clienteToEdit,
-        ...clienteData,
-      } as any);
-    } else {
-      const novoCliente: Cliente = {
-        ...clienteData,
-        dataCadastro: new Date().toISOString(),
-      } as any;
-      saveCliente(novoCliente as any);
-      
-      notificar({
-        titulo: `Novo Cliente Cadastrado (${novoCliente.nomeFantasia || novoCliente.razaoSocial})`,
-        descricao: `Cliente ${novoCliente.tipo} registrado na base com documento ${novoCliente.documento}.`,
-        origem: 'CRM',
-        tipo: 'Sucesso',
-        prioridade: 'Normal',
-        targetUrl: '/clientes'
-      });
-    }
-
-    // Auto-gerar/Garantir pasta no DMS
-    dmsService.ensureClientFolder({
-      id: clienteId,
-      nomeFantasia: nomeFinal,
-      razaoSocial: razaoFinal,
-    });
-
-    // 2. Salvar/Atualizar Recorrência e Sincronizar Títulos Financeiros
-    if (recorrenciaHabilitada) {
-      const recId = recorrenciaId || `rec_${crypto.randomUUID()}`;
-      const recExistente = recorrencias.find(r => r.id === recId || r.clientId === clienteId);
-      
-      const novaRecorrencia: RecorrenciaFinanceira = {
-        id: recExistente?.id || recId,
-        clientId: clienteId,
-        clienteNome: nomeFinal,
-        descricao: recorrenciaDescricao,
-        valor: parseFloat(recorrenciaValor) || 0,
-        frequencia: recorrenciaFrequencia,
-        dataInicio: recorrenciaDataInicio,
-        dataFim: recorrenciaDataFinal || undefined,
-        dataFinal: recorrenciaDataFinal || undefined,
-        proximaCobranca: recorrenciaDataInicio,
-        diaVencimento: parseInt(recorrenciaDiaVencimento) || 10,
-        quantidade: recorrenciaQuantidade ? parseInt(recorrenciaQuantidade) : undefined,
-        status: recorrenciaStatus,
-        observacoes: recorrenciaObservacoes,
-        criadoEm: recExistente?.criadoEm || new Date().toISOString(),
-        atualizadoEm: new Date().toISOString()
-      };
-
-      const novasRecorrencias = recExistente 
-        ? recorrencias.map(r => r.id === novaRecorrencia.id ? novaRecorrencia : r)
-        : [...recorrencias, novaRecorrencia];
-      
-      setAllRecorrencias(novasRecorrencias);
-
-      if (novaRecorrencia.status === 'Ativa') {
-        const novosTitulos = syncRecorrenciaTitulos(novaRecorrencia, titulos);
-        setAllTitulos(novosTitulos);
+    try {
+      // 1. Salvar ou Atualizar Cliente
+      if (clienteToEdit) {
+        await saveCliente({
+          ...clienteToEdit,
+          ...clienteData,
+        } as any);
+      } else {
+        const novoCliente: Cliente = {
+          ...clienteData,
+          dataCadastro: new Date().toISOString(),
+        } as any;
+        await saveCliente(novoCliente as any);
+        
+        notificar({
+          titulo: `Novo Cliente Cadastrado (${novoCliente.nomeFantasia || novoCliente.razaoSocial})`,
+          descricao: `Cliente ${novoCliente.tipo} registrado na base com documento ${novoCliente.documento}.`,
+          origem: 'CRM',
+          tipo: 'Sucesso',
+          prioridade: 'Normal',
+          targetUrl: '/clientes'
+        });
       }
-    }
 
-    toast.success(clienteToEdit ? "Cliente atualizado com sucesso!" : "Cliente cadastrado com sucesso!");
-    setOpen(false);
+      // Auto-gerar/Garantir pasta no DMS
+      try {
+        dmsService.ensureClientFolder({
+          id: clienteId,
+          nomeFantasia: nomeFinal,
+          razaoSocial: razaoFinal,
+        });
+      } catch {}
+
+      // 2. Salvar/Atualizar Recorrência e Sincronizar Títulos Financeiros
+      if (recorrenciaHabilitada) {
+        const recId = recorrenciaId || `rec_${crypto.randomUUID()}`;
+        const recExistente = recorrencias.find(r => r.id === recId || r.clientId === clienteId);
+        
+        const novaRecorrencia: RecorrenciaFinanceira = {
+          id: recExistente?.id || recId,
+          clientId: clienteId,
+          clienteNome: nomeFinal,
+          descricao: recorrenciaDescricao,
+          valor: parseFloat(recorrenciaValor) || 0,
+          frequencia: recorrenciaFrequencia,
+          dataInicio: recorrenciaDataInicio,
+          dataFim: recorrenciaDataFinal || undefined,
+          dataFinal: recorrenciaDataFinal || undefined,
+          proximaCobranca: recorrenciaDataInicio,
+          diaVencimento: parseInt(recorrenciaDiaVencimento) || 10,
+          quantidade: recorrenciaQuantidade ? parseInt(recorrenciaQuantidade) : undefined,
+          status: recorrenciaStatus,
+          observacoes: recorrenciaObservacoes,
+          criadoEm: recExistente?.criadoEm || new Date().toISOString(),
+          atualizadoEm: new Date().toISOString()
+        };
+
+        const novasRecorrencias = recExistente 
+          ? recorrencias.map(r => r.id === novaRecorrencia.id ? novaRecorrencia : r)
+          : [...recorrencias, novaRecorrencia];
+        
+        setAllRecorrencias(novasRecorrencias);
+
+        if (novaRecorrencia.status === 'Ativa') {
+          const novosTitulos = syncRecorrenciaTitulos(novaRecorrencia, titulos);
+          setAllTitulos(novosTitulos);
+        }
+      }
+
+      toast.success(clienteToEdit ? "Cliente atualizado com sucesso!" : "Cliente cadastrado com sucesso!");
+      setOpen(false);
+    } catch (err: any) {
+      console.error('Erro ao salvar cliente:', err);
+      toast.error(`Não foi possível salvar o cliente: ${err?.message || 'Erro desconhecido'}`);
+    }
   };
 
   // Contratos vinculados a este cliente
@@ -711,18 +805,39 @@ export function NovoClienteSheet({
 
               <div className="space-y-2">
                 <Label htmlFor="doc" className="font-semibold">{tipoPessoa === 'pj' ? 'CNPJ *' : 'CPF *'}</Label>
-                <Input 
-                  id="doc" 
-                  placeholder={tipoPessoa === 'pj' ? "00.000.000/0000-00" : "000.000.000-00"} 
-                  value={documento}
-                  onChange={e => setDocumento(e.target.value)}
-                  onInput={e => setDocumento((e.target as HTMLInputElement).value)}
-                  onBlur={e => {
-                    const v = (e.target as HTMLInputElement).value;
-                    if (v) setDocumento(v);
-                  }}
-                  className="font-mono"
-                />
+                <div className="flex gap-2">
+                  <Input 
+                    id="doc" 
+                    placeholder={tipoPessoa === 'pj' ? "00.000.000/0000-00" : "000.000.000-00"} 
+                    value={documento}
+                    onChange={e => setDocumento(e.target.value)}
+                    onInput={e => setDocumento((e.target as HTMLInputElement).value)}
+                    onBlur={e => {
+                      const v = (e.target as HTMLInputElement).value;
+                      if (v) setDocumento(v);
+                    }}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && tipoPessoa === 'pj') {
+                        e.preventDefault();
+                        handleConsultarCnpj();
+                      }
+                    }}
+                    className="font-mono"
+                  />
+                  {tipoPessoa === 'pj' && (
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm" 
+                      disabled={isConsultandoCnpj}
+                      onClick={() => handleConsultarCnpj()}
+                      className="text-xs gap-1 shrink-0 font-medium hover:bg-primary hover:text-primary-foreground transition-colors cursor-pointer"
+                    >
+                      <Search className="w-3.5 h-3.5" />
+                      {isConsultandoCnpj ? 'Buscando...' : 'Buscar'}
+                    </Button>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-2">

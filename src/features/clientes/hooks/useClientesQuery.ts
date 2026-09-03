@@ -70,7 +70,11 @@ export function useClientesQuery() {
   // Mutação para salvar/atualizar cliente
   const saveMutation = useMutation({
     mutationFn: (cliente: ClienteDTO) => clienteService.saveCliente(cliente),
-    onSuccess: () => {
+    onSuccess: (savedCliente) => {
+      queryClient.setQueryData<ClienteDTO[]>(['clientes'], (old = []) => {
+        const filtered = old.filter(c => c.id !== savedCliente.id);
+        return [savedCliente, ...filtered];
+      });
       queryClient.invalidateQueries({ queryKey: ['clientes'] });
       queryClient.invalidateQueries({ queryKey: ['contas-receber'] });
       queryClient.invalidateQueries({ queryKey: ['recorrencias'] });
