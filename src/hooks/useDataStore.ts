@@ -227,6 +227,8 @@ export function useLocalStorageState<T extends { id: string }>(
   const isColaboradores = table === 'focus_colaboradores' || table === 'colaboradores' || table === 'focus_rh_colaboradores';
 
   const isMountedRef = useRef(true);
+  const isFetchingRef = useRef(false);
+  const lastFetchTimeRef = useRef(0);
 
   // Determinar a tabela primária real no PostgreSQL do Supabase
   const primaryDbTable = isContasReceber
@@ -478,6 +480,11 @@ export function useLocalStorageState<T extends { id: string }>(
     }
 
     const fetchData = async () => {
+      if (isFetchingRef.current) return;
+      const now = Date.now();
+      if (now - lastFetchTimeRef.current < 2000) return;
+      isFetchingRef.current = true;
+      lastFetchTimeRef.current = now;
       try {
         if (isUsersTable) {
           const dbUsers = await userService.getUsers();
@@ -936,6 +943,7 @@ export function useLocalStorageState<T extends { id: string }>(
         if (!isMountedRef.current) return;
         setError(err?.message || 'Unknown fetch error');
       } finally {
+        isFetchingRef.current = false;
         if (isMountedRef.current) setLoading(false);
       }
     };
@@ -984,7 +992,8 @@ export function useLocalStorageState<T extends { id: string }>(
 
     const handleVisibilityOrFocus = () => {
       if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
-        fetchData();
+        const updated = readLocalCache(table, initialValue);
+        if (isMountedRef.current) setData(updated);
       }
     };
 

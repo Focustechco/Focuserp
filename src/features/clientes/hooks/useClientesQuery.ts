@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 export function useClientesQuery() {
   const queryClient = useQueryClient();
 
-  // Query para buscar lista de clientes com cache reativo e polling fallback
+  // Query para buscar lista de clientes com cache inteligente e sem loops
   const {
     data: clientes = [],
     isLoading,
@@ -22,58 +22,47 @@ export function useClientesQuery() {
   } = useQuery<ClienteDTO[]>({
     queryKey: ['clientes'],
     queryFn: () => clienteService.getClientes(),
-    staleTime: 0,
-    refetchOnWindowFocus: true,
+    staleTime: 1000 * 60 * 2, // 2 minutos de cache
+    refetchOnWindowFocus: false,
     refetchOnReconnect: true,
-    refetchInterval: 5000, // Sincronização periódica em background a cada 5s
   });
 
   // Inscrição Realtime no Supabase para sincronização instantânea Desktop <-> Mobile
   useEffect(() => {
+    let timeoutId: any = null;
+    const debouncedInvalidate = () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['clientes'] });
+      }, 500);
+    };
+
     const channelName = `rt_clientes_sync_${Math.random().toString(36).slice(2, 7)}`;
     const channel = supabase
       .channel(channelName)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'clientes' },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['clientes'] });
-        }
+        debouncedInvalidate
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'clients' },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['clientes'] });
-        }
+        debouncedInvalidate
       )
       .subscribe();
 
-    const handleSync = () => {
-      queryClient.invalidateQueries({ queryKey: ['clientes'] });
-    };
-
     if (typeof window !== 'undefined') {
-      window.addEventListener('focus', handleSync);
-      window.addEventListener('storage', handleSync);
-      window.addEventListener('focus_storage_update', handleSync);
-      window.addEventListener('focus_clients_updated', handleSync);
-      if (typeof document !== 'undefined') {
-        document.addEventListener('visibilitychange', () => {
-          if (document.visibilityState === 'visible') handleSync();
-        });
-      }
+      window.addEventListener('focus_clients_updated', debouncedInvalidate);
     }
 
     return () => {
+      if (timeoutId) clearTimeout(timeoutId);
       try {
         supabase.removeChannel(channel);
       } catch {}
       if (typeof window !== 'undefined') {
-        window.removeEventListener('focus', handleSync);
-        window.removeEventListener('storage', handleSync);
-        window.removeEventListener('focus_storage_update', handleSync);
-        window.removeEventListener('focus_clients_updated', handleSync);
+        window.removeEventListener('focus_clients_updated', debouncedInvalidate);
       }
     };
   }, [queryClient]);

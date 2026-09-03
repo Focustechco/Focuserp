@@ -25,7 +25,7 @@ import { RecorrenciaFinanceira, FrequenciaRecorrencia, StatusRecorrencia } from 
 import { calculateClienteFinanceiro, syncRecorrenciaTitulos } from '@/features/recorrencias/services/recorrenciaEngine';
 import { useNotificacoesStore } from '@/features/notificacoes/useNotificacoesStore';
 import { dmsService } from '@/services/dmsService';
-import { consultarCnpj, formatarCnpj, formatarCep, formatarTelefone } from '@/services/cnpjService';
+import { formatarCnpj, formatarCep, formatarTelefone } from '@/services/cnpjService';
 import { DocumentoDMS } from '@/features/documentos/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { getBrasiliaTodayIso, formatDateBrasilia } from '@/lib/dateUtils';
@@ -155,7 +155,6 @@ export function NovoClienteSheet({
   const [estado, setEstado] = useState(clienteToEdit?.endereco?.estado || '');
   const [pais, setPais] = useState(clienteToEdit?.endereco?.pais || 'Brasil');
   const [isBuscandoCep, setIsBuscandoCep] = useState(false);
-  const [isConsultandoCnpj, setIsConsultandoCnpj] = useState(false);
 
   // Contatos
   const contatoPrincipal = clienteToEdit?.contatos?.find(c => c.principal) || clienteToEdit?.contatos?.[0];
@@ -382,87 +381,7 @@ export function NovoClienteSheet({
     }
   };
 
-  // Consulta Inteligente de CNPJ na base da Receita Federal com Multi-provedor e Fallback
-  const handleConsultarCnpj = async () => {
-    const inputEl = document.getElementById('doc') as HTMLInputElement | null;
-    const currentVal = (inputEl?.value || documento || '').trim();
-    let cleanCnpj = currentVal.replace(/\D/g, '');
-    if (cleanCnpj.length === 13) {
-      cleanCnpj = '0' + cleanCnpj;
-    }
 
-    if (cleanCnpj.length !== 14) {
-      toast.error('Informe um CNPJ válido com 14 dígitos numéricos para consultar.');
-      return;
-    }
-
-    setDocumento(currentVal);
-    setIsConsultandoCnpj(true);
-    const toastId = toast.loading('Consultando CNPJ na Receita Federal...');
-    try {
-      const data = await consultarCnpj(cleanCnpj);
-
-      // 1. Atualizar documento e tipo de pessoa
-      const docFmt = data.cnpjFormatado || cleanCnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5');
-      setDocumento(docFmt);
-      if (inputEl) inputEl.value = docFmt;
-      setTipoPessoa('pj');
-
-      // 2. Razão Social e Nome Fantasia
-      if (data.razaoSocial) setRazaoSocial(data.razaoSocial);
-      if (data.nomeFantasia) {
-        setNomeFantasia(data.nomeFantasia);
-      } else if (data.razaoSocial) {
-        setNomeFantasia(data.razaoSocial);
-      }
-
-      // 3. Informações societárias e fiscais
-      if (data.dataAbertura) {
-        setDataFundacao(data.dataAbertura);
-      }
-      if (data.cnaeDescricao) {
-        setSegmento(data.cnaeDescricao);
-      }
-      if (data.porte) {
-        const porteUpper = String(data.porte).toUpperCase();
-        if (porteUpper.includes('MEI')) setPorte('MEI');
-        else if (porteUpper.includes('MICRO') || porteUpper === 'ME' || porteUpper.includes('01')) setPorte('Micro');
-        else if (porteUpper.includes('PEQUENO') || porteUpper.includes('EPP') || porteUpper.includes('03')) setPorte('Pequeno');
-        else if (porteUpper.includes('GRANDE') || porteUpper.includes('DEMAIS')) setPorte('Grande');
-        else setPorte('Médio');
-      }
-
-      // 4. Endereço completo
-      if (data.cep) {
-        setCep(data.cepFormatado || data.cep);
-        setLogradouro(data.logradouro || '');
-        setNumero(data.numero || '');
-        setComplemento(data.complemento || '');
-        setBairro(data.bairro || '');
-        setCidade(data.municipio || '');
-        setEstado(data.uf || '');
-        setPais(data.pais || 'Brasil');
-      }
-
-      // 5. Contatos principais
-      if (data.email && (!contatoEmail || contatoEmail.includes('exemplo'))) {
-        setContatoEmail(data.email);
-      }
-      if (data.telefone && !contatoTelefone) {
-        setContatoTelefone(data.telefone);
-      }
-      if (data.qsa && data.qsa.length > 0 && !contatoNome) {
-        setContatoNome(data.qsa[0].nome);
-      }
-
-      toast.success(`CNPJ localizado: ${data.razaoSocial}`, { id: toastId });
-    } catch (err: any) {
-      console.error('Erro na consulta CNPJ:', err);
-      toast.error(err.message || 'Não foi possível consultar o CNPJ automaticamente.', { id: toastId });
-    } finally {
-      setIsConsultandoCnpj(false);
-    }
-  };
 
   // Upload de Documentos com Salvamento Direto no DMS
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -615,7 +534,8 @@ export function NovoClienteSheet({
     const nomeFinal = (nomeFantasia.trim() || razaoSocial.trim() || 'Cliente Sem Nome');
     const razaoFinal = (razaoSocial.trim() || nomeFantasia.trim() || 'Cliente Sem Nome');
 
-    const cleanEmail = (contatoEmail || '').trim();
+    const docInputEl = document.getElementById('doc') as HTMLInputElement | null;
+    const docFinal = (docInputEl?.value || documento || '').trim();
 
     const clienteData = {
       id: clienteId,
@@ -623,7 +543,7 @@ export function NovoClienteSheet({
       tipo: tipoPessoa === 'pj' ? ('Pessoa Jurídica' as const) : ('Pessoa Física' as const),
       razaoSocial: razaoFinal,
       nomeFantasia: nomeFinal,
-      documento: documento.trim(),
+      documento: docFinal,
       inscricaoEstadual: ie.trim() || 'Isento',
       inscricaoMunicipal: im.trim() || undefined,
       dataFundacaoNascimento: dataFundacao || undefined,
@@ -791,39 +711,18 @@ export function NovoClienteSheet({
 
               <div className="space-y-2">
                 <Label htmlFor="doc" className="font-semibold">{tipoPessoa === 'pj' ? 'CNPJ *' : 'CPF *'}</Label>
-                <div className="flex gap-2">
-                  <Input 
-                    id="doc" 
-                    placeholder={tipoPessoa === 'pj' ? "00.000.000/0000-00" : "000.000.000-00"} 
-                    value={documento}
-                    onChange={e => setDocumento(e.target.value)}
-                    onInput={e => setDocumento((e.target as HTMLInputElement).value)}
-                    onBlur={e => {
-                      const v = (e.target as HTMLInputElement).value;
-                      if (v) setDocumento(v);
-                    }}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter' && tipoPessoa === 'pj') {
-                        e.preventDefault();
-                        handleConsultarCnpj();
-                      }
-                    }}
-                    className="font-mono"
-                  />
-                  {tipoPessoa === 'pj' && (
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      size="sm" 
-                      disabled={isConsultandoCnpj}
-                      onClick={handleConsultarCnpj}
-                      className="text-xs gap-1 shrink-0 font-medium hover:bg-primary hover:text-primary-foreground transition-colors cursor-pointer"
-                    >
-                      <Search className="w-3.5 h-3.5" />
-                      {isConsultandoCnpj ? 'Buscando...' : 'Buscar'}
-                    </Button>
-                  )}
-                </div>
+                <Input 
+                  id="doc" 
+                  placeholder={tipoPessoa === 'pj' ? "00.000.000/0000-00" : "000.000.000-00"} 
+                  value={documento}
+                  onChange={e => setDocumento(e.target.value)}
+                  onInput={e => setDocumento((e.target as HTMLInputElement).value)}
+                  onBlur={e => {
+                    const v = (e.target as HTMLInputElement).value;
+                    if (v) setDocumento(v);
+                  }}
+                  className="font-mono"
+                />
               </div>
 
               <div className="space-y-2">

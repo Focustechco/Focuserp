@@ -9,7 +9,6 @@ function broadcastUsersUpdate() {
   if (typeof window !== 'undefined') {
     try {
       window.dispatchEvent(new Event('focus_users_updated'));
-      window.dispatchEvent(new Event('storage'));
     } catch {}
   }
 }
@@ -372,15 +371,18 @@ export const userService = {
   subscribeUsers(onUpdate: (users: Usuario[]) => void) {
     if (typeof window === 'undefined') return () => {};
 
-    const handleLocalEvent = async () => {
-      try {
-        const users = await this.getUsers();
-        onUpdate(users);
-      } catch {}
+    let timeoutId: any = null;
+    const handleLocalEvent = () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(async () => {
+        try {
+          const users = await this.getUsers();
+          onUpdate(users);
+        } catch {}
+      }, 500);
     };
 
     window.addEventListener('focus_users_updated', handleLocalEvent);
-    window.addEventListener('storage', handleLocalEvent);
 
     // Canal Realtime do Supabase com identificador único por instância
     const uniqueChannelName = `focus_users_rt_${Math.random().toString(36).substring(2, 9)}`;
@@ -392,32 +394,16 @@ export const userService = {
         .on(
           'postgres_changes',
           { event: '*', schema: 'public', table: 'users' },
-          async () => {
-            try {
-              const fresh = await userService.getUsers();
-              onUpdate(fresh);
-            } catch {}
-          }
+          handleLocalEvent
         )
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: 'clients' },
-          async () => {
-            try {
-              const fresh = await userService.getUsers();
-              onUpdate(fresh);
-            } catch {}
-          }
-        );
-
-      channel.subscribe();
+        .subscribe();
     } catch (e) {
       console.warn('[userService.subscribeUsers] Erro ao criar canal realtime:', e);
     }
 
     return () => {
+      if (timeoutId) clearTimeout(timeoutId);
       window.removeEventListener('focus_users_updated', handleLocalEvent);
-      window.removeEventListener('storage', handleLocalEvent);
       if (channel) {
         try {
           supabase.removeChannel(channel);

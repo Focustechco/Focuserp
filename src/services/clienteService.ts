@@ -13,8 +13,7 @@ const DELETED_IDS_KEY = 'focus_app_deleted_client_ids';
 function triggerClientSync() {
   if (typeof window !== 'undefined') {
     try {
-      window.dispatchEvent(new Event('focus_storage_update'));
-      window.dispatchEvent(new Event('storage'));
+      window.dispatchEvent(new Event('focus_clients_updated'));
     } catch {}
   }
 }
@@ -104,7 +103,6 @@ function persistClientsToAllStores(clientes: ClienteDTO[]) {
   for (const key of LOCAL_STORAGE_KEYS) {
     safeSetItem(key, serialized);
   }
-  triggerClientSync();
 }
 
 /**
@@ -282,6 +280,7 @@ export const clienteService = {
     localMap.set(id, validatedWithId);
     const updatedList = Array.from(localMap.values());
     persistClientsToAllStores(updatedList);
+    triggerClientSync();
 
     // 2. Persistir no Supabase de forma resiliente nas tabelas clients e clientes
     try {
