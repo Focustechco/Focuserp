@@ -49,7 +49,7 @@ const formatCurrency = (value?: number | null) => {
 
 export function PagamentosFuturosTab() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [periodoFilter, setPeriodoFilter] = useState<'30dias' | '3meses' | '6meses' | '12meses' | 'todos'>('12meses');
+  const [periodoFilter, setPeriodoFilter] = useState<'30dias' | '3meses' | '6meses' | '12meses' | 'todos'>('30dias');
   const [origemFilter, setOrigemFilter] = useState<'todas' | 'Recorrência' | 'Parcelamento'>('todas');
   const [isEmitindo, setIsEmitindo] = useState<string | null>(null);
   const [itemParaExcluir, setItemParaExcluir] = useState<PagamentoFuturoItem | null>(null);
