@@ -351,6 +351,146 @@ function writeLocalCache<T>(table: string, items: T[]) {
   } catch {}
 }
 
+function toSnakeCasePayload(table: string, item: any): any {
+  const validId = toValidUuid(item.id);
+  const base: any = { id: validId, updated_at: new Date().toISOString() };
+
+  if (table.includes('equipamento')) {
+    return {
+      ...base,
+      codigo_patrimonial: item.codigoPatrimonial || item.codigo_patrimonial || `PAT-${validId.slice(0, 4).toUpperCase()}`,
+      categoria: item.categoria || 'Outros',
+      marca: item.marca || 'Genérico',
+      modelo: item.modelo || item.nome || 'Equipamento',
+      numero_serie: item.numeroSerie || item.numero_serie || null,
+      data_aquisicao: item.dataAquisicao || item.data_aquisicao || new Date().toISOString().split('T')[0],
+      valor_compra: Number(item.valorCompra ?? item.valor_compra ?? item.valor ?? 0) || 0,
+      garantia_meses: Number(item.garantiaMeses ?? item.garantia_meses ?? 12) || 12,
+      situacao: item.situacao || 'Disponível',
+      departamento: item.departamento || null,
+      colaborador_id: toNullableValidUuid(item.colaboradorId || item.colaborador_id),
+      colaborador_nome: item.colaboradorNome || item.colaborador_nome || null,
+      local_fisica: item.localFisica || item.local_fisica || 'Estoque Central',
+      notebook_specs: item.notebookSpecs || item.notebook_specs || {},
+      monitor_specs: item.monitorSpecs || item.monitor_specs || {},
+      timeline: Array.isArray(item.timeline) ? item.timeline : [],
+      observacoes: item.observacoes || null,
+    };
+  }
+
+  if (table.includes('estoque') || table.includes('almoxarifado')) {
+    return {
+      ...base,
+      codigo: item.codigo || `EST-${validId.slice(0, 4).toUpperCase()}`,
+      nome: item.nome || item.titulo || item.itemNome || 'Item de Estoque',
+      descricao: item.descricao || null,
+      categoria: item.categoria || 'Geral',
+      quantidade: Number(item.quantidade ?? 0) || 0,
+      quantidade_minima: Number(item.quantidadeMinima ?? item.quantidade_minima ?? 0) || 0,
+      valor_unitario: Number(item.valorUnitario ?? item.valor_unitario ?? 0) || 0,
+      estado_conservacao: item.estadoConservacao || item.estado_conservacao || 'Bom',
+      localizacao: item.localizacao || 'Almoxarifado Central',
+      status: item.status || 'Disponível',
+      responsavel_nome: item.responsavelNome || item.responsavel_nome || null,
+      observacoes: item.observacoes || null,
+    };
+  }
+
+  if (table.includes('centros_custo') || table.includes('centro_custos')) {
+    return {
+      ...base,
+      codigo: item.codigo || `CC-${validId.slice(0, 4).toUpperCase()}`,
+      nome: item.nome || 'Centro de Custo',
+      departamento: item.departamento || 'Geral',
+      responsavel_nome: item.responsavelNome || item.responsavel_nome || item.responsavel || null,
+      orcamento_mensal: Number(item.orcamentoMensal ?? item.orcamento_mensal ?? 0) || 0,
+      gasto_acumulado: Number(item.gastoAcumulado ?? item.gasto_acumulado ?? 0) || 0,
+      status: item.status || 'Ativo',
+      descricao: item.descricao || null,
+    };
+  }
+
+  if (table.includes('plano_contas') || table.includes('categorias')) {
+    return {
+      ...base,
+      codigo: item.codigo || `PC-${validId.slice(0, 4).toUpperCase()}`,
+      nome: item.nome || 'Categoria',
+      tipo: item.tipo || 'Despesa',
+      natureza: item.natureza || 'Operacional',
+      status: item.status || 'Ativo',
+      cor: item.cor || '#64748B',
+      descricao: item.descricao || null,
+    };
+  }
+
+  if (table.includes('produtos')) {
+    return {
+      ...base,
+      codigo: item.codigo || `PRD-${validId.slice(0, 4).toUpperCase()}`,
+      nome: item.nome || 'Produto Focus',
+      categoria: item.categoria || 'SaaS',
+      descricao_breve: item.descricaoBreve || item.descricao_breve || item.descricao || null,
+      status: item.status || 'Ativo',
+      versao_atual: item.versaoAtual || item.versao_atual || '1.0.0',
+      planos: Array.isArray(item.planos) ? item.planos : [],
+      roadmap: Array.isArray(item.roadmap) ? item.roadmap : [],
+      releases: Array.isArray(item.releases) ? item.releases : [],
+      funcionalidades: Array.isArray(item.funcionalidades) ? item.funcionalidades : [],
+    };
+  }
+
+  return { ...item, id: validId, updated_at: new Date().toISOString() };
+}
+
+function fromSnakeCaseRow(table: string, row: any): any {
+  if (!row) return row;
+  if (table.includes('equipamento')) {
+    return {
+      ...row,
+      id: String(row.id),
+      codigoPatrimonial: row.codigo_patrimonial || row.codigoPatrimonial,
+      valorCompra: Number(row.valor_compra ?? row.valorCompra ?? 0) || 0,
+      garantiaMeses: Number(row.garantia_meses ?? row.garantiaMeses ?? 12),
+      dataAquisicao: row.data_aquisicao || row.dataAquisicao,
+      localFisica: row.local_fisica || row.localFisica,
+      colaboradorNome: row.colaborador_nome || row.colaboradorNome,
+      colaboradorId: row.colaborador_id || row.colaboradorId,
+      notebookSpecs: row.notebook_specs || row.notebookSpecs,
+      monitorSpecs: row.monitor_specs || row.monitorSpecs,
+      timeline: Array.isArray(row.timeline) ? row.timeline : [],
+    };
+  }
+  if (table.includes('estoque') || table.includes('almoxarifado')) {
+    return {
+      ...row,
+      id: String(row.id),
+      quantidade: Number(row.quantidade ?? 0) || 0,
+      quantidadeMinima: Number(row.quantidade_minima ?? row.quantidadeMinima ?? 0) || 0,
+      valorUnitario: Number(row.valor_unitario ?? row.valorUnitario ?? 0) || 0,
+      estadoConservacao: row.estado_conservacao || row.estadoConservacao || 'Bom',
+      responsavelNome: row.responsavel_nome || row.responsavelNome,
+    };
+  }
+  if (table.includes('centros_custo') || table.includes('centro_custos')) {
+    return {
+      ...row,
+      id: String(row.id),
+      responsavelNome: row.responsavel_nome || row.responsavelNome,
+      orcamentoMensal: Number(row.orcamento_mensal ?? row.orcamentoMensal ?? 0) || 0,
+      gastoAcumulado: Number(row.gasto_acumulado ?? row.gastoAcumulado ?? 0) || 0,
+    };
+  }
+  if (table.includes('produtos')) {
+    return {
+      ...row,
+      id: String(row.id),
+      descricaoBreve: row.descricao_breve || row.descricaoBreve,
+      versaoAtual: row.versao_atual || row.versaoAtual,
+    };
+  }
+  return row;
+}
+
 /**
  * Hook de Persistência 100% Relacional com Isolamento Estrito de Tabelas no Supabase / PostgreSQL.
  * Sincronização em tempo real entre Desktop e Mobile (iOS/Android).
@@ -644,11 +784,7 @@ export function useLocalStorageState<T extends { id: string }>(
             await supabase.from('clientes').upsert(dedupedClientes, { onConflict: 'id' });
           }
         } else if (primaryDbTable) {
-          const payload = items.map((item: any) => ({
-            ...item,
-            id: toValidUuid(item.id),
-            updated_at: new Date().toISOString(),
-          }));
+          const payload = items.map((item: any) => toSnakeCasePayload(primaryDbTable, item));
           const deduped = deduplicateById(payload);
           if (deduped.length > 0) {
             await supabase.from(primaryDbTable).upsert(deduped, { onConflict: 'id' });
