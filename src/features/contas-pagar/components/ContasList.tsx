@@ -67,7 +67,7 @@ const renderStatusTag = (status: string) => {
   return (
     <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-medium bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/40">
       <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
-      Em Aberto
+      Aberto
     </span>
   );
 };
@@ -404,7 +404,7 @@ export function ContasList() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos os Status</SelectItem>
-                <SelectItem value="aberto">Em Aberto / Pendente</SelectItem>
+                <SelectItem value="aberto">Aberto / Pendente</SelectItem>
                 <SelectItem value="pago">Pago / Liquidado</SelectItem>
                 <SelectItem value="vencido">Vencido</SelectItem>
               </SelectContent>
