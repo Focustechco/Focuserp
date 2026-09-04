@@ -31,8 +31,8 @@ interface CatalogoProdutosProps {
 
 export function CatalogoProdutos({ produtos, onSelectProduto, onAddProduto, onUpdateProduto, onDeleteProduto }: CatalogoProdutosProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [categoriaFiltro, setCategoriaFiltro] = useState<string>('todas');
-  const [statusFiltro, setStatusFiltro] = useState<string>('todos');
+  const [categoriaFilter, setCategoriaFilter] = useState<string>('todos');
+  const [statusFilter, setStatusFilter] = useState<string>('todos');
   const [viewMode, setViewMode] = useState<'cards' | 'lista'>('cards');
   const [isNovoModalOpen, setIsNovoModalOpen] = useState(false);
   const [produtoEditando, setProdutoEditando] = useState<ProdutoFocus | null>(null);
