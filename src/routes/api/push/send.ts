@@ -13,8 +13,8 @@ const supabase = createClient(
 const PUSH_SUBS_UUID = '00000000-0000-4000-b000-000000000001';
 
 // VAPID Keys — generated for Focus ERP
-const VAPID_PUBLIC_KEY = 'BEweG7jjNfn6TCYk3V68sAjeXapH31Qlcy1DUhmzvB_TV5cUebOrWHlR7QI81BpNb6ivphx-z8pjb906bq1f8tA';
-const VAPID_PRIVATE_KEY = 'NThTl8fP9BAsO0WPvFPvHzAEan5aU2-QXqtqH6rN0bE';
+const VAPID_PUBLIC_KEY = 'BL5RHwVE0bhKAmQG_I4tXCXdAGBT_xCUNoN7jG-Y-fpmQKvnyP2Kko7ugl9gNZ8-yjahCSgeRHPkV9zHtBdqaLA';
+const VAPID_PRIVATE_KEY = 'BkZ2Ir4iKuJCCIk-AXiujBWX0dan9Eo9HfSPefFVfCU';
 
 webpush.setVapidDetails(
   'mailto:contato@focustecnologia.com.br',

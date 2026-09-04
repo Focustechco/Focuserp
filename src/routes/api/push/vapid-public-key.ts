@@ -2,7 +2,7 @@
 // Returns the VAPID public key for client-side push subscription setup
 import { createAPIFileRoute } from '@tanstack/react-start/api';
 
-const VAPID_PUBLIC_KEY = 'BEweG7jjNfn6TCYk3V68sAjeXapH31Qlcy1DUhmzvB_TV5cUebOrWHlR7QI81BpNb6ivphx-z8pjb906bq1f8tA';
+const VAPID_PUBLIC_KEY = 'BL5RHwVE0bhKAmQG_I4tXCXdAGBT_xCUNoN7jG-Y-fpmQKvnyP2Kko7ugl9gNZ8-yjahCSgeRHPkV9zHtBdqaLA';
 
 export const APIRoute = createAPIFileRoute('/api/push/vapid-public-key')({
   GET: async () => {
