@@ -295,6 +295,26 @@ export function getCandidateKeysForTable(table: string): string[] {
     ].forEach((k) => keys.add(k));
   }
 
+  if (table.includes('conta') && table.includes('bancari')) {
+    [
+      'focus_contas_bancarias',
+      'focus_app_focus_contas_bancarias',
+      'contas_bancarias',
+      'focus_app_contas_bancarias',
+    ].forEach((k) => keys.add(k));
+  }
+
+  if (table.includes('extrato')) {
+    [
+      'focus_extratos',
+      'focus_app_focus_extratos',
+      'extratos_bancarios',
+      'focus_extratos_bancarios',
+      'focus_app_extratos_bancarios',
+      'extratos',
+    ].forEach((k) => keys.add(k));
+  }
+
   return Array.from(keys);
 }
 
@@ -542,6 +562,39 @@ function toSnakeCasePayload(table: string, item: any): any {
     };
   }
 
+  if (table.includes('contas_bancarias') || table.includes('conta_bancaria')) {
+    return {
+      ...base,
+      nome_conta: item.titular || item.nomeConta || item.banco || 'Conta Bancária',
+      banco_nome: item.banco || item.bancoNome || 'Banco',
+      banco_codigo: item.bancoCodigo || item.digito || '000',
+      agencia: item.agencia || '',
+      conta_corrente: item.conta ? `${item.conta}${item.digito ? `-${item.digito}` : ''}` : (item.contaCorrente || ''),
+      tipo_conta: item.tipoConta || item.tipo_conta || 'Corrente',
+      titular: item.titular || '',
+      cnpj: item.cnpj || '',
+      chave_pix: item.chavePix || item.chave_pix || '',
+      saldo_inicial: Number(item.saldoInicial ?? item.saldo_inicial ?? 0) || 0,
+      saldo_atual: Number(item.saldoAtual ?? item.saldo_atual ?? 0) || 0,
+      status: item.status || 'Ativa',
+    };
+  }
+
+  if (table.includes('extratos_bancarios') || table.includes('extrato')) {
+    return {
+      ...base,
+      conta_bancaria_id: toNullableValidUuid(item.contaBancariaId || item.conta_bancaria_id),
+      data_movimentacao: item.data || item.dataMovimentacao || item.data_movimentacao || new Date().toISOString().split('T')[0],
+      descricao_banco: item.historico || item.descricaoBanco || item.descricao_banco || 'Movimentação Bancária',
+      documento_ref: item.documento || item.documentoRef || item.documento_ref || null,
+      tipo: item.tipo || 'Crédito',
+      valor: Number(item.valor ?? 0) || 0,
+      status_conciliacao: item.status || item.statusConciliacao || item.status_conciliacao || 'Não Conciliado',
+      conta_vinculada_id: toNullableValidUuid(item.lancamentoFinanceiroId || item.contaVinculadaId || item.conta_vinculada_id),
+      conta_vinculada_tipo: item.contaVinculadaTipo || item.conta_vinculada_tipo || null,
+    };
+  }
+
   return { ...item, id: validId, updated_at: new Date().toISOString() };
 }
 
@@ -678,6 +731,39 @@ function fromSnakeCaseRow(table: string, row: any): any {
       versaoAtual: row.versao_atual || row.versaoAtual,
     };
   }
+  if (table.includes('contas_bancarias') || table.includes('conta_bancaria')) {
+    const rawConta = row.conta_corrente || row.conta || '';
+    const parts = rawConta.includes('-') ? rawConta.split('-') : [rawConta, ''];
+    return {
+      ...row,
+      id: String(row.id),
+      banco: row.banco_nome || row.banco || 'Banco',
+      agencia: row.agencia || '',
+      conta: parts[0] || rawConta,
+      digito: parts[1] || row.banco_codigo || row.digito || '',
+      tipoConta: row.tipo_conta || row.tipoConta || 'Corrente',
+      titular: row.titular || row.nome_conta || '',
+      cnpj: row.cnpj || '',
+      chavePix: row.chave_pix || row.chavePix || '',
+      saldoInicial: Number(row.saldo_inicial ?? row.saldoInicial ?? 0) || 0,
+      saldoAtual: Number(row.saldo_atual ?? row.saldoAtual ?? 0) || 0,
+      status: row.status || 'Ativa',
+    };
+  }
+  if (table.includes('extratos_bancarios') || table.includes('extrato')) {
+    return {
+      ...row,
+      id: String(row.id),
+      contaBancariaId: row.conta_bancaria_id || row.contaBancariaId || '',
+      data: row.data_movimentacao || row.data || row.created_at || new Date().toISOString().split('T')[0],
+      historico: row.descricao_banco || row.historico || 'Movimentação Bancária',
+      documento: row.documento_ref || row.documento || '',
+      valor: Number(row.valor ?? 0) || 0,
+      tipo: row.tipo || 'Crédito',
+      status: row.status_conciliacao || row.status || 'Não Conciliado',
+      lancamentoFinanceiroId: row.conta_vinculada_id || row.lancamentoFinanceiroId || undefined,
+    };
+  }
   return row;
 }
 
@@ -761,6 +847,10 @@ export function useLocalStorageState<T extends { id: string }>(
     ? 'empresa_config'
     : table === 'focus_notificacoes' || table === 'notificacoes'
     ? 'notificacoes'
+    : table === 'focus_contas_bancarias' || table === 'contas_bancarias'
+    ? 'contas_bancarias'
+    : table === 'focus_extratos' || table === 'extratos_bancarios' || table === 'extratos'
+    ? 'extratos_bancarios'
     : null;
 
   // ---------------------------------------------------------------------------

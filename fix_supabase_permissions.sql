@@ -86,9 +86,18 @@ BEGIN
     IF EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'dms_documentos' AND column_name = 'tenant_id') THEN
         ALTER TABLE dms_documentos ALTER COLUMN tenant_id DROP NOT NULL;
     END IF;
+    IF EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'contas_bancarias' AND column_name = 'tenant_id') THEN
+        ALTER TABLE contas_bancarias ALTER COLUMN tenant_id DROP NOT NULL;
+    END IF;
+    IF EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'extratos_bancarios' AND column_name = 'tenant_id') THEN
+        ALTER TABLE extratos_bancarios ALTER COLUMN tenant_id DROP NOT NULL;
+    END IF;
+    IF EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'extratos_bancarios' AND column_name = 'conta_bancaria_id') THEN
+        ALTER TABLE extratos_bancarios ALTER COLUMN conta_bancaria_id DROP NOT NULL;
+    END IF;
 END $$;
 
--- 3. GARANTIR COLUNAS MODERNAS NA TABELA NOTIFICACOES
+-- 3. GARANTIR COLUNAS MODERNAS NAS TABELAS NOTIFICACOES E CONTAS BANCARIAS
 DO $$
 BEGIN
     IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'notificacoes') THEN
@@ -102,5 +111,11 @@ BEGIN
         ALTER TABLE notificacoes ADD COLUMN IF NOT EXISTS target_url TEXT;
         ALTER TABLE notificacoes ADD COLUMN IF NOT EXISTS entidade_id UUID;
         ALTER TABLE notificacoes ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
+    END IF;
+
+    IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'contas_bancarias') THEN
+        ALTER TABLE contas_bancarias ADD COLUMN IF NOT EXISTS titular VARCHAR(255);
+        ALTER TABLE contas_bancarias ADD COLUMN IF NOT EXISTS cnpj VARCHAR(50);
+        ALTER TABLE contas_bancarias ADD COLUMN IF NOT EXISTS chave_pix VARCHAR(255);
     END IF;
 END $$;
