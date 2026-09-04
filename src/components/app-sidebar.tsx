@@ -38,6 +38,7 @@ import {
   ShoppingBag,
   Target,
   Heart,
+  Megaphone,
   Code2,
   Headphones,
   KeyRound,
@@ -106,6 +107,7 @@ const groups = [
     items: [
       { title: "Comercial OS", url: "/comercial", icon: ShoppingBag },
       { title: "CRM Focus", url: "/crm", icon: Target },
+      { title: "Marketing", url: "/marketing", icon: Megaphone },
     ],
   },
   {

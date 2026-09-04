@@ -97,6 +97,7 @@ export function TopBar() {
     { title: "Contratos", category: "Módulo", url: "/contratos", icon: FileText },
     { title: "Projetos", category: "Módulo", url: "/projetos", icon: Briefcase },
     { title: "Central de Relatórios", category: "Módulo", url: "/relatorios", icon: BarChart3 },
+    { title: "Marketing & Growth", category: "Módulo", url: "/marketing", icon: Megaphone },
     { title: "Central de Documentos (DMS)", category: "Módulo", url: "/documentos", icon: FolderOpen },
     { title: "Hub de Integrações", category: "Módulo", url: "/integracoes", icon: Plug },
   ];
