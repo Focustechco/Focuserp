@@ -98,6 +98,7 @@ const groups = [
     label: "Pessoas e Cultura",
     items: [
       { title: "RH (Gestão)", url: "/rh", icon: Users },
+      { title: "Customer Service", url: "/customer-success", icon: Heart },
     ],
   },
   {
@@ -105,7 +106,6 @@ const groups = [
     items: [
       { title: "Comercial OS", url: "/comercial", icon: ShoppingBag },
       { title: "CRM Focus", url: "/crm", icon: Target },
-      { title: "Customer Service", url: "/customer-success", icon: Heart },
     ],
   },
   {
