@@ -7,7 +7,7 @@ import React, { useState, useEffect } from "react";
 import { 
   Search, Bell, Command, Moon, Sun, ArrowRight, LayoutDashboard, Wallet, 
   Users, FileText, Briefcase, BarChart3, FolderOpen, Plug, Plus, ChevronDown, 
-  TrendingUp, TrendingDown, Receipt, Target, User, Building2, Settings, Palette, LogOut 
+  TrendingUp, TrendingDown, Receipt, Target, User, Building2, Settings, Palette, LogOut, Megaphone 
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
