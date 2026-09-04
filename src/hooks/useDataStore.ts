@@ -355,6 +355,26 @@ function toSnakeCasePayload(table: string, item: any): any {
   const validId = toValidUuid(item.id);
   const base: any = { id: validId, updated_at: new Date().toISOString() };
 
+  if (table.includes('notificac')) {
+    return {
+      ...base,
+      titulo: item.titulo || 'Notificação',
+      mensagem: item.descricao || item.mensagem || '',
+      descricao: item.descricao || item.mensagem || '',
+      origem: item.origem || 'Sistema',
+      tipo: item.tipo || 'Informação',
+      prioridade: item.prioridade || 'Normal',
+      lida: Boolean(item.lida),
+      arquivada: Boolean(item.arquivada),
+      data_criacao: item.dataCriacao || item.data_criacao || new Date().toISOString(),
+      responsavel: item.responsavel || 'Sistema',
+      usuario_destino: item.usuarioDestino || item.usuario_destino || 'Você',
+      target_url: item.targetUrl || item.target_url || item.link_redirecionamento || '/',
+      link_redirecionamento: item.targetUrl || item.target_url || item.link_redirecionamento || '/',
+      entidade_id: toNullableValidUuid(item.entidadeId || item.entidade_id),
+    };
+  }
+
   if (table.includes('equipamento')) {
     return {
       ...base,
@@ -396,6 +416,34 @@ function toSnakeCasePayload(table: string, item: any): any {
     };
   }
 
+  if (table.includes('licenca') || table.includes('software')) {
+    return {
+      ...base,
+      software: item.software || item.nome || 'Software',
+      fabricante: item.fabricante || 'Fabricante',
+      tipo_licenca: item.tipoLicenca || item.tipo_licenca || item.plano || 'SaaS',
+      quantidade_total: Number(item.quantidadeTotal ?? item.quantidadeContratada ?? item.quantidade ?? 1) || 1,
+      quantidade_em_uso: Number(item.quantidadeEmUso ?? 0) || 0,
+      valor_unitario: Number(item.valorUnitario ?? item.valor ?? 0) || 0,
+      data_expiracao: item.dataExpiracao || item.dataRenovacao || null,
+      status: item.status || 'Ativa',
+    };
+  }
+
+  if (table.includes('patrimonio') || table.includes('ativo')) {
+    return {
+      ...base,
+      codigo_patrimonial: item.codigoPatrimonial || item.numeroPatrimonial || item.codigoInterno || `PAT-${validId.slice(0, 4).toUpperCase()}`,
+      nome: item.nome || item.descricao || 'Ativo Patrimonial',
+      categoria: item.categoria || 'Geral',
+      valor: Number(item.valor ?? item.valorAquisicao ?? item.valorCompra ?? 0) || 0,
+      data_aquisicao: item.dataAquisicao || new Date().toISOString().split('T')[0],
+      localizacao: item.localizacao || 'Sede Principal',
+      status: item.status || 'Ativo',
+      responsavel: item.responsavel || item.responsavelNome || null,
+    };
+  }
+
   if (table.includes('centros_custo') || table.includes('centro_custos')) {
     return {
       ...base,
@@ -423,6 +471,19 @@ function toSnakeCasePayload(table: string, item: any): any {
     };
   }
 
+  if (table.includes('cobrancas') || table.includes('cobranca')) {
+    return {
+      ...base,
+      cliente_id: toNullableValidUuid(item.clienteId),
+      cliente_nome: item.clienteNome || item.cliente || 'Cliente',
+      valor: Number(item.valor ?? item.valorTotal ?? 0) || 0,
+      status: item.status || 'Pendente',
+      data_vencimento: item.dataVencimento || item.vencimento || new Date().toISOString().split('T')[0],
+      forma_pagamento: item.formaPagamento || 'Boleto',
+      link_pagamento: item.linkPagamento || null,
+    };
+  }
+
   if (table.includes('produtos')) {
     return {
       ...base,
@@ -444,6 +505,26 @@ function toSnakeCasePayload(table: string, item: any): any {
 
 function fromSnakeCaseRow(table: string, row: any): any {
   if (!row) return row;
+
+  if (table.includes('notificac')) {
+    return {
+      ...row,
+      id: String(row.id),
+      titulo: row.titulo || 'Notificação',
+      descricao: row.descricao || row.mensagem || '',
+      origem: row.origem || 'Sistema',
+      tipo: row.tipo || 'Informação',
+      prioridade: row.prioridade || 'Normal',
+      lida: Boolean(row.lida),
+      arquivada: Boolean(row.arquivada),
+      dataCriacao: row.data_criacao || row.created_at || new Date().toISOString(),
+      responsavel: row.responsavel || 'Sistema',
+      usuarioDestino: row.usuario_destino || 'Você',
+      targetUrl: row.target_url || row.link_redirecionamento || '/',
+      entidadeId: row.entidade_id || undefined,
+    };
+  }
+
   if (table.includes('equipamento')) {
     return {
       ...row,
@@ -471,6 +552,28 @@ function fromSnakeCaseRow(table: string, row: any): any {
       responsavelNome: row.responsavel_nome || row.responsavelNome,
     };
   }
+  if (table.includes('licenca') || table.includes('software')) {
+    return {
+      ...row,
+      id: String(row.id),
+      software: row.software || row.nome || 'Software',
+      fabricante: row.fabricante || 'Fabricante',
+      tipoLicenca: row.tipo_licenca || row.plano || 'SaaS',
+      quantidadeTotal: Number(row.quantidade_total ?? 1) || 1,
+      quantidadeEmUso: Number(row.quantidade_em_uso ?? 0) || 0,
+      valorUnitario: Number(row.valor_unitario ?? 0) || 0,
+      dataExpiracao: row.data_expiracao,
+    };
+  }
+  if (table.includes('patrimonio') || table.includes('ativo')) {
+    return {
+      ...row,
+      id: String(row.id),
+      codigoPatrimonial: row.codigo_patrimonial || row.numeroPatrimonial,
+      valor: Number(row.valor ?? 0) || 0,
+      dataAquisicao: row.data_aquisicao,
+    };
+  }
   if (table.includes('centros_custo') || table.includes('centro_custos')) {
     return {
       ...row,
@@ -478,6 +581,18 @@ function fromSnakeCaseRow(table: string, row: any): any {
       responsavelNome: row.responsavel_nome || row.responsavelNome,
       orcamentoMensal: Number(row.orcamento_mensal ?? row.orcamentoMensal ?? 0) || 0,
       gastoAcumulado: Number(row.gasto_acumulado ?? row.gastoAcumulado ?? 0) || 0,
+    };
+  }
+  if (table.includes('cobrancas') || table.includes('cobranca')) {
+    return {
+      ...row,
+      id: String(row.id),
+      clienteNome: row.cliente_nome || row.cliente,
+      clienteId: row.cliente_id,
+      valor: Number(row.valor ?? 0) || 0,
+      dataVencimento: row.data_vencimento,
+      formaPagamento: row.forma_pagamento,
+      linkPagamento: row.link_pagamento,
     };
   }
   if (table.includes('produtos')) {
@@ -787,7 +902,18 @@ export function useLocalStorageState<T extends { id: string }>(
           const payload = items.map((item: any) => toSnakeCasePayload(primaryDbTable, item));
           const deduped = deduplicateById(payload);
           if (deduped.length > 0) {
-            await supabase.from(primaryDbTable).upsert(deduped, { onConflict: 'id' });
+            const { error: upsertErr } = await supabase.from(primaryDbTable).upsert(deduped, { onConflict: 'id' });
+            if (upsertErr && primaryDbTable === 'notificacoes') {
+              const minimalPayload = deduped.map((n: any) => ({
+                id: n.id,
+                titulo: n.titulo,
+                mensagem: n.mensagem || n.descricao || '',
+                tipo: n.tipo || 'info',
+                lida: Boolean(n.lida),
+                link_redirecionamento: n.link_redirecionamento || n.target_url || '/',
+              }));
+              await supabase.from('notificacoes').upsert(minimalPayload, { onConflict: 'id' });
+            }
           }
         }
       } catch (err: any) {
@@ -1288,7 +1414,7 @@ export function useLocalStorageState<T extends { id: string }>(
           if (!isMountedRef.current) return;
 
           if (!dbErr && Array.isArray(dbRows) && dbRows.length > 0) {
-            const mapped = dbRows as unknown as T[];
+            const mapped = dbRows.map((r: any) => fromSnakeCaseRow(primaryDbTable, r)) as unknown as T[];
             localCached.forEach((lc: any) => {
               if (lc && lc.id && !mapped.some((m: any) => m.id === lc.id)) {
                 mapped.push(lc);

@@ -71,4 +71,30 @@ BEGIN
     IF EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'cobrancas' AND column_name = 'tenant_id') THEN
         ALTER TABLE cobrancas ALTER COLUMN tenant_id DROP NOT NULL;
     END IF;
+    IF EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'notificacoes' AND column_name = 'tenant_id') THEN
+        ALTER TABLE notificacoes ALTER COLUMN tenant_id DROP NOT NULL;
+    END IF;
+    IF EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'notificacoes' AND column_name = 'user_id') THEN
+        ALTER TABLE notificacoes ALTER COLUMN user_id DROP NOT NULL;
+    END IF;
+    IF EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'notificacoes' AND column_name = 'mensagem') THEN
+        ALTER TABLE notificacoes ALTER COLUMN mensagem DROP NOT NULL;
+    END IF;
+END $$;
+
+-- 3. GARANTIR COLUNAS MODERNAS NA TABELA NOTIFICACOES
+DO $$
+BEGIN
+    IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'notificacoes') THEN
+        ALTER TABLE notificacoes ADD COLUMN IF NOT EXISTS descricao TEXT;
+        ALTER TABLE notificacoes ADD COLUMN IF NOT EXISTS origem VARCHAR(100) DEFAULT 'Sistema';
+        ALTER TABLE notificacoes ADD COLUMN IF NOT EXISTS prioridade VARCHAR(50) DEFAULT 'Normal';
+        ALTER TABLE notificacoes ADD COLUMN IF NOT EXISTS arquivada BOOLEAN DEFAULT false;
+        ALTER TABLE notificacoes ADD COLUMN IF NOT EXISTS data_criacao TIMESTAMPTZ DEFAULT now();
+        ALTER TABLE notificacoes ADD COLUMN IF NOT EXISTS responsavel VARCHAR(255);
+        ALTER TABLE notificacoes ADD COLUMN IF NOT EXISTS usuario_destino VARCHAR(255);
+        ALTER TABLE notificacoes ADD COLUMN IF NOT EXISTS target_url TEXT;
+        ALTER TABLE notificacoes ADD COLUMN IF NOT EXISTS entidade_id UUID;
+        ALTER TABLE notificacoes ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
+    END IF;
 END $$;

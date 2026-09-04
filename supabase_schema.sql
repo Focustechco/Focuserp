@@ -745,11 +745,21 @@ CREATE TABLE IF NOT EXISTS notificacoes (
     tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     titulo VARCHAR(255) NOT NULL,
-    mensagem TEXT NOT NULL,
+    mensagem TEXT,
+    descricao TEXT,
+    origem VARCHAR(100) DEFAULT 'Sistema',
     tipo VARCHAR(50) DEFAULT 'info',
+    prioridade VARCHAR(50) DEFAULT 'Normal',
     lida BOOLEAN NOT NULL DEFAULT false,
+    arquivada BOOLEAN DEFAULT false,
+    data_criacao TIMESTAMPTZ DEFAULT now(),
+    responsavel VARCHAR(255),
+    usuario_destino VARCHAR(255),
+    target_url TEXT,
     link_redirecionamento TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    entidade_id UUID,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE IF NOT EXISTS audit_logs (
