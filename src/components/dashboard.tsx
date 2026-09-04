@@ -73,6 +73,113 @@ const getMesAno = (dtStr?: string | null): string => {
   }
 };
 
+const normalizeExpenseCategory = (rawCat?: string, desc?: string): string => {
+  const catStr = (rawCat || '').trim();
+  const descStr = (desc || '').trim().toLowerCase();
+  const lower = catStr.toLowerCase();
+
+  // 1. Licenças de Software & SaaS
+  if (
+    lower.includes('licen') ||
+    lower.includes('software') ||
+    lower.includes('saas') ||
+    descStr.includes('chatgpt') ||
+    descStr.includes('claude') ||
+    descStr.includes('google workspace') ||
+    descStr.includes('canva') ||
+    descStr.includes('vercel')
+  ) {
+    return 'Licenças de Software & SaaS';
+  }
+
+  // 2. Infraestrutura & Nuvem
+  if (
+    lower.includes('infra') ||
+    lower.includes('cloud') ||
+    lower.includes('hospedagem') ||
+    lower.includes('coworking') ||
+    lower.includes('aluguel') ||
+    lower.includes('sede')
+  ) {
+    return 'Infraestrutura';
+  }
+
+  // 3. Manutenção de Equipamentos & TI
+  if (
+    lower.includes('manuten') ||
+    lower.includes('hardware') ||
+    lower.includes('equipamento') ||
+    lower.includes('notebook')
+  ) {
+    return 'Manutenção de Equipamentos & TI';
+  }
+
+  // 4. Serviços Terceiros & Consultoria
+  if (
+    lower.includes('serviço') ||
+    lower.includes('servico') ||
+    lower.includes('terceiro') ||
+    lower.includes('consultoria') ||
+    lower.includes('contabil') ||
+    lower.includes('assessoria') ||
+    lower.includes('jurídic') ||
+    lower.includes('juridic')
+  ) {
+    return 'Serviços Terceiros & Consultoria';
+  }
+
+  // 5. Impostos & Tributos
+  if (
+    lower.includes('imposto') ||
+    lower.includes('tribut') ||
+    lower.includes('das') ||
+    lower.includes('iss') ||
+    lower.includes('darf') ||
+    lower.includes('pis') ||
+    lower.includes('cofins')
+  ) {
+    return 'Impostos & Tributos';
+  }
+
+  // 6. Marketing & Vendas
+  if (
+    lower.includes('market') ||
+    lower.includes('venda') ||
+    lower.includes('ads') ||
+    lower.includes('comissão') ||
+    lower.includes('comissao')
+  ) {
+    return 'Marketing & Vendas';
+  }
+
+  // 7. Folha de Pagamento & Benefícios
+  if (
+    lower.includes('folha') ||
+    lower.includes('salário') ||
+    lower.includes('salario') ||
+    lower.includes('benefício') ||
+    lower.includes('beneficio') ||
+    lower.includes('pró-labore') ||
+    lower.includes('pro-labore') ||
+    lower.includes('rh')
+  ) {
+    return 'Folha de Pagamento & Benefícios';
+  }
+
+  // 8. Operacional & Escritório
+  if (
+    lower.includes('operacion') ||
+    lower.includes('escritório') ||
+    lower.includes('escritorio') ||
+    lower.includes('estoque') ||
+    lower.includes('insumo')
+  ) {
+    return 'Operacional & Escritório';
+  }
+
+  return catStr || 'Operacional & Escritório';
+};
+
 interface MetricCardProps {
   title: string;
   value: string;
@@ -375,14 +482,16 @@ export function Dashboard() {
     ? Object.entries(catMapReceita).map(([name, value]) => ({ name, value }))
     : [{ name: "Sem receitas", value: 0 }];
 
-  // Agrupamento por Categoria para Despesas
+  // Agrupamento estrito por Categoria para Despesas (Plano de Contas)
   const catMapDespesa: Record<string, number> = {};
   listContasPagar.forEach((c) => {
-    const cat = c.categoria || "Operacional";
+    const cat = normalizeExpenseCategory(c.categoria || (c as any).categoriaId, c.descricao);
     catMapDespesa[cat] = (catMapDespesa[cat] || 0) + (Number(c.valorOriginal) || 0);
   });
-  const expensesByCenter = Object.keys(catMapDespesa).length > 0
-    ? Object.entries(catMapDespesa).map(([name, value]) => ({ name, value }))
+  const expensesByCategory = Object.keys(catMapDespesa).length > 0
+    ? Object.entries(catMapDespesa)
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => b.value - a.value)
     : [{ name: "Sem despesas", value: 0 }];
 
   return (
@@ -591,7 +700,7 @@ export function Dashboard() {
           </CardHeader>
           <CardContent className="h-[250px] pl-0 pt-2">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={expensesByCenter} margin={{ top: 10, right: 15, left: 10, bottom: 5 }}>
+              <BarChart data={expensesByCategory} margin={{ top: 10, right: 15, left: 10, bottom: 5 }}>
                 <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--color-border)" opacity={0.5} />
                 <XAxis dataKey="name" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} dy={5} />
                 <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: "var(--color-muted-foreground)" }} tickFormatter={(v) => `R$${v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v}`} dx={-5} />

@@ -540,7 +540,7 @@ export function useEstoquePatrimonio() {
         descricao: `Assinatura de Software/Licença: ${params.licenca.nome} (${params.licenca.plano})`,
         valor: params.licenca.valor,
         vencimento: params.vencimentoFinanceiro || params.licenca.vencimento,
-        categoria: params.categoria || 'Licenciamento de Software',
+        categoria: params.categoria || 'Licenças de Software & SaaS',
         centroCustoNome: params.licenca.centroCustoNome || 'Operacional & Tecnologia',
         centroCustoId: params.licenca.centroCustoId,
       });
