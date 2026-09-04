@@ -88,6 +88,7 @@ const groups = [
     label: "Tecnologia",
     items: [
       { title: "Projetos", url: "/projetos", icon: Briefcase },
+      { title: "Agenda de Entregas", url: "/agenda-de-entregas", icon: CalendarDays },
       { title: "Desenvolvimento", url: "/desenvolvimento", icon: Code2 },
       { title: "Suporte (Central)", url: "/suporte", icon: Headphones },
       { title: "Produtos Focus", url: "/produtos", icon: Boxes },

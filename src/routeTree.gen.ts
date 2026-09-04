@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AgendaRouteImport } from './routes/agenda'
+import { Route as AgendaDeEntregasRouteImport } from './routes/agenda-de-entregas'
 import { Route as AssinaturasRouteImport } from './routes/assinaturas'
 import { Route as CategoriasRouteImport } from './routes/categorias'
 import { Route as CentroDeCustosRouteImport } from './routes/centro-de-custos'
@@ -59,6 +60,11 @@ const IndexRoute = IndexRouteImport.update({
 const AgendaRoute = AgendaRouteImport.update({
   id: '/agenda',
   path: '/agenda',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AgendaDeEntregasRoute = AgendaDeEntregasRouteImport.update({
+  id: '/agenda-de-entregas',
+  path: '/agenda-de-entregas',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AssinaturasRoute = AssinaturasRouteImport.update({
@@ -260,6 +266,7 @@ const ProjetosProjetoIdRoute = ProjetosProjetoIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/agenda': typeof AgendaRoute
+  '/agenda-de-entregas': typeof AgendaDeEntregasRoute
   '/assinaturas': typeof AssinaturasRoute
   '/categorias': typeof CategoriasRoute
   '/centro-de-custos': typeof CentroDeCustosRoute
@@ -303,6 +310,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/agenda': typeof AgendaRoute
+  '/agenda-de-entregas': typeof AgendaDeEntregasRoute
   '/assinaturas': typeof AssinaturasRoute
   '/categorias': typeof CategoriasRoute
   '/centro-de-custos': typeof CentroDeCustosRoute
@@ -347,6 +355,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/agenda': typeof AgendaRoute
+  '/agenda-de-entregas': typeof AgendaDeEntregasRoute
   '/assinaturas': typeof AssinaturasRoute
   '/categorias': typeof CategoriasRoute
   '/centro-de-custos': typeof CentroDeCustosRoute
@@ -392,6 +401,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/agenda'
+    | '/agenda-de-entregas'
     | '/assinaturas'
     | '/categorias'
     | '/centro-de-custos'
@@ -435,6 +445,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/agenda'
+    | '/agenda-de-entregas'
     | '/assinaturas'
     | '/categorias'
     | '/centro-de-custos'
@@ -478,6 +489,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/agenda'
+    | '/agenda-de-entregas'
     | '/assinaturas'
     | '/categorias'
     | '/centro-de-custos'
@@ -522,6 +534,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AgendaRoute: typeof AgendaRoute
+  AgendaDeEntregasRoute: typeof AgendaDeEntregasRoute
   AssinaturasRoute: typeof AssinaturasRoute
   CategoriasRoute: typeof CategoriasRoute
   CentroDeCustosRoute: typeof CentroDeCustosRoute
@@ -574,6 +587,13 @@ declare module '@tanstack/react-router' {
       path: '/agenda'
       fullPath: '/agenda'
       preLoaderRoute: typeof AgendaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/agenda-de-entregas': {
+      id: '/agenda-de-entregas'
+      path: '/agenda-de-entregas'
+      fullPath: '/agenda-de-entregas'
+      preLoaderRoute: typeof AgendaDeEntregasRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/assinaturas': {
@@ -890,6 +910,7 @@ const ProjetosRouteWithChildren = ProjetosRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AgendaRoute: AgendaRoute,
+  AgendaDeEntregasRoute: AgendaDeEntregasRoute,
   AssinaturasRoute: AssinaturasRoute,
   CategoriasRoute: CategoriasRoute,
   CentroDeCustosRoute: CentroDeCustosRoute,
