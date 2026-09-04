@@ -390,9 +390,47 @@ export function useLocalStorageState<T extends { id: string }>(
     : isColaboradores
     ? 'colaboradores'
     : isClientsTable
-    ? 'clients'
+    ? 'clientes'
     : isUsersTable
     ? 'users'
+    : table === 'focus_cobrancas' || table === 'cobrancas'
+    ? 'cobrancas'
+    : table === 'focus_centro_custos' || table === 'centros_custo' || table === 'centro_custos'
+    ? 'centros_custo'
+    : table === 'focus_plano_contas' || table === 'plano_contas' || table === 'categorias'
+    ? 'plano_contas'
+    : table.includes('equipamento')
+    ? 'equipamentos'
+    : table.includes('estoque') || table.includes('almoxarifado')
+    ? 'estoque_itens'
+    : table.includes('licenca') || table.includes('software')
+    ? 'licencas_software'
+    : table.includes('patrimonio') || table.includes('ativo')
+    ? 'patrimonios'
+    : table.includes('movimentac')
+    ? 'movimentacoes_patrimonio'
+    : table.includes('manutenc')
+    ? 'manutencoes'
+    : table.includes('inventario')
+    ? 'inventarios'
+    : table === 'focus_produtos' || table === 'produtos_focus' || table === 'produtos'
+    ? 'produtos_focus'
+    : table === 'focus_agenda_entregas' || table === 'agenda_entregas'
+    ? 'agenda_entregas'
+    : table === 'focus_crm_leads' || table === 'crm_leads'
+    ? 'crm_leads'
+    : table === 'focus_marketing_campanhas' || table === 'marketing_campanhas'
+    ? 'marketing_campanhas'
+    : table === 'focus_dms_documentos' || table === 'dms_documentos'
+    ? 'dms_documentos'
+    : table === 'focus_dms_pastas' || table === 'dms_pastas'
+    ? 'dms_pastas'
+    : table === 'focus_assinaturas' || table === 'assinaturas_digitais'
+    ? 'assinaturas_digitais'
+    : table === 'focus_empresa_config' || table === 'empresa_config'
+    ? 'empresa_config'
+    : table === 'focus_notificacoes' || table === 'notificacoes'
+    ? 'notificacoes'
     : null;
 
   // ---------------------------------------------------------------------------
@@ -605,12 +643,22 @@ export function useLocalStorageState<T extends { id: string }>(
           if (dedupedClientes.length > 0) {
             await supabase.from('clientes').upsert(dedupedClientes, { onConflict: 'id' });
           }
+        } else if (primaryDbTable) {
+          const payload = items.map((item: any) => ({
+            ...item,
+            id: toValidUuid(item.id),
+            updated_at: new Date().toISOString(),
+          }));
+          const deduped = deduplicateById(payload);
+          if (deduped.length > 0) {
+            await supabase.from(primaryDbTable).upsert(deduped, { onConflict: 'id' });
+          }
         }
       } catch (err: any) {
         console.warn(`[Supabase] Erro ao sincronizar '${table}' com o banco de dados:`, err?.message);
       }
     },
-    [isClientsTable, isColaboradores, isContasPagar, isContasReceber, isContratos, isFornecedores, isProjetos, isUsersTable, table]
+    [isClientsTable, isColaboradores, isContasPagar, isContasReceber, isContratos, isFornecedores, isProjetos, isUsersTable, primaryDbTable, table]
   );
 
   // ---------------------------------------------------------------------------
@@ -1088,6 +1136,28 @@ export function useLocalStorageState<T extends { id: string }>(
                 };
               }) as T[];
 
+            setData(mapped);
+            writeLocalCache(table, mapped);
+            setError(null);
+            return;
+          }
+        }
+
+        if (primaryDbTable && !isContasReceber && !isContasPagar && !isContratos && !isProjetos && !isFornecedores && !isColaboradores && !isClientsTable && !isUsersTable) {
+          const { data: dbRows, error: dbErr } = await supabase
+            .from(primaryDbTable)
+            .select('*')
+            .order('created_at', { ascending: false });
+
+          if (!isMountedRef.current) return;
+
+          if (!dbErr && Array.isArray(dbRows) && dbRows.length > 0) {
+            const mapped = dbRows as unknown as T[];
+            localCached.forEach((lc: any) => {
+              if (lc && lc.id && !mapped.some((m: any) => m.id === lc.id)) {
+                mapped.push(lc);
+              }
+            });
             setData(mapped);
             writeLocalCache(table, mapped);
             setError(null);
