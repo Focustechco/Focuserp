@@ -8,3 +8,5 @@ export * from './colaboradorService';
 export * from './fornecedorService';
 export * from './cobrancaService';
 export * from './auditLogService';
+export * from './empresaService';
+export * from './cnpjService';

@@ -7,7 +7,7 @@ import React, { useState, useEffect } from "react";
 import { 
   Search, Bell, Command, Moon, Sun, ArrowRight, LayoutDashboard, Wallet, 
   Users, FileText, Briefcase, BarChart3, FolderOpen, Plug, Plus, ChevronDown, 
-  TrendingUp, TrendingDown, Receipt, Target, User 
+  TrendingUp, TrendingDown, Receipt, Target, User, Building2, Settings, Palette, LogOut 
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,8 @@ import { Contrato } from "@/features/contratos/types";
 import { NotificationBellDropdown } from "@/features/notificacoes/components/NotificationBellDropdown";
 import { useAuth } from "@/features/auth/AuthContext";
 import { UserProfileModal } from "@/components/UserProfileModal";
+import { EmpresaProfileModal } from "@/components/EmpresaProfileModal";
+import { useEmpresaConfig } from "@/features/configuracoes/hooks/useEmpresaConfig";
 
 // Importação dos Formulários Oficiais dos Módulos
 import { NovoRecebimentoSheet } from "@/features/contas-receber/components/NovoRecebimentoSheet";
@@ -53,9 +55,11 @@ export function TopBar() {
   const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const { currentUser, isSuperAdmin } = useAuth();
+  const { empresa } = useEmpresaConfig();
 
   const [openSearchModal, setOpenSearchModal] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [empresaModalOpen, setEmpresaModalOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [isIOS, setIsIOS] = useState(false);
 
@@ -253,22 +257,122 @@ export function TopBar() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* PERFIL / AVATAR DO USUÁRIO SINCRONIZADO COM O BANCO DE DADOS */}
-          <div 
-            onClick={() => setProfileModalOpen(true)}
-            className="cursor-pointer flex items-center shrink-0"
-            title="Ver e editar meu perfil corporativo"
-          >
-            <Avatar className="h-8 w-8 border border-primary/20 hover:ring-2 hover:ring-primary/40 transition-all overflow-hidden">
-              <AvatarImage src={currentUser?.foto} className="object-cover w-full h-full" />
-              <AvatarFallback className="text-xs font-bold bg-orange-500/10 text-orange-600">
-                {getInitials(currentUser?.nome || 'AD')}
-              </AvatarFallback>
-            </Avatar>
-          </div>
+          {/* PERFIL DA EMPRESA NA NAVBAR */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <div 
+                className="cursor-pointer flex items-center shrink-0 group select-none"
+                title="Perfil & Dados Institucionais da Empresa"
+              >
+                <Avatar className="h-8 w-8 border-2 border-orange-500/30 group-hover:border-orange-500/80 group-hover:ring-2 group-hover:ring-orange-500/20 transition-all overflow-hidden bg-card">
+                  <AvatarImage src={empresa?.logoUrl} className="object-contain p-0.5 w-full h-full" />
+                  <AvatarFallback className="text-[11px] font-black bg-orange-500/10 text-orange-600 dark:text-orange-400">
+                    {(empresa?.nomeFantasia || 'Focus').substring(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-64 p-1.5 shadow-xl border rounded-xl animate-in fade-in-50 zoom-in-95">
+              <div className="p-2.5 bg-muted/40 rounded-lg mb-1 flex items-center gap-3">
+                <Avatar className="h-10 w-10 border border-border bg-card shrink-0">
+                  <AvatarImage src={empresa?.logoUrl} className="object-contain p-0.5" />
+                  <AvatarFallback className="text-xs font-bold bg-orange-500/10 text-orange-600">
+                    {(empresa?.nomeFantasia || 'Focus').substring(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-bold text-xs text-foreground truncate block">
+                      {empresa?.nomeFantasia || 'Focus Tecnologia'}
+                    </span>
+                    <Badge variant="outline" className="text-[9px] py-0 px-1 border-orange-500/30 text-orange-600 font-semibold shrink-0">
+                      Matriz
+                    </Badge>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground truncate block font-mono">
+                    {empresa?.cnpj || '48.912.345/0001-89'}
+                  </span>
+                </div>
+              </div>
+
+              <DropdownMenuLabel className="text-[10px] uppercase font-bold text-muted-foreground px-2 py-1">
+                Gestão da Empresa
+              </DropdownMenuLabel>
+
+              <DropdownMenuItem 
+                onClick={() => setEmpresaModalOpen(true)}
+                className="cursor-pointer gap-2 py-1.5 text-xs rounded-md"
+              >
+                <Building2 className="w-4 h-4 text-orange-500" />
+                <span>Perfil da Empresa</span>
+              </DropdownMenuItem>
+
+              <DropdownMenuItem 
+                onClick={() => navigate({ to: '/configuracoes' as any })}
+                className="cursor-pointer gap-2 py-1.5 text-xs rounded-md"
+              >
+                <Settings className="w-4 h-4 text-muted-foreground" />
+                <span>Configurações & Dados Fiscais</span>
+              </DropdownMenuItem>
+
+              <DropdownMenuItem 
+                onClick={() => navigate({ to: '/configuracoes' as any })}
+                className="cursor-pointer gap-2 py-1.5 text-xs rounded-md"
+              >
+                <Palette className="w-4 h-4 text-purple-500" />
+                <span>Identidade Visual & Logos</span>
+              </DropdownMenuItem>
+
+              <DropdownMenuSeparator className="my-1" />
+
+              <DropdownMenuLabel className="text-[10px] uppercase font-bold text-muted-foreground px-2 py-1">
+                Sessão do Usuário
+              </DropdownMenuLabel>
+
+              <DropdownMenuItem 
+                onClick={() => setProfileModalOpen(true)}
+                className="cursor-pointer gap-2 py-1.5 text-xs rounded-md"
+              >
+                <User className="w-4 h-4 text-muted-foreground" />
+                <div className="flex-1 truncate">
+                  <span className="block truncate">{currentUser?.nome || 'Minha Conta'}</span>
+                  <span className="text-[10px] text-muted-foreground block truncate">{currentUser?.email}</span>
+                </div>
+              </DropdownMenuItem>
+
+              <DropdownMenuSeparator className="my-1" />
+
+              <DropdownMenuItem 
+                onClick={toggleTheme} 
+                className="cursor-pointer gap-2 py-1.5 text-xs rounded-md"
+              >
+                {isDark ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-slate-700" />}
+                <span>{isDark ? 'Tema Claro' : 'Tema Escuro'}</span>
+              </DropdownMenuItem>
+
+              <DropdownMenuItem 
+                onClick={() => {
+                  if (typeof window !== 'undefined') {
+                    window.localStorage.removeItem('focus_auth_session_v2');
+                    window.location.reload();
+                  }
+                }}
+                className="cursor-pointer gap-2 py-1.5 text-xs text-rose-600 dark:text-rose-400 focus:text-rose-600 rounded-md"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Sair da Plataforma</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
         </div>
       </header>
+
+      {/* MODAL DE PERFIL DA EMPRESA */}
+      <EmpresaProfileModal
+        open={empresaModalOpen}
+        onOpenChange={setEmpresaModalOpen}
+      />
 
       {/* MODAL DE EDIÇÃO DE PERFIL DO USUÁRIO */}
       <UserProfileModal 

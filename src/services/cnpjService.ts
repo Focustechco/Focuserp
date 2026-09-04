@@ -346,3 +346,12 @@ export async function consultarCnpj(cnpjInput: string): Promise<CnpjLookupResult
 
   throw new Error('Não foi possível localizar os dados deste CNPJ na base pública da Receita Federal. Verifique o número digitado ou tente novamente em instantes.');
 }
+
+export const cnpjService = {
+  consultarCNPJ: consultarCnpj,
+  consultarCnpj,
+  formatarCnpj,
+  validarCnpj,
+  formatarCep,
+};
+
