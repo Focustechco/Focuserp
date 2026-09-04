@@ -4,11 +4,47 @@ import { INITIAL_USUARIOS } from '@/features/usuarios/data/initialData';
 import { safeGetItem, safeSetItem } from '@/lib/safeStorage';
 
 const USERS_STORAGE_KEY = 'focus_app_focus_usuarios';
+const DELETED_USERS_STORAGE_KEY = 'focus_app_deleted_users_state';
+
+function getDeletedUsersSet(): { emails: Set<string>; ids: Set<string> } {
+  try {
+    const raw = safeGetItem(DELETED_USERS_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return {
+        emails: new Set<string>((parsed.emails || []).map((e: string) => e.toLowerCase().trim())),
+        ids: new Set<string>((parsed.ids || []).map((id: string) => String(id))),
+      };
+    }
+  } catch {}
+  return { emails: new Set<string>(), ids: new Set<string>() };
+}
+
+function recordDeletedUser(id: string, email?: string) {
+  const { emails, ids } = getDeletedUsersSet();
+  if (id) ids.add(String(id));
+  if (email) emails.add(email.toLowerCase().trim());
+  safeSetItem(
+    DELETED_USERS_STORAGE_KEY,
+    JSON.stringify({ emails: Array.from(emails), ids: Array.from(ids) })
+  );
+}
+
+function unmarkDeletedUser(id: string, email?: string) {
+  const { emails, ids } = getDeletedUsersSet();
+  if (id) ids.delete(String(id));
+  if (email) emails.delete(email.toLowerCase().trim());
+  safeSetItem(
+    DELETED_USERS_STORAGE_KEY,
+    JSON.stringify({ emails: Array.from(emails), ids: Array.from(ids) })
+  );
+}
 
 function broadcastUsersUpdate() {
   if (typeof window !== 'undefined') {
     try {
       window.dispatchEvent(new Event('focus_users_updated'));
+      window.dispatchEvent(new Event('focus_storage_update'));
     } catch {}
   }
 }
@@ -50,11 +86,15 @@ export const userService = {
    * Buscar todos os usuários cadastrados diretamente do Banco de Dados Relacional
    */
   async getUsers(): Promise<Usuario[]> {
+    const { emails: deletedEmails, ids: deletedIds } = getDeletedUsersSet();
     const userMap = new Map<string, Usuario>();
 
-    // 1. Carregar base corporativa padrão
+    // 1. Carregar base corporativa padrão (filtrando deletados)
     INITIAL_USUARIOS.forEach((u) => {
-      userMap.set(u.email.toLowerCase().trim(), u);
+      const emailKey = u.email.toLowerCase().trim();
+      if (!deletedEmails.has(emailKey) && !deletedIds.has(u.id)) {
+        userMap.set(emailKey, { ...u });
+      }
     });
 
     // 2. Carregar do cache local imediato
@@ -66,8 +106,10 @@ export const userService = {
           localList.forEach((u) => {
             if (u && u.email) {
               const key = u.email.toLowerCase().trim();
-              const existing = userMap.get(key);
-              userMap.set(key, { ...existing, ...u });
+              if (!deletedEmails.has(key) && !deletedIds.has(u.id)) {
+                const existing = userMap.get(key);
+                userMap.set(key, { ...existing, ...u });
+              }
             }
           });
         }
@@ -86,11 +128,13 @@ export const userService = {
         profileRows.forEach((row: any) => {
           if (row.contact_email && row.contact_phone) {
             const emailKey = row.contact_email.toLowerCase().trim();
-            try {
-              const parsed = JSON.parse(row.contact_phone);
-              profileMap.set(emailKey, parsed);
-            } catch {
-              profileMap.set(emailKey, { foto: row.contact_phone });
+            if (!deletedEmails.has(emailKey) && !deletedIds.has(row.id)) {
+              try {
+                const parsed = JSON.parse(row.contact_phone);
+                profileMap.set(emailKey, parsed);
+              } catch {
+                profileMap.set(emailKey, { foto: row.contact_phone });
+              }
             }
           }
         });
@@ -100,16 +144,30 @@ export const userService = {
     }
 
     // 4. Buscar do Banco de Dados Supabase (Tabela users)
+    const seenDbEmails = new Set<string>();
+    const duplicateDbIdsToDelete: string[] = [];
+
     try {
       const { data: dbUsers, error: usersErr } = await supabase
         .from('users')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('updated_at', { ascending: false });
 
       if (!usersErr && Array.isArray(dbUsers) && dbUsers.length > 0) {
         dbUsers.forEach((item: any) => {
           if (item && (item.email || item.nome)) {
             const emailKey = (item.email || '').toLowerCase().trim();
+            if (deletedEmails.has(emailKey) || deletedIds.has(item.id)) {
+              return;
+            }
+
+            // Se já vimos esse e-mail na mesma tabela users, marcar a linha duplicada para exclusão
+            if (seenDbEmails.has(emailKey)) {
+              duplicateDbIdsToDelete.push(item.id);
+              return;
+            }
+            seenDbEmails.add(emailKey);
+
             const existing = userMap.get(emailKey);
             const profData = profileMap.get(emailKey) || {};
 
@@ -121,10 +179,10 @@ export const userService = {
             }
 
             const mapped: Usuario = {
-              id: item.id || existing?.id || crypto.randomUUID(),
+              id: item.id || existing?.id || generateDeterministicUuid(`user_${emailKey}`),
               nome: item.nome || profData.nomeExibicao || existing?.nome || 'Usuário',
               nomeExibicao: profData.nomeExibicao || item.nome || existing?.nomeExibicao || 'Usuário',
-              email: item.email || existing?.email || '',
+              email: item.email || existing?.email || emailKey,
               senha: existing?.senha || 'Focus@2026',
               telefone: profData.telefone || existing?.telefone || '',
               foto: finalFoto,
@@ -152,6 +210,11 @@ export const userService = {
       console.warn('[userService.getUsers] Aviso ao consultar tabela users:', e);
     }
 
+    // Limpar duplicatas de DB em background
+    if (duplicateDbIdsToDelete.length > 0) {
+      supabase.from('users').delete().in('id', duplicateDbIdsToDelete).then(() => {}).catch(() => {});
+    }
+
     const finalList = Array.from(userMap.values());
     
     // Atualizar cache local
@@ -165,9 +228,10 @@ export const userService = {
    * Salvar usuário completamente no Banco de Dados Relacional Supabase e disparar sincronização Realtime
    */
   async saveUser(user: Usuario): Promise<Usuario> {
-    const users = await this.getUsers();
     const cleanEmail = user.email.toLowerCase().trim();
+    unmarkDeletedUser(user.id, cleanEmail);
 
+    const users = await this.getUsers();
     const filtered = users.filter((u) => u.email.toLowerCase().trim() !== cleanEmail && u.id !== user.id);
     const updatedList = [user, ...filtered];
 
@@ -176,10 +240,12 @@ export const userService = {
     safeSetItem('focus_usuarios', JSON.stringify(updatedList));
     broadcastUsersUpdate();
 
+    const targetUserId = user.id || generateDeterministicUuid(`user_${cleanEmail}`);
+
     // 2. Persistir no Supabase (Tabela users) com colunas válidas
     try {
       const userPayload = {
-        id: user.id || generateDeterministicUuid(`user_${cleanEmail}`),
+        id: targetUserId,
         nome: user.nome || user.nomeExibicao || 'Usuário',
         email: cleanEmail,
         cargo: user.cargo || 'Colaborador Focus',
@@ -190,6 +256,9 @@ export const userService = {
       };
 
       await supabase.from('users').upsert(userPayload, { onConflict: 'id' });
+
+      // Remover duplicatas com mesmo email mas id diferente
+      await supabase.from('users').delete().ilike('email', cleanEmail).neq('id', targetUserId);
     } catch (err: any) {
       console.warn('[userService.saveUser] Aviso ao salvar em users:', err?.message);
     }
@@ -230,6 +299,8 @@ export const userService = {
           cargo: user.cargo || null,
           departamento: user.departamento || null,
           status: user.status || 'Ativo',
+          foto: user.foto || null,
+          avatar_url: user.foto || null,
           updated_at: new Date().toISOString(),
         })
         .ilike('email', cleanEmail);
@@ -249,6 +320,71 @@ export const userService = {
     for (const u of users) {
       await this.saveUser(u);
     }
+  },
+
+  /**
+   * Excluir Usuário de forma permanente e limpa no Banco de Dados Supabase e Cache
+   */
+  async deleteUser(userIdOrEmail: string, optionalEmail?: string): Promise<boolean> {
+    const users = await this.getUsers();
+    const cleanKey = userIdOrEmail.toLowerCase().trim();
+    const target = users.find(
+      (u) =>
+        u.id === userIdOrEmail ||
+        u.email.toLowerCase().trim() === cleanKey ||
+        (optionalEmail && u.email.toLowerCase().trim() === optionalEmail.toLowerCase().trim())
+    );
+
+    const targetId = target?.id || userIdOrEmail;
+    const targetEmail = (target?.email || optionalEmail || (userIdOrEmail.includes('@') ? userIdOrEmail : '')).toLowerCase().trim();
+
+    // 1. Gravar na lista de exclusão permanente
+    recordDeletedUser(targetId, targetEmail);
+
+    // 2. Atualizar cache local
+    const remaining = users.filter((u) => {
+      if (u.id === targetId) return false;
+      if (targetEmail && u.email.toLowerCase().trim() === targetEmail) return false;
+      return true;
+    });
+    safeSetItem(USERS_STORAGE_KEY, JSON.stringify(remaining));
+    safeSetItem('focus_usuarios', JSON.stringify(remaining));
+    broadcastUsersUpdate();
+
+    // 3. Excluir do Supabase na tabela 'users'
+    try {
+      if (targetId) {
+        await supabase.from('users').delete().eq('id', targetId);
+      }
+      if (targetEmail) {
+        await supabase.from('users').delete().ilike('email', targetEmail);
+      }
+    } catch (err) {
+      console.warn('[userService.deleteUser] Erro ao deletar de users:', err);
+    }
+
+    // 4. Excluir perfil espelho na tabela 'clients'
+    try {
+      if (targetEmail) {
+        await supabase.from('clients').delete().ilike('contact_email', targetEmail);
+        await supabase.from('clients').delete().like('name', `__USER_PROFILE__%${targetEmail}%`);
+      }
+      if (targetId) {
+        await supabase.from('clients').delete().eq('id', targetId);
+      }
+    } catch (err) {
+      console.warn('[userService.deleteUser] Erro ao deletar profile row de clients:', err);
+    }
+
+    // 5. Se houver colaborador associado, marcar como Inativo
+    try {
+      if (targetEmail) {
+        await supabase.from('colaboradores').update({ status: 'Inativo' }).ilike('email', targetEmail);
+      }
+    } catch {}
+
+    broadcastUsersUpdate();
+    return true;
   },
 
   /**
@@ -290,7 +426,7 @@ export const userService = {
       blob = fileOrBase64;
     }
 
-    // Comprimir imagem para tamanho leve e alta resolução (256x256 Retina HD, ~20KB)
+    // Comprimir imagem para tamanho leve e alta resolução (256x256 Retina HD, ~15-20KB)
     const compressedDataUrl = await new Promise<string>((resolve) => {
       const img = new Image();
       const reader = new FileReader();
@@ -369,7 +505,7 @@ export const userService = {
    * Assinar alterações de usuários em tempo real via Supabase Realtime (Cross-device Sync Mobile / Desktop)
    */
   subscribeUsers(onUpdate: (users: Usuario[]) => void) {
-    if (typeof window === 'undefined') return () => {};
+    if (typeof window !== 'undefined') return () => {};
 
     let timeoutId: any = null;
     const handleLocalEvent = () => {
@@ -379,10 +515,11 @@ export const userService = {
           const users = await this.getUsers();
           onUpdate(users);
         } catch {}
-      }, 500);
+      }, 300);
     };
 
     window.addEventListener('focus_users_updated', handleLocalEvent);
+    window.addEventListener('focus_storage_update', handleLocalEvent);
 
     // Canal Realtime do Supabase com identificador único por instância
     const uniqueChannelName = `focus_users_rt_${Math.random().toString(36).substring(2, 9)}`;
@@ -396,6 +533,11 @@ export const userService = {
           { event: '*', schema: 'public', table: 'users' },
           handleLocalEvent
         )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'clients' },
+          handleLocalEvent
+        )
         .subscribe();
     } catch (e) {
       console.warn('[userService.subscribeUsers] Erro ao criar canal realtime:', e);
@@ -404,6 +546,7 @@ export const userService = {
     return () => {
       if (timeoutId) clearTimeout(timeoutId);
       window.removeEventListener('focus_users_updated', handleLocalEvent);
+      window.removeEventListener('focus_storage_update', handleLocalEvent);
       if (channel) {
         try {
           supabase.removeChannel(channel);

@@ -93,6 +93,26 @@ export function UsuariosTable() {
     }
   };
 
+  const handleDeleteUser = async (targetUser: Usuario) => {
+    if (usuarios.length <= 1) {
+      toast.error('Não é possível excluir o único usuário administrador do sistema.');
+      return;
+    }
+    if (targetUser.id === currentUser?.id || targetUser.email.toLowerCase().trim() === (currentUser?.email || '').toLowerCase().trim()) {
+      toast.error('Não é possível excluir o usuário da sua sessão ativa.');
+      return;
+    }
+
+    const toastId = toast.loading(`Excluindo usuário ${targetUser.nome}...`);
+    try {
+      await userService.deleteUser(targetUser.id, targetUser.email);
+      deleteItem(targetUser.id);
+      toast.success(`Usuário ${targetUser.nome} excluído permanentemente do sistema e banco de dados.`, { id: toastId });
+    } catch (e: any) {
+      toast.error('Erro ao excluir usuário.', { id: toastId });
+    }
+  };
+
   return (
     <div className="space-y-4 animate-fade-in pt-4">
       {/* Hidden File Input for instant photo upload */}
@@ -276,14 +296,7 @@ export function UsuariosTable() {
                               <UserX className="w-4 h-4 mr-2" /> Inativar Usuário
                             </DropdownMenuItem>
 
-                            <DropdownMenuItem className="text-rose-600 font-semibold cursor-pointer" onClick={() => {
-                              if (usuarios.length <= 1) {
-                                toast.error('Não é possível excluir o único usuário administrador do sistema.');
-                                return;
-                              }
-                              deleteItem(user.id);
-                              toast.success(`Usuário ${user.nome} excluído do diretório.`);
-                            }}>
+                            <DropdownMenuItem className="text-rose-600 font-semibold cursor-pointer" onClick={() => handleDeleteUser(user)}>
                               <Trash2 className="w-4 h-4 mr-2" /> Excluir Registro
                             </DropdownMenuItem>
                           </>

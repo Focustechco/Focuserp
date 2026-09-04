@@ -1757,6 +1757,12 @@ export function useLocalStorageState<T extends { id: string }>(
         return updated;
       });
 
+      if (isUsersTable) {
+        try {
+          await userService.deleteUser(id);
+        } catch {}
+      }
+
       if (primaryDbTable) {
         try {
           await supabase.from(primaryDbTable).delete().eq('id', id);
@@ -1773,7 +1779,7 @@ export function useLocalStorageState<T extends { id: string }>(
         window.dispatchEvent(new Event('focus_storage_update'));
       }
     },
-    [isClientsTable, primaryDbTable, table]
+    [isClientsTable, isUsersTable, primaryDbTable, table]
   );
 
   const saveItem = useCallback(
