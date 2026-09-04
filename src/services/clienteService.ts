@@ -161,17 +161,18 @@ export const clienteService = {
 
       // Se a consulta ao banco teve sucesso, o Banco de Dados é a Fonte da Verdade
       if (dbFetchSucceeded) {
-        const freshMap = new Map<string, ClienteDTO>();
+        const idMap = new Map<string, ClienteDTO>();
+        const docMap = new Map<string, string>(); // cleanDoc -> id
+        const nameMap = new Map<string, string>(); // normName -> id
+
+        const normalizeStr = (s: any) => String(s || '').toLowerCase().trim().replace(/[^a-z0-9]/g, '');
 
         dbItems.forEach(item => {
           if (!item || !item.id || deletedIds.has(String(item.id))) return;
           if (item.status === 'deleted' || item.status === 'deletado' || item.deleted === true) return;
-          if (typeof item.name === 'string' && (item.name.startsWith('__DELETED__') || item.name.startsWith('__USER_PROFILE__'))) return;
+          if (typeof item.name === 'string' && (item.name.startsWith('__DELETED__') || item.name.startsWith('__USER_PROFILE__') || item.name.startsWith('__FOCUS_'))) return;
 
           const id = String(item.id);
-          // Se já adicionamos este ID da tabela 'clientes', não sobrescrever com o registro genérico de 'clients'
-          if (freshMap.has(id) && !item.razao_social && !item.nome_fantasia) return;
-
           const current = localMap.get(id);
 
           const rawEndereco = {
@@ -217,17 +218,42 @@ export const clienteService = {
             ultimaAtualizacao: item.updated_at || item.ultimaAtualizacao || current?.ultimaAtualizacao || new Date().toISOString(),
           };
 
-          // Validar contra schema
           const parsed = clienteSchema.safeParse(candidate);
-          if (parsed.success) {
-            freshMap.set(id, parsed.data);
+          const validCandidate = parsed.success ? parsed.data : candidate;
+
+          const cleanDoc = (validCandidate.documento || '').replace(/\D/g, '');
+          const isRealDoc = cleanDoc.length >= 11 && cleanDoc !== '00000000000000' && cleanDoc !== '00000000000';
+          const normName = normalizeStr(validCandidate.nomeFantasia || validCandidate.razaoSocial);
+
+          // Identificar se já existe por ID, por documento ou por nome normalizado
+          const existingId = idMap.has(id) 
+            ? id 
+            : (isRealDoc && docMap.has(cleanDoc) ? docMap.get(cleanDoc) : (normName.length > 3 && nameMap.has(normName) ? nameMap.get(normName) : null));
+
+          if (existingId && idMap.has(existingId)) {
+            const existing = idMap.get(existingId)!;
+            // Fazer merge priorizando os campos mais ricos (da tabela clientes)
+            const merged: ClienteDTO = {
+              ...existing,
+              ...validCandidate,
+              id: existing.id,
+              codigo: existing.codigo || validCandidate.codigo,
+              razaoSocial: existing.razaoSocial !== 'Cliente' ? existing.razaoSocial : validCandidate.razaoSocial,
+              nomeFantasia: existing.nomeFantasia !== 'Cliente' ? existing.nomeFantasia : validCandidate.nomeFantasia,
+              documento: isRealDoc ? validCandidate.documento : existing.documento,
+              endereco: (validCandidate.endereco?.cidade || validCandidate.endereco?.logradouro) ? validCandidate.endereco : existing.endereco,
+              contatos: (validCandidate.contatos?.length && validCandidate.contatos[0]?.email !== 'contato@cliente.com') ? validCandidate.contatos : existing.contatos,
+            };
+            idMap.set(existingId, merged);
           } else {
-            freshMap.set(id, candidate);
+            idMap.set(id, validCandidate);
+            if (isRealDoc) docMap.set(cleanDoc, id);
+            if (normName.length > 3) nameMap.set(normName, id);
           }
         });
 
-        const syncedList = Array.from(freshMap.values());
-        // Atualizar todas as chaves locais com a lista real do banco de dados (removendo clientes apagados)
+        const syncedList = Array.from(idMap.values());
+        // Atualizar todas as chaves locais com a lista real do banco de dados (removendo duplicados e clientes apagados)
         persistClientsToAllStores(syncedList);
         return syncedList;
       }

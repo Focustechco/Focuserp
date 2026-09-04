@@ -47,6 +47,7 @@ import { Contrato } from "@/features/contratos/types";
 import { RecorrenciaFinanceira } from "@/features/recorrencias/types";
 import { MetaComercial } from "@/features/comercial/types";
 import { calculateTotalMRR } from "@/features/recorrencias/services/recorrenciaEngine";
+import { INITIAL_RECORRENCIAS } from "@/features/recorrencias/data/initialRecorrencias";
 import { NovoRecebimentoSheet } from "@/features/contas-receber/components/NovoRecebimentoSheet";
 import { formatDateBrasilia, getBrasiliaTodayIso, parseDateSafe } from "@/lib/dateUtils";
 
@@ -174,8 +175,8 @@ export function Dashboard() {
     });
   }, [localClientes, queryClientes]);
 
-  const { data: contratos = [] } = useLocalStorageState<Contrato>("focus_contratos");
-  const { data: recorrencias = [] } = useLocalStorageState<RecorrenciaFinanceira>("focus_recorrencias");
+  const { data: contratos = [] } = useLocalStorageState<Contrato>("focus_contratos", []);
+  const { data: recorrencias = [] } = useLocalStorageState<RecorrenciaFinanceira>("focus_recorrencias", INITIAL_RECORRENCIAS);
   const { data: metasComerciais = [] } = useLocalStorageState<MetaComercial>("focus_comercial_metas");
 
   // 1. Receitas e Despesas Realizadas Globais (Saldo Real em Caixa Efetivo)

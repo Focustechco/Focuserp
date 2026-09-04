@@ -72,7 +72,18 @@ export function useClientesQuery() {
     mutationFn: (cliente: ClienteDTO) => clienteService.saveCliente(cliente),
     onSuccess: (savedCliente) => {
       queryClient.setQueryData<ClienteDTO[]>(['clientes'], (old = []) => {
-        const filtered = old.filter(c => c.id !== savedCliente.id);
+        const cleanDoc = (savedCliente.documento || '').replace(/\D/g, '');
+        const isRealDoc = cleanDoc.length >= 11 && cleanDoc !== '00000000000000';
+        const normName = (savedCliente.nomeFantasia || savedCliente.razaoSocial || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+
+        const filtered = old.filter(c => {
+          if (c.id === savedCliente.id) return false;
+          const cDoc = (c.documento || '').replace(/\D/g, '');
+          const cNorm = (c.nomeFantasia || c.razaoSocial || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+          if (isRealDoc && cDoc === cleanDoc) return false;
+          if (normName.length > 3 && cNorm === normName) return false;
+          return true;
+        });
         return [savedCliente, ...filtered];
       });
       queryClient.invalidateQueries({ queryKey: ['clientes'] });

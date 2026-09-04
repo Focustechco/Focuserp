@@ -626,6 +626,15 @@ export function useLocalStorageState<T extends { id: string }>(
                 createdAt: item.created_at || new Date().toISOString(),
               })) as unknown as T[];
 
+            // Preservar contratos locais para evitar que uma tabela remota vazia apague o cache local
+            const existingLocal = readLocalCache<any>(table, initialValue);
+            const dbIds = new Set(mapped.map((it: any) => it.id));
+            existingLocal.forEach((lc: any) => {
+              if (lc && lc.id && !dbIds.has(String(lc.id)) && !isDmsFolderObject(lc)) {
+                mapped.push(lc);
+              }
+            });
+
             setData(mapped);
             writeLocalCache(table, mapped);
             setError(null);

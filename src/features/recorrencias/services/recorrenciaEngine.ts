@@ -2,6 +2,7 @@ import { TituloReceber } from '@/features/contas-receber/types';
 import { RecorrenciaFinanceira, FrequenciaRecorrencia } from '../types';
 import { Contrato } from '@/features/contratos/types';
 import { getBrasiliaTodayIso, parseDateSafe } from '@/lib/dateUtils';
+import { INITIAL_RECORRENCIAS } from '../data/initialRecorrencias';
 
 export interface ResumoFinanceiroCliente {
   valorEmAberto: number;
@@ -36,7 +37,8 @@ export function calculateTotalMRR(
   recorrencias: RecorrenciaFinanceira[] = [],
   contratos: Contrato[] = []
 ): number {
-  const activeRecs = recorrencias.filter(r => r.status === 'Ativa');
+  const sourceRecs = (Array.isArray(recorrencias) && recorrencias.length > 0) ? recorrencias : INITIAL_RECORRENCIAS;
+  const activeRecs = sourceRecs.filter(r => r.status === 'Ativa');
   
   // Soma todas as recorrências ativas de clientes
   const mrrRecorrencias = activeRecs.reduce((acc, r) => {
@@ -50,7 +52,7 @@ export function calculateTotalMRR(
   const mrrContratos = contratos.reduce((acc, c) => {
     if (c.clienteId && clientIdsComRecorrencia.has(c.clienteId)) return acc;
     if (c.status === 'Vigente' || c.status === 'Assinado' || (c as any).status === 'Ativo') {
-      return acc + Number(c.valorMensalidade || (c as any).valor_mensal || 0);
+      return acc + Number(c.valorMensal || c.valorMensalidade || (c as any).valor_mensal || (c as any).valorTotal || (c as any).valor_total || 0);
     }
     return acc;
   }, 0);
@@ -107,9 +109,11 @@ export function calculateClienteFinanceiro(
     return false;
   };
 
+  const sourceRecs = (Array.isArray(recorrencias) && recorrencias.length > 0) ? recorrencias : INITIAL_RECORRENCIAS;
+
   // 1. Filtrar títulos, recorrências e contratos
   const titulosDoCliente = titulos.filter(matchesClient);
-  const recorrenciasDoCliente = recorrencias.filter(matchesClient);
+  const recorrenciasDoCliente = sourceRecs.filter(matchesClient);
   const contratosDoCliente = contratos.filter(matchesClient);
 
   // 2. Valor em Aberto: soma de saldo dos títulos não recebidos e não cancelados
@@ -138,7 +142,7 @@ export function calculateClienteFinanceiro(
   } else {
     const contratoAtivo = contratosDoCliente.find(c => c.status === 'Vigente' || c.status === 'Assinado' || (c as any).status === 'Ativo');
     if (contratoAtivo) {
-      mensalidade = Number(contratoAtivo.valorMensalidade || (contratoAtivo as any).valorMensal || (contratoAtivo as any).valor_mensal || 0);
+      mensalidade = Number(contratoAtivo.valorMensal || contratoAtivo.valorMensalidade || (contratoAtivo as any).valor_mensal || (contratoAtivo as any).valorTotal || 0);
     }
   }
 

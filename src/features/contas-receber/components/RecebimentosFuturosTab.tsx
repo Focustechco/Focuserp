@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useLocalStorageState } from '@/hooks/useDataStore';
 import { TituloReceber } from '../types';
 import { RecorrenciaFinanceira } from '@/features/recorrencias/types';
+import { INITIAL_RECORRENCIAS } from '@/features/recorrencias/data/initialRecorrencias';
 import { Contrato } from '@/features/contratos/types';
 import { generateRecorrenciaDates } from '@/features/recorrencias/services/recorrenciaEngine';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -56,8 +57,8 @@ export function RecebimentosFuturosTab() {
   const [itemParaExcluir, setItemParaExcluir] = useState<RecebimentoFuturoItem | null>(null);
 
   const { clientes = [] } = useClientesQuery();
-  const { data: recorrencias = [], setAllItems: setAllRecorrencias } = useLocalStorageState<RecorrenciaFinanceira>('focus_recorrencias');
-  const { data: contratos = [], setAllItems: setAllContratos } = useLocalStorageState<Contrato>('focus_contratos');
+  const { data: recorrencias = [], setAllItems: setAllRecorrencias } = useLocalStorageState<RecorrenciaFinanceira>('focus_recorrencias', INITIAL_RECORRENCIAS);
+  const { data: contratos = [], setAllItems: setAllContratos } = useLocalStorageState<Contrato>('focus_contratos', []);
   const { data: localTitulos = [], setAllItems: setAllTitulos, saveItem: saveLocalTitulo } = useLocalStorageState<TituloReceber>('focus_contas_receber');
   const { data: dispensados = [], setAllItems: setAllDispensados } = useLocalStorageState<string>('focus_recebimentos_futuros_dispensados', []);
   const { saveTitulo: saveQueryTitulo } = useContasReceberQuery();
@@ -65,6 +66,16 @@ export function RecebimentosFuturosTab() {
 
   const hojeStr = getBrasiliaTodayIso();
   const hoje = new Date();
+
+  // Clientes explicitamente marcados como deletados
+  const deletedClientIds = useMemo(() => {
+    try {
+      const raw = typeof window !== 'undefined' ? localStorage.getItem('focus_app_deleted_client_ids') : null;
+      return new Set<string>(raw ? JSON.parse(raw) : []);
+    } catch {
+      return new Set<string>();
+    }
+  }, []);
 
   // Mapeamento de clientes válidos e ativos
   const validClientsMap = useMemo(() => {
@@ -107,16 +118,13 @@ export function RecebimentosFuturosTab() {
     const lista: RecebimentoFuturoItem[] = [];
 
     // Recorrências Ativas
-    const recsAtivas = recorrencias.filter(r => r && r.status === 'Ativa');
+    const activeSourceRecs = (recorrencias && recorrencias.length > 0) ? recorrencias : INITIAL_RECORRENCIAS;
+    const recsAtivas = activeSourceRecs.filter(r => r && r.status === 'Ativa');
     recsAtivas.forEach(rec => {
       if (dispensados.includes(rec.id)) return;
 
-      // Se clientes já foram carregados e o cliente da recorrência não existe mais, IGNORAR (excluído em cascata)
-      if (clientes.length > 0) {
-        const hasValidId = rec.clientId && validClientsMap.has(rec.clientId);
-        const hasValidName = rec.clienteNome && validClientNamesSet.has(rec.clienteNome.trim().toLowerCase());
-        if (!hasValidId && !hasValidName) return;
-      }
+      // Se o cliente foi explicitamente excluído, ignorar
+      if (rec.clientId && deletedClientIds.has(rec.clientId)) return;
 
       const datas = generateRecorrenciaDates(rec, 60);
       const totalCiclos = rec.quantidade && rec.quantidade > 0 ? rec.quantidade : (rec.dataFim || rec.dataFinal ? datas.length : undefined);
@@ -156,22 +164,17 @@ export function RecebimentosFuturosTab() {
       if (!c) return;
       if (dispensados.includes(c.id) || dispensados.includes(`rec-contrato-${c.id}`)) return;
       if (c.clienteId && clientIdsComRec.has(c.clienteId)) return;
-
-      // Se clientes foram carregados e o cliente não existe mais, IGNORAR
-      if (clientes.length > 0) {
-        const hasValidId = c.clienteId && validClientsMap.has(c.clienteId);
-        const hasValidName = c.clienteNome && validClientNamesSet.has(c.clienteNome.trim().toLowerCase());
-        if (!hasValidId && !hasValidName) return;
-      }
+      if (c.clienteId && deletedClientIds.has(c.clienteId)) return;
 
       if (c.status === 'Ativo' || c.status === 'Vigente') {
-        const valorMensal = Number(c.valorMensal || (c as any).valorMensalidade || 0);
+        const valorMensal = Number(c.valorMensal || (c as any).valorMensalidade || (c as any).valorTotal || (c as any).valor_total || 0);
+        const cliNome = (c.clienteId && validClientsMap.get(c.clienteId)) || c.clienteNome || c.nome || 'Cliente';
         if (valorMensal > 0 && c.dataInicio) {
           const recFake: RecorrenciaFinanceira = {
             id: `rec-contrato-${c.id}`,
             clientId: c.clienteId || '',
-            clienteNome: c.clienteNome || c.nome || 'Cliente',
-            descricao: `Contrato ${c.numeroContrato || c.nome}`,
+            clienteNome: cliNome,
+            descricao: `Contrato ${c.numeroContrato || c.nome || cliNome}`,
             valor: valorMensal,
             frequencia: 'Mensal',
             dataInicio: c.dataInicio,
@@ -186,7 +189,7 @@ export function RecebimentosFuturosTab() {
 
           const datas = generateRecorrenciaDates(recFake, 60);
           const totalCiclos = recFake.quantidade && recFake.quantidade > 0 ? recFake.quantidade : (recFake.dataFim ? datas.length : undefined);
-          const safeCli = (c.clienteNome || c.nome || '').trim().toLowerCase();
+          const safeCli = cliNome.trim().toLowerCase();
 
           datas.forEach((dataVenc, idx) => {
             const itemId = `ctr-fut-${c.id}-${dataVenc}`;
@@ -202,8 +205,8 @@ export function RecebimentosFuturosTab() {
                 origemId: c.id,
                 origemTipo: 'Contrato',
                 clienteId: c.clienteId,
-                clienteNome: c.clienteNome || c.nome || 'Cliente',
-                descricao: `Mensalidade ${c.numeroContrato || c.nome}`,
+                clienteNome: cliNome,
+                descricao: `Mensalidade ${c.numeroContrato || c.nome || cliNome}`,
                 dataVencimentoPrevista: dataVenc,
                 valorPrevisto: valorMensal,
                 cicloIndex: idx + 1,
@@ -220,7 +223,7 @@ export function RecebimentosFuturosTab() {
     // Ordenação estritamente cronológica por vencimento previsto
     lista.sort((a, b) => a.dataVencimentoPrevista.localeCompare(b.dataVencimentoPrevista));
     return lista;
-  }, [recorrencias, contratos, titulosExistentesMap, hojeStr, dispensados, clientes, validClientsMap, validClientNamesSet]);
+  }, [recorrencias, contratos, titulosExistentesMap, hojeStr, dispensados, clientes, validClientsMap, validClientNamesSet, deletedClientIds]);
 
   // 3. Filtragem de Período e Busca
   const dataLimitePeriodo = useMemo(() => {
@@ -266,18 +269,18 @@ export function RecebimentosFuturosTab() {
   }, [todosFuturos, hoje]);
 
   const totalMRRRecorrente = useMemo(() => {
-    return recorrencias
-      .filter(r => {
-        if (!r || r.status !== 'Ativa') return false;
-        if (clientes.length > 0) {
-          const hasValidId = r.clientId && validClientsMap.has(r.clientId);
-          const hasValidName = r.clienteNome && validClientNamesSet.has(r.clienteNome.trim().toLowerCase());
-          if (!hasValidId && !hasValidName) return false;
-        }
-        return true;
-      })
+    const activeSourceRecs = (recorrencias && recorrencias.length > 0) ? recorrencias : INITIAL_RECORRENCIAS;
+    const mrrRecs = activeSourceRecs
+      .filter(r => r && r.status === 'Ativa' && !(r.clientId && deletedClientIds.has(r.clientId)))
       .reduce((acc, r) => acc + Number(r.valor || 0), 0);
-  }, [recorrencias, clientes, validClientsMap, validClientNamesSet]);
+
+    const clientIdsComRec = new Set(activeSourceRecs.filter(r => r && r.status === 'Ativa').map(r => r.clientId).filter(Boolean));
+    const mrrContratos = contratos
+      .filter(c => (c.status === 'Ativo' || c.status === 'Vigente') && !(c.clienteId && clientIdsComRec.has(c.clienteId)) && !(c.clienteId && deletedClientIds.has(c.clienteId)))
+      .reduce((acc, c) => acc + Number(c.valorMensal || (c as any).valorMensalidade || (c as any).valorTotal || 0), 0);
+
+    return mrrRecs + mrrContratos;
+  }, [recorrencias, contratos, deletedClientIds]);
 
   // 5. Ação: Emitir / Antecipar Título Oficial no Contas a Receber
   const handleEmitirTituloAgora = async (item: RecebimentoFuturoItem) => {
@@ -432,7 +435,7 @@ export function RecebimentosFuturosTab() {
             <RefreshCw className="w-4 h-4 text-primary" />
           </div>
           <div className="text-2xl font-bold text-foreground">
-            {recorrencias.filter(r => r.status === 'Ativa').length + contratos.filter(c => c.status === 'Ativo' || c.status === 'Vigente').length}
+            {(recorrencias.length > 0 ? recorrencias : INITIAL_RECORRENCIAS).filter(r => r.status === 'Ativa' && !(r.clientId && deletedClientIds.has(r.clientId))).length + contratos.filter(c => (c.status === 'Ativo' || c.status === 'Vigente') && !(c.clienteId && deletedClientIds.has(c.clienteId))).length}
           </div>
           <p className="text-[11px] text-muted-foreground">
             Contratos e assinaturas ativas
