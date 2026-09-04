@@ -233,20 +233,10 @@ export function UsuariosTable() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-56 text-xs">
                         <DropdownMenuLabel>Ações Administrativas</DropdownMenuLabel>
-                        
-                        <DropdownMenuItem onClick={() => handleTriggerAvatarUpload(user.id)} className="gap-2 cursor-pointer">
-                          <UploadCloud className="w-4 h-4 text-primary" /> Alterar Foto de Perfil
-                        </DropdownMenuItem>
 
                         {isSuperAdmin && (
                           <DropdownMenuItem onClick={() => { setSelectedUser(user as unknown as Usuario); setSheetOpen(true); }} className="cursor-pointer">
                             Editar Configurações IAM
-                          </DropdownMenuItem>
-                        )}
-
-                        {isSuperAdmin && (
-                          <DropdownMenuItem onClick={() => { setViewPasswordUser(user); setShowPassword(false); }} className="cursor-pointer">
-                            <Key className="w-4 h-4 mr-2 text-primary" /> Visualizar / Copiar Senha
                           </DropdownMenuItem>
                         )}
 

@@ -9,6 +9,7 @@ import {
   Tag, Info, ExternalLink, Download, Eye, FolderOpen, Briefcase, 
   MessageSquare, Edit3, Globe, Check, ArrowUpRight, ArrowDownRight, Upload, Plus
 } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 import { Cliente } from '../types';
 import { useLocalStorageState } from '@/hooks/useDataStore';
 import { TituloReceber } from '@/features/contas-receber/types';
@@ -321,7 +322,7 @@ export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: Clie
                 Contratos ({contratosDoCliente.length})
               </TabsTrigger>
               <TabsTrigger value="documentos" className="text-xs font-semibold text-orange-600">
-                Documentos DMS ({documentosDoCliente.length})
+                Documentos ({documentosDoCliente.length})
               </TabsTrigger>
               <TabsTrigger value="projetos" className="text-xs">Projetos ({projetosDoCliente.length})</TabsTrigger>
             </TabsList>
@@ -882,23 +883,60 @@ export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: Clie
                 Nenhum projeto vinculado a este cliente no momento.
               </div>
             ) : (
-              <div className="space-y-2">
-                {projetosDoCliente.map((proj: any) => (
-                  <div key={proj.id} className="p-3.5 rounded-lg border bg-card flex items-center justify-between text-xs">
-                    <div className="space-y-1">
-                      <div className="font-semibold text-foreground flex items-center gap-2">
-                        <span>{proj.nome || proj.title}</span>
-                        {proj.codigo && <Badge variant="outline" className="text-[10px]">{proj.codigo}</Badge>}
+              <div className="space-y-3">
+                {projetosDoCliente.map((proj: any) => {
+                  const progressoNum = typeof proj.progresso === 'number' 
+                    ? proj.progresso 
+                    : typeof proj.percentualConclusao === 'number' 
+                    ? proj.percentualConclusao 
+                    : proj.status === 'Concluído' ? 100 : 35;
+
+                  const getProjetoStatusBadge = (status: string) => {
+                    switch (status) {
+                      case 'Concluído':
+                        return <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px]">Concluído</Badge>;
+                      case 'Em Desenvolvimento':
+                        return <Badge className="bg-blue-600 hover:bg-blue-700 text-white text-[10px]">Em Desenvolvimento</Badge>;
+                      case 'Em Homologação':
+                        return <Badge className="bg-purple-600 hover:bg-purple-700 text-white text-[10px]">Em Homologação</Badge>;
+                      case 'Kickoff':
+                      case 'Planejamento':
+                        return <Badge className="bg-amber-600 hover:bg-amber-700 text-white text-[10px]">{status}</Badge>;
+                      case 'Cancelado':
+                        return <Badge variant="destructive" className="text-[10px]">Cancelado</Badge>;
+                      default:
+                        return <Badge variant="secondary" className="text-[10px]">{status || 'Em Andamento'}</Badge>;
+                    }
+                  };
+
+                  return (
+                    <div key={proj.id} className="p-4 rounded-xl border bg-card/60 backdrop-blur shadow-xs space-y-3 hover:border-primary/40 transition-colors">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="space-y-0.5">
+                          <div className="font-bold text-sm text-foreground flex items-center gap-2">
+                            <span>{proj.nome || proj.title || 'Projeto'}</span>
+                            {proj.codigo && <Badge variant="outline" className="text-[10px] font-mono">{proj.codigo}</Badge>}
+                          </div>
+                          <p className="text-[11px] text-muted-foreground">
+                            Responsável: <span className="font-medium text-foreground">{proj.responsavel || proj.gerente || 'Equipe Focus'}</span> • Prazo: {proj.dataFim ? formatDateSafe(proj.dataFim) : 'A definir'}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {getProjetoStatusBadge(proj.status || 'Em Desenvolvimento')}
+                        </div>
                       </div>
-                      <p className="text-[11px] text-muted-foreground">
-                        Responsável: {proj.responsavel || proj.gerente || 'Equipe Focus'} • Prazo: {proj.dataFim ? formatDateSafe(proj.dataFim) : 'A definir'}
-                      </p>
+
+                      {/* BARRA DE PROGRESSO DO PROJETO */}
+                      <div className="space-y-1.5 pt-1">
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="font-medium text-muted-foreground">Progresso do Projeto</span>
+                          <span className="font-bold text-foreground">{progressoNum}%</span>
+                        </div>
+                        <Progress value={progressoNum} className="h-2" />
+                      </div>
                     </div>
-                    <Badge variant="outline" className="text-xs">
-                      {proj.status || 'Em Andamento'}
-                    </Badge>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </TabsContent>

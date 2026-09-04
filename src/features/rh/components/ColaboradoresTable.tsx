@@ -42,6 +42,9 @@ export function ColaboradoresTable({ onNewClick, onEditClick, searchTerm: extern
            matricula.toLowerCase().includes(activeSearch.toLowerCase());
   });
 
+  const colabsAtivos = filteredColabs.filter(c => c.status !== 'Inativo');
+  const colabsInativos = filteredColabs.filter(c => c.status === 'Inativo');
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'Ativo':
@@ -63,8 +66,100 @@ export function ColaboradoresTable({ onNewClick, onEditClick, searchTerm: extern
     return (name || 'C').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
   };
 
+  const renderColaboradoresTable = (lista: Colaborador[], isInactive = false) => {
+    if (lista.length === 0) {
+      return (
+        <div className="text-center py-8 text-muted-foreground text-xs border rounded-xl bg-card">
+          Nenhum colaborador {isInactive ? 'inativo' : 'ativo'} encontrado.
+        </div>
+      );
+    }
+
+    return (
+      <div className={`rounded-xl border bg-card overflow-hidden shadow-xs ${isInactive ? 'opacity-90' : ''}`}>
+        <Table className="text-xs">
+          <TableHeader>
+            <TableRow className="bg-muted/50">
+              <TableHead>Colaborador</TableHead>
+              <TableHead>Matrícula</TableHead>
+              <TableHead>Cargo & Departamento</TableHead>
+              <TableHead>Método de Pagamento</TableHead>
+              <TableHead>Admissão</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {lista.map((colab) => (
+              <TableRow key={colab.id} className="hover:bg-muted/30 transition-colors">
+                <TableCell>
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-8 w-8 border">
+                      <AvatarImage src={colab.foto} />
+                      <AvatarFallback className="bg-primary/10 text-primary font-bold text-xs">
+                        {getInitials(colab.nomeCompleto)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <div className="font-semibold text-foreground">{colab.nomeCompleto}</div>
+                      <div className="text-[11px] text-muted-foreground">{colab.emailCorporativo || 'Sem e-mail'}</div>
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell className="font-mono text-xs font-medium">
+                  {colab.matricula}
+                </TableCell>
+                <TableCell>
+                  <div className="font-medium">{colab.cargo}</div>
+                  <div className="text-[11px] text-muted-foreground">{colab.departamento}</div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-1.5 font-medium">
+                    <CreditCard className="w-3.5 h-3.5 text-muted-foreground" />
+                    {colab.metodoPagamento?.formaPagamento || 'PIX'}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground">
+                    {colab.metodoPagamento?.chavePix 
+                      ? `PIX: ${colab.metodoPagamento.chavePix}` 
+                      : (colab.metodoPagamento?.banco || 'Conta Bancária')}
+                  </div>
+                </TableCell>
+                <TableCell className="text-xs">
+                  {colab.dataAdmissao || 'Não informada'}
+                </TableCell>
+                <TableCell>
+                  {getStatusBadge(colab.status)}
+                </TableCell>
+                <TableCell className="text-right">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-7 w-7">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="text-xs">
+                      <DropdownMenuItem onClick={() => onEditClick(colab)} className="gap-2 cursor-pointer">
+                        <Edit3 className="w-3.5 h-3.5" /> Editar Perfil
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => deleteColaborador(colab.id)} 
+                        className="gap-2 text-destructive focus:text-destructive cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Excluir
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    );
+  };
+
   return (
-    <div className="space-y-4 animate-fade-in">
+    <div className="space-y-6 animate-fade-in">
       {!hideToolbar && externalSearch === undefined && (
         <div className="flex flex-col sm:flex-row justify-between gap-4">
           <div className="flex gap-2 w-full sm:w-1/2">
@@ -80,7 +175,7 @@ export function ColaboradoresTable({ onNewClick, onEditClick, searchTerm: extern
           </div>
           {onNewClick && (
             <div className="flex gap-2">
-              <Button onClick={onNewClick} className="gap-2 bg-orange-600 hover:bg-orange-700 text-white text-xs">
+              <Button onClick={onNewClick} className="gap-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold">
                 <UserPlus className="w-4 h-4" /> Novo Colaborador
               </Button>
             </div>
@@ -88,92 +183,30 @@ export function ColaboradoresTable({ onNewClick, onEditClick, searchTerm: extern
         </div>
       )}
 
-      <div className="rounded-xl border bg-card overflow-hidden shadow-xs">
-        <Table className="text-xs">
-          <TableHeader>
-            <TableRow className="bg-muted/50">
-              <TableHead>Colaborador</TableHead>
-              <TableHead>Matrícula</TableHead>
-              <TableHead>Cargo & Departamento</TableHead>
-              <TableHead>Método de Pagamento</TableHead>
-              <TableHead>Admissão</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredColabs.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-10 text-muted-foreground text-xs">
-                  Nenhum colaborador encontrado.
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredColabs.map((colab) => (
-                <TableRow key={colab.id} className="hover:bg-muted/30 transition-colors">
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8 border">
-                        <AvatarImage src={colab.foto} />
-                        <AvatarFallback className="bg-primary/10 text-primary font-bold text-xs">
-                          {getInitials(colab.nomeCompleto)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <div className="font-semibold text-foreground">{colab.nomeCompleto}</div>
-                        <div className="text-[11px] text-muted-foreground">{colab.emailCorporativo || 'Sem e-mail'}</div>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="font-mono text-xs font-medium">
-                    {colab.matricula}
-                  </TableCell>
-                  <TableCell>
-                    <div className="font-medium">{colab.cargo}</div>
-                    <div className="text-[11px] text-muted-foreground">{colab.departamento}</div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1.5 font-medium">
-                      <CreditCard className="w-3.5 h-3.5 text-muted-foreground" />
-                      {colab.metodoPagamento?.formaPagamento || 'PIX'}
-                    </div>
-                    <div className="text-[11px] text-muted-foreground">
-                      {colab.metodoPagamento?.chavePix 
-                        ? `PIX: ${colab.metodoPagamento.chavePix}` 
-                        : (colab.metodoPagamento?.banco || 'Conta Bancária')}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-xs">
-                    {colab.dataAdmissao || 'Não informada'}
-                  </TableCell>
-                  <TableCell>
-                    {getStatusBadge(colab.status)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="text-xs">
-                        <DropdownMenuItem onClick={() => onEditClick(colab)} className="gap-2 cursor-pointer">
-                          <Edit3 className="w-3.5 h-3.5" /> Editar Perfil
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => deleteColaborador(colab.id)} 
-                          className="gap-2 text-destructive focus:text-destructive cursor-pointer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" /> Excluir
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+      {/* 1. LISTA DE COLABORADORES ATIVOS */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-bold text-foreground">Colaboradores Ativos</h3>
+            <Badge variant="secondary" className="text-xs font-semibold">
+              {colabsAtivos.length}
+            </Badge>
+          </div>
+        </div>
+        {renderColaboradoresTable(colabsAtivos, false)}
+      </div>
+
+      {/* 2. LISTA DE COLABORADORES INATIVOS */}
+      <div className="space-y-3 pt-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-bold text-muted-foreground">Colaboradores Inativos / Desligados</h3>
+            <Badge variant="outline" className="text-xs text-muted-foreground">
+              {colabsInativos.length}
+            </Badge>
+          </div>
+        </div>
+        {renderColaboradoresTable(colabsInativos, true)}
       </div>
     </div>
   );

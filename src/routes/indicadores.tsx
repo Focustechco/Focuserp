@@ -9,7 +9,7 @@ import { RhTab } from "@/features/indicadores/components/RhTab";
 import { FornecedoresTab } from "@/features/indicadores/components/FornecedoresTab";
 import { ClientesTab } from "@/features/indicadores/components/ClientesTab";
 import { 
-  Rocket, Activity, Briefcase, Users, Wallet, 
+  Settings, Activity, Briefcase, Users, Wallet, 
   Target, Building2, UserCheck 
 } from "lucide-react";
 
@@ -49,7 +49,7 @@ function IndicadoresPage() {
               <UserCheck className="w-4 h-4" /> Clientes
             </TabsTrigger>
             <TabsTrigger value="softwares" className="gap-2 shrink-0">
-              <Rocket className="w-4 h-4" /> Softwares (SaaS)
+              <Settings className="w-4 h-4" /> Softwares
             </TabsTrigger>
             <TabsTrigger value="projetos" className="gap-2 shrink-0">
               <Briefcase className="w-4 h-4" /> Projetos

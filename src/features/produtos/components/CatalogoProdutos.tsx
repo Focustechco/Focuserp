@@ -10,7 +10,6 @@ import {
   Plus,
   LayoutGrid,
   List as ListIcon,
-  Grid3X3,
   Users,
   Rocket,
   Boxes,
@@ -32,9 +31,9 @@ interface CatalogoProdutosProps {
 
 export function CatalogoProdutos({ produtos, onSelectProduto, onAddProduto, onUpdateProduto, onDeleteProduto }: CatalogoProdutosProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [categoriaFilter, setCategoriaFilter] = useState('todos');
-  const [statusFilter, setStatusFilter] = useState('todos');
-  const [viewMode, setViewMode] = useState<'cards' | 'grade' | 'lista'>('cards');
+  const [categoriaFiltro, setCategoriaFiltro] = useState<string>('todas');
+  const [statusFiltro, setStatusFiltro] = useState<string>('todos');
+  const [viewMode, setViewMode] = useState<'cards' | 'lista'>('cards');
   const [isNovoModalOpen, setIsNovoModalOpen] = useState(false);
   const [produtoEditando, setProdutoEditando] = useState<ProdutoFocus | null>(null);
 
@@ -124,15 +123,6 @@ export function CatalogoProdutos({ produtos, onSelectProduto, onAddProduto, onUp
                 title="Modo Cards com Capa"
               >
                 <LayoutGrid className="h-3.5 w-3.5" />
-              </Button>
-              <Button
-                variant={viewMode === 'grade' ? 'default' : 'ghost'}
-                size="icon"
-                className="h-7 w-7"
-                onClick={() => setViewMode('grade')}
-                title="Modo Grade Compacta"
-              >
-                <Grid3X3 className="h-3.5 w-3.5" />
               </Button>
               <Button
                 variant={viewMode === 'lista' ? 'default' : 'ghost'}
