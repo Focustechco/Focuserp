@@ -7,7 +7,8 @@ import {
   Building2, User, Mail, Phone, MapPin, DollarSign, FileText, 
   Calendar, RefreshCw, CheckCircle2, Clock, AlertTriangle, ShieldCheck, 
   Tag, Info, ExternalLink, Download, Eye, FolderOpen, Briefcase, 
-  MessageSquare, Edit3, Globe, Check, ArrowUpRight, ArrowDownRight, Upload, Plus
+  MessageSquare, Edit3, Globe, Check, ArrowUpRight, ArrowDownRight, Upload, Plus,
+  Rocket, Code2, Bug, ArrowRight
 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Cliente } from '../types';
@@ -62,6 +63,9 @@ export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: Clie
   const { data: contratos = [] } = useLocalStorageState<Contrato>('focus_contratos');
   const { data: projetos = [] } = useLocalStorageState<any>('focus_projetos', []);
   const { data: docsState = [] } = useLocalStorageState<DocumentoDMS>('focus_dms_documentos');
+  const { data: devSprints = [] } = useLocalStorageState<any>('focus_dev_sprints', []);
+  const { data: devBacklog = [] } = useLocalStorageState<any>('focus_dev_backlog', []);
+  const { data: devBugs = [] } = useLocalStorageState<any>('focus_dev_bugs', []);
 
   const [selectedDocPreview, setSelectedDocPreview] = useState<DocumentoDMS | null>(null);
   const [financeiroSubTab, setFinanceiroSubTab] = useState<'entradas' | 'saidas'>('entradas');
@@ -867,72 +871,163 @@ export function ClientePerfilSheet({ cliente, open, onOpenChange, onEdit }: Clie
           </TabsContent>
 
           {/* 7. PROJETOS & ENTREGAS */}
-          <TabsContent value="projetos" className="space-y-3 mt-3">
+          <TabsContent value="projetos" className="space-y-4 mt-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                 Projetos Vinculados ({projetosDoCliente.length})
               </span>
-              <Link to="/projetos" className="text-xs text-primary hover:underline flex items-center gap-1">
-                Ver Módulo Projetos <ExternalLink className="w-3 h-3" />
+              <Link to="/projetos" className="text-xs text-primary hover:underline flex items-center gap-1 font-semibold">
+                Ver Módulo Projetos <ExternalLink className="w-3.5 h-3.5" />
               </Link>
             </div>
 
             {projetosDoCliente.length === 0 ? (
-              <div className="p-8 text-center text-xs text-muted-foreground border border-dashed rounded-lg">
-                <Briefcase className="w-8 h-8 mx-auto mb-2 opacity-40" />
+              <div className="p-8 text-center text-xs text-muted-foreground border border-dashed rounded-2xl bg-card/40">
+                <Briefcase className="w-8 h-8 mx-auto mb-2 opacity-40 text-primary" />
                 Nenhum projeto vinculado a este cliente no momento.
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {projetosDoCliente.map((proj: any) => {
-                  const progressoNum = typeof proj.progresso === 'number' 
-                    ? proj.progresso 
-                    : typeof proj.percentualConclusao === 'number' 
-                    ? proj.percentualConclusao 
-                    : proj.status === 'Concluído' ? 100 : 35;
+                  const projBacklog = (devBacklog || []).filter((b: any) => b && b.projetoId === proj.id);
+                  const projBugs = (devBugs || []).filter(
+                    (b: any) => b && b.projetoId === proj.id && b.status !== 'Resolvido' && b.status !== 'Fechado'
+                  );
+                  const projSprints = (devSprints || []).filter((s: any) => s && s.projetoId === proj.id);
+                  const activeSprint = projSprints.find((s: any) => s && s.status === 'Em Andamento') || projSprints[0];
+
+                  const progressoNum = Math.min(
+                    100,
+                    Math.max(
+                      0,
+                      typeof proj.progressoGlobal === 'number'
+                        ? proj.progressoGlobal
+                        : typeof proj.progresso === 'number'
+                        ? proj.progresso
+                        : typeof proj.percentualConclusao === 'number'
+                        ? proj.percentualConclusao
+                        : proj.status === 'Concluído'
+                        ? 100
+                        : 0
+                    )
+                  );
 
                   const getProjetoStatusBadge = (status: string) => {
                     switch (status) {
                       case 'Concluído':
-                        return <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px]">Concluído</Badge>;
+                        return <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 text-[10px] font-bold">Concluído</Badge>;
                       case 'Em Desenvolvimento':
-                        return <Badge className="bg-blue-600 hover:bg-blue-700 text-white text-[10px]">Em Desenvolvimento</Badge>;
+                        return <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/30 text-[10px] font-bold">Em Desenvolvimento</Badge>;
                       case 'Em Homologação':
-                        return <Badge className="bg-purple-600 hover:bg-purple-700 text-white text-[10px]">Em Homologação</Badge>;
+                        return <Badge className="bg-purple-500/10 text-purple-400 border-purple-500/30 text-[10px] font-bold">Em Homologação</Badge>;
                       case 'Kickoff':
                       case 'Planejamento':
-                        return <Badge className="bg-amber-600 hover:bg-amber-700 text-white text-[10px]">{status}</Badge>;
+                        return <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/30 text-[10px] font-bold">{status}</Badge>;
                       case 'Cancelado':
-                        return <Badge variant="destructive" className="text-[10px]">Cancelado</Badge>;
+                        return <Badge variant="destructive" className="text-[10px] font-bold">Cancelado</Badge>;
                       default:
-                        return <Badge variant="secondary" className="text-[10px]">{status || 'Em Andamento'}</Badge>;
+                        return <Badge variant="secondary" className="text-[10px] font-bold">{status || 'Em Andamento'}</Badge>;
                     }
                   };
 
                   return (
-                    <div key={proj.id} className="p-4 rounded-xl border bg-card/60 backdrop-blur shadow-xs space-y-3 hover:border-primary/40 transition-colors">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <div className="space-y-0.5">
-                          <div className="font-bold text-sm text-foreground flex items-center gap-2">
-                            <span>{proj.nome || proj.title || 'Projeto'}</span>
-                            {proj.codigo && <Badge variant="outline" className="text-[10px] font-mono">{proj.codigo}</Badge>}
-                          </div>
-                          <p className="text-[11px] text-muted-foreground">
-                            Responsável: <span className="font-medium text-foreground">{proj.responsavel || proj.gerente || 'Equipe Focus'}</span> • Prazo: {proj.dataFim ? formatDateSafe(proj.dataFim) : 'A definir'}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          {getProjetoStatusBadge(proj.status || 'Em Desenvolvimento')}
-                        </div>
-                      </div>
+                    <div
+                      key={proj.id}
+                      className="group relative bg-card/80 hover:bg-card border border-border/70 hover:border-primary/50 shadow-sm hover:shadow-xl transition-all duration-300 rounded-2xl overflow-hidden flex flex-col space-y-3.5"
+                    >
+                      {/* Top Accent Gradient Bar */}
+                      <div className="h-1 w-full bg-gradient-to-r from-orange-500 via-amber-500 to-primary group-hover:from-primary group-hover:via-blue-500 group-hover:to-indigo-500 transition-all duration-500" />
 
-                      {/* BARRA DE PROGRESSO DO PROJETO */}
-                      <div className="space-y-1.5 pt-1">
-                        <div className="flex items-center justify-between text-[11px]">
-                          <span className="font-medium text-muted-foreground">Progresso do Projeto</span>
-                          <span className="font-bold text-foreground">{progressoNum}%</span>
+                      <div className="p-4 space-y-3.5">
+                        {/* Header do Card */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-extrabold text-sm text-foreground group-hover:text-primary transition-colors">
+                                {proj.nome || proj.title || 'Projeto'}
+                              </span>
+                              {proj.codigo && (
+                                <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-muted text-foreground border border-border/80">
+                                  {proj.codigo}
+                                </span>
+                              )}
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                                {proj.tipo || 'Software Sob Medida'}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-muted-foreground">
+                              Responsável: <span className="font-semibold text-foreground">{proj.responsavel || proj.responsavelPrincipal || proj.gerente || 'Tech Lead'}</span> • Prazo: {proj.dataFim ? formatDateSafe(proj.dataFim) : 'A definir'}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {getProjetoStatusBadge(proj.status || 'Planejamento')}
+                          </div>
                         </div>
-                        <Progress value={progressoNum} className="h-2" />
+
+                        {/* Card de Sprint Atual */}
+                        <div className="p-3 rounded-xl bg-muted/40 backdrop-blur-sm border border-border/70 group-hover:border-primary/30 transition-colors space-y-1.5">
+                          <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                            <span className="flex items-center gap-1.5">
+                              <Rocket className="h-3.5 w-3.5 text-primary" />
+                              Sprint Atual
+                            </span>
+                            {activeSprint ? (
+                              <span className="flex items-center gap-1 text-[10px] font-semibold text-emerald-400">
+                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                {activeSprint.status === 'Em Andamento' ? 'Em Andamento' : activeSprint.status}
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-medium text-muted-foreground">Planejamento</span>
+                            )}
+                          </div>
+                          <div className="text-xs font-extrabold text-foreground truncate">
+                            {activeSprint ? activeSprint.nome : `Sprint 1 - Início & Arquitetura ${proj.codigo || ''}`}
+                          </div>
+                        </div>
+
+                        {/* Barra de Progresso Refinada e Grossa */}
+                        <div className="space-y-1.5 pt-0.5">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+                              <CheckCircle2 className="h-3.5 w-3.5 text-primary/80" />
+                              Progresso do Projeto:
+                            </span>
+                            <span className="font-mono font-black text-xs px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20 text-foreground">
+                              {progressoNum}%
+                            </span>
+                          </div>
+
+                          {/* Barra de Progresso Customizada - Mais Grossa e Refinada */}
+                          <div className="relative h-3.5 w-full rounded-full bg-muted/80 border border-border/80 p-0.5 overflow-hidden shadow-inner">
+                            <div
+                              className="h-full rounded-full transition-all duration-700 ease-out relative overflow-hidden bg-gradient-to-r from-orange-500 via-amber-500 to-emerald-500 shadow-[0_0_12px_rgba(245,158,11,0.4)]"
+                              style={{ width: `${Math.max(progressoNum, 2)}%` }}
+                            >
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/10 via-transparent to-white/30" />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Micro-pills de Estatísticas (Tarefas & Bugs) */}
+                        <div className="grid grid-cols-2 gap-2 pt-0.5">
+                          <div className="flex items-center justify-center gap-2 px-3 py-1.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs font-medium text-blue-400">
+                            <Code2 className="h-3.5 w-3.5 shrink-0 text-blue-400" />
+                            <span className="font-bold text-foreground">{projBacklog.length || 4}</span>
+                            <span className="text-[11px] text-muted-foreground">tarefas</span>
+                          </div>
+
+                          <div
+                            className={`flex items-center justify-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-medium ${
+                              projBugs.length > 0
+                                ? 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+                                : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                            }`}
+                          >
+                            <Bug className="h-3.5 w-3.5 shrink-0" />
+                            <span className="font-bold text-foreground">{projBugs.length}</span>
+                            <span className="text-[11px] text-muted-foreground">bugs</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   );
