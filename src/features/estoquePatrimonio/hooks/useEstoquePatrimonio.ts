@@ -38,13 +38,19 @@ export function useEstoquePatrimonio() {
   } = useLocalStorageState<EstoqueItem>('focus_itam_estoque_itens', INITIAL_ESTOQUE_ITENS);
 
   const estoqueItens = (Array.isArray(estoqueItensRaw) ? estoqueItensRaw : [])
-    .filter(item => item && (item.nome || item.codigo))
+    .filter(item => item && (item.nome || item.codigo || item.descricao || (item as any).titulo || (item as any).itemNome || item.id))
     .map(item => ({
       ...item,
+      id: item.id || crypto.randomUUID(),
+      nome: item.nome || (item as any).titulo || (item as any).itemNome || (item as any).name || item.descricao || 'Item de Estoque',
+      codigo: item.codigo || (item as any).sku || `EST-${(item.id || '').slice(0, 4).toUpperCase()}`,
       quantidade: Number(item.quantidade) || 0,
       quantidadeMinima: Number(item.quantidadeMinima) || 0,
       valorUnitario: Number(item.valorUnitario) || 0,
       estadoConservacao: item.estadoConservacao || 'Bom',
+      localizacao: item.localizacao || 'Estoque Central',
+      status: item.status || 'Disponível',
+      categoria: item.categoria || 'Geral',
     }));
 
   const {
@@ -586,6 +592,7 @@ export function useEstoquePatrimonio() {
     addManutencao,
     updateManutencao,
     deleteManutencao,
+    abrirManutencao: abrirManutencaoComFinanceiro,
     abrirManutencaoComFinanceiro,
     lancarContaPagar,
     lancarContaReceber,

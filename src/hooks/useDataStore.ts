@@ -121,6 +121,28 @@ function isValidItem(table: string, item: any): boolean {
     return Boolean(item.id && (item.cliente || item.valor !== undefined || item.tituloReferencia));
   }
 
+  if (table.includes('equipamento')) {
+    return Boolean(item.id && (item.codigoPatrimonial || item.modelo || item.marca || item.categoria || item.nome));
+  }
+  if (table.includes('estoque') || table.includes('almoxarifado')) {
+    return Boolean(item.id && (item.nome || item.descricao || item.codigo || item.categoria || item.localizacao || item.titulo || item.itemNome));
+  }
+  if (table.includes('licenca') || table.includes('software')) {
+    return Boolean(item.id && (item.nome || item.fabricante || item.plano || item.software));
+  }
+  if (table.includes('patrimonio') || table.includes('ativo')) {
+    return Boolean(item.id && (item.numeroPatrimonial || item.codigoInterno || item.categoria || item.nome || item.descricao));
+  }
+  if (table.includes('movimentac')) {
+    return Boolean(item.id && (item.tipo || item.dataHora || item.equipamentoNome || item.estoqueItemNome || item.usuarioNome));
+  }
+  if (table.includes('inventario')) {
+    return Boolean(item.id && (item.titulo || item.dataInicio || item.responsavelNome));
+  }
+  if (table.includes('manutenc')) {
+    return Boolean(item.id && (item.equipamentoNome || item.equipamentoCodigo || item.descricao || item.tipo));
+  }
+
   // Expurgar dados mockados residuais antigos em RH, Comercial e Assinaturas
   const LEGACY_MOCK_IDS = [
     'fer-1', 'fer-2', 'fer-3',
@@ -134,7 +156,6 @@ function isValidItem(table: string, item: any): boolean {
     'doc-sign-1', 'doc-sign-2', 'doc-sign-3',
     'mod-1', 'mod-2', 'mod-3',
     'cert-1', 'cert-2',
-    'eq-1', 'eq-2', 'eq-3', 'eq-4',
     'meta-1', 'meta-2', 'meta-3',
     'okr-1', 'okr-2',
     'prod-1', 'prod-2',
@@ -142,7 +163,6 @@ function isValidItem(table: string, item: any): boolean {
     'tab-1', 'tab-2',
     'prop-1', 'prop-2',
     'sc-1', 'sc-2',
-    'est-1', 'est-2',
     'pb-1', 'pb-2',
     'atv-1', 'atv-2', 'atv-3',
     'ag-1', 'ag-2', 'ag-3',
@@ -166,42 +186,168 @@ function isValidItem(table: string, item: any): boolean {
 }
 
 /**
- * Helper to safely read from localStorage and auto-heal contaminated cache
+ * Retorna todas as chaves candidatas de armazenamento local para uma dada tabela/módulo
+ */
+export function getCandidateKeysForTable(table: string): string[] {
+  const keys = new Set<string>([`focus_app_${table}`, table, `focus_${table}`]);
+
+  if (table.includes('equipamento')) {
+    [
+      'focus_itam_equipamentos',
+      'focus_app_focus_itam_equipamentos',
+      'focus_equipamentos',
+      'focus_app_equipamentos',
+      'equipamentos',
+      'focus_itam_equipamento',
+      'focus_equipamento',
+      'focus_patrimonio_equipamentos',
+      'focus_app_patrimonio_equipamentos',
+      'focus_app_focus_equipamentos',
+    ].forEach((k) => keys.add(k));
+  }
+
+  if (table.includes('estoque') || table.includes('almoxarifado')) {
+    [
+      'focus_itam_estoque_itens',
+      'focus_app_focus_itam_estoque_itens',
+      'focus_estoque_itens',
+      'focus_app_estoque_itens',
+      'focus_estoque',
+      'focus_app_estoque',
+      'estoque_itens',
+      'estoque',
+      'focus_itam_estoque',
+      'focus_app_itam_estoque',
+      'focus_almoxarifado',
+      'focus_app_almoxarifado',
+      'focus_itens_estoque',
+      'focus_app_itens_estoque',
+      'focus_app_focus_estoque_itens',
+      'focus_app_focus_estoque',
+    ].forEach((k) => keys.add(k));
+  }
+
+  if (table.includes('licenca') || table.includes('software')) {
+    [
+      'focus_itam_licencas',
+      'focus_app_focus_itam_licencas',
+      'focus_licencas',
+      'focus_app_licencas',
+      'licencas',
+      'focus_licenca',
+      'focus_app_licenca',
+      'focus_softwares',
+      'focus_software_licencas',
+      'focus_app_focus_licencas',
+    ].forEach((k) => keys.add(k));
+  }
+
+  if (table.includes('patrimonio') || table.includes('ativo')) {
+    [
+      'focus_itam_patrimonios',
+      'focus_app_focus_itam_patrimonios',
+      'focus_patrimonios',
+      'focus_app_patrimonios',
+      'focus_patrimonio',
+      'focus_app_patrimonio',
+      'patrimonios',
+      'patrimonio',
+      'focus_ativos',
+      'focus_app_ativos',
+      'focus_ativos_patrimonio',
+      'focus_app_focus_patrimonios',
+    ].forEach((k) => keys.add(k));
+  }
+
+  if (table.includes('movimentac')) {
+    [
+      'focus_itam_movimentacoes',
+      'focus_app_focus_itam_movimentacoes',
+      'focus_movimentacoes',
+      'focus_app_movimentacoes',
+      'movimentacoes',
+      'focus_movimentacao',
+      'focus_app_focus_movimentacoes',
+    ].forEach((k) => keys.add(k));
+  }
+
+  if (table.includes('inventario')) {
+    [
+      'focus_itam_inventarios',
+      'focus_app_focus_itam_inventarios',
+      'focus_inventarios',
+      'focus_app_inventarios',
+      'inventarios',
+      'focus_inventario',
+      'focus_app_focus_inventarios',
+    ].forEach((k) => keys.add(k));
+  }
+
+  if (table.includes('manutenc')) {
+    [
+      'focus_itam_manutencoes',
+      'focus_app_focus_itam_manutencoes',
+      'focus_manutencoes',
+      'focus_app_manutencoes',
+      'manutencoes',
+      'focus_manutencao',
+      'focus_app_focus_manutencoes',
+    ].forEach((k) => keys.add(k));
+  }
+
+  return Array.from(keys);
+}
+
+/**
+ * Helper to safely read from localStorage and auto-heal contaminated cache with multi-key recovery
  */
 function readLocalCache<T>(table: string, fallback: T[]): T[] {
   if (typeof window === 'undefined') return fallback;
   try {
-    const keysToTry = [`focus_app_${table}`, table, `focus_${table}`];
+    const keysToTry = getCandidateKeysForTable(table);
+    const aggregatedItems = new Map<string, any>();
+
     for (const k of keysToTry) {
       const raw = safeGetItem(k);
       if (raw !== null && raw !== undefined) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) {
-          // Auto-heal: se o cache foi contaminado por pastas do DMS, expurgar a chave
-          if (table !== 'focus_dms_pastas' && parsed.some(isDmsFolderObject)) {
-            safeRemoveItem(k);
-            continue;
-          }
+        try {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            // Auto-heal: se o cache foi contaminado por pastas do DMS, expurgar a chave
+            if (table !== 'focus_dms_pastas' && parsed.some(isDmsFolderObject)) {
+              safeRemoveItem(k);
+              continue;
+            }
 
-          const valid = parsed.filter(it => isValidItem(table, it));
-          return valid;
-        }
+            const valid = parsed.filter((it) => isValidItem(table, it));
+            valid.forEach((it) => {
+              if (it && it.id && !aggregatedItems.has(String(it.id))) {
+                aggregatedItems.set(String(it.id), it);
+              }
+            });
+          }
+        } catch {}
       }
+    }
+
+    if (aggregatedItems.size > 0) {
+      return Array.from(aggregatedItems.values());
     }
   } catch {}
   return fallback;
 }
 
 /**
- * Helper to safely write to localStorage
+ * Helper to safely write to localStorage across all candidate aliases
  */
 function writeLocalCache<T>(table: string, items: T[]) {
   if (typeof window === 'undefined') return;
   try {
     const serialized = JSON.stringify(items);
-    safeSetItem(`focus_app_${table}`, serialized);
-    safeSetItem(table, serialized);
-    safeSetItem(`focus_${table}`, serialized);
+    const keys = getCandidateKeysForTable(table);
+    for (const k of keys) {
+      safeSetItem(k, serialized);
+    }
   } catch {}
 }
 
@@ -962,7 +1108,8 @@ export function useLocalStorageState<T extends { id: string }>(
     }
 
     const handleStorageUpdate = (e: StorageEvent) => {
-      if (e.key === `focus_app_${table}` || e.key === table || e.key === `focus_${table}`) {
+      const candidateKeys = getCandidateKeysForTable(table);
+      if (candidateKeys.includes(e.key || '') || e.key === `focus_app_${table}` || e.key === table || e.key === `focus_${table}`) {
         const updated = readLocalCache(table, initialValue);
         if (isMountedRef.current) setData(updated);
       }
