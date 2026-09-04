@@ -80,6 +80,12 @@ BEGIN
     IF EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'notificacoes' AND column_name = 'mensagem') THEN
         ALTER TABLE notificacoes ALTER COLUMN mensagem DROP NOT NULL;
     END IF;
+    IF EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'dms_pastas' AND column_name = 'tenant_id') THEN
+        ALTER TABLE dms_pastas ALTER COLUMN tenant_id DROP NOT NULL;
+    END IF;
+    IF EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'dms_documentos' AND column_name = 'tenant_id') THEN
+        ALTER TABLE dms_documentos ALTER COLUMN tenant_id DROP NOT NULL;
+    END IF;
 END $$;
 
 -- 3. GARANTIR COLUNAS MODERNAS NA TABELA NOTIFICACOES

@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
@@ -21,7 +22,9 @@ import {
   ZoomIn,
   ZoomOut,
   RotateCcw,
+  RotateCw,
   Maximize2,
+  Minimize2,
   Copy,
   Check,
   FileCode,
@@ -35,7 +38,9 @@ import {
   CheckCircle2,
   Printer,
   X,
-  FileCheck
+  FileCheck,
+  Info,
+  Share2
 } from 'lucide-react';
 import { DocumentoDMS } from '../types';
 import { useDocumentosStore } from '../hooks/useDocumentosStore';
@@ -63,8 +68,11 @@ export function DmsPreviewModal({ documento: propDocumento, doc: propDoc, isOpen
   const [showAddVersion, setShowAddVersion] = useState(false);
   const [descAlteracao, setDescAlteracao] = useState('');
   const [zoomLevel, setZoomLevel] = useState(1);
+  const [rotation, setRotation] = useState(0);
   const [copiedCode, setCopiedCode] = useState(false);
   const [resolvedUrl, setResolvedUrl] = useState<string | null>(null);
+  const [showDetailsSheet, setShowDetailsSheet] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -75,6 +83,8 @@ export function DmsPreviewModal({ documento: propDocumento, doc: propDoc, isOpen
     } else {
       setResolvedUrl(documento?.urlConteudo || null);
     }
+    setZoomLevel(1);
+    setRotation(0);
     return () => { isMounted = false; };
   }, [documento?.id, documento?.urlConteudo]);
 
@@ -571,9 +581,147 @@ HISTÓRICO E METADADOS DO ARQUIVO:
     );
   };
 
+  // Painel de Detalhes Reutilizável (Renderizado no Desktop como Sidebar e no Mobile como Sheet)
+  const renderDetailsContent = () => (
+    <div className="flex flex-col h-full justify-between space-y-4 text-xs">
+      <Tabs defaultValue="detalhes" className="w-full">
+        <TabsList className="grid grid-cols-2 w-full mb-3">
+          <TabsTrigger value="detalhes" className="text-xs">Detalhes</TabsTrigger>
+          <TabsTrigger value="versoes" className="text-xs">Versões ({documento.historicoVersoes?.length || 1})</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="detalhes" className="space-y-3">
+          <div className="space-y-2.5 border p-3 rounded-xl bg-muted/20">
+            <div>
+              <span className="text-muted-foreground block text-[10px] font-semibold uppercase">Nome do Arquivo</span>
+              <span className="font-bold text-foreground break-all">{documento.nome}</span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <div>
+                <span className="text-muted-foreground block text-[10px] font-semibold uppercase">Formato</span>
+                <span className="font-semibold text-orange-600 uppercase">{documento.extensao}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground block text-[10px] font-semibold uppercase">Tamanho</span>
+                <span className="font-semibold">{documento.tamanho}</span>
+              </div>
+            </div>
+
+            <div>
+              <span className="text-muted-foreground block text-[10px] font-semibold uppercase">Localização no DMS</span>
+              <span className="font-mono text-[11px] text-muted-foreground break-all">{documento.caminhoPasta}</span>
+            </div>
+
+            <div>
+              <span className="text-muted-foreground block text-[10px] font-semibold uppercase">Módulo Vinculado</span>
+              <Badge variant="outline" className="text-[10px] font-normal">{documento.moduloOrigem}</Badge>
+            </div>
+
+            {documento.clienteNome && (
+              <div>
+                <span className="text-muted-foreground block text-[10px] font-semibold uppercase">Cliente Vinculado</span>
+                <span className="font-semibold text-foreground">{documento.clienteNome}</span>
+              </div>
+            )}
+
+            <div>
+              <span className="text-muted-foreground block text-[10px] font-semibold uppercase">Enviado por</span>
+              <span className="flex items-center gap-1 text-foreground">
+                <User className="w-3 h-3 text-muted-foreground" /> {documento.responsavelUpload}
+              </span>
+            </div>
+
+            <div>
+              <span className="text-muted-foreground block text-[10px] font-semibold uppercase">Data de Envio</span>
+              <span className="text-muted-foreground">{new Date(documento.dataUpload).toLocaleString('pt-BR')}</span>
+            </div>
+          </div>
+
+          {documento.tags && documento.tags.length > 0 && (
+            <div className="space-y-1.5">
+              <span className="text-muted-foreground block text-[10px] font-semibold uppercase">Tags / Palavras-chave</span>
+              <div className="flex flex-wrap gap-1">
+                {documento.tags.map((t, idx) => (
+                  <Badge key={idx} variant="secondary" className="text-[10px] px-1.5 py-0.5">
+                    #{t}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="versoes" className="space-y-3">
+          <div className="space-y-2 max-h-[45vh] overflow-y-auto pr-1">
+            {(documento.historicoVersoes || []).map((v, idx) => (
+              <div key={idx} className="border p-2.5 rounded-lg space-y-1 bg-card">
+                <div className="flex justify-between items-center">
+                  <Badge variant="outline" className="text-[10px] font-bold">
+                    v{v.numeroVersao}
+                  </Badge>
+                  <span className="text-[10px] text-muted-foreground">{new Date(v.dataAlteracao).toLocaleDateString('pt-BR')}</span>
+                </div>
+                <p className="text-[11px] text-foreground">{v.descricaoAlteracao}</p>
+                <p className="text-[10px] text-muted-foreground">Por: {v.alteradoPor} • {v.tamanhoArquivo}</p>
+              </div>
+            ))}
+          </div>
+
+          {!showAddVersion ? (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setShowAddVersion(true)}
+              className="w-full text-xs gap-1 h-8 mt-2"
+            >
+              <UploadCloud className="w-3.5 h-3.5" /> Adicionar Nova Versão
+            </Button>
+          ) : (
+            <div className="space-y-2 border p-3 rounded-lg bg-muted/40 animate-fade-in mt-2">
+              <Label className="text-[11px]">Descrição da Nova Versão</Label>
+              <Textarea
+                placeholder="O que mudou nesta versão?"
+                value={descAlteracao}
+                onChange={e => setDescAlteracao(e.target.value)}
+                className="text-xs h-16"
+              />
+              <div className="flex gap-2 justify-end pt-1">
+                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setShowAddVersion(false)}>
+                  Cancelar
+                </Button>
+                <Button size="sm" className="h-7 text-xs bg-orange-600 hover:bg-orange-700 text-white" onClick={handleAddVersion}>
+                  Salvar Versão
+                </Button>
+              </div>
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+
+      <div className="pt-2 border-t flex flex-col gap-2">
+        <Button
+          size="sm"
+          onClick={handleDownload}
+          className="w-full h-8 gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs"
+        >
+          <Download className="w-3.5 h-3.5" /> Baixar Documento
+        </Button>
+        <Button
+          size="sm"
+          variant="destructive"
+          onClick={handleTrash}
+          className="w-full h-8 gap-1.5 text-xs"
+        >
+          <Trash2 className="w-3.5 h-3.5" /> Mover para Lixeira
+        </Button>
+      </div>
+    </div>
+  );
+
   return (
     <Dialog open={isModalOpen} onOpenChange={(openState) => { if (!openState) handleClose(); }}>
-      <DialogContent className="w-full sm:max-w-6xl h-[95vh] max-h-[95vh] overflow-hidden p-0 border shadow-2xl bg-background flex flex-col">
+      <DialogContent className={`w-full ${isFullscreen ? 'max-w-none h-[100dvh] max-h-[100dvh] rounded-none' : 'sm:max-w-6xl h-[100dvh] sm:h-[95vh] max-h-[100dvh] sm:max-h-[95vh] rounded-none sm:rounded-2xl'} overflow-hidden p-0 border shadow-2xl bg-background flex flex-col transition-all duration-300`}>
         <DialogHeader className="sr-only">
           <DialogTitle>Visualizador de Documentos - {documento.nome}</DialogTitle>
           <DialogDescription>Detalhes e preview seguro do arquivo</DialogDescription>
@@ -581,43 +729,40 @@ HISTÓRICO E METADADOS DO ARQUIVO:
 
         <div className="flex flex-col lg:flex-row h-full flex-1 min-h-0 overflow-hidden">
           
-          {/* PAINEL ESQUERDO: VISUALIZADOR 100% PURO INTEGRADO NA APLICAÇÃO */}
-          <div className="flex-1 bg-slate-950 flex flex-col justify-between min-h-0 border-r border-slate-800 text-slate-100 relative overflow-hidden">
+          {/* =========================================================================
+              PAINEL PRINCIPAL DO DOCUMENTO (100% PROTAGONISTA NA VERSÃO MOBILE & DESKTOP)
+             ========================================================================= */}
+          <div className="flex-1 bg-slate-950 flex flex-col justify-between min-h-0 border-r border-slate-800/80 text-slate-100 relative overflow-hidden">
             
-            {/* Barra de Ferramentas Superior do Visualizador */}
-            <div className="p-2.5 sm:p-3.5 border-b border-slate-800/80 flex items-center justify-between bg-slate-900/90 backdrop-blur-md z-20 shrink-0">
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="border-slate-700 text-slate-300 gap-1 bg-slate-950 text-[10px] sm:text-xs">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /> DMS Secure Viewer
+            {/* Barra de Ferramentas Superior Inteligente */}
+            <div className="p-2 sm:p-3 border-b border-slate-800/80 flex items-center justify-between bg-slate-900/95 backdrop-blur-md z-20 shrink-0 gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 truncate">
+                <Badge variant="outline" className="border-slate-700 text-slate-300 gap-1 bg-slate-950 text-[10px] sm:text-xs shrink-0 px-2 py-0.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+                  <span className="hidden sm:inline">DMS Secure</span>
                 </Badge>
-                {documento.urlConteudo && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={handleOpenInNewTab}
-                    className="h-6 px-2 text-[11px] gap-1 text-slate-300 hover:text-white hover:bg-slate-800"
-                  >
-                    <ExternalLink className="w-3 h-3" /> Abrir em Nova Guia
-                  </Button>
-                )}
+                <span className="font-semibold text-xs sm:text-sm text-slate-200 truncate">{documento.nome}</span>
+                <Badge variant="secondary" className="bg-slate-800 text-slate-400 text-[10px] hidden sm:inline-flex">
+                  v{documento.versaoAtual}
+                </Badge>
               </div>
 
-              {/* Controles de Zoom & Impressão */}
-              <div className="flex items-center gap-1">
+              {/* Controles de Visualização & Ações Rápidas */}
+              <div className="flex items-center gap-1 shrink-0">
                 <Button
                   size="icon"
                   variant="ghost"
-                  className="h-7 w-7 text-slate-400 hover:text-white hover:bg-slate-800"
-                  onClick={handlePrint}
-                  title="Imprimir Documento"
+                  className="h-8 w-8 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg"
+                  onClick={handleRotate}
+                  title="Girar Documento (90°)"
                 >
-                  <Printer className="w-3.5 h-3.5" />
+                  <RotateCw className="w-3.5 h-3.5" />
                 </Button>
                 <Button
                   size="icon"
                   variant="ghost"
-                  className="h-7 w-7 text-slate-400 hover:text-white hover:bg-slate-800"
-                  onClick={() => setZoomLevel(prev => Math.min(prev + 0.15, 2.5))}
+                  className="h-8 w-8 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg"
+                  onClick={() => setZoomLevel(prev => Math.min(prev + 0.2, 3.0))}
                   title="Aumentar Zoom"
                 >
                   <ZoomIn className="w-3.5 h-3.5" />
@@ -625,8 +770,8 @@ HISTÓRICO E METADADOS DO ARQUIVO:
                 <Button
                   size="icon"
                   variant="ghost"
-                  className="h-7 w-7 text-slate-400 hover:text-white hover:bg-slate-800"
-                  onClick={() => setZoomLevel(prev => Math.max(prev - 0.15, 0.5))}
+                  className="h-8 w-8 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg"
+                  onClick={() => setZoomLevel(prev => Math.max(prev - 0.2, 0.4))}
                   title="Diminuir Zoom"
                 >
                   <ZoomOut className="w-3.5 h-3.5" />
@@ -634,16 +779,40 @@ HISTÓRICO E METADADOS DO ARQUIVO:
                 <Button
                   size="icon"
                   variant="ghost"
-                  className="h-7 w-7 text-slate-400 hover:text-white hover:bg-slate-800"
-                  onClick={() => setZoomLevel(1)}
+                  className="h-8 w-8 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg hidden sm:inline-flex"
+                  onClick={() => { setZoomLevel(1); setRotation(0); }}
                   title="Ajustar à Tela (100%)"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
                 </Button>
+                
+                {/* Botão de Tela Cheia */}
                 <Button
                   size="icon"
                   variant="ghost"
-                  className="h-7 w-7 text-slate-400 hover:text-white hover:bg-slate-800 ml-1"
+                  className="h-8 w-8 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg hidden sm:inline-flex"
+                  onClick={() => setIsFullscreen(prev => !prev)}
+                  title={isFullscreen ? "Sair da Tela Cheia" : "Tela Cheia"}
+                >
+                  {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+                </Button>
+
+                {/* Botão de Detalhes no Mobile */}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 px-2.5 text-xs gap-1.5 border-slate-700 bg-slate-800/80 text-slate-200 hover:text-white lg:hidden rounded-lg"
+                  onClick={() => setShowDetailsSheet(true)}
+                >
+                  <Info className="w-3.5 h-3.5 text-orange-500" />
+                  <span className="text-[11px]">Info</span>
+                </Button>
+
+                {/* Botão Fechar */}
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg ml-0.5"
                   onClick={handleClose}
                   title="Fechar"
                 >
@@ -652,151 +821,79 @@ HISTÓRICO E METADADOS DO ARQUIVO:
               </div>
             </div>
 
-            {/* Área Central de Visualização */}
-            <div className="flex-1 overflow-auto flex items-center justify-center p-2 min-h-0 bg-slate-900/40">
+            {/* Área Central de Visualização 100% Pura e Desobstruída */}
+            <div className="flex-1 overflow-auto flex items-center justify-center p-1 sm:p-4 min-h-0 bg-slate-900/60 relative select-none">
               {renderInlineViewer()}
             </div>
 
-            {/* Barra de Ações Inferior */}
-            <div className="p-3 border-t border-slate-800 flex items-center justify-between bg-slate-900/90 text-xs shrink-0">
-              <div className="flex items-center gap-2 truncate">
-                <span className="font-semibold text-slate-200 truncate">{documento.nome}</span>
-                <Badge variant="secondary" className="bg-slate-800 text-slate-400 text-[10px]">
-                  v{documento.versaoAtual}
-                </Badge>
+            {/* Barra de Ações Inferior Mobile-friendly */}
+            <div className="p-2.5 sm:p-3 border-t border-slate-800/80 flex items-center justify-between bg-slate-900/95 text-xs shrink-0 gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2 truncate">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={handleOpenInNewTab}
+                  className="h-7 sm:h-8 px-2 sm:px-3 text-[11px] sm:text-xs gap-1.5 text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Abrir em Nova Guia</span>
+                  <span className="sm:hidden">Abrir</span>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={handlePrint}
+                  className="h-7 sm:h-8 px-2 text-[11px] sm:text-xs gap-1 text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg hidden sm:inline-flex"
+                >
+                  <Printer className="w-3.5 h-3.5" /> Imprimir
+                </Button>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 <Button
                   size="sm"
                   onClick={handleDownload}
-                  className="h-8 gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs"
+                  className="h-7 sm:h-8 px-3 text-[11px] sm:text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg shadow-sm"
                 >
-                  <Download className="w-3.5 h-3.5" /> Baixar Documento
+                  <Download className="w-3.5 h-3.5" /> Baixar
                 </Button>
                 <Button
                   size="sm"
                   variant="destructive"
                   onClick={handleTrash}
-                  className="h-8 gap-1.5 text-xs"
+                  className="h-7 sm:h-8 px-2.5 text-[11px] sm:text-xs gap-1 rounded-lg"
                 >
-                  <Trash2 className="w-3.5 h-3.5" /> Mover para Lixeira
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Lixeira</span>
                 </Button>
               </div>
             </div>
           </div>
 
-          {/* PAINEL DIREITO: METADADOS, HISTÓRICO E AUDITORIA */}
-          <div className="w-full lg:w-80 border-t lg:border-t-0 bg-card p-4 flex flex-col justify-between overflow-y-auto space-y-4 text-xs">
-            <Tabs defaultValue="detalhes" className="w-full">
-              <TabsList className="grid grid-cols-2 w-full mb-3">
-                <TabsTrigger value="detalhes" className="text-xs">Detalhes</TabsTrigger>
-                <TabsTrigger value="versoes" className="text-xs">Versões ({documento.historicoVersoes?.length || 1})</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="detalhes" className="space-y-3">
-                <div className="space-y-2 border p-3 rounded-lg bg-muted/20">
-                  <div>
-                    <span className="text-muted-foreground block text-[10px] font-semibold uppercase">Nome do Arquivo</span>
-                    <span className="font-bold text-foreground break-all">{documento.nome}</span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 pt-1">
-                    <div>
-                      <span className="text-muted-foreground block text-[10px] font-semibold uppercase">Formato</span>
-                      <span className="font-semibold text-orange-600 uppercase">{documento.extensao}</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground block text-[10px] font-semibold uppercase">Tamanho</span>
-                      <span className="font-semibold">{documento.tamanho}</span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <span className="text-muted-foreground block text-[10px] font-semibold uppercase">Localização no DMS</span>
-                    <span className="font-mono text-[11px] text-muted-foreground">{documento.caminhoPasta}</span>
-                  </div>
-
-                  <div>
-                    <span className="text-muted-foreground block text-[10px] font-semibold uppercase">Módulo Vinculado</span>
-                    <Badge variant="outline" className="text-[10px] font-normal">{documento.moduloOrigem}</Badge>
-                  </div>
-
-                  <div>
-                    <span className="text-muted-foreground block text-[10px] font-semibold uppercase">Enviado por</span>
-                    <span className="flex items-center gap-1 text-foreground">
-                      <User className="w-3 h-3 text-muted-foreground" /> {documento.responsavelUpload}
-                    </span>
-                  </div>
-
-                  <div>
-                    <span className="text-muted-foreground block text-[10px] font-semibold uppercase">Data de Envio</span>
-                    <span className="text-muted-foreground">{new Date(documento.dataUpload).toLocaleString('pt-BR')}</span>
-                  </div>
-                </div>
-
-                {documento.tags && documento.tags.length > 0 && (
-                  <div className="space-y-1.5">
-                    <span className="text-muted-foreground block text-[10px] font-semibold uppercase">Tags / Palavras-chave</span>
-                    <div className="flex flex-wrap gap-1">
-                      {documento.tags.map((t, idx) => (
-                        <Badge key={idx} variant="secondary" className="text-[10px] px-1.5 py-0.5">
-                          #{t}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </TabsContent>
-
-              <TabsContent value="versoes" className="space-y-3">
-                <div className="space-y-2">
-                  {(documento.historicoVersoes || []).map((v, idx) => (
-                    <div key={idx} className="border p-2.5 rounded-md space-y-1 bg-card">
-                      <div className="flex justify-between items-center">
-                        <Badge variant="outline" className="text-[10px] font-bold">
-                          v{v.numeroVersao}
-                        </Badge>
-                        <span className="text-[10px] text-muted-foreground">{new Date(v.dataAlteracao).toLocaleDateString('pt-BR')}</span>
-                      </div>
-                      <p className="text-[11px] text-foreground">{v.descricaoAlteracao}</p>
-                      <p className="text-[10px] text-muted-foreground">Por: {v.alteradoPor} • {v.tamanhoArquivo}</p>
-                    </div>
-                  ))}
-                </div>
-
-                {!showAddVersion ? (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setShowAddVersion(true)}
-                    className="w-full text-xs gap-1 h-8 mt-2"
-                  >
-                    <UploadCloud className="w-3.5 h-3.5" /> Adicionar Nova Versão
-                  </Button>
-                ) : (
-                  <div className="space-y-2 border p-3 rounded-lg bg-muted/40 animate-fade-in mt-2">
-                    <Label className="text-[11px]">Descrição da Nova Versão</Label>
-                    <Textarea
-                      placeholder="O que mudou nesta versão?"
-                      value={descAlteracao}
-                      onChange={e => setDescAlteracao(e.target.value)}
-                      className="text-xs h-16"
-                    />
-                    <div className="flex gap-2 justify-end pt-1">
-                      <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setShowAddVersion(false)}>
-                        Cancelar
-                      </Button>
-                      <Button size="sm" className="h-7 text-xs bg-orange-600 hover:bg-orange-700 text-white" onClick={handleAddVersion}>
-                        Salvar Versão
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </TabsContent>
-            </Tabs>
+          {/* =========================================================================
+              PAINEL DIREITO: METADADOS, HISTÓRICO E AUDITORIA (DESKTOP)
+             ========================================================================= */}
+          <div className="hidden lg:flex w-80 bg-card p-4 flex-col justify-between overflow-y-auto space-y-4 text-xs shrink-0">
+            {renderDetailsContent()}
           </div>
         </div>
+
+        {/* =========================================================================
+            BOTTOM SHEET DE DETALHES PARA DISPOSITIVOS MOBILE
+           ========================================================================= */}
+        <Sheet open={showDetailsSheet} onOpenChange={setShowDetailsSheet}>
+          <SheetContent side="bottom" className="rounded-t-2xl p-4 sm:p-6 max-h-[85dvh] overflow-y-auto">
+            <SheetHeader className="mb-3 text-left">
+              <SheetTitle className="text-base font-bold flex items-center gap-2">
+                <Info className="w-4 h-4 text-orange-600" /> Detalhes & Versões do Documento
+              </SheetTitle>
+              <SheetDescription className="text-xs">
+                Metadados completos, histórico de versões e auditoria.
+              </SheetDescription>
+            </SheetHeader>
+            {renderDetailsContent()}
+          </SheetContent>
+        </Sheet>
       </DialogContent>
     </Dialog>
   );

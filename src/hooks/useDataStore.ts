@@ -352,8 +352,50 @@ function writeLocalCache<T>(table: string, items: T[]) {
 }
 
 function toSnakeCasePayload(table: string, item: any): any {
-  const validId = toValidUuid(item.id);
+  const isDms = table.includes('dms') || table.includes('pasta') || table.includes('document');
+  const validId = isDms ? String(item.id) : toValidUuid(item.id);
   const base: any = { id: validId, updated_at: new Date().toISOString() };
+
+  if (table.includes('dms_pasta') || table === 'dms_pastas' || table === 'focus_dms_pastas') {
+    return {
+      id: String(item.id),
+      nome: item.nome,
+      parent_id: item.parentId || item.parent_id || null,
+      caminho_completo: item.caminhoCompleto || item.caminho_completo || `/${item.nome}`,
+      modulo_vinculado: item.moduloVinculado || item.modulo_vinculado || null,
+      data_criacao: item.dataCriacao || item.data_criacao || new Date().toISOString(),
+      criado_por: item.criadoPor || item.criado_por || 'Sistema',
+      updated_at: new Date().toISOString(),
+    };
+  }
+
+  if (table.includes('dms_doc') || table === 'dms_documentos' || table === 'focus_dms_documentos') {
+    return {
+      id: String(item.id),
+      codigo: item.codigo || `DOC-${String(item.id).slice(0, 6).toUpperCase()}`,
+      nome: item.nome,
+      extensao: item.extensao || item.nome?.split('.').pop() || 'pdf',
+      tamanho: item.tamanho || '1.0 MB',
+      tamanho_bytes: Number(item.tamanhoBytes ?? item.tamanho_bytes ?? 0) || 0,
+      pasta_id: item.pastaId || item.pasta_id || 'root',
+      caminho_pasta: item.caminhoPasta || item.caminho_pasta || '/',
+      modulo_origem: item.moduloOrigem || item.modulo_origem || 'Geral',
+      tags: Array.isArray(item.tags) ? item.tags : [],
+      categoria: item.categoria || 'Geral',
+      responsavel_upload: item.responsavelUpload || item.responsavel_upload || 'Sistema',
+      data_upload: item.dataUpload || item.data_upload || new Date().toISOString(),
+      versao_atual: item.versaoAtual || item.versao_atual || '1.0',
+      favorito: Boolean(item.favorito),
+      status: item.status || 'Ativo',
+      historico_versoes: Array.isArray(item.historicoVersoes) ? item.historicoVersoes : [],
+      url_conteudo: (item.urlConteudo && item.urlConteudo.startsWith('data:') && item.urlConteudo.length > 2000) ? null : (item.urlConteudo || item.url_conteudo || null),
+      cliente_id: toNullableValidUuid(item.clienteId || item.cliente_id),
+      projeto_id: toNullableValidUuid(item.projetoId || item.projeto_id),
+      contrato_id: toNullableValidUuid(item.contratoId || item.contrato_id),
+      colaborador_id: toNullableValidUuid(item.colaboradorId || item.colaborador_id),
+      updated_at: new Date().toISOString(),
+    };
+  }
 
   if (table.includes('notificac')) {
     return {
@@ -505,6 +547,39 @@ function toSnakeCasePayload(table: string, item: any): any {
 
 function fromSnakeCaseRow(table: string, row: any): any {
   if (!row) return row;
+
+  if (table.includes('dms_pasta') || table === 'dms_pastas' || table === 'focus_dms_pastas') {
+    return {
+      ...row,
+      id: String(row.id),
+      parentId: row.parent_id ?? row.parentId ?? null,
+      caminhoCompleto: row.caminho_completo || row.caminhoCompleto || `/${row.nome}`,
+      moduloVinculado: row.modulo_vinculado || row.moduloVinculado,
+      dataCriacao: row.data_criacao || row.created_at || row.dataCriacao,
+      criadoPor: row.criado_por || row.criadoPor || 'Sistema',
+    };
+  }
+
+  if (table.includes('dms_doc') || table === 'dms_documentos' || table === 'focus_dms_documentos') {
+    return {
+      ...row,
+      id: String(row.id),
+      tamanhoBytes: Number(row.tamanho_bytes ?? row.tamanhoBytes ?? 0),
+      pastaId: row.pasta_id || row.pastaId,
+      caminhoPasta: row.caminho_pasta || row.caminhoPasta,
+      moduloOrigem: row.modulo_origem || row.moduloOrigem,
+      responsavelUpload: row.responsavel_upload || row.responsavelUpload,
+      dataUpload: row.data_upload || row.created_at || row.dataUpload,
+      dataUltimaAlteracao: row.updated_at || row.data_upload || row.dataUpload,
+      versaoAtual: row.versao_atual || row.versaoAtual || '1.0',
+      urlConteudo: row.url_conteudo || row.urlConteudo,
+      historicoVersoes: Array.isArray(row.historico_versoes) ? row.historico_versoes : (row.historicoVersoes || []),
+      clienteId: row.cliente_id || row.clienteId,
+      projetoId: row.projeto_id || row.projetoId,
+      contratoId: row.contrato_id || row.contratoId,
+      colaboradorId: row.colaborador_id || row.colaboradorId,
+    };
+  }
 
   if (table.includes('notificac')) {
     return {
