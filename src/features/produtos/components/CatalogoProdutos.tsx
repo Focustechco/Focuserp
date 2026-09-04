@@ -33,7 +33,7 @@ export function CatalogoProdutos({ produtos, onSelectProduto, onAddProduto, onUp
   const [searchTerm, setSearchTerm] = useState('');
   const [categoriaFilter, setCategoriaFilter] = useState<string>('todos');
   const [statusFilter, setStatusFilter] = useState<string>('todos');
-  const [viewMode, setViewMode] = useState<'cards' | 'lista'>('cards');
+  const [viewMode, setViewMode] = useState<'cards' | 'lista'>('lista');
   const [isNovoModalOpen, setIsNovoModalOpen] = useState(false);
   const [produtoEditando, setProdutoEditando] = useState<ProdutoFocus | null>(null);
 

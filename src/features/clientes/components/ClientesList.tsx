@@ -19,7 +19,7 @@ import { toast } from 'sonner';
 
 export function ClientesList() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [viewMode, setViewMode] = useState<'table' | 'cards'>('cards');
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
   const { clientes, isLoading, saveCliente, deleteCliente } = useClientesQuery();
 
   // Estados para o Modal Lateral (Sheet) de Perfil Read-Only

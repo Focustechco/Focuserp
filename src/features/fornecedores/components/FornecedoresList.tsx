@@ -31,7 +31,7 @@ import { useNavigate } from '@tanstack/react-router';
 
 export function FornecedoresList() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [viewMode, setViewMode] = useState<'table' | 'cards'>('cards');
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
   const [categoriaFilter, setCategoriaFilter] = useState<string>('todas');
   const [statusFilter, setStatusFilter] = useState<string>('todos');
   
