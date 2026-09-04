@@ -139,6 +139,10 @@ export function DmsPreviewModal({ documento: propDocumento, doc: propDoc, isOpen
     window.print();
   };
 
+  const handleRotate = () => {
+    setRotation(prev => (prev + 90) % 360);
+  };
+
   const handleDownload = () => {
     logAction(documento.id, documento.nome, 'Download', `Download da versão ${documento.versaoAtual}`);
 
