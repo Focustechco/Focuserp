@@ -76,6 +76,27 @@ export function MobileHeader({ onOpenDrawer, onOpenMenu, onOpenSearch }: MobileH
   const isHome = pathname === "/";
   const currentTitle = ROUTE_TITLES[pathname] || "Focus ERP";
 
+  // Saudação Dinâmica por Horário
+  const greeting = React.useMemo(() => {
+    const hora = new Date().getHours();
+    if (hora >= 5 && hora < 12) return "Bom dia";
+    if (hora >= 12 && hora < 18) return "Boa tarde";
+    return "Boa noite";
+  }, []);
+
+  const dataHojeFormatada = React.useMemo(() => {
+    const now = new Date();
+    const dia = String(now.getDate()).padStart(2, "0");
+    const mes = String(now.getMonth() + 1).padStart(2, "0");
+    const ano = now.getFullYear();
+    return `${dia}/${mes}/${ano}`;
+  }, []);
+
+  const primeiroNome = React.useMemo(() => {
+    const nomeCompleto = currentUser?.nome || "Adriano";
+    return nomeCompleto.split(" ")[0];
+  }, [currentUser]);
+
   const getInitials = (nameStr?: string) => {
     return (nameStr || "AD")
       .split(" ")
@@ -87,27 +108,29 @@ export function MobileHeader({ onOpenDrawer, onOpenMenu, onOpenSearch }: MobileH
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full bg-white dark:bg-zinc-900 border-b border-slate-200/80 dark:border-zinc-800 shadow-2xs pt-[env(safe-area-inset-top,0px)]">
-        {/* Linha de Destaque Laranja Focus no Topo */}
-        <div className="h-1 w-full bg-[#FF6A00]" />
-
-        <div className="flex h-13 items-center justify-between px-3 sm:px-4">
+      <header className="sticky top-0 z-40 w-full bg-[#FF5000] text-white shadow-md pt-[env(safe-area-inset-top,0px)]">
+        <div className="flex h-16 items-center justify-between px-3 sm:px-4">
           {/* LADO ESQUERDO */}
-          <div className="flex items-center gap-2.5 min-w-0">
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
             {isHome ? (
               <>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={handleOpenDrawer}
-                  className="h-9 w-9 text-slate-800 dark:text-zinc-100 hover:bg-orange-500/10 rounded-xl shrink-0"
+                  className="h-10 w-10 text-white hover:bg-white/20 active:bg-white/30 rounded-xl shrink-0 p-0 -ml-1"
                   aria-label="Abrir Menu de Módulos"
                 >
-                  <Menu className="h-5 w-5 text-slate-800 dark:text-zinc-100" />
+                  <Menu className="h-6 w-6 text-white" />
                 </Button>
-                <div className="flex items-center gap-1.5 select-none">
-                  <span className="font-extrabold text-base tracking-tight text-slate-900 dark:text-white">Focus</span>
-                  <span className="font-extrabold text-base tracking-tight text-[#FF6A00]">ERP</span>
+                <div className="min-w-0 pr-2">
+                  <h1 className="text-base sm:text-lg font-normal text-white tracking-tight leading-tight truncate">
+                    {greeting},{" "}
+                    <span className="font-bold">{primeiroNome}</span>
+                  </h1>
+                  <p className="text-[11px] text-white/90 font-normal truncate mt-0.5">
+                    Painel principal • {dataHojeFormatada}
+                  </p>
                 </div>
               </>
             ) : (
@@ -116,12 +139,12 @@ export function MobileHeader({ onOpenDrawer, onOpenMenu, onOpenSearch }: MobileH
                   variant="ghost"
                   size="icon"
                   onClick={() => navigate({ to: "/" })}
-                  className="h-9 w-9 text-slate-800 dark:text-zinc-100 hover:bg-orange-500/10 rounded-xl shrink-0"
+                  className="h-9 w-9 text-white hover:bg-white/20 active:bg-white/30 rounded-xl shrink-0 -ml-1"
                   aria-label="Voltar ao Início"
                 >
-                  <ArrowLeft className="h-5 w-5 text-slate-800 dark:text-zinc-100" />
+                  <ArrowLeft className="h-6 w-6 text-white" />
                 </Button>
-                <h1 className="text-base font-bold text-slate-900 dark:text-white truncate max-w-[210px]">
+                <h1 className="text-base sm:text-lg font-bold text-white truncate max-w-[220px]">
                   {currentTitle}
                 </h1>
               </>
@@ -129,35 +152,33 @@ export function MobileHeader({ onOpenDrawer, onOpenMenu, onOpenSearch }: MobileH
           </div>
 
           {/* LADO DIREITO (AÇÕES) */}
-          <div className="flex items-center gap-1 shrink-0">
-            {/* Sino de Notificações na Home */}
-            {isHome && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => navigate({ to: "/notificacoes" })}
-                className="h-9 w-9 text-slate-700 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-white rounded-xl relative"
-                aria-label="Notificações"
-              >
-                <Bell className="h-4.5 w-4.5" />
-                {naoLidasCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#FF6A00] px-1 text-[9px] font-bold text-white shadow-xs">
-                    {naoLidasCount > 9 ? "9+" : naoLidasCount}
-                  </span>
-                )}
-              </Button>
-            )}
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Sino de Notificações */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate({ to: "/notificacoes" })}
+              className="h-9 w-9 text-white hover:bg-white/20 active:bg-white/30 rounded-full relative"
+              aria-label="Notificações"
+            >
+              <Bell className="h-5 w-5 text-white" />
+              {naoLidasCount > 0 && (
+                <span className="absolute top-1 right-1 flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-white px-0.5 text-[8px] font-extrabold text-[#FF5000] shadow-xs">
+                  {naoLidasCount > 9 ? "9+" : naoLidasCount}
+                </span>
+              )}
+            </Button>
 
             {/* Avatar / Perfil do Usuário */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
-                  className="h-8 w-8 rounded-full ring-2 ring-[#FF6A00]/30 hover:ring-[#FF6A00] focus:outline-none focus:ring-2 focus:ring-[#FF6A00] transition-all overflow-hidden flex items-center justify-center bg-orange-50 dark:bg-zinc-800 ml-1 cursor-pointer"
+                  className="h-9 w-9 rounded-full ring-2 ring-white/90 hover:ring-white focus:outline-none transition-all overflow-hidden flex items-center justify-center bg-white/20 cursor-pointer shrink-0"
                   aria-label="Menu do Usuário"
                 >
-                  <Avatar className="h-8 w-8">
+                  <Avatar className="h-9 w-9">
                     <AvatarImage src={currentUser?.foto || currentUser?.avatarUrl} className="object-cover" />
-                    <AvatarFallback className="text-[11px] font-bold bg-[#FF6A00]/10 text-[#FF6A00]">
+                    <AvatarFallback className="text-xs font-bold bg-white text-[#FF5000]">
                       {getInitials(currentUser?.nome)}
                     </AvatarFallback>
                   </Avatar>

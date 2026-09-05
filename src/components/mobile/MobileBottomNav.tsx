@@ -39,10 +39,10 @@ export function MobileBottomNav({
           onClick={() => navigate({ to: "/" })}
           className={cn(
             "flex flex-col items-center justify-center gap-1 h-full transition-colors active:scale-95 cursor-pointer",
-            isHome ? "text-[#FF6A00] font-bold" : "text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white"
+            isHome ? "text-[#FF5000] font-bold" : "text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white"
           )}
         >
-          <Home className={cn("h-4.5 w-4.5", isHome && "stroke-[2.5px]")} />
+          <Home className={cn("h-5 w-5", isHome && "stroke-[2.5px]")} />
           <span className="text-[10px] tracking-tight">Início</span>
         </button>
 
@@ -51,18 +51,18 @@ export function MobileBottomNav({
           onClick={onOpenShortcuts || handleCreate}
           className="flex flex-col items-center justify-center gap-1 h-full text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white transition-colors active:scale-95 cursor-pointer"
         >
-          <Zap className="h-4.5 w-4.5" />
+          <Zap className="h-5 w-5" />
           <span className="text-[10px] tracking-tight">Atalhos</span>
         </button>
 
         {/* 3. BOTÃO CENTRAL DESTACADO: CRIAR (+) */}
-        <div className="flex items-center justify-center h-full -mt-3.5">
+        <div className="flex items-center justify-center h-full -mt-4">
           <button
             onClick={handleCreate}
-            className="flex items-center justify-center h-12 w-12 rounded-full bg-[#FF6A00] text-white shadow-md shadow-orange-500/25 hover:scale-105 active:scale-90 transition-all border-4 border-white dark:border-zinc-900 focus:outline-none cursor-pointer"
+            className="flex items-center justify-center h-13 w-13 rounded-full bg-gradient-to-tr from-[#FF3D00] to-[#FF6A00] text-white shadow-lg shadow-orange-500/30 hover:scale-105 active:scale-90 transition-all border-4 border-white dark:border-zinc-900 focus:outline-none cursor-pointer"
             aria-label="Criar Novo Registro"
           >
-            <Plus className="h-5.5 w-5.5 stroke-[3px]" />
+            <Plus className="h-6 w-6 stroke-[3px]" />
           </button>
         </div>
 
@@ -71,13 +71,13 @@ export function MobileBottomNav({
           onClick={() => navigate({ to: "/notificacoes" })}
           className={cn(
             "flex flex-col items-center justify-center gap-1 h-full transition-colors relative active:scale-95 cursor-pointer",
-            isNotifications ? "text-[#FF6A00] font-bold" : "text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white"
+            isNotifications ? "text-[#FF5000] font-bold" : "text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white"
           )}
         >
           <div className="relative">
-            <Bell className={cn("h-4.5 w-4.5", isNotifications && "stroke-[2.5px]")} />
+            <Bell className={cn("h-5 w-5", isNotifications && "stroke-[2.5px]")} />
             {naoLidasCount > 0 && (
-              <span className="absolute -top-1 -right-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#FF6A00] px-1 text-[9px] font-bold text-white shadow-xs">
+              <span className="absolute -top-1 -right-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#FF5000] px-1 text-[9px] font-bold text-white shadow-xs">
                 {naoLidasCount > 9 ? "9+" : naoLidasCount}
               </span>
             )}
