@@ -10,12 +10,13 @@ function toValidUuid(id?: string | null): string {
 
 /**
  * Service de dados reais para o módulo de Recursos Humanos (Colaboradores).
- * Conectado exclusivamente ao Banco de Dados Real (Supabase).
+ * Conectado à tabela relacional de fotos (colaborador_fotos) e colaboradores no Supabase.
  */
 export const colaboradorService = {
   async getColaboradores(): Promise<ColaboradorDTO[]> {
     try {
-      const { data, error } = await supabase
+      // 1. Buscar colaboradores principais
+      const { data: colabs, error } = await supabase
         .from('colaboradores')
         .select('*')
         .order('created_at', { ascending: false });
@@ -25,23 +26,106 @@ export const colaboradorService = {
         return [];
       }
 
-      if (data && data.length > 0) {
-        return data.map((item: any) => ({
-          id: item.id,
-          matricula: item.matricula || `MAT-${String(item.id).slice(0, 4).toUpperCase()}`,
-          nomeCompleto: item.nome || item.nomeCompleto || 'Colaborador',
-          cpf: item.cpf || '000.000.000-00',
-          emailCorporativo: item.email || item.emailCorporativo || 'colaborador@empresa.com',
-          cargo: item.cargo || 'Colaborador',
-          departamento: item.departamento || 'Tecnologia',
-          dataAdmissao: item.data_admissao || item.dataAdmissao || new Date().toISOString().split('T')[0],
-          tipoContrato: item.tipo_contrato || item.tipoContrato || 'CLT',
-          regime: item.regime || 'Híbrido',
-          salarioBase: Number(item.salario_base || item.salarioBase || 0),
-          status: item.status || 'Ativo',
-          metodoPagamento: item.metodo_pagamento || item.metodoPagamento || { formaPagamento: 'PIX' },
-          documentos: item.documentos || [],
-        }));
+      // 2. Buscar fotos na tabela relacional dedicada 'colaborador_fotos'
+      let fotosMap: Record<string, string> = {};
+      try {
+        const { data: fotosRows } = await supabase
+          .from('colaborador_fotos')
+          .select('*');
+
+        if (Array.isArray(fotosRows)) {
+          fotosRows.forEach((row: any) => {
+            const fotoVal = row.foto_base64 || row.foto_url || '';
+            if (fotoVal) {
+              if (row.colaborador_id) fotosMap[String(row.colaborador_id).toLowerCase()] = fotoVal;
+              if (row.colaborador_email) fotosMap[String(row.colaborador_email).toLowerCase()] = fotoVal;
+              if (row.colaborador_matricula) fotosMap[String(row.colaborador_matricula).toLowerCase()] = fotoVal;
+            }
+          });
+        }
+      } catch (errFoto) {
+        console.warn('[colaboradorService] Nota sobre tabela relacional colaborador_fotos:', errFoto);
+      }
+
+      // 3. Buscar espelho de perfis em clients como fallback
+      try {
+        const { data: profileRows } = await supabase
+          .from('clients')
+          .select('name, contact_phone, contact_email')
+          .ilike('name', '__COLABORADOR_PROFILE__%');
+
+        if (Array.isArray(profileRows)) {
+          profileRows.forEach((pRow: any) => {
+            if (pRow.contact_phone) {
+              try {
+                const meta = JSON.parse(pRow.contact_phone);
+                if (meta.foto) {
+                  const targetId = pRow.name.replace('__COLABORADOR_PROFILE__', '').toLowerCase();
+                  if (!fotosMap[targetId]) fotosMap[targetId] = meta.foto;
+                  if (pRow.contact_email && !fotosMap[pRow.contact_email.toLowerCase()]) {
+                    fotosMap[pRow.contact_email.toLowerCase()] = meta.foto;
+                  }
+                }
+              } catch {}
+            }
+          });
+        }
+      } catch {}
+
+      if (colabs && colabs.length > 0) {
+        const mapped = colabs.map((item: any) => {
+          const itemId = String(item.id).toLowerCase();
+          const itemEmail = (item.email || item.emailCorporativo || '').toLowerCase();
+          const itemMat = (item.matricula || '').toLowerCase();
+
+          const resolvedFoto =
+            fotosMap[itemId] ||
+            (itemEmail ? fotosMap[itemEmail] : '') ||
+            (itemMat ? fotosMap[itemMat] : '') ||
+            item.foto ||
+            item.foto_url ||
+            item.avatar_url ||
+            '';
+
+          return {
+            id: item.id,
+            matricula: item.matricula || `FC-${String(item.id).slice(0, 4).toUpperCase()}`,
+            foto: resolvedFoto,
+            fotoUrl: resolvedFoto,
+            avatarUrl: resolvedFoto,
+            nomeCompleto: item.nome || item.nomeCompleto || 'Colaborador',
+            nomeSocial: item.nome_social || item.nomeSocial || undefined,
+            cpf: item.cpf || '000.000.000-00',
+            rg: item.rg || undefined,
+            dataNascimento: item.data_nascimento || item.dataNascimento || '1990-01-01',
+            emailCorporativo: item.email || item.emailCorporativo || 'colaborador@focustecnologia.com.br',
+            emailPessoal: item.email_pessoal || item.emailPessoal || undefined,
+            telefone: item.telefone || '(11) 99999-9999',
+            cargo: item.cargo || 'Colaborador',
+            departamento: item.departamento || 'Tecnologia',
+            setor: item.setor || undefined,
+            centroCusto: item.centro_custo || item.centroCusto || undefined,
+            dataAdmissao: item.data_admissao || item.dataAdmissao || new Date().toISOString().split('T')[0],
+            tipoContrato: item.tipo_contrato || item.tipoContrato || 'CLT',
+            regime: item.regime || 'Híbrido',
+            salarioBase: Number(item.salario_base || item.salarioBase || 0),
+            jornadaTrabalho: item.jornada_trabalho || item.jornadaTrabalho || 'Seg a Sex 09:00 às 18:00',
+            status: item.status || 'Ativo',
+            metodoPagamento: item.metodo_pagamento || item.metodoPagamento || { formaPagamento: 'PIX' },
+            documentos: item.documentos || [],
+          };
+        });
+
+        // Sincronizar cache local
+        if (typeof window !== 'undefined') {
+          try {
+            ['focus_colaboradores', 'focus_app_focus_colaboradores', 'focus_rh_colaboradores'].forEach(key => {
+              window.localStorage.setItem(key, JSON.stringify(mapped));
+            });
+          } catch {}
+        }
+
+        return mapped;
       }
 
       return [];
@@ -55,54 +139,150 @@ export const colaboradorService = {
     const validId = toValidUuid(colaborador.id);
     const validated = colaboradorSchema.parse({ ...colaborador, id: validId });
 
+    const photoContent = validated.foto || validated.fotoUrl || validated.avatarUrl || validated.fotoBase64 || null;
+    const isUrl = photoContent && (photoContent.startsWith('http://') || photoContent.startsWith('https://'));
+
+    // 1. Payload para a tabela principal colaboradores
     const payload = {
       id: validId,
-      matricula: validated.matricula || `MAT-${validId.slice(0, 4).toUpperCase()}`,
+      matricula: validated.matricula || `FC-${validId.slice(0, 4).toUpperCase()}`,
       nome: validated.nomeCompleto,
+      nome_social: validated.nomeSocial || null,
       cpf: validated.cpf || null,
+      rg: validated.rg || null,
       email: validated.emailCorporativo || null,
+      telefone: validated.telefone || null,
       cargo: validated.cargo || 'Colaborador',
-      departamento: validated.departamento || 'Geral',
+      departamento: validated.departamento || 'Tecnologia',
       data_admissao: validated.dataAdmissao || new Date().toISOString().split('T')[0],
+      data_nascimento: validated.dataNascimento || '1990-01-01',
       tipo_contrato: validated.tipoContrato || 'CLT',
+      regime: validated.regime || 'Híbrido',
+      salario_base: validated.salarioBase || 0,
       status: validated.status || 'Ativo',
+      foto: photoContent,
+      avatar_url: photoContent,
+      foto_url: isUrl ? photoContent : null,
+      metodo_pagamento: validated.metodoPagamento || null,
+      documentos: validated.documentos || [],
       updated_at: new Date().toISOString(),
     };
 
-    const { error } = await supabase.from('colaboradores').upsert(payload, { onConflict: 'id' });
-    if (error) {
-      console.warn('[colaboradorService.saveColaborador] Supabase upsert note:', error.message);
+    // Upsert na tabela colaboradores
+    try {
+      const { error: colabErr } = await supabase.from('colaboradores').upsert(payload, { onConflict: 'id' });
+      if (colabErr) {
+        // Fallback para colunas básicas se alguma coluna nova não existir
+        const safePayload = {
+          id: validId,
+          matricula: validated.matricula || `FC-${validId.slice(0, 4).toUpperCase()}`,
+          nome: validated.nomeCompleto,
+          cpf: validated.cpf || null,
+          email: validated.emailCorporativo || null,
+          cargo: validated.cargo || 'Colaborador',
+          departamento: validated.departamento || 'Tecnologia',
+          data_admissao: validated.dataAdmissao || new Date().toISOString().split('T')[0],
+          tipo_contrato: validated.tipoContrato || 'CLT',
+          regime: validated.regime || 'Híbrido',
+          salario_base: validated.salarioBase || 0,
+          status: validated.status || 'Ativo',
+          updated_at: new Date().toISOString(),
+        };
+        await supabase.from('colaboradores').upsert(safePayload, { onConflict: 'id' });
+      }
+    } catch (errColab: any) {
+      console.warn('[colaboradorService.saveColaborador] Supabase upsert note:', errColab?.message);
     }
 
-    // Atualizar cache local
+    // 2. Salvar na Tabela Relacional Dedicada 'colaborador_fotos'
+    if (photoContent) {
+      try {
+        const fotoPayload = {
+          colaborador_id: validId,
+          colaborador_matricula: validated.matricula || null,
+          colaborador_email: validated.emailCorporativo || null,
+          foto_url: isUrl ? photoContent : null,
+          foto_base64: photoContent,
+          tipo_imagem: photoContent.startsWith('data:image/png') ? 'image/png' : 'image/jpeg',
+          tamanho_bytes: photoContent.length,
+          updated_at: new Date().toISOString(),
+        };
+
+        const { error: fotoErr } = await supabase
+          .from('colaborador_fotos')
+          .upsert(fotoPayload, { onConflict: 'colaborador_id' });
+
+        if (fotoErr) {
+          console.warn('[colaboradorService.saveColaborador] Aviso relacional colaborador_fotos:', fotoErr.message);
+        }
+      } catch (errFoto: any) {
+        console.warn('[colaboradorService] Tabela colaborador_fotos fallback:', errFoto?.message);
+      }
+    }
+
+    // 3. Espelhar profile row em clients para garantir sincronização entre abas e mobile
+    try {
+      const profileRowId = toValidUuid(`c01a0000-0000-4000-8000-${validId.slice(-12)}`);
+      await supabase.from('clients').upsert({
+        id: profileRowId,
+        name: `__COLABORADOR_PROFILE__${validId}`,
+        status: 'inativo',
+        contact_email: validated.emailCorporativo || null,
+        contact_phone: JSON.stringify({
+          foto: photoContent,
+          nomeCompleto: validated.nomeCompleto,
+          matricula: validated.matricula,
+          cargo: validated.cargo,
+          departamento: validated.departamento,
+          status: validated.status,
+          metodoPagamento: validated.metodoPagamento,
+        }),
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'id' });
+    } catch {}
+
+    // 4. Atualizar caches locais
+    const resultObj: ColaboradorDTO = { ...validated, id: validId, foto: photoContent || undefined };
     if (typeof window !== 'undefined') {
       try {
-        const raw = window.localStorage.getItem('focus_colaboradores');
-        const list: ColaboradorDTO[] = raw ? JSON.parse(raw) : [];
-        const updated = [{ ...validated, id: validId }, ...list.filter(c => c.id !== validId)];
-        window.localStorage.setItem('focus_colaboradores', JSON.stringify(updated));
-        window.localStorage.setItem('focus_app_focus_colaboradores', JSON.stringify(updated));
+        ['focus_colaboradores', 'focus_app_focus_colaboradores', 'focus_rh_colaboradores'].forEach(key => {
+          const raw = window.localStorage.getItem(key);
+          const list: ColaboradorDTO[] = raw ? JSON.parse(raw) : [];
+          const updated = [resultObj, ...list.filter(c => c.id !== validId)];
+          window.localStorage.setItem(key, JSON.stringify(updated));
+        });
         window.dispatchEvent(new Event('focus_storage_update'));
       } catch {}
     }
 
-    return { ...validated, id: validId };
+    return resultObj;
   },
 
   async deleteColaborador(id: string): Promise<void> {
     if (!id) return;
 
+    // 1. Deletar foto na tabela relacional
     try {
-      const { error } = await supabase.from('colaboradores').delete().eq('id', id);
-      if (error) {
-        console.warn('[colaboradorService.deleteColaborador] Erro ao deletar no Supabase:', error.message);
-      }
+      await supabase.from('colaborador_fotos').delete().eq('colaborador_id', id);
     } catch {}
 
-    // Limpar caches locais
+    // 2. Deletar na tabela colaboradores
+    try {
+      await supabase.from('colaboradores').delete().eq('id', id);
+    } catch (err: any) {
+      console.warn('[colaboradorService.deleteColaborador] Erro ao deletar no Supabase:', err?.message);
+    }
+
+    // 3. Deletar espelho em clients
+    try {
+      const profileRowId = toValidUuid(`c01a0000-0000-4000-8000-${id.slice(-12)}`);
+      await supabase.from('clients').delete().eq('id', profileRowId);
+    } catch {}
+
+    // 4. Limpar caches locais
     if (typeof window !== 'undefined') {
       try {
-        ['focus_colaboradores', 'focus_app_focus_colaboradores', 'focus_app_colaboradores'].forEach(key => {
+        ['focus_colaboradores', 'focus_app_focus_colaboradores', 'focus_rh_colaboradores'].forEach(key => {
           const raw = window.localStorage.getItem(key);
           if (raw) {
             const list: ColaboradorDTO[] = JSON.parse(raw);
@@ -115,3 +295,4 @@ export const colaboradorService = {
     }
   },
 };
+

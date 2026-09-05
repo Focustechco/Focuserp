@@ -68,12 +68,43 @@ export function AbaPessoais({
     const files = e.target.files;
     if (!files || files.length === 0) return;
     const file = files[0];
+    
+    // Otimizar e comprimir foto para banco de dados relacional
     const reader = new FileReader();
     reader.onload = (evt) => {
-      if (evt.target?.result) {
-        setFoto(evt.target.result as string);
-        toast.success("Foto de perfil anexada com sucesso!");
-      }
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const maxDim = 512;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxDim) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          }
+        } else {
+          if (height > maxDim) {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          setFoto(compressedDataUrl);
+          toast.success("Foto de perfil carregada e otimizada com sucesso!");
+        } else {
+          setFoto(evt.target?.result as string);
+          toast.success("Foto de perfil anexada!");
+        }
+      };
+      img.src = evt.target?.result as string;
     };
     reader.readAsDataURL(file);
   };

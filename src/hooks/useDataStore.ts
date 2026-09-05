@@ -1002,23 +1002,57 @@ export function useLocalStorageState<T extends { id: string }>(
           const payload = items.map((item: any) => {
             const validId = toValidUuid(item.id);
             item.id = validId;
+            const photo = item.foto || item.fotoUrl || item.avatarUrl || item.fotoBase64 || null;
             return {
               id: validId,
-              matricula: item.matricula || `COL-${validId.slice(0, 4).toUpperCase()}`,
+              matricula: item.matricula || `FC-${validId.slice(0, 4).toUpperCase()}`,
               nome: item.nome || item.nomeCompleto || item.name || 'Colaborador',
               cargo: item.cargo || 'Especialista',
-              departamento: item.departamento || 'Geral',
+              departamento: item.departamento || 'Tecnologia',
               email: item.email || item.emailCorporativo || null,
               cpf: item.cpf || item.documento || null,
               tipo_contrato: item.tipoContrato || item.tipo_contrato || 'CLT',
+              regime: item.regime || 'Híbrido',
+              salario_base: item.salarioBase || item.salario || 0,
               status: item.status || 'Ativo',
+              foto: photo,
+              avatar_url: photo,
               data_admissao: item.dataAdmissao || item.data_admissao || new Date().toISOString().split('T')[0],
               updated_at: new Date().toISOString(),
             };
           });
           const dedupedPayload = deduplicateById(payload);
           if (dedupedPayload.length > 0) {
-            await supabase.from('colaboradores').upsert(dedupedPayload, { onConflict: 'id' });
+            try {
+              await supabase.from('colaboradores').upsert(dedupedPayload, { onConflict: 'id' });
+            } catch {
+              const safePayload = dedupedPayload.map(p => ({
+                id: p.id,
+                matricula: p.matricula,
+                nome: p.nome,
+                email: p.email,
+                cargo: p.cargo,
+                departamento: p.departamento,
+                status: p.status,
+                updated_at: p.updated_at,
+              }));
+              await supabase.from('colaboradores').upsert(safePayload, { onConflict: 'id' });
+            }
+
+            // Upsert na tabela relacional colaborador_fotos
+            for (const item of dedupedPayload) {
+              if (item.foto) {
+                try {
+                  await supabase.from('colaborador_fotos').upsert({
+                    colaborador_id: item.id,
+                    colaborador_matricula: item.matricula,
+                    colaborador_email: item.email,
+                    foto_base64: item.foto,
+                    updated_at: new Date().toISOString(),
+                  }, { onConflict: 'colaborador_id' });
+                } catch {}
+              }
+            }
           }
         } else if (isClientsTable) {
           const payloadClients = items.map((item: any) => {
@@ -1390,20 +1424,30 @@ export function useLocalStorageState<T extends { id: string }>(
           if (!dbErr && Array.isArray(dbRows)) {
             const mapped = dbRows
               .filter((item: any) => item && (item.nome || item.name) && !isDmsFolderObject(item))
-              .map((item: any) => ({
-                id: String(item.id),
-                matricula: item.matricula || `COL-${String(item.id).slice(0, 4).toUpperCase()}`,
-                nome: item.nome || item.name || 'Colaborador',
-                cargo: item.cargo || 'Especialista',
-                departamento: item.departamento || 'Tecnologia',
-                email: item.email || '',
-                telefone: item.telefone || '',
-                cpf: item.cpf || item.documento || '',
-                salario: Number(item.salario ?? 0) || 0,
-                status: item.status || 'Ativo',
-                dataAdmissao: item.data_admissao || item.dataAdmissao || new Date().toISOString().split('T')[0],
-                createdAt: item.created_at || new Date().toISOString(),
-              })) as unknown as T[];
+              .map((item: any) => {
+                const photo = item.foto || item.foto_url || item.avatar_url || '';
+                return {
+                  id: String(item.id),
+                  matricula: item.matricula || `FC-${String(item.id).slice(0, 4).toUpperCase()}`,
+                  nome: item.nome || item.name || 'Colaborador',
+                  nomeCompleto: item.nome || item.name || 'Colaborador',
+                  cargo: item.cargo || 'Especialista',
+                  departamento: item.departamento || 'Tecnologia',
+                  email: item.email || '',
+                  emailCorporativo: item.email || '',
+                  telefone: item.telefone || '',
+                  cpf: item.cpf || item.documento || '',
+                  salario: Number(item.salario_base || item.salario || 0),
+                  salarioBase: Number(item.salario_base || item.salario || 0),
+                  status: item.status || 'Ativo',
+                  foto: photo,
+                  fotoUrl: photo,
+                  avatarUrl: photo,
+                  metodoPagamento: item.metodo_pagamento || { formaPagamento: 'PIX' },
+                  dataAdmissao: item.data_admissao || item.dataAdmissao || new Date().toISOString().split('T')[0],
+                  createdAt: item.created_at || new Date().toISOString(),
+                };
+              }) as unknown as T[];
 
             setData(mapped);
             writeLocalCache(table, mapped);

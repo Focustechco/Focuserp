@@ -23,10 +23,25 @@ export interface DocumentoAnexoRh {
   dmsDocumentoId?: string;
 }
 
+export interface ColaboradorFoto {
+  id: string;
+  colaboradorId: string;
+  colaboradorMatricula?: string;
+  colaboradorEmail?: string;
+  fotoUrl?: string;
+  fotoBase64?: string;
+  tipoImagem?: string;
+  tamanhoBytes?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface Colaborador {
   id: string;
   matricula: string;
   foto?: string;
+  fotoUrl?: string;
+  avatarUrl?: string;
   nomeCompleto: string;
   nomeSocial?: string;
   cpf: string;
