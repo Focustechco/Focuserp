@@ -213,39 +213,28 @@ export function MobileDashboard() {
     <div className="space-y-4 p-4 pb-28 bg-[#F8F9FA] dark:bg-zinc-950 min-h-screen animate-fade-in">
       {/* 1. SEÇÃO RESUMO OPERACIONAL (Layout Idêntico ao Design Focus) */}
       <div className="space-y-3">
-        {/* Cabeçalho do Resumo Operacional */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-[#FFF4EB] dark:bg-orange-950/40 flex items-center justify-center shrink-0">
-              <BarChart3 className="w-5 h-5 text-[#FF5000]" />
-            </div>
-            <div>
-              <h2 className="text-xs sm:text-sm font-bold text-slate-800 dark:text-zinc-200 uppercase tracking-wider">
-                Resumo Operacional
-              </h2>
-              <p className="text-xs text-slate-500 dark:text-zinc-400">
-                Visão geral da empresa
-              </p>
-            </div>
+        {/* Cabeçalho do Resumo Operacional em uma única linha */}
+        <div className="flex items-center gap-2.5">
+          <div className="w-10 h-10 rounded-2xl bg-[#FFF4EB] dark:bg-orange-950/40 flex items-center justify-center shrink-0">
+            <BarChart3 className="w-5 h-5 text-[#FF5000]" />
           </div>
-
-          <Link
-            to="/fluxo-de-caixa"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#FFF4EB] hover:bg-orange-100/80 dark:bg-orange-950/50 dark:hover:bg-orange-900/60 border border-orange-200/60 dark:border-orange-900/40 text-[#FF5000] text-xs font-semibold transition-colors cursor-pointer"
-          >
-            <Eye className="w-3.5 h-3.5 text-[#FF5000]" />
-            <span>Ver detalhes</span>
-            <ChevronRight className="w-3.5 h-3.5 text-[#FF5000]" />
-          </Link>
+          <div className="min-w-0">
+            <h2 className="text-xs sm:text-sm font-bold text-slate-800 dark:text-zinc-200 uppercase tracking-wider whitespace-nowrap truncate">
+              Resumo Operacional
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-zinc-400 truncate">
+              Visão geral da empresa
+            </p>
+          </div>
         </div>
 
-        {/* Card Principal: Saldo Líquido Operacional */}
+        {/* Card Principal: Saldo Líquido */}
         <div className="rounded-2xl border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 shadow-2xs">
           {/* Linha Superior: Título + Info + Filtro Data Hoje */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <span className="text-[11px] font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">
-                Saldo Líquido Operacional
+                Saldo Líquido
               </span>
               <Info className="w-3.5 h-3.5 text-slate-400 dark:text-zinc-500" />
             </div>
@@ -257,20 +246,11 @@ export function MobileDashboard() {
             </div>
           </div>
 
-          {/* Linha Central: Valor + Variação + Sparkline Gráfico */}
+          {/* Linha Central: Valor + Sparkline Gráfico */}
           <div className="flex items-center justify-between mt-2.5">
             <div>
               <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
                 {formatBRL(metrics.saldoReal || 7606.49)}
-              </div>
-              <div className="flex items-center gap-1 mt-1 text-xs">
-                <span className="font-bold text-emerald-600 flex items-center">
-                  <ArrowUp className="w-3.5 h-3.5 mr-0.5 stroke-[2.5]" />
-                  +12,5%
-                </span>
-                <span className="text-[11px] text-slate-400 dark:text-zinc-500">
-                  em relação ao período anterior
-                </span>
               </div>
             </div>
 
@@ -342,9 +322,9 @@ export function MobileDashboard() {
           </div>
         </div>
 
-        {/* 2 Cards Lado a Lado: A Receber Hoje & A Pagar Hoje */}
+        {/* 2 Cards Lado a Lado: A Receber & A Pagar */}
         <div className="grid grid-cols-2 gap-3">
-          {/* Card A Receber Hoje */}
+          {/* Card A Receber */}
           <div className="bg-[#F2FAF6] dark:bg-emerald-950/20 border border-[#D5EFE3] dark:border-emerald-900/40 rounded-2xl p-3.5 flex flex-col justify-between shadow-2xs">
             <div>
               <div className="flex items-center justify-between">
@@ -353,7 +333,7 @@ export function MobileDashboard() {
                     <Wallet className="w-3.5 h-3.5 text-[#FF5000]" />
                   </div>
                   <span className="text-[10px] font-bold text-slate-600 dark:text-zinc-300 uppercase tracking-wider">
-                    A Receber Hoje
+                    A Receber
                   </span>
                 </div>
                 <div className="w-6.5 h-6.5 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600 dark:text-emerald-300 flex items-center justify-center shrink-0">
@@ -378,7 +358,7 @@ export function MobileDashboard() {
             </button>
           </div>
 
-          {/* Card A Pagar Hoje */}
+          {/* Card A Pagar */}
           <div className="bg-[#FEF5F5] dark:bg-rose-950/20 border border-[#FCDADA] dark:border-rose-900/40 rounded-2xl p-3.5 flex flex-col justify-between shadow-2xs">
             <div>
               <div className="flex items-center justify-between">
@@ -387,7 +367,7 @@ export function MobileDashboard() {
                     <Wallet className="w-3.5 h-3.5 text-[#FF5000]" />
                   </div>
                   <span className="text-[10px] font-bold text-slate-600 dark:text-zinc-300 uppercase tracking-wider">
-                    A Pagar Hoje
+                    A Pagar
                   </span>
                 </div>
                 <div className="w-6.5 h-6.5 rounded-full bg-rose-100 dark:bg-rose-900/60 text-rose-600 dark:text-rose-300 flex items-center justify-center shrink-0">
