@@ -69,7 +69,28 @@ export function MobileDashboard() {
   const [novoProjetoOpen, setNovoProjetoOpen] = useState(false);
 
   // Ocultar / Exibir valores financeiros (Modo Privacidade Mobile)
-  const [hideValues, setHideValues] = useLocalStorageState<boolean>("focus_mobile_hide_values", false);
+  const [hideValues, setHideValues] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        return localStorage.getItem("focus_mobile_hide_values") === "true";
+      } catch {
+        return false;
+      }
+    }
+    return false;
+  });
+
+  const toggleHideValues = () => {
+    setHideValues((prev) => {
+      const next = !prev;
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem("focus_mobile_hide_values", String(next));
+        } catch {}
+      }
+      return next;
+    });
+  };
 
   const renderValor = (v?: number | null, fallbackNum: number = 0) => {
     if (hideValues) return "••••••";
@@ -241,7 +262,7 @@ export function MobileDashboard() {
 
           {/* Botão de Olho (Privacidade / Omitir Valores) */}
           <button
-            onClick={() => setHideValues((prev) => !prev)}
+            onClick={toggleHideValues}
             className="h-9 w-9 rounded-2xl bg-[#FFF4EB] hover:bg-orange-100/80 dark:bg-orange-950/50 dark:hover:bg-orange-900/60 border border-orange-200/60 dark:border-orange-900/40 text-[#FF5000] flex items-center justify-center transition-colors cursor-pointer shrink-0 shadow-2xs"
             aria-label={hideValues ? "Exibir valores" : "Ocultar valores"}
             title={hideValues ? "Exibir valores" : "Ocultar valores"}

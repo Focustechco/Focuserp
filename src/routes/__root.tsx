@@ -21,6 +21,7 @@ import {
   subscribeToPush,
   getPushUserId,
 } from "@/lib/push-notifications";
+import { reportLovableError } from "@/lib/lovable-error-reporting";
 
 import appCss from "../styles.css?url";
 import { SidebarProvider, SidebarInset, useSidebar } from "@/components/ui/sidebar";
