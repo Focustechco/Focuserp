@@ -1,9 +1,8 @@
 import React from "react";
 import { useRouterState, useNavigate } from "@tanstack/react-router";
 import { 
-  Home, Zap, Plus, Bell, LayoutGrid
+  Home, Wallet, Plus, CalendarDays, LineChart
 } from "lucide-react";
-import { useNotificacoesStore } from "@/features/notificacoes/useNotificacoesStore";
 import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 
@@ -18,24 +17,16 @@ interface MobileBottomNavProps {
 export function MobileBottomNav({
   onOpenQuickCreate,
   onOpenQuickAction,
-  onOpenShortcuts,
-  onOpenDrawer,
-  onOpenMenu,
 }: MobileBottomNavProps) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
-  const { naoLidasCount } = useNotificacoesStore();
-  const { setOpenMobile } = useSidebar();
 
   const handleCreate = onOpenQuickAction || onOpenQuickCreate;
-  const handleDrawer = () => {
-    if (onOpenMenu) onOpenMenu();
-    else if (onOpenDrawer) onOpenDrawer();
-    else setOpenMobile(true);
-  };
 
   const isHome = pathname === "/";
-  const isNotifications = pathname === "/notificacoes";
+  const isFluxo = pathname === "/fluxo-de-caixa";
+  const isAgenda = pathname === "/agenda" || pathname.startsWith("/agenda-de-entregas");
+  const isIndicadores = pathname === "/indicadores";
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md border-t border-slate-200/80 dark:border-zinc-800 shadow-[0_-2px_12px_rgba(0,0,0,0.04)] pb-[env(safe-area-inset-bottom,0px)]">
@@ -44,7 +35,7 @@ export function MobileBottomNav({
         <button
           onClick={() => navigate({ to: "/" })}
           className={cn(
-            "flex flex-col items-center justify-center gap-1 h-full transition-colors active:scale-95 cursor-pointer",
+            "flex flex-col items-center justify-center gap-1 h-full transition-colors active:scale-95 cursor-pointer px-0.5",
             isHome ? "text-[#FF5000] font-bold" : "text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white"
           )}
         >
@@ -52,13 +43,16 @@ export function MobileBottomNav({
           <span className="text-[10px] tracking-tight">Início</span>
         </button>
 
-        {/* 2. ATALHOS / AÇÕES */}
+        {/* 2. FLUXO DE CAIXA */}
         <button
-          onClick={onOpenShortcuts || handleCreate}
-          className="flex flex-col items-center justify-center gap-1 h-full text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white transition-colors active:scale-95 cursor-pointer"
+          onClick={() => navigate({ to: "/fluxo-de-caixa" })}
+          className={cn(
+            "flex flex-col items-center justify-center gap-1 h-full transition-colors active:scale-95 cursor-pointer px-0.5",
+            isFluxo ? "text-[#FF5000] font-bold" : "text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white"
+          )}
         >
-          <Zap className="h-5 w-5" />
-          <span className="text-[10px] tracking-tight">Atalhos</span>
+          <Wallet className={cn("h-5 w-5", isFluxo && "stroke-[2.5px]")} />
+          <span className="text-[10px] tracking-tight truncate max-w-full">Fluxo de Caixa</span>
         </button>
 
         {/* 3. BOTÃO CENTRAL DESTACADO: CRIAR (+) */}
@@ -72,32 +66,28 @@ export function MobileBottomNav({
           </button>
         </div>
 
-        {/* 4. AVISOS / NOTIFICAÇÕES */}
+        {/* 4. AGENDA */}
         <button
-          onClick={() => navigate({ to: "/notificacoes" })}
+          onClick={() => navigate({ to: "/agenda" })}
           className={cn(
-            "flex flex-col items-center justify-center gap-1 h-full transition-colors relative active:scale-95 cursor-pointer",
-            isNotifications ? "text-[#FF5000] font-bold" : "text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white"
+            "flex flex-col items-center justify-center gap-1 h-full transition-colors active:scale-95 cursor-pointer px-0.5",
+            isAgenda ? "text-[#FF5000] font-bold" : "text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white"
           )}
         >
-          <div className="relative">
-            <Bell className={cn("h-5 w-5", isNotifications && "stroke-[2.5px]")} />
-            {naoLidasCount > 0 && (
-              <span className="absolute -top-1 -right-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#FF5000] px-1 text-[9px] font-bold text-white shadow-xs">
-                {naoLidasCount > 9 ? "9+" : naoLidasCount}
-              </span>
-            )}
-          </div>
-          <span className="text-[10px] tracking-tight">Avisos</span>
+          <CalendarDays className={cn("h-5 w-5", isAgenda && "stroke-[2.5px]")} />
+          <span className="text-[10px] tracking-tight">Agenda</span>
         </button>
 
-        {/* 5. MENU DE MÓDULOS */}
+        {/* 5. INDICADORES */}
         <button
-          onClick={handleDrawer}
-          className="flex flex-col items-center justify-center gap-1 h-full text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white transition-colors active:scale-95 cursor-pointer"
+          onClick={() => navigate({ to: "/indicadores" })}
+          className={cn(
+            "flex flex-col items-center justify-center gap-1 h-full transition-colors active:scale-95 cursor-pointer px-0.5",
+            isIndicadores ? "text-[#FF5000] font-bold" : "text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white"
+          )}
         >
-          <LayoutGrid className="h-4.5 w-4.5" />
-          <span className="text-[10px] tracking-tight">Módulos</span>
+          <LineChart className={cn("h-5 w-5", isIndicadores && "stroke-[2.5px]")} />
+          <span className="text-[10px] tracking-tight">Indicadores</span>
         </button>
       </div>
     </nav>
