@@ -1,4 +1,4 @@
-﻿import React, { useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import {
   Sheet,
@@ -16,7 +16,7 @@ import {
   Target,
   Receipt,
   Plus,
-  ArrowRight,
+  ChevronRight,
   Sparkles,
 } from "lucide-react";
 import { NovoRecebimentoSheet } from "@/features/contas-receber/components/NovoRecebimentoSheet";
@@ -43,20 +43,20 @@ export function MobileQuickActionSheet({ open, onOpenChange }: MobileQuickAction
     onOpenChange(false);
     setTimeout(() => {
       switch (actionKey) {
+        case "cliente":
+          setNovoClienteOpen(true);
+          break;
         case "receber":
           setNovoRecebimentoOpen(true);
           break;
         case "pagar":
           setNovoPagamentoOpen(true);
           break;
-        case "cliente":
-          setNovoClienteOpen(true);
+        case "projeto":
+          setNovoProjetoOpen(true);
           break;
         case "contrato":
           setNovoContratoOpen(true);
-          break;
-        case "projeto":
-          setNovoProjetoOpen(true);
           break;
         case "crm":
           navigate({ to: "/crm" });
@@ -68,132 +68,99 @@ export function MobileQuickActionSheet({ open, onOpenChange }: MobileQuickAction
     }, 150);
   };
 
+  const actions = [
+    {
+      key: "cliente",
+      title: "Cliente",
+      desc: "Cadastrar novo cliente no diretório",
+      icon: Users,
+    },
+    {
+      key: "receber",
+      title: "Recebimento (Entrada)",
+      desc: "Lançar no Contas a Receber e Fluxo de Caixa",
+      icon: TrendingUp,
+    },
+    {
+      key: "pagar",
+      title: "Despesa (Saída)",
+      desc: "Lançar no Contas a Pagar e Fluxo de Caixa",
+      icon: TrendingDown,
+    },
+    {
+      key: "projeto",
+      title: "Projeto",
+      desc: "Iniciar novo projeto e cronograma",
+      icon: Briefcase,
+    },
+    {
+      key: "contrato",
+      title: "Contrato",
+      desc: "Registrar contrato de prestação de serviços",
+      icon: FileText,
+    },
+    {
+      key: "crm",
+      title: "Oportunidade (CRM)",
+      desc: "Adicionar negócio no pipeline de vendas",
+      icon: Target,
+    },
+    {
+      key: "fiscal",
+      title: "Nota Fiscal (NFe/NFSe)",
+      desc: "Emissão de documento fiscal eletrônico",
+      icon: Receipt,
+    },
+  ];
+
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent side="bottom" className="rounded-t-3xl max-h-[85vh] p-0 bg-white dark:bg-card border-t shadow-2xl">
-          <div className="p-5 pb-3 border-b bg-gradient-to-b from-orange-50/50 to-transparent dark:from-orange-950/20">
-            <div className="w-12 h-1 bg-muted-foreground/30 rounded-full mx-auto mb-3" />
-            <div className="flex items-center justify-between">
-              <div>
-                <SheetTitle className="text-lg font-extrabold text-foreground flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-orange-500" />
-                  Criar Novo Registro
-                </SheetTitle>
-                <SheetDescription className="text-xs text-muted-foreground mt-0.5">
-                  Selecione a ação rápida que deseja executar no Focus ERP
-                </SheetDescription>
-              </div>
-            </div>
+        <SheetContent side="bottom" className="rounded-t-3xl max-h-[85vh] p-0 bg-white dark:bg-zinc-900 border-t border-slate-200/80 dark:border-zinc-800 shadow-2xl">
+          {/* Top orange accent line */}
+          <div className="h-1 w-full bg-[#FF6A00]" />
+
+          <div className="p-4 pb-3 border-b border-slate-100 dark:border-zinc-800">
+            <div className="w-10 h-1 bg-slate-200 dark:bg-zinc-700 rounded-full mx-auto mb-3" />
+            <SheetTitle className="text-base font-extrabold text-slate-900 dark:text-white">
+              Criar novo
+            </SheetTitle>
+            <SheetDescription className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+              Selecione a ação rápida que deseja executar
+            </SheetDescription>
           </div>
 
-          <div className="p-4 overflow-y-auto max-h-[calc(85vh-100px)] space-y-2.5 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
-            {/* 1. NOVO RECEBIMENTO */}
-            <button
-              onClick={() => handleAction("receber")}
-              className="w-full p-3.5 rounded-2xl border border-emerald-500/20 bg-emerald-50/40 dark:bg-emerald-950/20 hover:bg-emerald-50/80 transition-all flex items-center justify-between group active:scale-[0.98]"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shadow-sm shadow-emerald-500/30">
-                  <TrendingUp className="w-5 h-5" />
-                </div>
-                <div className="text-left">
-                  <p className="font-extrabold text-sm text-foreground">Novo Recebimento</p>
-                  <p className="text-[11px] text-muted-foreground">Lançar entrada no Contas a Receber</p>
-                </div>
-              </div>
-              <ArrowRight className="w-4 h-4 text-emerald-600 group-hover:translate-x-1 transition-transform" />
-            </button>
-
-            {/* 2. NOVA DESPESA / PAGAMENTO */}
-            <button
-              onClick={() => handleAction("pagar")}
-              className="w-full p-3.5 rounded-2xl border border-rose-500/20 bg-rose-50/40 dark:bg-rose-950/20 hover:bg-rose-50/80 transition-all flex items-center justify-between group active:scale-[0.98]"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-rose-500 text-white flex items-center justify-center shadow-sm shadow-rose-500/30">
-                  <TrendingDown className="w-5 h-5" />
-                </div>
-                <div className="text-left">
-                  <p className="font-extrabold text-sm text-foreground">Nova Conta a Pagar</p>
-                  <p className="text-[11px] text-muted-foreground">Registrar despesa no financeiro</p>
-                </div>
-              </div>
-              <ArrowRight className="w-4 h-4 text-rose-600 group-hover:translate-x-1 transition-transform" />
-            </button>
-
-            {/* 3. CADASTRAR CLIENTE */}
-            <button
-              onClick={() => handleAction("cliente")}
-              className="w-full p-3.5 rounded-2xl border border-blue-500/20 bg-blue-50/40 dark:bg-blue-950/20 hover:bg-blue-50/80 transition-all flex items-center justify-between group active:scale-[0.98]"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-500 text-white flex items-center justify-center shadow-sm shadow-blue-500/30">
-                  <Users className="w-5 h-5" />
-                </div>
-                <div className="text-left">
-                  <p className="font-extrabold text-sm text-foreground">Cadastrar Cliente</p>
-                  <p className="text-[11px] text-muted-foreground">Pessoa Jurídica ou Física</p>
-                </div>
-              </div>
-              <ArrowRight className="w-4 h-4 text-blue-600 group-hover:translate-x-1 transition-transform" />
-            </button>
-
-            {/* 4. NOVO PROJETO */}
-            <button
-              onClick={() => handleAction("projeto")}
-              className="w-full p-3.5 rounded-2xl border border-amber-500/20 bg-amber-50/40 dark:bg-amber-950/20 hover:bg-amber-50/80 transition-all flex items-center justify-between group active:scale-[0.98]"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-sm shadow-amber-500/30">
-                  <Briefcase className="w-5 h-5" />
-                </div>
-                <div className="text-left">
-                  <p className="font-extrabold text-sm text-foreground">Novo Projeto Técnico</p>
-                  <p className="text-[11px] text-muted-foreground">Criar projeto e workspace de delivery</p>
-                </div>
-              </div>
-              <ArrowRight className="w-4 h-4 text-amber-600 group-hover:translate-x-1 transition-transform" />
-            </button>
-
-            {/* 5. NOVO CONTRATO */}
-            <button
-              onClick={() => handleAction("contrato")}
-              className="w-full p-3.5 rounded-2xl border border-purple-500/20 bg-purple-50/40 dark:bg-purple-950/20 hover:bg-purple-50/80 transition-all flex items-center justify-between group active:scale-[0.98]"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-purple-500 text-white flex items-center justify-center shadow-sm shadow-purple-500/30">
-                  <FileText className="w-5 h-5" />
-                </div>
-                <div className="text-left">
-                  <p className="font-extrabold text-sm text-foreground">Novo Contrato</p>
-                  <p className="text-[11px] text-muted-foreground">Registrar contrato de prestação / MRR</p>
-                </div>
-              </div>
-              <ArrowRight className="w-4 h-4 text-purple-600 group-hover:translate-x-1 transition-transform" />
-            </button>
-
-            {/* 6. NOVA OPORTUNIDADE CRM */}
-            <button
-              onClick={() => handleAction("crm")}
-              className="w-full p-3.5 rounded-2xl border border-orange-500/20 bg-orange-50/40 dark:bg-orange-950/20 hover:bg-orange-50/80 transition-all flex items-center justify-between group active:scale-[0.98]"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-orange-500 text-white flex items-center justify-center shadow-sm shadow-orange-500/30">
-                  <Target className="w-5 h-5" />
-                </div>
-                <div className="text-left">
-                  <p className="font-extrabold text-sm text-foreground">Nova Oportunidade (CRM)</p>
-                  <p className="text-[11px] text-muted-foreground">Adicionar lead no funil de vendas</p>
-                </div>
-              </div>
-              <ArrowRight className="w-4 h-4 text-orange-600 group-hover:translate-x-1 transition-transform" />
-            </button>
+          <div className="p-3 overflow-y-auto max-h-[calc(85vh-100px)] space-y-2 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
+            {actions.map((act) => {
+              const Icon = act.icon;
+              return (
+                <button
+                  key={act.key}
+                  onClick={() => handleAction(act.key)}
+                  className="w-full p-3 rounded-2xl border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-[#FF6A00]/40 transition-all flex items-center justify-between group active:scale-[0.99] cursor-pointer"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-xl bg-[#FFF4EA] dark:bg-orange-950/40 text-[#FF6A00] flex items-center justify-center shrink-0">
+                      <Icon className="w-4.5 h-4.5 text-[#FF6A00]" />
+                    </div>
+                    <div className="text-left min-w-0">
+                      <span className="font-bold text-xs text-slate-900 dark:text-white group-hover:text-[#FF6A00] transition-colors block truncate">
+                        + {act.title}
+                      </span>
+                      <span className="text-[11px] text-slate-500 dark:text-zinc-400 block truncate">
+                        {act.desc}
+                      </span>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-0.5 group-hover:text-[#FF6A00] transition-all shrink-0 ml-2" />
+                </button>
+              );
+            })}
           </div>
         </SheetContent>
       </Sheet>
 
-      {/* Sheets Funcionais Oficiais */}
+      {/* Sheets de Formulários Oficiais Reais */}
       <NovoRecebimentoSheet open={novoRecebimentoOpen} onOpenChange={setNovoRecebimentoOpen} />
       <NovaContaSheet open={novoPagamentoOpen} onOpenChange={setNovoPagamentoOpen} />
       <NovoClienteSheet open={novoClienteOpen} onOpenChange={setNovoClienteOpen} />

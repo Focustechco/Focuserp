@@ -258,13 +258,11 @@ export function MobileClientesView() {
                     <div
                       className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
                         isInactive
-                          ? 'bg-muted text-muted-foreground'
-                          : isPF
-                          ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
-                          : 'bg-orange-500/10 text-orange-600 dark:text-orange-400'
+                          ? 'bg-slate-100 dark:bg-zinc-800 text-slate-400'
+                          : 'bg-[#FFF4EA] dark:bg-orange-950/40 text-[#FF6A00]'
                       }`}
                     >
-                      {isPF ? <User className="w-4 h-4" /> : <Building2 className="w-4 h-4" />}
+                      {isPF ? <User className="w-4 h-4 text-[#FF6A00]" /> : <Building2 className="w-4 h-4 text-[#FF6A00]" />}
                     </div>
                     <div className="min-w-0">
                       <div className="font-semibold text-xs text-foreground truncate leading-snug">
