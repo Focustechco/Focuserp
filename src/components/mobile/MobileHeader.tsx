@@ -175,17 +175,17 @@ export function MobileHeader({ onOpenDrawer, onOpenMenu, onOpenSearch }: MobileH
               )}
             </Button>
 
-            {/* Avatar / Perfil do Usuário */}
+            {/* Foto / Perfil da Empresa */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
-                  className="h-9 w-9 rounded-full ring-2 ring-white/90 hover:ring-white focus:outline-none transition-all overflow-hidden flex items-center justify-center bg-white/20 cursor-pointer shrink-0"
-                  aria-label="Menu do Usuário"
+                  className="h-9 w-9 rounded-full ring-2 ring-white/90 hover:ring-white focus:outline-none transition-all overflow-hidden flex items-center justify-center bg-white cursor-pointer shrink-0 shadow-xs"
+                  aria-label="Perfil da Empresa"
                 >
-                  <Avatar className="h-9 w-9">
-                    <AvatarImage src={currentUser?.foto || currentUser?.avatarUrl} className="object-cover" />
+                  <Avatar className="h-9 w-9 bg-white">
+                    <AvatarImage src={empresa?.logoUrl} className="object-contain p-0.5" />
                     <AvatarFallback className="text-xs font-bold bg-white text-[#FF5000]">
-                      {getInitials(currentUser?.nome)}
+                      {(empresa?.nomeFantasia || "FC").substring(0, 2).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                 </button>
@@ -193,21 +193,21 @@ export function MobileHeader({ onOpenDrawer, onOpenMenu, onOpenSearch }: MobileH
 
               <DropdownMenuContent align="end" className="w-64 p-1.5 shadow-xl border rounded-2xl animate-in fade-in-50 zoom-in-95 bg-white dark:bg-card">
                 <div className="p-3 bg-muted/40 rounded-xl mb-1 flex items-center gap-3">
-                  <Avatar className="h-10 w-10 border border-border shrink-0">
-                    <AvatarImage src={currentUser?.foto || currentUser?.avatarUrl} className="object-cover" />
+                  <Avatar className="h-10 w-10 border border-border shrink-0 bg-white">
+                    <AvatarImage src={empresa?.logoUrl} className="object-contain p-0.5" />
                     <AvatarFallback className="text-xs font-bold bg-orange-500/10 text-orange-600">
-                      {getInitials(currentUser?.nome)}
+                      {(empresa?.nomeFantasia || "FC").substring(0, 2).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="min-w-0 flex-1">
                     <span className="font-bold text-xs text-foreground truncate block">
-                      {currentUser?.nome || "Adriano Leal"}
+                      {empresa?.nomeFantasia || "Focus Tecnologia"}
                     </span>
                     <span className="text-[10px] text-muted-foreground truncate block">
-                      {currentUser?.email || "contato@focustecnologia.com.br"}
+                      {empresa?.cnpj || currentUser?.email || "contato@focustecnologia.com.br"}
                     </span>
                     <Badge variant="outline" className="mt-1 text-[9px] py-0 px-1.5 border-orange-500/30 text-orange-600 font-semibold">
-                      {currentUser?.perfil || "Administrador"}
+                      {currentUser?.nome ? `${currentUser.nome.split(" ")[0]} • ${currentUser?.perfil || "Admin"}` : (currentUser?.perfil || "Administrador")}
                     </Badge>
                   </div>
                 </div>
