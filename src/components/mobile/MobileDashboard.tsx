@@ -129,7 +129,7 @@ export function MobileDashboard() {
     };
   }, [contasReceber, contasPagar, clientes, contratos, projetos]);
 
-// Lista dos Principais Módulos do Focus ERP (Grid de 2 Colunas conforme o design)
+// Lista dos Principais Módulos do Focus ERP (1 por linha, proporções perfeitas)
   const modulesGrid = [
     {
       title: "Clientes",
@@ -138,34 +138,58 @@ export function MobileDashboard() {
       icon: Users,
     },
     {
-      title: "Produtos",
-      desc: "Consultar produtos e estoque",
+      title: "Produtos & Estoque",
+      desc: "Consultar produtos, estoque e serviços",
       url: "/produtos",
       icon: Package,
     },
     {
-      title: "Financeiro",
-      desc: "Visão financeira da empresa",
+      title: "Financeiro & Caixa",
+      desc: "Visão financeira da empresa e fluxo de caixa",
       url: "/fluxo-de-caixa",
       icon: Wallet,
     },
     {
-      title: "Oportunidades",
-      desc: "Acompanhe suas oportunidades",
+      title: "Contas a Receber",
+      desc: "Faturamento, cobranças e recebimentos",
+      url: "/contas-a-receber",
+      icon: TrendingDown,
+    },
+    {
+      title: "Contas a Pagar",
+      desc: "Controle de despesas e fornecedores",
+      url: "/contas-a-pagar",
+      icon: TrendingUp,
+    },
+    {
+      title: "Oportunidades & CRM",
+      desc: "Acompanhe suas oportunidades e pipeline",
       url: "/crm",
       icon: Sparkles,
     },
     {
       title: "Projetos",
-      desc: "Gerencie seus projetos",
+      desc: "Gerencie seus projetos, sprints e entregas",
       url: "/projetos",
       icon: FolderOpen,
     },
     {
-      title: "Tarefas",
-      desc: "Acompanhe suas tarefas",
+      title: "Tarefas & Prazos",
+      desc: "Acompanhe suas tarefas e calendário de entregas",
       url: "/agenda-de-entregas",
       icon: FileCheck2,
+    },
+    {
+      title: "Contratos",
+      desc: "Contratos vigentes, termos e recorrências",
+      url: "/contratos",
+      icon: FileCheck2,
+    },
+    {
+      title: "Recursos Humanos (RH)",
+      desc: "Colaboradores, cargos e equipe",
+      url: "/rh",
+      icon: Users,
     },
   ];
 
@@ -234,7 +258,7 @@ export function MobileDashboard() {
         </div>
       </div>
 
-      {/* 3. ATALHOS RÁPIDOS */}
+      {/* 2. ATALHOS RÁPIDOS (Cards Quadrados proporcionais com scroll horizontal) */}
       <div className="space-y-2.5 pt-1">
         <div>
           <h2 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
@@ -246,22 +270,22 @@ export function MobileDashboard() {
           </p>
         </div>
 
-        {/* 4 Cards de Atalho Horizontais */}
-        <div className="grid grid-cols-4 gap-2">
+        {/* Cards de Atalho Quadrados e Proporcionais */}
+        <div className="flex gap-3 overflow-x-auto scrollbar-hide -mx-4 px-4 py-1">
           {/* 1. Cadastrar cliente */}
           <button
             onClick={() => setNovoClienteOpen(true)}
-            className="p-2.5 rounded-2xl border border-slate-200/70 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xs hover:border-[#FF5000]/50 transition-all flex flex-col justify-between h-28 text-left group active:scale-[0.97] cursor-pointer"
+            className="w-[124px] h-[124px] shrink-0 p-3.5 rounded-2xl border border-slate-200/70 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xs hover:border-[#FF5000]/50 transition-all flex flex-col justify-between text-left group active:scale-[0.97] cursor-pointer"
           >
-            <div className="w-7 h-7 rounded-xl bg-[#FFF3EC] dark:bg-orange-950/40 text-[#FF5000] flex items-center justify-center shrink-0">
-              <Users className="w-4 h-4 text-[#FF5000]" />
+            <div className="w-8 h-8 rounded-xl bg-[#FFF3EC] dark:bg-orange-950/40 text-[#FF5000] flex items-center justify-center shrink-0">
+              <Users className="w-4.5 h-4.5 text-[#FF5000]" />
             </div>
             <div>
-              <span className="font-bold text-[11px] text-slate-900 dark:text-white group-hover:text-[#FF5000] transition-colors leading-tight block">
+              <span className="font-bold text-xs text-slate-900 dark:text-white group-hover:text-[#FF5000] transition-colors leading-tight block">
                 Cadastrar cliente
               </span>
               <div className="flex justify-end mt-1">
-                <ArrowRight className="w-3 h-3 text-[#FF5000] group-hover:translate-x-0.5 transition-transform" />
+                <ArrowRight className="w-3.5 h-3.5 text-[#FF5000] group-hover:translate-x-0.5 transition-transform" />
               </div>
             </div>
           </button>
@@ -269,17 +293,17 @@ export function MobileDashboard() {
           {/* 2. Nova venda */}
           <button
             onClick={() => setNovoRecebimentoOpen(true)}
-            className="p-2.5 rounded-2xl border border-slate-200/70 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xs hover:border-[#FF5000]/50 transition-all flex flex-col justify-between h-28 text-left group active:scale-[0.97] cursor-pointer"
+            className="w-[124px] h-[124px] shrink-0 p-3.5 rounded-2xl border border-slate-200/70 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xs hover:border-[#FF5000]/50 transition-all flex flex-col justify-between text-left group active:scale-[0.97] cursor-pointer"
           >
-            <div className="w-7 h-7 rounded-xl bg-[#FFF3EC] dark:bg-orange-950/40 text-[#FF5000] flex items-center justify-center shrink-0">
-              <Package className="w-4 h-4 text-[#FF5000]" />
+            <div className="w-8 h-8 rounded-xl bg-[#FFF3EC] dark:bg-orange-950/40 text-[#FF5000] flex items-center justify-center shrink-0">
+              <Package className="w-4.5 h-4.5 text-[#FF5000]" />
             </div>
             <div>
-              <span className="font-bold text-[11px] text-slate-900 dark:text-white group-hover:text-[#FF5000] transition-colors leading-tight block">
+              <span className="font-bold text-xs text-slate-900 dark:text-white group-hover:text-[#FF5000] transition-colors leading-tight block">
                 Nova venda
               </span>
               <div className="flex justify-end mt-1">
-                <ArrowRight className="w-3 h-3 text-[#FF5000] group-hover:translate-x-0.5 transition-transform" />
+                <ArrowRight className="w-3.5 h-3.5 text-[#FF5000] group-hover:translate-x-0.5 transition-transform" />
               </div>
             </div>
           </button>
@@ -287,17 +311,17 @@ export function MobileDashboard() {
           {/* 3. Conta a receber */}
           <button
             onClick={() => setNovoRecebimentoOpen(true)}
-            className="p-2.5 rounded-2xl border border-slate-200/70 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xs hover:border-[#FF5000]/50 transition-all flex flex-col justify-between h-28 text-left group active:scale-[0.97] cursor-pointer"
+            className="w-[124px] h-[124px] shrink-0 p-3.5 rounded-2xl border border-slate-200/70 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xs hover:border-[#FF5000]/50 transition-all flex flex-col justify-between text-left group active:scale-[0.97] cursor-pointer"
           >
-            <div className="w-7 h-7 rounded-xl bg-[#FFF3EC] dark:bg-orange-950/40 text-[#FF5000] flex items-center justify-center shrink-0">
-              <Wallet className="w-4 h-4 text-[#FF5000]" />
+            <div className="w-8 h-8 rounded-xl bg-[#FFF3EC] dark:bg-orange-950/40 text-[#FF5000] flex items-center justify-center shrink-0">
+              <Wallet className="w-4.5 h-4.5 text-[#FF5000]" />
             </div>
             <div>
-              <span className="font-bold text-[11px] text-slate-900 dark:text-white group-hover:text-[#FF5000] transition-colors leading-tight block">
+              <span className="font-bold text-xs text-slate-900 dark:text-white group-hover:text-[#FF5000] transition-colors leading-tight block">
                 Conta a receber
               </span>
               <div className="flex justify-end mt-1">
-                <ArrowRight className="w-3 h-3 text-[#FF5000] group-hover:translate-x-0.5 transition-transform" />
+                <ArrowRight className="w-3.5 h-3.5 text-[#FF5000] group-hover:translate-x-0.5 transition-transform" />
               </div>
             </div>
           </button>
@@ -305,24 +329,24 @@ export function MobileDashboard() {
           {/* 4. Novo orçamento */}
           <button
             onClick={() => setNovoContratoOpen(true)}
-            className="p-2.5 rounded-2xl border border-slate-200/70 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xs hover:border-[#FF5000]/50 transition-all flex flex-col justify-between h-28 text-left group active:scale-[0.97] cursor-pointer"
+            className="w-[124px] h-[124px] shrink-0 p-3.5 rounded-2xl border border-slate-200/70 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xs hover:border-[#FF5000]/50 transition-all flex flex-col justify-between text-left group active:scale-[0.97] cursor-pointer"
           >
-            <div className="w-7 h-7 rounded-xl bg-[#FFF3EC] dark:bg-orange-950/40 text-[#FF5000] flex items-center justify-center shrink-0">
-              <FileCheck2 className="w-4 h-4 text-[#FF5000]" />
+            <div className="w-8 h-8 rounded-xl bg-[#FFF3EC] dark:bg-orange-950/40 text-[#FF5000] flex items-center justify-center shrink-0">
+              <FileCheck2 className="w-4.5 h-4.5 text-[#FF5000]" />
             </div>
             <div>
-              <span className="font-bold text-[11px] text-slate-900 dark:text-white group-hover:text-[#FF5000] transition-colors leading-tight block">
+              <span className="font-bold text-xs text-slate-900 dark:text-white group-hover:text-[#FF5000] transition-colors leading-tight block">
                 Novo orçamento
               </span>
               <div className="flex justify-end mt-1">
-                <ArrowRight className="w-3 h-3 text-[#FF5000] group-hover:translate-x-0.5 transition-transform" />
+                <ArrowRight className="w-3.5 h-3.5 text-[#FF5000] group-hover:translate-x-0.5 transition-transform" />
               </div>
             </div>
           </button>
         </div>
       </div>
 
-      {/* 4. SEÇÃO DE MÓDULOS (Grid de 2 Colunas conforme o design) */}
+      {/* 3. SEÇÃO DE MÓDULOS (1 por linha na fila, sem espremer) */}
       <div className="space-y-2.5 pt-2">
         <div className="flex items-center justify-between">
           <div>
@@ -344,30 +368,31 @@ export function MobileDashboard() {
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        {/* Lista Vertical de Módulos (1 por linha) */}
+        <div className="flex flex-col gap-2.5">
           {modulesGrid.map((m) => {
             const IconComponent = m.icon;
             return (
               <Link
                 key={m.url}
                 to={m.url as any}
-                className="p-3.5 rounded-2xl border border-slate-200/70 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xs hover:border-[#FF5000]/40 transition-all flex items-center justify-between group active:scale-[0.98]"
+                className="p-3.5 rounded-2xl border border-slate-200/70 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xs hover:border-[#FF5000]/40 transition-all flex items-center justify-between group active:scale-[0.99]"
               >
-                <div className="flex items-start gap-2.5 min-w-0 flex-1">
-                  <div className="w-9 h-9 rounded-xl bg-[#FFF3EC] dark:bg-orange-950/40 text-[#FF5000] flex items-center justify-center shrink-0">
-                    <IconComponent className="w-4.5 h-4.5 text-[#FF5000]" />
+                <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                  <div className="w-11 h-11 rounded-xl bg-[#FFF3EC] dark:bg-orange-950/40 text-[#FF5000] flex items-center justify-center shrink-0">
+                    <IconComponent className="w-5 h-5 text-[#FF5000]" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <span className="font-bold text-xs text-slate-900 dark:text-white group-hover:text-[#FF5000] transition-colors truncate block">
+                    <span className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-[#FF5000] transition-colors truncate block">
                       {m.title}
                     </span>
-                    <p className="text-[10px] text-slate-500 dark:text-zinc-400 line-clamp-2 mt-0.5 leading-tight">
+                    <p className="text-xs text-slate-500 dark:text-zinc-400 truncate mt-0.5">
                       {m.desc}
                     </p>
                   </div>
                 </div>
 
-                <ArrowRight className="w-3.5 h-3.5 text-[#FF5000] group-hover:translate-x-0.5 transition-all shrink-0 ml-1.5" />
+                <ArrowRight className="w-4 h-4 text-[#FF5000] group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
               </Link>
             );
           })}
