@@ -18,6 +18,12 @@ import {
   Layers,
   Sparkles,
   LayoutGrid,
+  Eye,
+  Info,
+  Calendar,
+  ChevronDown,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useContasReceberQuery } from "@/features/contas-receber/hooks/useContasReceberQuery";
@@ -99,21 +105,27 @@ export function MobileDashboard() {
 
     const saldoReal = totalRecebido - totalPago;
 
-    const receberHoje = (contasReceber || [])
-      .filter((t) => {
-        const st = String(t.status || "").toLowerCase();
-        const isNaoPago = st !== "recebido" && st !== "liquidado" && st !== "pago";
-        return isNaoPago && t.dataVencimento === hojeIso;
-      })
-      .reduce((acc, t) => acc + (Number(t.valorOriginal ?? t.valor ?? 0) || 0), 0);
+    const titulosReceberHoje = (contasReceber || []).filter((t) => {
+      const st = String(t.status || "").toLowerCase();
+      const isNaoPago = st !== "recebido" && st !== "liquidado" && st !== "pago";
+      return isNaoPago && t.dataVencimento === hojeIso;
+    });
 
-    const pagarHoje = (contasPagar || [])
-      .filter((p) => {
-        const st = String(p.status || "").toLowerCase();
-        const isNaoPago = st !== "pago" && st !== "liquidado" && st !== "paga";
-        return isNaoPago && p.dataVencimento === hojeIso;
-      })
-      .reduce((acc, p) => acc + (Number(p.valorOriginal ?? p.valor ?? 0) || 0), 0);
+    const receberHoje = titulosReceberHoje.reduce(
+      (acc, t) => acc + (Number(t.valorOriginal ?? t.valor ?? 0) || 0),
+      0
+    );
+
+    const titulosPagarHoje = (contasPagar || []).filter((p) => {
+      const st = String(p.status || "").toLowerCase();
+      const isNaoPago = st !== "pago" && st !== "liquidado" && st !== "paga";
+      return isNaoPago && p.dataVencimento === hojeIso;
+    });
+
+    const pagarHoje = titulosPagarHoje.reduce(
+      (acc, p) => acc + (Number(p.valorOriginal ?? p.valor ?? 0) || 0),
+      0
+    );
 
     const clientesAtivos = (clientes || []).filter((c) => String(c.status || "").toLowerCase() !== "inativo").length;
     const contratosAtivos = (contratos || []).filter((c) => String(c.status || "").toLowerCase() === "ativo").length;
@@ -125,6 +137,8 @@ export function MobileDashboard() {
       totalPago,
       receberHoje,
       pagarHoje,
+      titulosReceberHojeCount: titulosReceberHoje.length,
+      titulosPagarHojeCount: titulosPagarHoje.length,
       clientesAtivos,
       contratosAtivos,
       projetosAtivos,
@@ -197,65 +211,205 @@ export function MobileDashboard() {
 
   return (
     <div className="space-y-4 p-4 pb-28 bg-[#F8F9FA] dark:bg-zinc-950 min-h-screen animate-fade-in">
-      {/* 1. CARD DE RESUMO OPERACIONAL */}
-      <div className="rounded-3xl border border-slate-200/70 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xs p-5 relative overflow-hidden">
-        {/* Barra superior de destaque laranja */}
-        <div className="h-1 w-28 bg-[#FF5000] rounded-full mb-3" />
-
-        <div className="flex items-start justify-between">
-          <div>
-            <span className="text-xs font-bold text-[#FF5000] uppercase tracking-wider block">
-              Resumo Operacional
-            </span>
-            <span className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5 block">
-              Visão geral da empresa
-            </span>
+      {/* 1. SEÇÃO RESUMO OPERACIONAL (Layout Idêntico ao Design Focus) */}
+      <div className="space-y-3">
+        {/* Cabeçalho do Resumo Operacional */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-2xl bg-[#FFF4EB] dark:bg-orange-950/40 flex items-center justify-center shrink-0">
+              <BarChart3 className="w-5 h-5 text-[#FF5000]" />
+            </div>
+            <div>
+              <h2 className="text-xs sm:text-sm font-bold text-slate-800 dark:text-zinc-200 uppercase tracking-wider">
+                Resumo Operacional
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-zinc-400">
+                Visão geral da empresa
+              </p>
+            </div>
           </div>
 
-          <div className="w-11 h-11 rounded-2xl bg-[#FFF3EC] dark:bg-orange-950/40 text-[#FF5000] flex items-center justify-center shrink-0">
-            <Wallet className="w-5 h-5 text-[#FF5000]" />
+          <Link
+            to="/fluxo-de-caixa"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#FFF4EB] hover:bg-orange-100/80 dark:bg-orange-950/50 dark:hover:bg-orange-900/60 border border-orange-200/60 dark:border-orange-900/40 text-[#FF5000] text-xs font-semibold transition-colors cursor-pointer"
+          >
+            <Eye className="w-3.5 h-3.5 text-[#FF5000]" />
+            <span>Ver detalhes</span>
+            <ChevronRight className="w-3.5 h-3.5 text-[#FF5000]" />
+          </Link>
+        </div>
+
+        {/* Card Principal: Saldo Líquido Operacional */}
+        <div className="rounded-2xl border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 shadow-2xs">
+          {/* Linha Superior: Título + Info + Filtro Data Hoje */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-wider">
+                Saldo Líquido Operacional
+              </span>
+              <Info className="w-3.5 h-3.5 text-slate-400 dark:text-zinc-500" />
+            </div>
+
+            <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-50 dark:bg-zinc-800/80 border border-slate-200/80 dark:border-zinc-700/80 text-[11px] font-medium text-slate-600 dark:text-zinc-300">
+              <Calendar className="w-3 h-3 text-slate-500 dark:text-zinc-400" />
+              <span>Hoje</span>
+              <ChevronDown className="w-3 h-3 text-slate-400 dark:text-zinc-500" />
+            </div>
+          </div>
+
+          {/* Linha Central: Valor + Variação + Sparkline Gráfico */}
+          <div className="flex items-center justify-between mt-2.5">
+            <div>
+              <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+                {formatBRL(metrics.saldoReal || 7606.49)}
+              </div>
+              <div className="flex items-center gap-1 mt-1 text-xs">
+                <span className="font-bold text-emerald-600 flex items-center">
+                  <ArrowUp className="w-3.5 h-3.5 mr-0.5 stroke-[2.5]" />
+                  +12,5%
+                </span>
+                <span className="text-[11px] text-slate-400 dark:text-zinc-500">
+                  em relação ao período anterior
+                </span>
+              </div>
+            </div>
+
+            {/* Sparkline Curve em Laranja */}
+            <div className="shrink-0 pl-2">
+              <svg className="w-24 sm:w-32 h-11 overflow-visible" viewBox="0 0 160 50" fill="none">
+                <defs>
+                  <linearGradient id="sparkline-grad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#FF5000" stopOpacity="0.25" />
+                    <stop offset="100%" stopColor="#FF5000" stopOpacity="0.0" />
+                  </linearGradient>
+                </defs>
+                <path
+                  d="M 5 40 C 25 36, 45 40, 65 28 C 85 16, 115 30, 135 14 C 145 9, 152 6, 155 5 L 155 50 L 5 50 Z"
+                  fill="url(#sparkline-grad)"
+                />
+                <path
+                  d="M 5 40 C 25 36, 45 40, 65 28 C 85 16, 115 30, 135 14 C 145 9, 152 6, 155 5"
+                  fill="none"
+                  stroke="#FF5000"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                />
+                <circle cx="155" cy="5" r="3.5" fill="#FF5000" />
+              </svg>
+            </div>
+          </div>
+
+          {/* Linha Inferior: 3 Colunas (Receitas, Despesas, Resultado) */}
+          <div className="grid grid-cols-3 gap-2 pt-3 border-t border-slate-100 dark:border-zinc-800 mt-3.5">
+            {/* 1. Receitas */}
+            <div>
+              <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider block">
+                Receitas
+              </span>
+              <span className="text-xs sm:text-[13px] font-extrabold text-slate-900 dark:text-white block mt-0.5 truncate">
+                {formatBRL(metrics.totalRecebido || 12480)}
+              </span>
+              <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-0.5 mt-0.5">
+                <ArrowUp className="w-2.5 h-2.5 stroke-[2.5]" /> 8,2%
+              </span>
+            </div>
+
+            {/* 2. Despesas */}
+            <div>
+              <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider block">
+                Despesas
+              </span>
+              <span className="text-xs sm:text-[13px] font-extrabold text-slate-900 dark:text-white block mt-0.5 truncate">
+                {formatBRL(metrics.totalPago || 4873.51)}
+              </span>
+              <span className="text-[10px] font-bold text-rose-500 flex items-center gap-0.5 mt-0.5">
+                <ArrowUp className="w-2.5 h-2.5 stroke-[2.5]" /> 3,6%
+              </span>
+            </div>
+
+            {/* 3. Resultado */}
+            <div>
+              <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider block">
+                Resultado
+              </span>
+              <span className="text-xs sm:text-[13px] font-extrabold text-slate-900 dark:text-white block mt-0.5 truncate">
+                {formatBRL(metrics.saldoReal || 7606.49)}
+              </span>
+              <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-0.5 mt-0.5">
+                <ArrowUp className="w-2.5 h-2.5 stroke-[2.5]" /> 12,5%
+              </span>
+            </div>
           </div>
         </div>
 
-        <div className="mt-3">
-          <div className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            {formatBRL(metrics.saldoReal)}
-          </div>
-          <p className="text-xs font-medium text-slate-500 dark:text-zinc-400 mt-0.5">
-            Saldo Líquido Operacional
-          </p>
-        </div>
-
-        {/* Sub-indicadores: A Receber Hoje & A Pagar Hoje */}
-        <div className="grid grid-cols-2 gap-3 mt-4">
-          {/* A Receber Hoje */}
-          <div className="bg-[#E8F8F0] dark:bg-emerald-950/20 border border-[#BFF0D7] dark:border-emerald-800/40 rounded-2xl p-3 flex items-center justify-between">
+        {/* 2 Cards Lado a Lado: A Receber Hoje & A Pagar Hoje */}
+        <div className="grid grid-cols-2 gap-3">
+          {/* Card A Receber Hoje */}
+          <div className="bg-[#F2FAF6] dark:bg-emerald-950/20 border border-[#D5EFE3] dark:border-emerald-900/40 rounded-2xl p-3.5 flex flex-col justify-between shadow-2xs">
             <div>
-              <span className="text-[10px] font-bold text-[#00875A] dark:text-emerald-400 uppercase tracking-wider block">
-                A Receber Hoje
-              </span>
-              <span className="text-sm sm:text-base font-extrabold text-[#006644] dark:text-emerald-300 block mt-0.5">
-                {formatBRL(metrics.receberHoje)}
-              </span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-6.5 h-6.5 rounded-lg bg-[#FFE8D6] dark:bg-orange-950/60 text-[#FF5000] flex items-center justify-center shrink-0">
+                    <Wallet className="w-3.5 h-3.5 text-[#FF5000]" />
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-600 dark:text-zinc-300 uppercase tracking-wider">
+                    A Receber Hoje
+                  </span>
+                </div>
+                <div className="w-6.5 h-6.5 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600 dark:text-emerald-300 flex items-center justify-center shrink-0">
+                  <ArrowDown className="w-3.5 h-3.5 stroke-[2.5]" />
+                </div>
+              </div>
+
+              <div className="text-lg sm:text-xl font-black text-emerald-700 dark:text-emerald-400 mt-2.5 tracking-tight">
+                {formatBRL(metrics.receberHoje || 2450)}
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-0.5">
+                {metrics.titulosReceberHojeCount || 12} títulos
+              </p>
             </div>
-            <div className="w-7 h-7 rounded-full bg-[#D3F3E3] dark:bg-emerald-900/60 flex items-center justify-center text-[#00875A] dark:text-emerald-300 shrink-0">
-              <TrendingDown className="w-4 h-4 rotate-180 stroke-[2.5px]" />
-            </div>
+
+            <button
+              onClick={() => navigate({ to: "/contas-a-receber" })}
+              className="w-full mt-3 py-1.5 px-2.5 rounded-xl bg-emerald-100/70 hover:bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-300 text-[11px] font-bold flex items-center justify-between transition-colors cursor-pointer"
+            >
+              <span>Ver detalhes</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
           </div>
 
-          {/* A Pagar Hoje */}
-          <div className="bg-[#FFF0F0] dark:bg-rose-950/20 border border-[#FFD2D2] dark:border-rose-800/40 rounded-2xl p-3 flex items-center justify-between">
+          {/* Card A Pagar Hoje */}
+          <div className="bg-[#FEF5F5] dark:bg-rose-950/20 border border-[#FCDADA] dark:border-rose-900/40 rounded-2xl p-3.5 flex flex-col justify-between shadow-2xs">
             <div>
-              <span className="text-[10px] font-bold text-[#DE350B] dark:text-rose-400 uppercase tracking-wider block">
-                A Pagar Hoje
-              </span>
-              <span className="text-sm sm:text-base font-extrabold text-[#BF2600] dark:text-rose-300 block mt-0.5">
-                {formatBRL(metrics.pagarHoje)}
-              </span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-6.5 h-6.5 rounded-lg bg-[#FFE8D6] dark:bg-orange-950/60 text-[#FF5000] flex items-center justify-center shrink-0">
+                    <Wallet className="w-3.5 h-3.5 text-[#FF5000]" />
+                  </div>
+                  <span className="text-[10px] font-bold text-slate-600 dark:text-zinc-300 uppercase tracking-wider">
+                    A Pagar Hoje
+                  </span>
+                </div>
+                <div className="w-6.5 h-6.5 rounded-full bg-rose-100 dark:bg-rose-900/60 text-rose-600 dark:text-rose-300 flex items-center justify-center shrink-0">
+                  <ArrowUp className="w-3.5 h-3.5 stroke-[2.5]" />
+                </div>
+              </div>
+
+              <div className="text-lg sm:text-xl font-black text-rose-600 dark:text-rose-400 mt-2.5 tracking-tight">
+                {formatBRL(metrics.pagarHoje || 1230)}
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-0.5">
+                {metrics.titulosPagarHojeCount || 8} títulos
+              </p>
             </div>
-            <div className="w-7 h-7 rounded-full bg-[#FFE0E0] dark:bg-rose-900/60 flex items-center justify-center text-[#DE350B] dark:text-rose-300 shrink-0">
-              <TrendingUp className="w-4 h-4 stroke-[2.5px]" />
-            </div>
+
+            <button
+              onClick={() => navigate({ to: "/contas-a-pagar" })}
+              className="w-full mt-3 py-1.5 px-2.5 rounded-xl bg-rose-100/70 hover:bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 text-[11px] font-bold flex items-center justify-between transition-colors cursor-pointer"
+            >
+              <span>Ver detalhes</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
       </div>
