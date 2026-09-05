@@ -16,6 +16,7 @@ import { ClientePerfilSheet } from './ClientePerfilSheet';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Link } from '@tanstack/react-router';
 import { toast } from 'sonner';
+import { MobileClientesView } from './MobileClientesView';
 
 export function ClientesList() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -450,7 +451,11 @@ export function ClientesList() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <>
+      <div className="md:hidden">
+        <MobileClientesView />
+      </div>
+      <div className="hidden md:block space-y-6 animate-fade-in">
       {/* Toolbar / Filters */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -670,5 +675,6 @@ export function ClientesList() {
         }}
       />
     </div>
+    </>
   );
 }

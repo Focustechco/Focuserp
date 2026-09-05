@@ -132,7 +132,7 @@ export function TopBar() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full flex flex-col justify-center border-b bg-background/95 backdrop-blur-md px-2.5 sm:px-6 shadow-2xs pt-[env(safe-area-inset-top,0px)] transition-all">
+      <header className="sticky top-0 z-40 w-full hidden md:flex flex-col justify-center border-b bg-background/95 backdrop-blur-md px-2.5 sm:px-6 shadow-2xs pt-[env(safe-area-inset-top,0px)] transition-all">
         <div className="flex h-14 w-full items-center justify-between gap-2 sm:gap-3">
           <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
             <SidebarTrigger className="-ml-1 text-muted-foreground hover:text-foreground h-9 w-9 shrink-0 cursor-pointer" />

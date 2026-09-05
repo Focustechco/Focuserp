@@ -16,6 +16,7 @@ import {
   CheckCircle2, RefreshCw, X, ArrowUpRight, Clock, AlertTriangle, Trash2, CheckSquare
 } from 'lucide-react';
 import { NovoRecebimentoSheet } from './NovoRecebimentoSheet';
+import { MobileRecebimentosView } from './MobileRecebimentosView';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import {
   Dialog,
@@ -290,7 +291,11 @@ export function RecebimentosList() {
   };
 
   return (
-    <div className="space-y-4 animate-fade-in">
+    <>
+      <div className="md:hidden">
+        <MobileRecebimentosView />
+      </div>
+      <div className="hidden md:block space-y-4 animate-fade-in">
       {/* Cards de Resumo dos Títulos Filtrados */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="p-3.5 rounded-lg border bg-card flex items-center justify-between shadow-sm">
@@ -691,5 +696,6 @@ export function RecebimentosList() {
         </DialogContent>
       </Dialog>
     </div>
+    </>
   );
 }

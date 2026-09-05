@@ -15,6 +15,7 @@ import {
   CheckCircle2, X, ArrowDownRight, Clock, AlertTriangle, Trash2, CheckSquare
 } from 'lucide-react';
 import { NovaContaSheet } from './NovaContaSheet';
+import { MobileContasPagarView } from './MobileContasPagarView';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import {
   Dialog,
@@ -274,7 +275,11 @@ export function ContasList() {
   };
 
   return (
-    <div className="space-y-4 animate-fade-in">
+    <>
+      <div className="md:hidden">
+        <MobileContasPagarView />
+      </div>
+      <div className="hidden md:block space-y-4 animate-fade-in">
       {/* Cards de Resumo das Contas Filtradas */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="p-3.5 rounded-lg border bg-card flex items-center justify-between shadow-sm">
@@ -667,5 +672,6 @@ export function ContasList() {
         </DialogContent>
       </Dialog>
     </div>
+    </>
   );
 }

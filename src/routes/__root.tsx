@@ -9,7 +9,11 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { MobileHeader } from "@/components/mobile/MobileHeader";
+import { MobileBottomNav } from "@/components/mobile/MobileBottomNav";
+import { MobileDrawerMenu } from "@/components/mobile/MobileDrawerMenu";
+import { MobileQuickActionSheet } from "@/components/mobile/MobileQuickActionSheet";
 import {
   autoRegisterServiceWorker,
   isPushSupported,
@@ -183,6 +187,9 @@ function ProtectedAppLayout() {
     );
   }
 
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const [mobileQuickActionOpen, setMobileQuickActionOpen] = useState(false);
+
   // 3. Aplicação ERP Autenticada Completa
   return (
     <SidebarProvider>
@@ -190,9 +197,22 @@ function ProtectedAppLayout() {
         <AppSidebar />
         <SidebarInset className="flex min-w-0 flex-1 flex-col w-full max-w-[100vw]">
           <TopBar />
-          <main className="flex-1 overflow-x-hidden w-full max-w-[100vw] pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
+          <MobileHeader onOpenMenu={() => setMobileDrawerOpen(true)} />
+          <main className="flex-1 overflow-x-hidden w-full max-w-[100vw] pb-[calc(4.75rem+env(safe-area-inset-bottom,0px))] md:pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
             <RouteAccessGate />
           </main>
+          <MobileBottomNav
+            onOpenMenu={() => setMobileDrawerOpen(true)}
+            onOpenQuickAction={() => setMobileQuickActionOpen(true)}
+          />
+          <MobileDrawerMenu
+            open={mobileDrawerOpen}
+            onOpenChange={setMobileDrawerOpen}
+          />
+          <MobileQuickActionSheet
+            open={mobileQuickActionOpen}
+            onOpenChange={setMobileQuickActionOpen}
+          />
         </SidebarInset>
       </div>
       <Toaster position="top-right" />

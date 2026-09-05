@@ -6,6 +6,7 @@ import { CatalogoProdutos } from './CatalogoProdutos';
 import { WorkspaceProduto } from './WorkspaceProduto';
 import { ProdutoFocus } from '../types';
 import { Boxes, LayoutDashboard, Layers } from 'lucide-react';
+import { MobileProdutosView } from './MobileProdutosView';
 
 export function ProdutosScreen() {
   const {
@@ -51,70 +52,81 @@ export function ProdutosScreen() {
   };
 
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
-      {/* HEADER PRINCIPAL DO MÓDULO PRODUTOS FOCUS */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">
-            Produtos Focus
-          </h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Central de gestão do ecossistema de softwares da Focus Tecnologia: ciclo de vida, roadmap, releases, clientes e métricas
-          </p>
-        </div>
+    <>
+      <div className="md:hidden">
+        <MobileProdutosView
+          produtos={produtos}
+          onSelectProduto={handleSelectProduto}
+          onAddProduto={criarNovoProduto}
+          onUpdateProduto={handleUpdateProduto}
+          onDeleteProduto={handleDeleteProduto}
+        />
       </div>
-
-      {/* SEPARADOR DE ABAS PRINCIPAIS */}
-      <Tabs value={mainTab} onValueChange={(val: any) => setMainTab(val)} className="space-y-6">
-        <div className="w-full overflow-x-auto scrollbar-hide border-b pb-1">
-          <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
-            <TabsTrigger value="catalogo" className="text-xs font-semibold gap-1.5 shrink-0">
-              <Boxes className="h-4 w-4" /> Catálogo
-            </TabsTrigger>
-            <TabsTrigger value="dashboard" className="text-xs font-semibold gap-1.5 shrink-0">
-              <LayoutDashboard className="h-4 w-4" /> Dashboard Executivo
-            </TabsTrigger>
-            <TabsTrigger value="workspace" disabled={!selectedProduto} className="text-xs font-semibold gap-1.5 shrink-0">
-              <Layers className="h-4 w-4" /> Workspace {selectedProduto ? `(${selectedProduto.nome})` : ''}
-            </TabsTrigger>
-          </TabsList>
+      <div className="hidden md:flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+        {/* HEADER PRINCIPAL DO MÓDULO PRODUTOS FOCUS */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">
+              Produtos Focus
+            </h1>
+            <p className="text-muted-foreground mt-1 text-sm">
+              Central de gestão do ecossistema de softwares da Focus Tecnologia: ciclo de vida, roadmap, releases, clientes e métricas
+            </p>
+          </div>
         </div>
 
-        {/* CONTEÚDO DA ABA 1: CATÁLOGO */}
-        <TabsContent value="catalogo" className="space-y-4 outline-none">
-          <CatalogoProdutos
-            produtos={produtos}
-            onSelectProduto={handleSelectProduto}
-            onAddProduto={criarNovoProduto}
-            onUpdateProduto={handleUpdateProduto}
-            onDeleteProduto={handleDeleteProduto}
-          />
-        </TabsContent>
+        {/* SEPARADOR DE ABAS PRINCIPAIS */}
+        <Tabs value={mainTab} onValueChange={(val: any) => setMainTab(val)} className="space-y-6">
+          <div className="w-full overflow-x-auto scrollbar-hide border-b pb-1">
+            <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
+              <TabsTrigger value="catalogo" className="text-xs font-semibold gap-1.5 shrink-0">
+                <Boxes className="h-4 w-4" /> Catálogo
+              </TabsTrigger>
+              <TabsTrigger value="dashboard" className="text-xs font-semibold gap-1.5 shrink-0">
+                <LayoutDashboard className="h-4 w-4" /> Dashboard Executivo
+              </TabsTrigger>
+              <TabsTrigger value="workspace" disabled={!selectedProduto} className="text-xs font-semibold gap-1.5 shrink-0">
+                <Layers className="h-4 w-4" /> Workspace {selectedProduto ? `(${selectedProduto.nome})` : ''}
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
-        {/* CONTEÚDO DA ABA 2: DASHBOARD EXECUTIVO */}
-        <TabsContent value="dashboard" className="space-y-4 outline-none">
-          <DashboardExecutivo produtos={produtos} clientesCount={clientes.length} />
-        </TabsContent>
-
-        {/* CONTEÚDO DA ABA 3: WORKSPACE EXCLUSIVO DO PRODUTO */}
-        <TabsContent value="workspace" className="space-y-4 outline-none">
-          {selectedProduto ? (
-            <WorkspaceProduto
-              produto={selectedProduto}
-              metricas={getMetricasProduto(selectedProduto)}
-              onBack={handleBackToCatalogo}
-              onAddRoadmap={addRoadmapItem}
-              onUpdateRoadmapStatus={updateRoadmapItemStatus}
-              onAddFuncionalidade={addFuncionalidade}
-              onAddRelease={addRelease}
+          {/* CONTEÚDO DA ABA 1: CATÁLOGO */}
+          <TabsContent value="catalogo" className="space-y-4 outline-none">
+            <CatalogoProdutos
+              produtos={produtos}
+              onSelectProduto={handleSelectProduto}
+              onAddProduto={criarNovoProduto}
+              onUpdateProduto={handleUpdateProduto}
+              onDeleteProduto={handleDeleteProduto}
             />
-          ) : (
-            <div className="p-8 text-center text-muted-foreground text-xs">
-              Selecione um produto no catálogo para abrir seu Workspace exclusivo.
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
-    </div>
+          </TabsContent>
+
+          {/* CONTEÚDO DA ABA 2: DASHBOARD EXECUTIVO */}
+          <TabsContent value="dashboard" className="space-y-4 outline-none">
+            <DashboardExecutivo produtos={produtos} clientesCount={clientes.length} />
+          </TabsContent>
+
+          {/* CONTEÚDO DA ABA 3: WORKSPACE EXCLUSIVO DO PRODUTO */}
+          <TabsContent value="workspace" className="space-y-4 outline-none">
+            {selectedProduto ? (
+              <WorkspaceProduto
+                produto={selectedProduto}
+                metricas={getMetricasProduto(selectedProduto)}
+                onBack={handleBackToCatalogo}
+                onAddRoadmap={addRoadmapItem}
+                onUpdateRoadmapStatus={updateRoadmapItemStatus}
+                onAddFuncionalidade={addFuncionalidade}
+                onAddRelease={addRelease}
+              />
+            ) : (
+              <div className="p-8 text-center text-muted-foreground text-xs">
+                Selecione um produto no catálogo para abrir seu Workspace exclusivo.
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
+    </>
   );
 }

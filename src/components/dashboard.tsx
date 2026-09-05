@@ -50,6 +50,7 @@ import { calculateTotalMRR } from "@/features/recorrencias/services/recorrenciaE
 import { INITIAL_RECORRENCIAS } from "@/features/recorrencias/data/initialRecorrencias";
 import { NovoRecebimentoSheet } from "@/features/contas-receber/components/NovoRecebimentoSheet";
 import { formatDateBrasilia, getBrasiliaTodayIso, parseDateSafe } from "@/lib/dateUtils";
+import { MobileDashboard } from "@/components/mobile/MobileDashboard";
 
 const currency = (v?: number | null) => {
   const num = typeof v === "number" && !isNaN(v) ? v : 0;
@@ -495,7 +496,11 @@ export function Dashboard() {
     : [{ name: "Sem despesas", value: 0 }];
 
   return (
-    <div className="space-y-6 p-4 sm:p-6 lg:p-8 animate-fade-in max-w-7xl mx-auto w-full">
+    <>
+      <div className="md:hidden">
+        <MobileDashboard />
+      </div>
+      <div className="hidden md:block space-y-6 p-4 sm:p-6 lg:p-8 animate-fade-in max-w-7xl mx-auto w-full">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
@@ -802,5 +807,6 @@ export function Dashboard() {
         </Card>
       </div>
     </div>
+    </>
   );
 }
