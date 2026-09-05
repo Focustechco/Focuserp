@@ -25,8 +25,17 @@ import { SelectResponsavel } from '@/components/SelectResponsavel';
 import { useNotificacoesStore } from "@/features/notificacoes/useNotificacoesStore";
 import { dmsService } from "@/services/dmsService";
 
-export function NovoProjetoSheet({ children }: { children: React.ReactNode }) {
-  const [open, setOpen] = useState(false);
+interface NovoProjetoSheetProps {
+  children?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export function NovoProjetoSheet({ children, open: controlledOpen, onOpenChange: setControlledOpen }: NovoProjetoSheetProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = isControlled ? (setControlledOpen || (() => {})) : setInternalOpen;
   const [nome, setNome] = useState('');
   const [idCliente, setIdCliente] = useState('');
   const [tipo, setTipo] = useState('Software Sob Medida');
@@ -171,9 +180,11 @@ export function NovoProjetoSheet({ children }: { children: React.ReactNode }) {
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        {children}
-      </SheetTrigger>
+      {children && (
+        <SheetTrigger asChild>
+          {children}
+        </SheetTrigger>
+      )}
       <SheetContent className="sm:max-w-3xl overflow-y-auto bg-card border-l shadow-2xl">
         <SheetHeader className="mb-6 border-b pb-4">
           <SheetTitle className="text-xl font-bold flex items-center gap-2 text-foreground">

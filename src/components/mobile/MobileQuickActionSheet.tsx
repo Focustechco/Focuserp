@@ -18,6 +18,7 @@ import {
   Plus,
   ChevronRight,
   Sparkles,
+  X,
 } from "lucide-react";
 import { NovoRecebimentoSheet } from "@/features/contas-receber/components/NovoRecebimentoSheet";
 import { NovaContaSheet } from "@/features/contas-pagar/components/NovaContaSheet";
@@ -120,14 +121,23 @@ export function MobileQuickActionSheet({ open, onOpenChange }: MobileQuickAction
           {/* Top orange accent line */}
           <div className="h-1 w-full bg-[#FF6A00]" />
 
-          <div className="p-4 pb-3 border-b border-slate-100 dark:border-zinc-800">
-            <div className="w-10 h-1 bg-slate-200 dark:bg-zinc-700 rounded-full mx-auto mb-3" />
-            <SheetTitle className="text-base font-extrabold text-slate-900 dark:text-white">
-              Criar novo
-            </SheetTitle>
-            <SheetDescription className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
-              Selecione a ação rápida que deseja executar
-            </SheetDescription>
+          <div className="p-4 pb-3 border-b border-slate-100 dark:border-zinc-800 flex items-center justify-between">
+            <div>
+              <div className="w-10 h-1 bg-slate-200 dark:bg-zinc-700 rounded-full mb-2" />
+              <SheetTitle className="text-base font-extrabold text-slate-900 dark:text-white">
+                Criar novo
+              </SheetTitle>
+              <SheetDescription className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+                Selecione a ação rápida que deseja executar
+              </SheetDescription>
+            </div>
+            <button
+              onClick={() => onOpenChange(false)}
+              className="w-8 h-8 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-500 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-white transition-colors cursor-pointer shrink-0"
+              aria-label="Fechar"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
 
           <div className="p-3 overflow-y-auto max-h-[calc(85vh-100px)] space-y-2 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
