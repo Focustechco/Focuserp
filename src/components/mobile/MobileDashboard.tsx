@@ -19,6 +19,7 @@ import {
   Sparkles,
   LayoutGrid,
   Eye,
+  EyeOff,
   Info,
   Calendar,
   ChevronDown,
@@ -66,6 +67,15 @@ export function MobileDashboard() {
   const [novoClienteOpen, setNovoClienteOpen] = useState(false);
   const [novoContratoOpen, setNovoContratoOpen] = useState(false);
   const [novoProjetoOpen, setNovoProjetoOpen] = useState(false);
+
+  // Ocultar / Exibir valores financeiros (Modo Privacidade Mobile)
+  const [hideValues, setHideValues] = useLocalStorageState<boolean>("focus_mobile_hide_values", false);
+
+  const renderValor = (v?: number | null, fallbackNum: number = 0) => {
+    if (hideValues) return "••••••";
+    const val = typeof v === "number" && !isNaN(v) && v !== 0 ? v : (v === 0 ? 0 : fallbackNum);
+    return formatBRL(val);
+  };
 
   // Saudação Dinâmica por Horário
   const greeting = useMemo(() => {
@@ -213,19 +223,35 @@ export function MobileDashboard() {
     <div className="space-y-4 p-4 pb-28 bg-[#F8F9FA] dark:bg-zinc-950 min-h-screen animate-fade-in">
       {/* 1. SEÇÃO RESUMO OPERACIONAL (Layout Idêntico ao Design Focus) */}
       <div className="space-y-3">
-        {/* Cabeçalho do Resumo Operacional em uma única linha */}
-        <div className="flex items-center gap-2.5">
-          <div className="w-10 h-10 rounded-2xl bg-[#FFF4EB] dark:bg-orange-950/40 flex items-center justify-center shrink-0">
-            <BarChart3 className="w-5 h-5 text-[#FF5000]" />
+        {/* Cabeçalho do Resumo Operacional em uma única linha com Botão de Ocultar/Exibir Valores */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-10 h-10 rounded-2xl bg-[#FFF4EB] dark:bg-orange-950/40 flex items-center justify-center shrink-0">
+              <BarChart3 className="w-5 h-5 text-[#FF5000]" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-xs sm:text-sm font-bold text-slate-800 dark:text-zinc-200 uppercase tracking-wider whitespace-nowrap truncate">
+                Resumo Operacional
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-zinc-400 truncate">
+                Visão geral da empresa
+              </p>
+            </div>
           </div>
-          <div className="min-w-0">
-            <h2 className="text-xs sm:text-sm font-bold text-slate-800 dark:text-zinc-200 uppercase tracking-wider whitespace-nowrap truncate">
-              Resumo Operacional
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-zinc-400 truncate">
-              Visão geral da empresa
-            </p>
-          </div>
+
+          {/* Botão de Olho (Privacidade / Omitir Valores) */}
+          <button
+            onClick={() => setHideValues((prev) => !prev)}
+            className="h-9 w-9 rounded-2xl bg-[#FFF4EB] hover:bg-orange-100/80 dark:bg-orange-950/50 dark:hover:bg-orange-900/60 border border-orange-200/60 dark:border-orange-900/40 text-[#FF5000] flex items-center justify-center transition-colors cursor-pointer shrink-0 shadow-2xs"
+            aria-label={hideValues ? "Exibir valores" : "Ocultar valores"}
+            title={hideValues ? "Exibir valores" : "Ocultar valores"}
+          >
+            {hideValues ? (
+              <EyeOff className="w-4.5 h-4.5 text-[#FF5000]" />
+            ) : (
+              <Eye className="w-4.5 h-4.5 text-[#FF5000]" />
+            )}
+          </button>
         </div>
 
         {/* Card Principal: Saldo Líquido */}
@@ -250,7 +276,7 @@ export function MobileDashboard() {
           <div className="flex items-center justify-between mt-2.5">
             <div>
               <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-                {formatBRL(metrics.saldoReal || 7606.49)}
+                {renderValor(metrics.saldoReal, 7606.49)}
               </div>
             </div>
 
@@ -287,7 +313,7 @@ export function MobileDashboard() {
                 Receitas
               </span>
               <span className="text-xs sm:text-[13px] font-extrabold text-slate-900 dark:text-white block mt-0.5 truncate">
-                {formatBRL(metrics.totalRecebido || 12480)}
+                {renderValor(metrics.totalRecebido, 12480)}
               </span>
               <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-0.5 mt-0.5">
                 <ArrowUp className="w-2.5 h-2.5 stroke-[2.5]" /> 8,2%
@@ -300,7 +326,7 @@ export function MobileDashboard() {
                 Despesas
               </span>
               <span className="text-xs sm:text-[13px] font-extrabold text-slate-900 dark:text-white block mt-0.5 truncate">
-                {formatBRL(metrics.totalPago || 4873.51)}
+                {renderValor(metrics.totalPago, 4873.51)}
               </span>
               <span className="text-[10px] font-bold text-rose-500 flex items-center gap-0.5 mt-0.5">
                 <ArrowUp className="w-2.5 h-2.5 stroke-[2.5]" /> 3,6%
@@ -313,7 +339,7 @@ export function MobileDashboard() {
                 Resultado
               </span>
               <span className="text-xs sm:text-[13px] font-extrabold text-slate-900 dark:text-white block mt-0.5 truncate">
-                {formatBRL(metrics.saldoReal || 7606.49)}
+                {renderValor(metrics.saldoReal, 7606.49)}
               </span>
               <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-0.5 mt-0.5">
                 <ArrowUp className="w-2.5 h-2.5 stroke-[2.5]" /> 12,5%
@@ -342,7 +368,7 @@ export function MobileDashboard() {
               </div>
 
               <div className="text-lg sm:text-xl font-black text-emerald-700 dark:text-emerald-400 mt-2.5 tracking-tight">
-                {formatBRL(metrics.receberHoje || 2450)}
+                {renderValor(metrics.receberHoje, 2450)}
               </div>
               <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-0.5">
                 {metrics.titulosReceberHojeCount || 12} títulos
@@ -376,7 +402,7 @@ export function MobileDashboard() {
               </div>
 
               <div className="text-lg sm:text-xl font-black text-rose-600 dark:text-rose-400 mt-2.5 tracking-tight">
-                {formatBRL(metrics.pagarHoje || 1230)}
+                {renderValor(metrics.pagarHoje, 1230)}
               </div>
               <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-0.5">
                 {metrics.titulosPagarHojeCount || 8} títulos
