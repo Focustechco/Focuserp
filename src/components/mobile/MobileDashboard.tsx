@@ -171,21 +171,7 @@ export function MobileDashboard() {
 
   return (
     <div className="space-y-4 p-4 pb-28 bg-[#F8F9FA] dark:bg-zinc-950 min-h-screen animate-fade-in">
-      {/* 1. STATUS DO SISTEMA + BADGE FOCUS ERP */}
-      <div className="flex items-center justify-between pt-0.5">
-        <div className="flex items-center gap-2">
-          <span className="flex h-2.5 w-2.5 rounded-full bg-[#00875A] shadow-[0_0_6px_rgba(0,135,90,0.5)]" />
-          <span className="text-[10px] font-bold text-[#00875A] tracking-wider uppercase">
-            Sistema Online • Conectado
-          </span>
-        </div>
-
-        <div className="px-2.5 py-0.5 rounded-full border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-2xs">
-          <span className="text-[10px] font-bold text-[#FF5000] tracking-tight">Focus ERP</span>
-        </div>
-      </div>
-
-      {/* 2. CARD DE RESUMO OPERACIONAL */}
+      {/* 1. CARD DE RESUMO OPERACIONAL */}
       <div className="rounded-3xl border border-slate-200/70 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xs p-5 relative overflow-hidden">
         {/* Barra superior de destaque laranja */}
         <div className="h-1 w-28 bg-[#FF5000] rounded-full mb-3" />
