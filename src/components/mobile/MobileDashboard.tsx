@@ -28,6 +28,7 @@ import { Contrato } from "@/features/contratos/types";
 import { Projeto } from "@/features/projetos/types";
 import { formatDateBrasilia, getBrasiliaTodayIso } from "@/lib/dateUtils";
 import { Badge } from "@/components/ui/badge";
+import { useSidebar } from "@/components/ui/sidebar";
 
 // Modais Oficiais
 import { NovoRecebimentoSheet } from "@/features/contas-receber/components/NovoRecebimentoSheet";
@@ -44,6 +45,7 @@ const formatBRL = (v?: number | null) => {
 export function MobileDashboard() {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
+  const { setOpenMobile } = useSidebar();
 
   // Queries de Dados Reais
   const { data: contasReceber = [] } = useContasReceberQuery();
@@ -360,7 +362,7 @@ export function MobileDashboard() {
           </div>
 
           <button
-            onClick={() => navigate({ to: "/fluxo-de-caixa" })}
+            onClick={() => setOpenMobile(true)}
             className="text-xs font-bold text-[#FF5000] hover:underline flex items-center gap-1 shrink-0 cursor-pointer"
           >
             Ver todos

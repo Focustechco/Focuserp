@@ -4,6 +4,7 @@ import {
   Home, Zap, Plus, Bell, LayoutGrid
 } from "lucide-react";
 import { useNotificacoesStore } from "@/features/notificacoes/useNotificacoesStore";
+import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 
 interface MobileBottomNavProps {
@@ -24,9 +25,14 @@ export function MobileBottomNav({
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
   const { naoLidasCount } = useNotificacoesStore();
+  const { setOpenMobile } = useSidebar();
 
   const handleCreate = onOpenQuickAction || onOpenQuickCreate;
-  const handleDrawer = onOpenMenu || onOpenDrawer;
+  const handleDrawer = () => {
+    if (onOpenMenu) onOpenMenu();
+    else if (onOpenDrawer) onOpenDrawer();
+    else setOpenMobile(true);
+  };
 
   const isHome = pathname === "/";
   const isNotifications = pathname === "/notificacoes";

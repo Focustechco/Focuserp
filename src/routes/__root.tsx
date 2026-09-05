@@ -23,8 +23,7 @@ import {
 } from "@/lib/push-notifications";
 
 import appCss from "../styles.css?url";
-import { reportLovableError } from "../lib/lovable-error-reporting";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarInset, useSidebar } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { TopBar } from "@/components/top-bar";
 import { Toaster } from "@/components/ui/sonner";
@@ -137,13 +136,37 @@ function RouteAccessGate() {
   return <Outlet />;
 }
 
+function AuthenticatedAppContent() {
+  const { setOpenMobile } = useSidebar();
+  const [mobileQuickActionOpen, setMobileQuickActionOpen] = useState(false);
+
+  return (
+    <div className="flex min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-background">
+      <AppSidebar />
+      <SidebarInset className="flex min-w-0 flex-1 flex-col w-full max-w-[100vw]">
+        <TopBar />
+        <MobileHeader onOpenMenu={() => setOpenMobile(true)} />
+        <main className="flex-1 overflow-x-hidden w-full max-w-[100vw] pb-[calc(4.75rem+env(safe-area-inset-bottom,0px))] md:pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
+          <RouteAccessGate />
+        </main>
+        <MobileBottomNav
+          onOpenMenu={() => setOpenMobile(true)}
+          onOpenQuickAction={() => setMobileQuickActionOpen(true)}
+        />
+        <MobileQuickActionSheet
+          open={mobileQuickActionOpen}
+          onOpenChange={setMobileQuickActionOpen}
+        />
+      </SidebarInset>
+    </div>
+  );
+}
+
 // Componente Principal de Roteamento com Proteção de Sessão
 function ProtectedAppLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
-  const { status, currentUser } = useAuth();
-  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
-  const [mobileQuickActionOpen, setMobileQuickActionOpen] = useState(false);
+  const { status } = useAuth();
 
   const isLoginPage = pathname === '/login';
 
@@ -192,28 +215,7 @@ function ProtectedAppLayout() {
   // 3. Aplicação ERP Autenticada Completa
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-background">
-        <AppSidebar />
-        <SidebarInset className="flex min-w-0 flex-1 flex-col w-full max-w-[100vw]">
-          <TopBar />
-          <MobileHeader onOpenMenu={() => setMobileDrawerOpen(true)} />
-          <main className="flex-1 overflow-x-hidden w-full max-w-[100vw] pb-[calc(4.75rem+env(safe-area-inset-bottom,0px))] md:pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
-            <RouteAccessGate />
-          </main>
-          <MobileBottomNav
-            onOpenMenu={() => setMobileDrawerOpen(true)}
-            onOpenQuickAction={() => setMobileQuickActionOpen(true)}
-          />
-          <MobileDrawerMenu
-            open={mobileDrawerOpen}
-            onOpenChange={setMobileDrawerOpen}
-          />
-          <MobileQuickActionSheet
-            open={mobileQuickActionOpen}
-            onOpenChange={setMobileQuickActionOpen}
-          />
-        </SidebarInset>
-      </div>
+      <AuthenticatedAppContent />
       <Toaster position="top-right" />
     </SidebarProvider>
   );

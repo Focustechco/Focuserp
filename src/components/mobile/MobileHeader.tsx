@@ -14,6 +14,7 @@ import { useAuth } from "@/features/auth/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
 import { useEmpresaConfig } from "@/features/configuracoes/hooks/useEmpresaConfig";
 import { useNotificacoesStore } from "@/features/notificacoes/useNotificacoesStore";
+import { useSidebar } from "@/components/ui/sidebar";
 import { UserProfileModal } from "@/components/UserProfileModal";
 import { EmpresaProfileModal } from "@/components/EmpresaProfileModal";
 
@@ -67,8 +68,13 @@ export function MobileHeader({ onOpenDrawer, onOpenMenu, onOpenSearch }: MobileH
   const { isDark, toggleTheme } = useTheme();
   const { empresa } = useEmpresaConfig();
   const { naoLidasCount } = useNotificacoesStore();
+  const { setOpenMobile } = useSidebar();
 
-  const handleOpenDrawer = onOpenMenu || onOpenDrawer;
+  const handleOpenDrawer = () => {
+    if (onOpenMenu) onOpenMenu();
+    else if (onOpenDrawer) onOpenDrawer();
+    else setOpenMobile(true);
+  };
 
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [empresaModalOpen, setEmpresaModalOpen] = useState(false);

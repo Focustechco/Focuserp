@@ -138,12 +138,16 @@ const groups = [
 ];
 
 function SidebarLogoHeader() {
-  const { state } = useSidebar();
+  const { state, isMobile, setOpenMobile } = useSidebar();
   const isCollapsed = state === "collapsed";
 
   return (
     <SidebarHeader className="border-b border-sidebar-border bg-transparent h-[84px] flex items-center justify-center px-4 py-3 transition-all duration-250 ease-in-out group-data-[collapsible=icon]:h-[3.75rem] group-data-[collapsible=icon]:min-h-[3.75rem] group-data-[collapsible=icon]:pt-[env(safe-area-inset-top,0px)] group-data-[collapsible=icon]:py-1.5 group-data-[collapsible=icon]:px-0">
-      <Link to="/" className="flex items-center justify-center w-full h-full">
+      <Link 
+        to="/" 
+        onClick={() => { if (isMobile) setOpenMobile(false); }}
+        className="flex items-center justify-center w-full h-full"
+      >
         {/* Logo Horizontal Completa - Sidebar Expandida */}
         <div
           className={cn(
@@ -187,6 +191,7 @@ export function AppSidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isActive = (url: string) => pathname === url;
 
+  const { isMobile, setOpenMobile } = useSidebar();
   const { currentUser, isSuperAdmin, usuarios, switchUser, canAccessRoute, logout } = useAuth();
   const [profileModalOpen, setProfileModalOpen] = useState(false);
 
@@ -222,7 +227,10 @@ export function AppSidebar() {
                         tooltip={item.title}
                         className="data-[active=true]:bg-accent data-[active=true]:text-accent-foreground data-[active=true]:font-medium"
                       >
-                        <Link to={item.url}>
+                        <Link 
+                          to={item.url}
+                          onClick={() => { if (isMobile) setOpenMobile(false); }}
+                        >
                           <item.icon className="h-4 w-4" />
                           <span>{item.title}</span>
                         </Link>
