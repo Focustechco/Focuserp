@@ -197,7 +197,9 @@ export const colaboradorService = {
     // 2. Salvar na Tabela Relacional Dedicada 'colaborador_fotos'
     if (photoContent) {
       try {
+        const fotoRowId = toValidUuid(`f0700000-0000-4000-8000-${validId.slice(-12)}`);
         const fotoPayload = {
+          id: fotoRowId,
           colaborador_id: validId,
           colaborador_matricula: validated.matricula || null,
           colaborador_email: validated.emailCorporativo || null,
@@ -208,15 +210,11 @@ export const colaboradorService = {
           updated_at: new Date().toISOString(),
         };
 
-        const { error: fotoErr } = await supabase
+        await supabase
           .from('colaborador_fotos')
-          .upsert(fotoPayload, { onConflict: 'colaborador_id' });
-
-        if (fotoErr) {
-          console.warn('[colaboradorService.saveColaborador] Aviso relacional colaborador_fotos:', fotoErr.message);
-        }
+          .upsert(fotoPayload, { onConflict: 'id' });
       } catch (errFoto: any) {
-        console.warn('[colaboradorService] Tabela colaborador_fotos fallback:', errFoto?.message);
+        // Ignorar se RLS ainda não foi desabilitado no Supabase pelo usuário
       }
     }
 

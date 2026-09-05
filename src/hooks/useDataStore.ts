@@ -1043,13 +1043,15 @@ export function useLocalStorageState<T extends { id: string }>(
             for (const item of dedupedPayload) {
               if (item.foto) {
                 try {
+                  const fotoRowId = toValidUuid(`f0700000-0000-4000-8000-${String(item.id).slice(-12)}`);
                   await supabase.from('colaborador_fotos').upsert({
+                    id: fotoRowId,
                     colaborador_id: item.id,
                     colaborador_matricula: item.matricula,
                     colaborador_email: item.email,
                     foto_base64: item.foto,
                     updated_at: new Date().toISOString(),
-                  }, { onConflict: 'colaborador_id' });
+                  }, { onConflict: 'id' });
                 } catch {}
               }
             }
