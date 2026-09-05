@@ -82,24 +82,7 @@ export function MobileClientesView() {
     <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-zinc-950 pb-24">
       {/* Top Mobile Bar */}
       <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md border-b px-4 py-3 space-y-2.5">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-bold text-foreground tracking-tight">Clientes</h1>
-            <p className="text-[11px] text-muted-foreground">
-              {stats.total} clientes cadastrados ({stats.ativos} ativos)
-            </p>
-          </div>
-          <Button
-            size="sm"
-            onClick={() => setNovoClienteOpen(true)}
-            className="h-8 px-3 rounded-lg bg-orange-500 hover:bg-orange-600 text-white font-medium text-xs shadow-xs gap-1.5"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            Novo
-          </Button>
-        </div>
-
-        {/* Campo de Busca & Filtro */}
+        {/* Campo de Busca, Filtro & Botão Novo */}
         <div className="flex items-center gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -107,7 +90,7 @@ export function MobileClientesView() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Buscar razão, fantasia, CNPJ..."
-              className="h-9 pl-9 pr-3 text-xs rounded-xl bg-muted/40 border-muted-foreground/20 focus-visible:ring-1 focus-visible:ring-orange-500"
+              className="h-9 pl-9 pr-3 text-xs rounded-xl bg-muted/40 border-muted-foreground/20 focus-visible:ring-1 focus-visible:ring-[#FF6A00]"
             />
           </div>
 
@@ -117,6 +100,7 @@ export function MobileClientesView() {
                 variant="outline"
                 size="icon"
                 className="h-9 w-9 rounded-xl shrink-0 border-muted-foreground/20 text-muted-foreground hover:text-foreground"
+                aria-label="Filtrar"
               >
                 <Filter className="w-4 h-4" />
               </Button>
@@ -140,7 +124,7 @@ export function MobileClientesView() {
                         variant={activeFilter === t.id ? 'default' : 'outline'}
                         size="sm"
                         onClick={() => setActiveFilter(t.id as any)}
-                        className={`text-xs h-8 ${activeFilter === t.id ? 'bg-orange-500 text-white' : ''}`}
+                        className={`text-xs h-8 ${activeFilter === t.id ? 'bg-[#FF6A00] text-white' : ''}`}
                       >
                         {t.label}
                       </Button>
@@ -174,13 +158,22 @@ export function MobileClientesView() {
 
                 <Button
                   onClick={() => setFilterSheetOpen(false)}
-                  className="w-full bg-orange-500 hover:bg-orange-600 text-white mt-4 h-10 rounded-xl"
+                  className="w-full bg-[#FF6A00] hover:bg-orange-600 text-white mt-4 h-10 rounded-xl font-bold"
                 >
                   Aplicar Filtros ({filteredClientes.length} resultados)
                 </Button>
               </div>
             </SheetContent>
           </Sheet>
+
+          <Button
+            size="sm"
+            onClick={() => setNovoClienteOpen(true)}
+            className="h-9 px-3 rounded-xl bg-[#FF6A00] hover:bg-orange-600 text-white font-bold text-xs shadow-xs gap-1 shrink-0"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Novo
+          </Button>
         </div>
 
         {/* Category Pills (Horizontal Scroll) */}

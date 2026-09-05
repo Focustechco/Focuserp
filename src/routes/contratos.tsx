@@ -31,8 +31,8 @@ function ContratosPage() {
   ).length;
 
   return (
-    <div className="flex flex-col gap-6 p-4 sm:p-6 max-w-7xl mx-auto w-full animate-fade-in">
-      <div>
+    <div className="flex flex-col gap-4 sm:gap-6 p-3 sm:p-6 max-w-7xl mx-auto w-full animate-fade-in">
+      <div className="hidden md:block">
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Contratos (CLM)</h1>
         <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-2xl">
           Gestão centralizada do ciclo de vida de contratos com clientes, fornecedores e parceiros da Focus Tecnologia Ltda.

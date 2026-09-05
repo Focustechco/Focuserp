@@ -11,7 +11,7 @@ export const Route = createFileRoute("/usuarios")({
 function UsuariosPage() {
   return (
     <div className="flex flex-col gap-6 p-6 max-w-[1400px] mx-auto w-full">
-      <div>
+      <div className="hidden md:block">
         <h1 className="text-3xl font-bold tracking-tight">Governança e Acessos</h1>
         <p className="text-muted-foreground mt-1">
           Gestão centralizada de identidade, permissões e segurança corporativa.

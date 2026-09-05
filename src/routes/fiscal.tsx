@@ -30,7 +30,7 @@ function RouteComponent() {
 
   return (
     <div className="flex-1 space-y-6 p-8 pt-6 animate-fade-in">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="hidden md:flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Central Fiscal & Tributária</h2>
           <p className="text-muted-foreground mt-1 text-sm">

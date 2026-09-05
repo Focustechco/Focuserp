@@ -95,30 +95,12 @@ export function MobileRecebimentosView() {
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-zinc-950 pb-24">
       {/* Top Mobile Sticky Header */}
-      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md border-b px-4 py-3 space-y-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-bold text-foreground tracking-tight">Contas a Receber</h1>
-            <p className="text-[11px] text-muted-foreground">{titulos.length} lançamentos registrados</p>
-          </div>
-          <Button
-            size="sm"
-            onClick={() => {
-              setTituloParaEditar(null);
-              setNovoRecebimentoOpen(true);
-            }}
-            className="h-8 px-3 rounded-lg bg-orange-500 hover:bg-orange-600 text-white font-medium text-xs shadow-xs gap-1.5"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            Recebimento
-          </Button>
-        </div>
-
+      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md border-b px-3.5 py-3 space-y-2.5">
         {/* Mini Cards de Resumo Financeiro */}
         <div className="grid grid-cols-3 gap-2">
           <div className="bg-card p-2.5 rounded-xl border shadow-2xs">
             <div className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
-              <Clock className="w-3 h-3 text-blue-500" /> A Receber
+              <Clock className="w-3 h-3 text-[#FF6A00]" /> A Receber
             </div>
             <div className="text-xs font-bold text-foreground mt-0.5 truncate">
               {formatCurrency(stats.totalAReceber)}
@@ -142,7 +124,7 @@ export function MobileRecebimentosView() {
           </div>
         </div>
 
-        {/* Busca e Filtros */}
+        {/* Busca, Filtros & Botão Novo */}
         <div className="flex items-center gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -150,7 +132,7 @@ export function MobileRecebimentosView() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Buscar cliente, descrição, doc..."
-              className="h-9 pl-9 pr-3 text-xs rounded-xl bg-muted/40 border-muted-foreground/20 focus-visible:ring-1 focus-visible:ring-orange-500"
+              className="h-9 pl-9 pr-3 text-xs rounded-xl bg-muted/40 border-muted-foreground/20 focus-visible:ring-1 focus-visible:ring-[#FF6A00]"
             />
           </div>
 
@@ -160,6 +142,7 @@ export function MobileRecebimentosView() {
                 variant="outline"
                 size="icon"
                 className="h-9 w-9 rounded-xl shrink-0 border-muted-foreground/20 text-muted-foreground"
+                aria-label="Filtrar"
               >
                 <Filter className="w-4 h-4" />
               </Button>
@@ -171,13 +154,25 @@ export function MobileRecebimentosView() {
               <div className="py-4 space-y-3 text-xs">
                 <Button
                   onClick={() => setFilterSheetOpen(false)}
-                  className="w-full bg-orange-500 hover:bg-orange-600 text-white h-10 rounded-xl"
+                  className="w-full bg-[#FF6A00] hover:bg-orange-600 text-white h-10 rounded-xl font-bold"
                 >
                   Aplicar Filtros ({filteredList.length} encontrados)
                 </Button>
               </div>
             </SheetContent>
           </Sheet>
+
+          <Button
+            size="sm"
+            onClick={() => {
+              setTituloParaEditar(null);
+              setNovoRecebimentoOpen(true);
+            }}
+            className="h-9 px-3 rounded-xl bg-[#FF6A00] hover:bg-orange-600 text-white font-bold text-xs shadow-xs gap-1 shrink-0"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Novo
+          </Button>
         </div>
 
         {/* Status Horizontal Tabs */}

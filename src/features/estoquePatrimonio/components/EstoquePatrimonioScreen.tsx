@@ -25,9 +25,9 @@ export function EstoquePatrimonioScreen() {
   const [isRelatoriosOpen, setIsRelatoriosOpen] = useState(false);
 
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-[1400px] mx-auto w-full">
+    <div className="flex flex-col gap-4 sm:gap-6 p-3 sm:p-6 max-w-[1400px] mx-auto w-full">
       {/* HEADER PADRONIZADO DO ERP */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-5">
+      <div className="hidden md:flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-5">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Estoque e Patrimônio</h1>
           <p className="text-muted-foreground mt-1">

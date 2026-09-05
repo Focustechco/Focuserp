@@ -38,8 +38,8 @@ function RouteComponent() {
   };
 
   return (
-    <div className="flex-1 space-y-4 p-4 sm:p-6 lg:p-8 pt-6 max-w-full overflow-x-hidden animate-fade-in">
-      <div>
+    <div className="flex-1 space-y-4 p-3 sm:p-6 lg:p-8 pt-4 sm:pt-6 max-w-full overflow-x-hidden animate-fade-in">
+      <div className="hidden md:block">
         <h2 className="text-xl sm:text-3xl font-bold tracking-tight text-foreground">Recursos Humanos & Gestão de Pessoas</h2>
         <p className="text-xs sm:text-sm text-muted-foreground mt-1">
           Plataforma central de gestão de pessoas, diretório corporativo, benefícios, férias, desempenho e desenvolvimento.

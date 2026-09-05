@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dashboard } from "@/features/clientes/components/Dashboard";
 import { ClientesList } from "@/features/clientes/components/ClientesList";
+import { MobileClientesView } from "@/features/clientes/components/MobileClientesView";
 
 export const Route = createFileRoute("/clientes")({
   component: ClientesPage,
@@ -9,29 +10,34 @@ export const Route = createFileRoute("/clientes")({
 
 function ClientesPage() {
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Clientes</h1>
-        <p className="text-muted-foreground mt-2">
-          Cadastro oficial de clientes integrado com toda a plataforma.
-        </p>
+    <>
+      <div className="md:hidden">
+        <MobileClientesView />
       </div>
-
-      <Tabs defaultValue="clientes" className="space-y-6">
-        <div className="w-full overflow-x-auto scrollbar-hide border-b pb-1">
-          <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
-            <TabsTrigger value="clientes" className="shrink-0">Lista de Clientes</TabsTrigger>
-            <TabsTrigger value="dashboard" className="shrink-0">Dashboard</TabsTrigger>
-          </TabsList>
+      <div className="hidden md:flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Clientes</h1>
+          <p className="text-muted-foreground mt-2">
+            Cadastro oficial de clientes integrado com toda a plataforma.
+          </p>
         </div>
-        
-        <TabsContent value="clientes" className="space-y-4 outline-none">
-          <ClientesList />
-        </TabsContent>
-      <TabsContent value="dashboard" className="space-y-4 outline-none">
-          <Dashboard />
-        </TabsContent>
-      </Tabs>
-    </div>
+
+        <Tabs defaultValue="clientes" className="space-y-6">
+          <div className="w-full overflow-x-auto scrollbar-hide border-b pb-1">
+            <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
+              <TabsTrigger value="clientes" className="shrink-0">Lista de Clientes</TabsTrigger>
+              <TabsTrigger value="dashboard" className="shrink-0">Dashboard</TabsTrigger>
+            </TabsList>
+          </div>
+          
+          <TabsContent value="clientes" className="space-y-4 outline-none">
+            <ClientesList />
+          </TabsContent>
+          <TabsContent value="dashboard" className="space-y-4 outline-none">
+            <Dashboard />
+          </TabsContent>
+        </Tabs>
+      </div>
+    </>
   );
 }

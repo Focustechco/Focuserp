@@ -34,7 +34,7 @@ function ConfiguracoesPage() {
   return (
     <div className="flex-1 space-y-4 p-4 sm:p-6 lg:p-8 pt-6 max-w-full overflow-x-hidden animate-fade-in">
       {/* Cabeçalho Padrão do Módulo */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="hidden md:flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl sm:text-3xl font-bold tracking-tight text-foreground">
             Configurações da Plataforma

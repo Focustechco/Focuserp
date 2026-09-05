@@ -24,7 +24,7 @@ function ModuloComercialOpsPage() {
   return (
     <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full animate-fade-in">
       {/* Cabeçalho Padrão do Módulo Comercial OS */}
-      <div>
+      <div className="hidden md:block">
         <h1 className="text-3xl font-bold tracking-tight">Comercial OS</h1>
         <p className="text-muted-foreground mt-2">
           Central operacional da equipe comercial para acompanhamento de performance, oportunidades, produtividade e estratégias de vendas.

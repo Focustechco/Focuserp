@@ -72,15 +72,15 @@ export function AgendaProjetosScreen() {
     <div className="space-y-6">
       {/* HEADER E KPI CARDS */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
+        <div className="hidden md:block">
           <h2 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
             <CalendarDays className="h-5 w-5 text-primary" /> Agenda de Entregas & Prazos PMO
           </h2>
           <p className="text-xs text-muted-foreground">
-            Acompanhamento de prazos contratuais, datas de entrega de projetos, marcos de homologao e reunies
+            Acompanhamento de prazos contratuais, datas de entrega de projetos, marcos de homologação e reuniões
           </p>
         </div>
-        <Button onClick={() => setIsNovoSheetOpen(true)} className="gap-2 text-xs font-semibold">
+        <Button onClick={() => setIsNovoSheetOpen(true)} className="gap-2 text-xs font-semibold w-full sm:w-auto">
           <Plus className="h-4 w-4" /> Agendar Marco / Entrega
         </Button>
       </div>

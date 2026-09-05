@@ -19,7 +19,7 @@ function IntegrationHubPage() {
   return (
     <div className="flex flex-col gap-6 p-6 max-w-[1400px] mx-auto w-full animate-fade-in">
       {/* Cabeçalho do Hub de Integrações */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="hidden md:flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Hub de Integrações</h1>
           <p className="text-muted-foreground mt-1 text-sm">

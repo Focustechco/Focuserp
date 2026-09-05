@@ -64,7 +64,7 @@ function AssinaturasPage() {
       
       {/* Header da Página */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
+        <div className="hidden md:block">
           <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-foreground">
             Gestão de Assinaturas & Contratos
           </h1>

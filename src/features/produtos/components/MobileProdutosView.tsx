@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { ProdutoFocus, CategoriaProduto, StatusProduto } from "../types";
 import { 
   Search, ScanBarcode, Filter, Plus, Boxes, ArrowRight, ExternalLink, 
@@ -104,35 +104,16 @@ export function MobileProdutosView({
   };
 
   return (
-    <div className="space-y-4 p-4 pb-24 bg-white dark:bg-background min-h-screen">
-      {/* 1. TÍTULO E BOTÃO NOVO PRODUTO (Print 1 logic) */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-black text-foreground tracking-tight">Produtos</h1>
-          <p className="text-xs text-muted-foreground font-medium">
-            Catálogo de softwares & serviços ({filteredProdutos.length})
-          </p>
-        </div>
-
-        <Button
-          size="sm"
-          onClick={() => setNovoModalOpen(true)}
-          className="gap-1.5 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs h-9 px-3.5 rounded-xl shadow-xs active:scale-95"
-        >
-          <Plus className="h-4 w-4 stroke-[2.5px]" />
-          <span>Novo Produto</span>
-        </Button>
-      </div>
-
-      {/* 2. BARRA DE BUSCA + SCANNER (Print 1 logic) */}
+    <div className="space-y-3.5 p-3.5 pb-24 bg-slate-50/60 dark:bg-zinc-950 min-h-screen">
+      {/* BARRA DE BUSCA + SCANNER + NOVO PRODUTO */}
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Buscar por nome, código ou categoria..."
-            className="pl-9 h-11 text-xs bg-white dark:bg-card border-border/80 rounded-2xl focus-visible:ring-orange-500/40"
+            placeholder="Buscar por produto, código ou categoria..."
+            className="pl-9 h-10 text-xs bg-white dark:bg-zinc-900 border-slate-200/80 dark:border-zinc-800 rounded-xl focus-visible:ring-[#FF6A00]"
           />
         </div>
 
@@ -140,23 +121,32 @@ export function MobileProdutosView({
           variant="outline"
           size="icon"
           onClick={handleBarcodeScan}
-          className="h-11 w-11 border-border/80 bg-white dark:bg-card rounded-2xl shrink-0 active:scale-95"
+          className="h-10 w-10 border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-xl shrink-0 active:scale-95 cursor-pointer text-[#FF6A00]"
           title="Scanner de Código de Barras / QR Code"
         >
-          <ScanBarcode className="h-5 w-5 text-orange-600" />
+          <ScanBarcode className="h-4.5 w-4.5 text-[#FF6A00]" />
         </Button>
 
         <Button
           variant="outline"
           size="icon"
           onClick={() => setFilterSheetOpen(true)}
-          className="h-11 w-11 border-border/80 bg-white dark:bg-card rounded-2xl shrink-0 active:scale-95 relative"
+          className="h-10 w-10 border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-xl shrink-0 active:scale-95 relative cursor-pointer"
           title="Filtros"
         >
-          <SlidersHorizontal className="h-5 w-5 text-foreground" />
+          <SlidersHorizontal className="h-4.5 w-4.5 text-slate-700 dark:text-zinc-300" />
           {selectedStatusFilter !== "Todos" && (
-            <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-orange-500" />
+            <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-[#FF6A00]" />
           )}
+        </Button>
+
+        <Button
+          size="sm"
+          onClick={() => setNovoModalOpen(true)}
+          className="gap-1 bg-[#FF6A00] hover:bg-orange-600 text-white font-bold text-xs h-10 px-3 rounded-xl shadow-xs shrink-0 cursor-pointer"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          <span>Novo</span>
         </Button>
       </div>
 

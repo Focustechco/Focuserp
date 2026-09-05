@@ -11,7 +11,7 @@ interface PlaceholderPageProps {
 export function PlaceholderPage({ title, description, features = [] }: PlaceholderPageProps) {
   return (
     <div className="mx-auto max-w-6xl space-y-6 p-6 lg:p-8">
-      <div className="flex flex-col gap-2">
+      <div className="hidden md:flex flex-col gap-2">
         <div className="flex items-center gap-2">
           <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
           <Badge variant="secondary" className="text-[10px]">Em breve</Badge>

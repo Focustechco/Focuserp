@@ -11,8 +11,8 @@ export const Route = createFileRoute("/cobrancas")({
 
 function CobrancasPage() {
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
-      <div>
+    <div className="flex flex-col gap-4 sm:gap-6 p-3 sm:p-6 max-w-7xl mx-auto w-full">
+      <div className="hidden md:block">
         <h1 className="text-3xl font-bold tracking-tight">Cobranças Multicanal</h1>
         <p className="text-muted-foreground mt-1">
           Gerencie o disparo inteligente de cobranças por WhatsApp, E-mail e SMS, acompanhando entregas, respostas e quitações em tempo real.

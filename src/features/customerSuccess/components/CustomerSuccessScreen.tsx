@@ -87,7 +87,7 @@ export function CustomerSuccessScreen() {
     <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
       {/* HEADER PRINCIPAL PADRONIZADO */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
+        <div className="hidden md:block">
           <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
             <Heart className="h-8 w-8 text-rose-500 fill-rose-500/20" /> Customer Service
           </h1>

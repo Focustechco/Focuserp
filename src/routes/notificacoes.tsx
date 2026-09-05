@@ -147,7 +147,7 @@ function NotificacoesPage() {
   return (
     <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full animate-fade-in">
       {/* HEADER DA PÁGINA */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="hidden md:flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-3xl font-bold tracking-tight">Central de Notificações</h1>

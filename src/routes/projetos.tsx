@@ -10,8 +10,8 @@ export const Route = createFileRoute("/projetos")({
 
 function ProjetosPage() {
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
-      <div>
+    <div className="flex flex-col gap-4 sm:gap-6 p-3 sm:p-6 max-w-7xl mx-auto w-full">
+      <div className="hidden md:block">
         <h1 className="text-3xl font-bold tracking-tight">Gestão de Projetos (PMO)</h1>
         <p className="text-muted-foreground mt-2">
           Central operacional para acompanhamento de escopo, cronograma, entregas, horas e status dos projetos.
