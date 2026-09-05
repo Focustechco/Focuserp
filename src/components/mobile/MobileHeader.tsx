@@ -1,4 +1,4 @@
-﻿import React, { useState } from "react";
+import React, { useState } from "react";
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { 
   Menu, Bell, ArrowLeft, Search, User, ShieldCheck, Sun, Moon, LogOut, Building2, Settings
@@ -55,17 +55,20 @@ const ROUTE_TITLES: Record<string, string> = {
 };
 
 interface MobileHeaderProps {
-  onOpenDrawer: () => void;
-  onOpenSearch: () => void;
+  onOpenDrawer?: () => void;
+  onOpenMenu?: () => void;
+  onOpenSearch?: () => void;
 }
 
-export function MobileHeader({ onOpenDrawer, onOpenSearch }: MobileHeaderProps) {
+export function MobileHeader({ onOpenDrawer, onOpenMenu, onOpenSearch }: MobileHeaderProps) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   const { isDark, toggleTheme } = useTheme();
   const { empresa } = useEmpresaConfig();
   const { naoLidasCount } = useNotificacoesStore();
+
+  const handleOpenDrawer = onOpenMenu || onOpenDrawer;
 
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [empresaModalOpen, setEmpresaModalOpen] = useState(false);
@@ -95,7 +98,7 @@ export function MobileHeader({ onOpenDrawer, onOpenSearch }: MobileHeaderProps) 
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={onOpenDrawer}
+                onClick={handleOpenDrawer}
                 className="h-10 w-10 text-foreground hover:bg-orange-50 dark:hover:bg-orange-950/40 rounded-xl shrink-0"
                 aria-label="Abrir Menu de Módulos"
               >

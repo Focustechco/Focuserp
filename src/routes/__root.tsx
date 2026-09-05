@@ -142,6 +142,8 @@ function ProtectedAppLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
   const { status, currentUser } = useAuth();
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const [mobileQuickActionOpen, setMobileQuickActionOpen] = useState(false);
 
   const isLoginPage = pathname === '/login';
 
@@ -186,9 +188,6 @@ function ProtectedAppLayout() {
       </main>
     );
   }
-
-  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
-  const [mobileQuickActionOpen, setMobileQuickActionOpen] = useState(false);
 
   // 3. Aplicação ERP Autenticada Completa
   return (
