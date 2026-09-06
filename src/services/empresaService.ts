@@ -29,7 +29,7 @@ export interface EmpresaConfig {
 }
 
 export const DEFAULT_EMPRESA_CONFIG: EmpresaConfig = {
-  id: 'empresa_principal',
+  id: '00000000-0000-4000-a000-000000000001',
   razaoSocial: 'Focus Tecnologia e Sistemas Ltda',
   nomeFantasia: 'Focus Tecnologia',
   cnpj: '48.912.345/0001-89',
@@ -122,39 +122,45 @@ export const empresaService = {
       const { data: dbEmpresa, error: dbErr } = await supabase
         .from('empresa_config')
         .select('*')
+        .order('updated_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
       if (!dbErr && dbEmpresa) {
+        const configGerais = (dbEmpresa.configuracoes_gerais && typeof dbEmpresa.configuracoes_gerais === 'object')
+          ? dbEmpresa.configuracoes_gerais
+          : {};
+
         const merged: EmpresaConfig = {
           ...local,
-          id: dbEmpresa.id || local.id,
-          razaoSocial: dbEmpresa.razao_social || dbEmpresa.razaoSocial || local.razaoSocial,
-          nomeFantasia: dbEmpresa.nome_fantasia || dbEmpresa.nomeFantasia || local.nomeFantasia,
+          id: dbEmpresa.id || '00000000-0000-4000-a000-000000000001',
+          razaoSocial: dbEmpresa.razao_social || local.razaoSocial,
+          nomeFantasia: dbEmpresa.nome_fantasia || local.nomeFantasia,
           cnpj: dbEmpresa.cnpj || local.cnpj,
-          ie: dbEmpresa.ie || dbEmpresa.inscricao_estadual || local.ie,
-          im: dbEmpresa.im || dbEmpresa.inscricao_municipal || local.im,
-          cnae: dbEmpresa.cnae || local.cnae,
-          regimeTributario: dbEmpresa.regime_tributario || dbEmpresa.regime || local.regimeTributario,
-          email: dbEmpresa.email || local.email,
-          telefone: dbEmpresa.telefone || local.telefone,
-          whatsapp: dbEmpresa.whatsapp || local.whatsapp,
-          website: dbEmpresa.website || local.website,
+          ie: dbEmpresa.inscricao_estadual || dbEmpresa.ie || local.ie,
+          im: dbEmpresa.inscricao_municipal || dbEmpresa.im || local.im,
+          cnae: dbEmpresa.cnae_principal || dbEmpresa.cnae || local.cnae,
+          regimeTributario: dbEmpresa.regime_tributario || local.regimeTributario,
+          email: dbEmpresa.email_contato || dbEmpresa.email || local.email,
+          telefone: dbEmpresa.telefone_contato || dbEmpresa.telefone || local.telefone,
+          whatsapp: configGerais.whatsapp || dbEmpresa.whatsapp || local.whatsapp,
+          website: dbEmpresa.site || dbEmpresa.website || local.website,
           cep: dbEmpresa.cep || local.cep,
-          endereco: dbEmpresa.endereco || dbEmpresa.logradouro || local.endereco,
+          endereco: dbEmpresa.logradouro || dbEmpresa.endereco || local.endereco,
           numero: dbEmpresa.numero || local.numero,
           complemento: dbEmpresa.complemento || local.complemento,
           bairro: dbEmpresa.bairro || local.bairro,
           cidade: dbEmpresa.cidade || local.cidade,
           estado: dbEmpresa.estado || local.estado,
           pais: dbEmpresa.pais || local.pais,
-          logoUrl: dbEmpresa.logo_url || dbEmpresa.logoUrl || local.logoUrl,
-          logoBrancaUrl: dbEmpresa.logo_branca_url || dbEmpresa.logoBrancaUrl || local.logoBrancaUrl,
-          marcaDaguaUrl: dbEmpresa.marca_dagua_url || dbEmpresa.marcaDaguaUrl || local.marcaDaguaUrl,
-          updatedAt: dbEmpresa.updated_at || dbEmpresa.updatedAt || local.updatedAt,
+          logoUrl: dbEmpresa.logo_url || local.logoUrl,
+          logoBrancaUrl: configGerais.logo_branca_url || dbEmpresa.logo_branca_url || local.logoBrancaUrl,
+          marcaDaguaUrl: configGerais.marca_dagua_url || dbEmpresa.marca_dagua_url || local.marcaDaguaUrl,
+          updatedAt: dbEmpresa.updated_at || local.updatedAt,
         };
 
         this.saveLocalCache(merged);
+        broadcastEmpresaUpdate(merged);
         return merged;
       }
     } catch (e) {
@@ -179,23 +185,22 @@ export const empresaService = {
     this.saveLocalCache(updated);
     broadcastEmpresaUpdate(updated);
 
-    // 2. Persistir no Banco de Dados Relacional Supabase
+    // 2. Persistir no Banco de Dados Relacional Supabase na tabela empresa_config
     try {
       const payloadDb = {
-        id: updated.id || 'empresa_principal',
+        id: '00000000-0000-4000-a000-000000000001',
         razao_social: updated.razaoSocial,
         nome_fantasia: updated.nomeFantasia,
         cnpj: updated.cnpj,
-        ie: updated.ie,
-        im: updated.im,
-        cnae: updated.cnae,
+        inscricao_estadual: updated.ie,
+        inscricao_municipal: updated.im,
+        cnae_principal: updated.cnae,
         regime_tributario: updated.regimeTributario,
-        email: updated.email,
-        telefone: updated.telefone,
-        whatsapp: updated.whatsapp,
-        website: updated.website,
+        email_contato: updated.email,
+        telefone_contato: updated.telefone,
+        site: updated.website,
         cep: updated.cep,
-        endereco: updated.endereco,
+        logradouro: updated.endereco,
         numero: updated.numero,
         complemento: updated.complemento,
         bairro: updated.bairro,
@@ -203,8 +208,11 @@ export const empresaService = {
         estado: updated.estado,
         pais: updated.pais,
         logo_url: updated.logoUrl,
-        logo_branca_url: updated.logoBrancaUrl,
-        marca_dagua_url: updated.marcaDaguaUrl,
+        configuracoes_gerais: {
+          whatsapp: updated.whatsapp,
+          logo_branca_url: updated.logoBrancaUrl,
+          marca_dagua_url: updated.marcaDaguaUrl,
+        },
         updated_at: updated.updatedAt,
       };
 
@@ -213,18 +221,7 @@ export const empresaService = {
         .upsert(payloadDb, { onConflict: 'id' });
 
       if (error) {
-        // Fallback: gravar também via row estruturada na tabela 'clients' com prefixo __COMPANY_PROFILE__
-        try {
-          await supabase.from('clients').upsert({
-            id: '00000000-0000-4000-a000-000000000001',
-            razao_social: updated.razaoSocial,
-            nome_fantasia: `__COMPANY_PROFILE__ ${updated.nomeFantasia}`,
-            cnpj: updated.cnpj,
-            email: updated.email,
-            telefone: updated.telefone,
-            endereco: JSON.stringify(updated),
-          }, { onConflict: 'id' });
-        } catch {}
+        console.warn('[empresaService] Erro ao sincronizar empresa_config:', error);
       }
     } catch (e) {
       console.warn('[empresaService] Falha ao sincronizar com o banco remoto:', e);
