@@ -139,20 +139,30 @@ function RouteAccessGate() {
 
 function AuthenticatedAppContent() {
   const { setOpenMobile } = useSidebar();
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [mobileQuickActionOpen, setMobileQuickActionOpen] = useState(false);
+
+  const handleOpenMenu = () => {
+    setMobileDrawerOpen(true);
+    setOpenMobile(true);
+  };
 
   return (
     <div className="flex min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-background">
       <AppSidebar />
       <SidebarInset className="flex min-w-0 flex-1 flex-col w-full max-w-[100vw]">
         <TopBar />
-        <MobileHeader onOpenMenu={() => setOpenMobile(true)} />
-        <main className="flex-1 overflow-x-hidden w-full max-w-[100vw] pb-[calc(4.75rem+env(safe-area-inset-bottom,0px))] md:pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
+        <MobileHeader onOpenMenu={handleOpenMenu} />
+        <div className="flex-1 overflow-x-hidden w-full max-w-[100vw] pb-[calc(4.75rem+env(safe-area-inset-bottom,0px))] md:pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
           <RouteAccessGate />
-        </main>
+        </div>
         <MobileBottomNav
-          onOpenMenu={() => setOpenMobile(true)}
+          onOpenMenu={handleOpenMenu}
           onOpenQuickAction={() => setMobileQuickActionOpen(true)}
+        />
+        <MobileDrawerMenu
+          open={mobileDrawerOpen}
+          onOpenChange={setMobileDrawerOpen}
         />
         <MobileQuickActionSheet
           open={mobileQuickActionOpen}
@@ -226,7 +236,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, shrink-to-fit=no, viewport-fit=cover" },
+      { name: "viewport", content: "width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" },
       { title: "Focus Finance — Gestão Financeira Corporativa" },
       {
         name: "description",
@@ -267,7 +277,7 @@ function RootShell({ children }: { children: ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body className="overflow-x-hidden antialiased select-none touch-manipulation max-w-[100vw]" suppressHydrationWarning>
+      <body className="min-h-screen bg-background text-foreground antialiased max-w-[100vw] overflow-x-hidden" suppressHydrationWarning>
         {children}
         <Scripts />
       </body>
