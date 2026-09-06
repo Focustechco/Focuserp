@@ -23,7 +23,7 @@ function AgendaPage() {
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Agenda Financeira</h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-2xl">
-            Calendário inteligente agregando Títulos, Projetos, Contratos e Impostos automaticamente.
+            Calendário financeiro agregando Recebimentos, Pagamentos, Recorrências, Contratos e Tributos.
           </p>
         </div>
 

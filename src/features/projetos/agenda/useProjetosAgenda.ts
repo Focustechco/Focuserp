@@ -35,9 +35,11 @@ export function useProjetosAgenda() {
     }
 
     // 2. Evento de Entrega Final
-    if (p.dataFinal) {
+    const dataEntrega = p.dataFinal || (p as any).dataPrevisaoFim || (p as any).data_previsao_fim || (p as any).dataFim;
+    if (dataEntrega) {
       const isConcluido = p.status === 'Concluído';
-      const isAtrasado = !isConcluido && p.dataFinal.split('T')[0] < todayStr;
+      const dateStr = dataEntrega.split('T')[0];
+      const isAtrasado = !isConcluido && dateStr < todayStr;
       let statusMapped: StatusEventoProjeto = 'Previsto';
       if (isConcluido) statusMapped = 'Concluído';
       else if (isAtrasado) statusMapped = 'Atrasado';
@@ -45,9 +47,9 @@ export function useProjetosAgenda() {
 
       mappedProjectEvents.push({
         id: `evt-end-${p.id}`,
-        titulo: `Entrega Final: ${p.nome}`,
+        titulo: `Entrega do Projeto: ${p.nome}`,
         tipo: 'Entrega de Projeto',
-        data: p.dataFinal.split('T')[0],
+        data: dateStr,
         projetoId: p.id,
         projetoNome: p.nome,
         responsavel: p.responsavelPrincipal,
