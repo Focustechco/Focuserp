@@ -274,10 +274,10 @@ export function ReportDocumentPreviewModal({ data, isOpen, onClose }: PreviewPro
               </div>
 
               {/* 5. OBSERVAÇÕES CUSTOMIZADAS */}
-              {data.filters.observacoesPersonalizadas && (
+              {Boolean(data?.filters?.observacoesPersonalizadas) && (
                 <div className="p-3 sm:p-4 rounded-lg bg-orange-50/80 border border-orange-200/80 text-xs text-orange-950 leading-relaxed">
                   <p className="font-bold mb-0.5 text-orange-900">Observações do Emissor:</p>
-                  <p>{data.filters.observacoesPersonalizadas}</p>
+                  <p>{data.filters?.observacoesPersonalizadas}</p>
                 </div>
               )}
             </div>

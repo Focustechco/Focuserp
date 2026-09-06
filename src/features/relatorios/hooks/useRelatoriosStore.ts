@@ -246,9 +246,13 @@ export function useRelatoriosStore() {
     });
   }, []);
 
-  const generateReportData = (reportId: string, filters: ReportFilterConfig): GeneratedReportData => {
+  const generateReportData = (
+    reportId: string, 
+    filters: ReportFilterConfig = { formato: 'PDF', incluirGraficos: true, periodo: 'mes_atual' }
+  ): GeneratedReportData => {
     const definition = REPORT_CATALOG.find(r => r.id === reportId) || REPORT_CATALOG[0];
     const reportNumber = `REL-${Math.floor(100000 + Math.random() * 900000)}`;
+    const safeFilters: ReportFilterConfig = filters || { formato: 'PDF', incluirGraficos: true, periodo: 'mes_atual' };
 
     let rows: Array<Record<string, any>> = [];
     let metricsSummary: Array<{ label: string; value: string; color?: string }> = [];
@@ -576,7 +580,7 @@ export function useRelatoriosStore() {
 
     return {
       definition,
-      filters,
+      filters: safeFilters,
       generatedAt: new Date().toISOString(),
       reportNumber,
       metricsSummary,
