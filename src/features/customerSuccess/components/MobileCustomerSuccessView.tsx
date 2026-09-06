@@ -160,25 +160,9 @@ export function MobileCustomerSuccessView() {
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Header Sticky */}
-      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md border-b px-4 py-3 space-y-2">
-        <div className="flex items-center justify-between gap-2">
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-1.5">
-              <Heart className="w-5 h-5 text-rose-500 fill-rose-500/20" /> Customer Service
-            </h1>
-            <p className="text-[11px] text-muted-foreground">Health score, retenção e ciclo do cliente</p>
-          </div>
-          <Button
-            onClick={() => setIsActionModalOpen(true)}
-            size="sm"
-            className="h-9 px-3 bg-rose-600 hover:bg-rose-700 text-white font-semibold rounded-xl gap-1.5 shadow-xs"
-          >
-            <Plus className="w-4 h-4" /> Nova Ação
-          </Button>
-        </div>
-
-        {/* Barra de Busca + Filtro Sheet */}
-        <div className="flex items-center gap-2 pt-1">
+      <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md border-b px-4 py-2.5 space-y-2">
+        {/* Barra de Busca + Filtro Sheet + Botão Nova Ação */}
+        <div className="flex items-center gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
@@ -288,6 +272,14 @@ export function MobileCustomerSuccessView() {
               </div>
             </SheetContent>
           </Sheet>
+
+          <Button
+            onClick={() => setIsActionModalOpen(true)}
+            size="sm"
+            className="h-9 px-3 bg-rose-600 hover:bg-rose-700 text-white font-semibold rounded-xl gap-1.5 shadow-xs shrink-0"
+          >
+            <Plus className="w-4 h-4" /> Nova Ação
+          </Button>
         </div>
 
         {/* Pílulas de Abas Rápidas */}
