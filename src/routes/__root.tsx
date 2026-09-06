@@ -61,7 +61,9 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
   useEffect(() => {
-    reportLovableError(error, { boundary: "tanstack_root_error_component" });
+    try {
+      reportLovableError(error, { boundary: "tanstack_root_error_component" });
+    } catch {}
   }, [error]);
 
   return (
@@ -71,7 +73,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
           Falha ao carregar a visualização
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Ocorreu um erro no processamento deste componente.
+          {error?.message || "Ocorreu um erro no processamento deste componente."}
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
@@ -190,8 +192,8 @@ function ProtectedAppLayout() {
     }
   }, [status, isLoginPage, navigate]);
 
-  // 1. Tela de Carregamento Inicial (Splash Screen Premium)
-  if (status === 'INITIALIZING') {
+  // 1. Tela de Carregamento Inicial ou Redirecionamento
+  if (status === 'INITIALIZING' || (status === 'UNAUTHENTICATED' && !isLoginPage)) {
     return (
       <div className="min-h-screen w-full flex flex-col items-center justify-center bg-background px-4">
         <div className="flex flex-col items-center gap-6 animate-pulse">
@@ -215,7 +217,7 @@ function ProtectedAppLayout() {
   }
 
   // 2. Tela de Login (Livre de Sidebar/TopBar)
-  if (isLoginPage || status === 'UNAUTHENTICATED') {
+  if (isLoginPage) {
     return (
       <main className="min-h-screen w-full bg-background">
         <Outlet />
