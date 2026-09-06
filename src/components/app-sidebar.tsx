@@ -44,6 +44,7 @@ import {
   KeyRound,
   LogOut,
   ChevronUp,
+  Receipt,
 } from "lucide-react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import focusLogoHorizontal from "@/assets/focus-logo-horizontal.png";
@@ -72,6 +73,7 @@ const groups = [
       { title: "Contas a Pagar", url: "/contas-a-pagar", icon: TrendingDown },
       { title: "Cobranças", url: "/cobrancas", icon: Bell },
       { title: "Conciliação", url: "/conciliacao", icon: Landmark },
+      { title: "Fiscal (NFe/NFSe)", url: "/fiscal", icon: Receipt },
       { title: "Agenda Financeira", url: "/agenda", icon: CalendarDays },
     ],
   },
