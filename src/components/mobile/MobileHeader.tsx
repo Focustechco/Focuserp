@@ -114,7 +114,7 @@ export function MobileHeader({ onOpenDrawer, onOpenMenu, onOpenSearch }: MobileH
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full bg-[#FF5000] text-white shadow-md pt-[env(safe-area-inset-top,0px)]">
+      <header className="sticky top-0 z-40 w-full md:hidden bg-[#FF5000] text-white shadow-md pt-[env(safe-area-inset-top,0px)]">
         <div className="flex h-16 items-center justify-between px-3 sm:px-4">
           {/* LADO ESQUERDO */}
           <div className="flex items-center gap-2.5 min-w-0 flex-1">
