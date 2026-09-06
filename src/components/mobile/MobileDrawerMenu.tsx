@@ -28,17 +28,7 @@ const MODULE_SECTIONS = [
     ],
   },
   {
-    title: "Comercial & Vendas",
-    items: [
-      { name: "Clientes", path: "/clientes", icon: Users },
-      { name: "CRM Focus", path: "/crm", icon: TrendingUp },
-      { name: "Contratos & Recorrência", path: "/contratos", icon: FileCheck2 },
-      { name: "Comercial OS", path: "/comercial", icon: Megaphone },
-      { name: "Marketing & Growth", path: "/marketing", icon: Megaphone },
-    ],
-  },
-  {
-    title: "Financeiro & Tesouraria",
+    title: "Financeiro & Contábil",
     items: [
       { name: "Contas a Receber", path: "/contas-a-receber", icon: TrendingUp },
       { name: "Contas a Pagar", path: "/contas-a-pagar", icon: TrendingDown },
@@ -48,6 +38,16 @@ const MODULE_SECTIONS = [
       { name: "Agenda Financeira", path: "/agenda", icon: CalendarDays },
       { name: "DRE Gerencial", path: "/dre", icon: LineChart },
       { name: "Fiscal & NFe/NFSe", path: "/fiscal", icon: Receipt },
+    ],
+  },
+  {
+    title: "Comercial & Vendas",
+    items: [
+      { name: "Clientes", path: "/clientes", icon: Users },
+      { name: "CRM Focus", path: "/crm", icon: TrendingUp },
+      { name: "Contratos & Recorrência", path: "/contratos", icon: FileCheck2 },
+      { name: "Comercial OS", path: "/comercial", icon: Megaphone },
+      { name: "Marketing & Growth", path: "/marketing", icon: Megaphone },
     ],
   },
   {
