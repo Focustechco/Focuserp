@@ -75,8 +75,8 @@ export function ReportDocumentPreviewModal({ data, isOpen, onClose }: PreviewPro
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-full sm:max-w-5xl h-[100dvh] sm:h-[94vh] max-h-[100dvh] sm:max-h-[94vh] p-0 border-none shadow-2xl bg-slate-950/95 backdrop-blur-md flex flex-col overflow-hidden">
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent hideCloseButton className="w-full sm:max-w-5xl h-[100dvh] sm:h-[94vh] max-h-[100dvh] sm:max-h-[94vh] p-0 border-none shadow-2xl bg-slate-950/95 backdrop-blur-md flex flex-col overflow-hidden">
         
         {/* Acessibilidade DialogHeader oculto */}
         <div className="sr-only">
@@ -99,14 +99,15 @@ export function ReportDocumentPreviewModal({ data, isOpen, onClose }: PreviewPro
               </span>
             </div>
 
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="sm:hidden h-8 w-8 text-muted-foreground hover:text-foreground"
+            {/* Fechar Mobile */}
+            <button
+              type="button"
+              onClick={() => onClose()}
+              className="sm:hidden flex h-7 w-7 items-center justify-center rounded-full bg-slate-100/90 dark:bg-zinc-800/90 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-500 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-white transition-all active:scale-95 cursor-pointer shadow-xs"
+              aria-label="Fechar"
             >
-              <X className="w-4 h-4" />
-            </Button>
+              <X className="w-3.5 h-3.5" />
+            </button>
           </div>
 
           {/* Botões de Ação com Scroll Horizontal Suave no Mobile */}
@@ -163,14 +164,15 @@ export function ReportDocumentPreviewModal({ data, isOpen, onClose }: PreviewPro
               <span>Exportar PDF</span>
             </Button>
 
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="hidden sm:inline-flex h-8 w-8 text-muted-foreground hover:text-foreground shrink-0 ml-1"
+            {/* Fechar Desktop */}
+            <button
+              type="button"
+              onClick={() => onClose()}
+              className="hidden sm:flex h-7 w-7 items-center justify-center rounded-full bg-slate-100/90 dark:bg-zinc-800/90 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-500 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-white transition-all active:scale-95 cursor-pointer shadow-xs ml-1 shrink-0"
+              aria-label="Fechar"
             >
-              <X className="w-4 h-4" />
-            </Button>
+              <X className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
 

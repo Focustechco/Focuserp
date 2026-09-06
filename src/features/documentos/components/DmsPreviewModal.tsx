@@ -725,7 +725,7 @@ HISTÓRICO E METADADOS DO ARQUIVO:
 
   return (
     <Dialog open={isModalOpen} onOpenChange={(openState) => { if (!openState) handleClose(); }}>
-      <DialogContent className={`w-full ${isFullscreen ? 'max-w-none h-[100dvh] max-h-[100dvh] rounded-none' : 'sm:max-w-6xl h-[100dvh] sm:h-[95vh] max-h-[100dvh] sm:max-h-[95vh] rounded-none sm:rounded-2xl'} overflow-hidden p-0 border shadow-2xl bg-background flex flex-col transition-all duration-300`}>
+      <DialogContent hideCloseButton className={`w-full ${isFullscreen ? 'max-w-none h-[100dvh] max-h-[100dvh] rounded-none' : 'sm:max-w-6xl h-[100dvh] sm:h-[95vh] max-h-[100dvh] sm:max-h-[95vh] rounded-none sm:rounded-2xl'} overflow-hidden p-0 border shadow-2xl bg-background flex flex-col transition-all duration-300`}>
         <DialogHeader className="sr-only">
           <DialogTitle>Visualizador de Documentos - {documento.nome}</DialogTitle>
           <DialogDescription>Detalhes e preview seguro do arquivo</DialogDescription>
@@ -816,11 +816,11 @@ HISTÓRICO E METADADOS DO ARQUIVO:
                 <Button
                   size="icon"
                   variant="ghost"
-                  className="h-8 w-8 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg ml-0.5"
+                  className="h-7 w-7 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg ml-0.5"
                   onClick={handleClose}
                   title="Fechar"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-3.5 h-3.5" />
                 </Button>
               </div>
             </div>

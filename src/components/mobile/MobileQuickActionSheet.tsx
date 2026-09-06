@@ -133,10 +133,10 @@ export function MobileQuickActionSheet({ open, onOpenChange }: MobileQuickAction
             </div>
             <button
               onClick={() => onOpenChange(false)}
-              className="w-8 h-8 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-500 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-white transition-colors cursor-pointer shrink-0"
+              className="w-7 h-7 rounded-full bg-slate-100/90 dark:bg-zinc-800/90 flex items-center justify-center text-slate-500 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-white transition-all active:scale-95 cursor-pointer shrink-0 shadow-xs"
               aria-label="Fechar"
             >
-              <X className="w-4 h-4" />
+              <X className="w-3.5 h-3.5" />
             </button>
           </div>
 
