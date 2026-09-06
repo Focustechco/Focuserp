@@ -16,9 +16,75 @@ import {
   Boxes, ShieldCheck, Tag, Hash, RefreshCw, Smartphone, Monitor,
   Cpu, HardDrive, CheckCircle2, ChevronRight
 } from 'lucide-react';
+import { useLocalStorageState } from '@/hooks/useDataStore';
+import { CentroCusto } from '@/features/centro-de-custos/types';
+import { INITIAL_CENTROS } from '@/features/centro-de-custos/data/initialData';
+import { CategoriaFinanceira } from '@/features/plano-contas/types';
+import { INITIAL_CATEGORIAS } from '@/features/plano-contas/mockData';
 import { RelatoriosModal } from './RelatoriosModal';
 import { formatDateBrasilia } from '@/lib/dateUtils';
 import { toast } from 'sonner';
+
+export const CATEGORIAS_EQUIPAMENTOS: CategoriaEquipamento[] = [
+  'Notebook',
+  'Monitor',
+  'Desktop',
+  'Celular',
+  'Tablet',
+  'Impressora',
+  'Servidor',
+  'Switch',
+  'Nobreak',
+  'Mouse',
+  'Teclado',
+  'Headset',
+  'Webcam',
+  'Dock Station',
+  'Outros',
+];
+
+export const CATEGORIAS_ESCRITORIO = [
+  'Smart Devices & Alexa',
+  'Audiovisual & TV',
+  'Livros & Treinamento',
+  'Cozinha & Convivência',
+  'Mobiliário & Escritório',
+  'Decoração & Conforto',
+  'Acessórios & Papelaria',
+  'Outros',
+];
+
+export const ESTADOS_CONSERVACAO: EstadoConservacaoItem[] = [
+  'Novo',
+  'Excelente',
+  'Bom',
+  'Desgastado',
+  'Danificado',
+  'Em Manutenção',
+];
+
+export const SALAS_LOCAIS_SUGERIDOS = [
+  'Sala de Reunião Principal',
+  'Sala de Apresentações',
+  'Recepção',
+  'Copa / Cozinha',
+  'Biblioteca Focus',
+  'Sala da Diretoria',
+  'Espaço Convivência',
+  'Sala de Brainstorming',
+  'Armário Multiuso',
+  'Estação de Trabalho Geral',
+];
+
+export const CATEGORIAS_PATRIMONIO = [
+  'Mobiliário Corporativo',
+  'Equipamentos de TI',
+  'Máquinas & Equipamentos',
+  'Veículos',
+  'Audiovisual & Sala de Reunião',
+  'Instalações & Benfeitorias',
+  'Outros',
+];
 
 const formatCurrency = (value?: number | null) => {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
@@ -46,6 +112,14 @@ export function MobileEstoquePatrimonioView() {
     deletePatrimonio
   } = useEstoquePatrimonio();
 
+  const { data: clientes = [] } = useLocalStorageState<any>('focus_clientes', []);
+  const { data: centrosCusto = [] } = useLocalStorageState<CentroCusto>('focus_centro_custos', INITIAL_CENTROS);
+  const { data: planoContas = [] } = useLocalStorageState<CategoriaFinanceira>('focus_plano_contas', INITIAL_CATEGORIAS);
+
+  const categoriasDespesa = useMemo(() => {
+    return planoContas.filter(c => c.tipo === 'Despesa' || !c.tipo);
+  }, [planoContas]);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<'equipamentos' | 'estoque' | 'licencas' | 'patrimonio' | 'movimentacoes' | 'manutencoes'>('equipamentos');
   const [situacaoFilter, setSituacaoFilter] = useState<string>('todos');
@@ -72,48 +146,84 @@ export function MobileEstoquePatrimonioView() {
   const [formEq, setFormEq] = useState({
     codigoPatrimonial: `PAT-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`,
     tipo: 'Notebook' as any,
-    marca: 'Dell',
-    modelo: 'Latitude 5430',
-    numeroSerie: '',
-    valorCompra: '4500',
-    garantiaMeses: '12',
-    dataCompra: new Date().toISOString().split('T')[0],
-    colaboradorNome: '',
-    departamento: 'Tecnologia',
-    localFisica: 'São Paulo - Sede',
     categoria: 'Notebook' as CategoriaEquipamento,
-    gerarContaPagar: false,
-    fornecedorNome: 'Dell Computadores do Brasil'
+    marca: 'Apple',
+    modelo: 'MacBook Air M2',
+    numeroSerie: '',
+    dataAquisicao: new Date().toISOString().split('T')[0],
+    valorCompra: '8500',
+    garantiaMeses: '24',
+    situacao: 'Disponível' as SituacaoEquipamento,
+    departamento: 'Engenharia de Software',
+    colaboradorNome: '',
+    localFisica: 'Estoque Central TI',
+    observacoes: '',
+    gerarDespesaFinanceira: false,
+
+    // Specs Notebook
+    processador: 'Apple M2',
+    memoriaRam: '16 GB',
+    armazenamento: '512 GB SSD',
+    sistemaOperacional: 'macOS',
+    nomeEquipamento: '',
+    serviceTag: '',
+    macAddress: '',
+
+    // Specs Monitor
+    polegadas: '27"',
+    resolucao: '2560 x 1440 (QHD)',
+    tipoPainel: 'IPS',
+    conexoes: 'HDMI, DisplayPort, USB-C',
   });
 
   // Form State: 2. Novo Item Estoque
-  const [formEstoque, setFormEstoque] = useState({
+  const [formEstoque, setFormEstoque] = useState<{
+    codigo: string;
+    nome: string;
+    descricao: string;
+    categoria: string;
+    quantidade: string;
+    quantidadeMinima: string;
+    estadoConservacao: EstadoConservacaoItem;
+    localizacao: string;
+    status: 'Disponível' | 'Reservado' | 'Em Uso' | 'Emprestado' | 'Manutenção' | 'Baixado';
+    valorUnitario: string;
+    responsavelNome: string;
+    observacoes: string;
+  }>({
+    codigo: `ESC-${Math.floor(100 + Math.random() * 900)}`,
     nome: '',
-    codigo: `EST-${Math.floor(100 + Math.random() * 900)}`,
-    categoria: 'Periféricos',
-    quantidade: '10',
-    quantidadeMinima: '2',
-    valorUnitario: '75',
-    localizacao: 'Almoxarifado Central - Prateleira A',
-    estadoConservacao: 'Novo' as EstadoConservacaoItem,
-    fornecedor: 'Distribuidora Tech',
-    gerarContaPagar: false
+    descricao: '',
+    categoria: 'Smart Devices & Alexa',
+    quantidade: '1',
+    quantidadeMinima: '1',
+    estadoConservacao: 'Excelente',
+    localizacao: 'Sala de Reunião Principal',
+    status: 'Em Uso',
+    valorUnitario: '0',
+    responsavelNome: '',
+    observacoes: '',
   });
 
   // Form State: 3. Nova Licença SaaS
   const [formLicenca, setFormLicenca] = useState({
-    nome: 'Microsoft 365 Business',
-    fabricante: 'Microsoft',
-    plano: 'Business Standard',
+    nome: 'Canva Premium',
+    fabricante: 'Canva',
+    plano: 'Enterprise Annual',
     tipo: 'Assinatura' as 'Assinatura' | 'Perpétua',
-    quantidadeTotal: '10',
+    quantidadeTotal: '8',
     quantidadeUsada: '1',
-    valor: '145',
     dataCompra: new Date().toISOString().split('T')[0],
     vencimento: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 10).toISOString().split('T')[0],
-    responsavelNome: 'TI & Infraestrutura',
+    valor: '35.00',
+    responsavelNome: 'Equipe de TI & Marketing',
+    centroCustoId: '',
+    centroCustoNome: 'Comercial & Marketing',
     categoriaFinanceira: 'Licenciamento de Software',
-    gerarContaPagar: true
+    observacoes: '',
+    gerarContaPagar: true,
+    gerarContaReceber: false,
+    clienteNome: '',
   });
 
   // Form State: 4. Novo Bem Patrimonial
@@ -122,35 +232,45 @@ export function MobileEstoquePatrimonioView() {
     codigoInterno: `MOB-${Math.floor(10 + Math.random() * 90)}`,
     categoria: 'Mobiliário Corporativo',
     valorCompra: '2800',
-    dataCompra: new Date().toISOString().split('T')[0],
     taxaDepreciacaoAnual: '10',
     vidaUtilAnos: '10',
-    estadoConservacao: 'Novo',
+    dataCompra: new Date().toISOString().split('T')[0],
+    estadoConservacao: 'Novo' as 'Novo' | 'Bom' | 'Regular' | 'Ruim' | 'Obsoleto',
+    situacao: 'Ativo' as 'Ativo' | 'Baixado' | 'Descarte',
+    centroCustoId: '',
+    centroCustoNome: 'Administrativo & Escritório',
     responsavel: 'Administrativo',
     departamento: 'Operações & Facilities',
-    localizacao: 'São Paulo - Sede'
+    localizacao: 'São Paulo - Sede',
   });
 
   // Form State: 5. Nova Movimentação
   const [formMov, setFormMov] = useState({
-    tipo: 'Atribuição' as 'Atribuição' | 'Devolução' | 'Transferência' | 'Descarte' | 'Manutenção',
+    tipo: 'Transferência' as 'Entrada' | 'Saída' | 'Transferência' | 'Manutenção' | 'Baixa' | 'Descarte' | 'Alteração Responsável' | 'Alteração Local' | 'Atribuição' | 'Devolução',
     equipamentoId: '',
+    estoqueItemId: '',
     responsavelNome: '',
-    departamento: 'Tecnologia',
-    origem: 'Estoque Central',
-    destino: 'São Paulo - Sede',
-    observacoes: ''
+    departamento: 'Engenharia de Software',
+    origem: 'Estoque Central TI',
+    destino: 'Estação de Trabalho / Home Office',
+    observacoes: '',
   });
 
   // Form State: 6. Nova Manutenção
   const [formManutGeral, setFormManutGeral] = useState({
     equipamentoId: '',
-    tipo: 'Corretiva' as 'Preventiva' | 'Corretiva' | 'Upgrade' | 'Troca',
+    tipo: 'Preventiva' as 'Preventiva' | 'Corretiva' | 'Upgrade' | 'Troca',
     descricao: '',
-    valor: '350',
+    valor: '250.00',
     responsavel: 'Assistência Técnica Especializada',
-    previsaoRetorno: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
-    gerarContaPagar: true
+    prestador: 'Assistência Técnica Especializada',
+    vencimento: new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0],
+    centroCustoId: '',
+    centroCustoNome: 'Operacional & Tecnologia',
+    categoriaFinanceira: 'Manutenção de Equipamentos & TI',
+    gerarContaPagar: true,
+    gerarContaReceber: false,
+    clienteNome: '',
   });
 
   // Modal Auxiliar: Transferência em Item
@@ -322,20 +442,50 @@ export function MobileEstoquePatrimonioView() {
     if (!formEq.modelo.trim()) { toast.error('Informe o modelo'); return; }
 
     const val = parseFloat(formEq.valorCompra.replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
+    const garantia = parseInt(formEq.garantiaMeses) || 12;
+
+    const specsNotebook =
+      formEq.categoria === 'Notebook' || formEq.categoria === 'Desktop'
+        ? {
+            processador: formEq.processador,
+            memoriaRam: formEq.memoriaRam,
+            armazenamento: formEq.armazenamento,
+            sistemaOperacional: formEq.sistemaOperacional,
+            nomeEquipamento: formEq.nomeEquipamento,
+            serviceTag: formEq.serviceTag,
+            macAddress: formEq.macAddress,
+            fabricante: formEq.marca,
+          }
+        : undefined;
+
+    const specsMonitor =
+      formEq.categoria === 'Monitor'
+        ? {
+            polegadas: formEq.polegadas,
+            resolucao: formEq.resolucao,
+            tipoPainel: formEq.tipoPainel,
+            conexoes: formEq.conexoes.split(',').map((c) => c.trim()),
+          }
+        : undefined;
 
     registrarNovoEquipamento({
       codigoPatrimonial: formEq.codigoPatrimonial,
-      tipo: formEq.tipo,
+      tipo: formEq.categoria,
+      categoria: formEq.categoria,
       marca: formEq.marca || 'Genérica',
       modelo: formEq.modelo,
       numeroSerie: formEq.numeroSerie || `SN-${Date.now().toString().slice(-6)}`,
       valorCompra: val,
-      dataCompra: formEq.dataCompra || new Date().toISOString().split('T')[0],
+      dataCompra: formEq.dataAquisicao || new Date().toISOString().split('T')[0],
+      garantiaMeses: garantia,
       colaboradorNome: formEq.colaboradorNome,
       departamento: formEq.departamento,
       localFisica: formEq.localFisica,
-      situacao: formEq.colaboradorNome ? 'Em Uso' : 'Disponível',
-      categoria: formEq.categoria,
+      situacao: formEq.colaboradorNome ? 'Em Uso' : formEq.situacao,
+      observacoes: formEq.observacoes,
+      notebookSpecs: specsNotebook,
+      monitorSpecs: specsMonitor,
+      gerarDespesaFinanceira: formEq.gerarDespesaFinanceira,
     });
 
     toast.success(`Equipamento ${formEq.codigoPatrimonial} cadastrado com sucesso!`);
@@ -344,62 +494,70 @@ export function MobileEstoquePatrimonioView() {
 
   // Submissão: 2. Novo Item Estoque
   const handleCreateEstoqueItem = () => {
-    if (!formEstoque.nome.trim()) { toast.error('Informe o nome do item de estoque'); return; }
+    if (!formEstoque.nome.trim()) { toast.error('Informe o título/nome do item de escritório'); return; }
 
-    const qtd = parseInt(formEstoque.quantidade) || 0;
-    const qtdMin = parseInt(formEstoque.quantidadeMinima) || 0;
+    const qtd = parseInt(formEstoque.quantidade) || 1;
+    const qtdMin = parseInt(formEstoque.quantidadeMinima) || 1;
     const valUnit = parseFloat(formEstoque.valorUnitario.replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
 
     addEstoqueItem({
       id: crypto.randomUUID(),
       nome: formEstoque.nome,
-      codigo: formEstoque.codigo,
+      codigo: formEstoque.codigo || `ESC-${Math.floor(100 + Math.random() * 900)}`,
+      descricao: formEstoque.descricao,
       categoria: formEstoque.categoria,
       quantidade: qtd,
       quantidadeMinima: qtdMin,
       valorUnitario: valUnit,
       localizacao: formEstoque.localizacao,
       estadoConservacao: formEstoque.estadoConservacao,
-      status: qtd > 0 ? 'Disponível' : 'Esgotado',
+      responsavelNome: formEstoque.responsavelNome,
+      observacoes: formEstoque.observacoes,
+      status: formEstoque.status,
     });
 
-    toast.success(`Item "${formEstoque.nome}" adicionado ao almoxarifado!`);
+    toast.success(`Item "${formEstoque.nome}" adicionado com sucesso!`);
     setNovoItemEstoqueOpen(false);
-    setFormEstoque({
-      nome: '',
-      codigo: `EST-${Math.floor(100 + Math.random() * 900)}`,
-      categoria: 'Periféricos',
-      quantidade: '10',
-      quantidadeMinima: '2',
-      valorUnitario: '75',
-      localizacao: 'Almoxarifado Central',
-      estadoConservacao: 'Novo',
-      fornecedor: 'Distribuidora Tech',
-      gerarContaPagar: false
-    });
   };
 
   // Submissão: 3. Nova Licença SaaS
   const handleCreateLicenca = () => {
-    if (!formLicenca.nome.trim()) { toast.error('Informe o nome do software/licença'); return; }
+    if (!formLicenca.nome.trim() || !formLicenca.fabricante.trim()) {
+      toast.error('Informe o nome do software e o fabricante');
+      return;
+    }
 
     const val = parseFloat(formLicenca.valor.replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
     const qtdTotal = parseInt(formLicenca.quantidadeTotal) || 1;
     const qtdUsada = parseInt(formLicenca.quantidadeUsada) || 0;
+    const qtdDisp = Math.max(0, qtdTotal - qtdUsada);
+
+    const selectedCc = centrosCusto.find(c => c.id === formLicenca.centroCustoId || c.nome === formLicenca.centroCustoNome);
+    const ccNomeFinal = selectedCc ? selectedCc.nome : (formLicenca.centroCustoNome || 'Comercial & Marketing');
+    const ccIdFinal = selectedCc ? selectedCc.id : formLicenca.centroCustoId;
 
     criarLicencaComFinanceiro({
-      nome: formLicenca.nome,
-      fabricante: formLicenca.fabricante,
-      plano: formLicenca.plano,
-      tipo: formLicenca.tipo,
-      quantidadeTotal: qtdTotal,
-      quantidadeUsada: qtdUsada,
-      dataCompra: formLicenca.dataCompra,
-      vencimento: formLicenca.vencimento,
-      valor: val,
-      responsavelNome: formLicenca.responsavelNome,
-      categoriaFinanceira: formLicenca.categoriaFinanceira,
-      gerarContaPagar: formLicenca.gerarContaPagar
+      licenca: {
+        nome: formLicenca.nome,
+        fabricante: formLicenca.fabricante,
+        plano: formLicenca.plano,
+        tipo: formLicenca.tipo,
+        quantidadeTotal: qtdTotal,
+        quantidadeUsada: qtdUsada,
+        quantidadeDisponivel: qtdDisp,
+        dataCompra: formLicenca.dataCompra,
+        vencimento: formLicenca.vencimento,
+        valor: val,
+        responsavelNome: formLicenca.responsavelNome,
+        centroCustoNome: ccNomeFinal,
+        centroCustoId: ccIdFinal,
+        observacoes: formLicenca.observacoes,
+        createdAt: new Date().toISOString(),
+      },
+      gerarContaPagar: formLicenca.gerarContaPagar,
+      gerarContaReceber: formLicenca.gerarContaReceber,
+      clienteNome: formLicenca.clienteNome,
+      vencimentoFinanceiro: formLicenca.vencimento,
     });
 
     toast.success(`Licença "${formLicenca.nome}" registrada com sucesso!`);
@@ -408,11 +566,14 @@ export function MobileEstoquePatrimonioView() {
 
   // Submissão: 4. Novo Bem Patrimonial
   const handleCreatePatrimonio = () => {
-    if (!formPatrimonio.numeroPatrimonial.trim()) { toast.error('Informe o número patrimonial'); return; }
+    if (!formPatrimonio.numeroPatrimonial.trim()) { toast.error('Informe a placa / número patrimonial'); return; }
 
     const val = parseFloat(formPatrimonio.valorCompra.replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
     const taxa = parseFloat(formPatrimonio.taxaDepreciacaoAnual) || 10;
     const vida = parseInt(formPatrimonio.vidaUtilAnos) || 10;
+
+    const selectedCc = centrosCusto.find(c => c.id === formPatrimonio.centroCustoId || c.nome === formPatrimonio.centroCustoNome);
+    const ccNomeFinal = selectedCc ? selectedCc.nome : (formPatrimonio.centroCustoNome || 'Administrativo & Escritório');
 
     addPatrimonio({
       id: crypto.randomUUID(),
@@ -426,7 +587,9 @@ export function MobileEstoquePatrimonioView() {
       vidaUtilAnos: vida,
       dataCompra: formPatrimonio.dataCompra,
       estadoConservacao: formPatrimonio.estadoConservacao as any,
-      situacao: 'Ativo',
+      situacao: formPatrimonio.situacao,
+      centroCustoId: selectedCc ? selectedCc.id : formPatrimonio.centroCustoId,
+      centroCustoNome: ccNomeFinal,
       responsavel: formPatrimonio.responsavel,
       departamento: formPatrimonio.departamento,
       localizacao: formPatrimonio.localizacao
@@ -441,17 +604,26 @@ export function MobileEstoquePatrimonioView() {
     if (!formMov.responsavelNome.trim()) { toast.error('Informe o responsável da movimentação'); return; }
 
     const selectedEq = equipamentos.find(e => e.id === formMov.equipamentoId);
-    const nomeAtivo = selectedEq ? `${selectedEq.marca} ${selectedEq.modelo} (${selectedEq.codigoPatrimonial})` : 'Ativo Corporativo';
+    const selectedItem = estoqueItens.find(i => i.id === formMov.estoqueItemId);
+    const nomeAtivo = selectedEq
+      ? `${selectedEq.marca} ${selectedEq.modelo} (${selectedEq.codigoPatrimonial})`
+      : selectedItem
+      ? `${selectedItem.nome} (${selectedItem.codigo})`
+      : 'Ativo Corporativo';
 
     addMovimentacao({
       id: crypto.randomUUID(),
       tipo: formMov.tipo,
-      equipamentoId: formMov.equipamentoId,
-      equipamentoNome: nomeAtivo,
+      equipamentoId: formMov.equipamentoId || undefined,
+      equipamentoNome: selectedEq ? nomeAtivo : undefined,
+      estoqueItemId: formMov.estoqueItemId || undefined,
+      estoqueItemNome: selectedItem ? nomeAtivo : undefined,
+      usuarioId: 'user-mobile',
+      usuarioNome: formMov.responsavelNome,
       responsavelNome: formMov.responsavelNome,
       origem: formMov.origem,
       destino: formMov.destino,
-      data: new Date().toISOString(),
+      dataHora: new Date().toISOString(),
       observacoes: formMov.observacoes || 'Movimentação realizada via app mobile'
     });
 
@@ -462,16 +634,27 @@ export function MobileEstoquePatrimonioView() {
   // Submissão: 6. Nova Manutenção
   const handleCreateManutencaoGeral = () => {
     if (!formManutGeral.descricao.trim()) { toast.error('Informe a descrição do serviço de manutenção'); return; }
+    if (!formManutGeral.equipamentoId) { toast.error('Selecione o equipamento'); return; }
 
     const val = parseFloat(formManutGeral.valor.replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
-    const selectedEq = equipamentos.find(e => e.id === formManutGeral.equipamentoId);
+    const selectedCc = centrosCusto.find(c => c.id === formManutGeral.centroCustoId || c.nome === formManutGeral.centroCustoNome);
+    const ccNomeFinal = selectedCc ? selectedCc.nome : (formManutGeral.centroCustoNome || 'Operacional & Tecnologia');
+    const ccIdFinal = selectedCc ? selectedCc.id : formManutGeral.centroCustoId;
 
     abrirManutencaoComFinanceiro({
-      equipamentoId: formManutGeral.equipamentoId || (equipamentos[0]?.id ?? 'eq-1'),
+      equipamentoId: formManutGeral.equipamentoId,
       tipo: formManutGeral.tipo,
       descricao: formManutGeral.descricao,
       valor: val,
-      responsavel: formManutGeral.responsavel
+      responsavel: formManutGeral.responsavel,
+      prestador: formManutGeral.prestador,
+      gerarContaPagar: formManutGeral.gerarContaPagar,
+      gerarContaReceber: formManutGeral.gerarContaReceber,
+      clienteNome: formManutGeral.clienteNome,
+      vencimento: formManutGeral.vencimento,
+      centroCustoId: ccIdFinal,
+      centroCustoNome: ccNomeFinal,
+      categoria: formManutGeral.categoriaFinanceira,
     });
 
     toast.success(`Ordem de manutenção criada com sucesso!`);
@@ -1074,7 +1257,7 @@ export function MobileEstoquePatrimonioView() {
               <Laptop className="w-5 h-5 text-primary" /> Cadastrar Equipamento de TI
             </SheetTitle>
             <SheetDescription className="text-xs text-muted-foreground">
-              Cadastre notebooks, desktops, celulares e periféricos corporativos.
+              Cadastre notebooks, monitores, servidores, celulares e periféricos com especificações completas.
             </SheetDescription>
           </SheetHeader>
 
@@ -1085,22 +1268,17 @@ export function MobileEstoquePatrimonioView() {
                 <Input
                   value={formEq.codigoPatrimonial}
                   onChange={e => setFormEq(f => ({ ...f, codigoPatrimonial: e.target.value }))}
-                  className="h-9 text-xs"
+                  className="h-9 text-xs font-mono font-bold"
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs font-semibold">Categoria</Label>
+                <Label className="text-xs font-semibold">Categoria *</Label>
                 <Select value={formEq.categoria} onValueChange={v => setFormEq(f => ({ ...f, categoria: v as any, tipo: v }))}>
                   <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Notebook">Notebook</SelectItem>
-                    <SelectItem value="Desktop">Desktop</SelectItem>
-                    <SelectItem value="Monitor">Monitor</SelectItem>
-                    <SelectItem value="Celular">Celular</SelectItem>
-                    <SelectItem value="Tablet">Tablet</SelectItem>
-                    <SelectItem value="Servidor">Servidor</SelectItem>
-                    <SelectItem value="Periférico">Periférico</SelectItem>
-                    <SelectItem value="Outros">Outros</SelectItem>
+                    {CATEGORIAS_EQUIPAMENTOS.map(cat => (
+                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -1110,7 +1288,7 @@ export function MobileEstoquePatrimonioView() {
               <div className="space-y-1">
                 <Label className="text-xs font-semibold">Marca</Label>
                 <Input
-                  placeholder="Dell, Apple, Lenovo"
+                  placeholder="Ex: Apple, Dell, Lenovo"
                   value={formEq.marca}
                   onChange={e => setFormEq(f => ({ ...f, marca: e.target.value }))}
                   className="h-9 text-xs"
@@ -1119,7 +1297,7 @@ export function MobileEstoquePatrimonioView() {
               <div className="space-y-1">
                 <Label className="text-xs font-semibold">Modelo *</Label>
                 <Input
-                  placeholder="Ex: Latitude 5430"
+                  placeholder="Ex: MacBook Air M2, Latitude 5430"
                   value={formEq.modelo}
                   onChange={e => setFormEq(f => ({ ...f, modelo: e.target.value }))}
                   className="h-9 text-xs"
@@ -1129,53 +1307,228 @@ export function MobileEstoquePatrimonioView() {
 
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
-                <Label className="text-xs font-semibold">Valor de Compra (R$)</Label>
+                <Label className="text-xs font-semibold">Número de Série (S/N) *</Label>
                 <Input
-                  placeholder="4.500,00"
-                  value={formEq.valorCompra}
-                  onChange={e => setFormEq(f => ({ ...f, valorCompra: e.target.value }))}
-                  className="h-9 text-xs"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold">Número de Série (SN)</Label>
-                <Input
-                  placeholder="SN-982312"
+                  placeholder="Ex: C02G1234MD6R"
                   value={formEq.numeroSerie}
                   onChange={e => setFormEq(f => ({ ...f, numeroSerie: e.target.value }))}
+                  className="h-9 text-xs font-mono"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Data de Aquisição</Label>
+                <Input
+                  type="date"
+                  value={formEq.dataAquisicao}
+                  onChange={e => setFormEq(f => ({ ...f, dataAquisicao: e.target.value }))}
                   className="h-9 text-xs"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <div className="space-y-1">
-                <Label className="text-xs font-semibold">Colaborador / Responsável</Label>
+                <Label className="text-xs font-semibold">Valor Compra (R$)</Label>
                 <Input
-                  placeholder="Nome do colaborador"
-                  value={formEq.colaboradorNome}
-                  onChange={e => setFormEq(f => ({ ...f, colaboradorNome: e.target.value }))}
+                  placeholder="8500,00"
+                  value={formEq.valorCompra}
+                  onChange={e => setFormEq(f => ({ ...f, valorCompra: e.target.value }))}
+                  className="h-9 text-xs font-bold"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Garantia (Meses)</Label>
+                <Input
+                  type="number"
+                  value={formEq.garantiaMeses}
+                  onChange={e => setFormEq(f => ({ ...f, garantiaMeses: e.target.value }))}
                   className="h-9 text-xs"
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs font-semibold">Departamento</Label>
+                <Label className="text-xs font-semibold">Situação</Label>
+                <Select value={formEq.situacao} onValueChange={v => setFormEq(f => ({ ...f, situacao: v as any }))}>
+                  <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Disponível">Disponível</SelectItem>
+                    <SelectItem value="Em Uso">Em Uso</SelectItem>
+                    <SelectItem value="Manutenção">Manutenção</SelectItem>
+                    <SelectItem value="Baixa">Baixa / Descarte</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* ESPECIFICAÇÕES DINÂMICAS: NOTEBOOK / DESKTOP */}
+            {(formEq.categoria === 'Notebook' || formEq.categoria === 'Desktop') && (
+              <div className="border border-blue-500/30 rounded-2xl p-3 space-y-2.5 bg-blue-500/5">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
+                  <Cpu className="h-3.5 w-3.5" /> Especificações de Computador
+                </h4>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-semibold">Processador</Label>
+                    <Input
+                      placeholder="Ex: Apple M2 / Intel i7"
+                      value={formEq.processador}
+                      onChange={e => setFormEq(f => ({ ...f, processador: e.target.value }))}
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-semibold">Memória RAM</Label>
+                    <Input
+                      placeholder="Ex: 16 GB DDR5"
+                      value={formEq.memoriaRam}
+                      onChange={e => setFormEq(f => ({ ...f, memoriaRam: e.target.value }))}
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-semibold">Armazenamento (SSD)</Label>
+                    <Input
+                      placeholder="Ex: 512 GB SSD NVMe"
+                      value={formEq.armazenamento}
+                      onChange={e => setFormEq(f => ({ ...f, armazenamento: e.target.value }))}
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-semibold">Sistema Operacional</Label>
+                    <Input
+                      placeholder="Ex: macOS Sonoma / Windows 11"
+                      value={formEq.sistemaOperacional}
+                      onChange={e => setFormEq(f => ({ ...f, sistemaOperacional: e.target.value }))}
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-semibold">Service Tag</Label>
+                    <Input
+                      placeholder="Ex: DELL-SERVICE-TAG"
+                      value={formEq.serviceTag}
+                      onChange={e => setFormEq(f => ({ ...f, serviceTag: e.target.value }))}
+                      className="h-8 text-xs font-mono"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-semibold">MAC Address</Label>
+                    <Input
+                      placeholder="Ex: 00:1A:2B:3C:4D:5E"
+                      value={formEq.macAddress}
+                      onChange={e => setFormEq(f => ({ ...f, macAddress: e.target.value }))}
+                      className="h-8 text-xs font-mono"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ESPECIFICAÇÕES DINÂMICAS: MONITOR */}
+            {formEq.categoria === 'Monitor' && (
+              <div className="border border-indigo-500/30 rounded-2xl p-3 space-y-2.5 bg-indigo-500/5">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
+                  <Monitor className="h-3.5 w-3.5" /> Especificações de Display / Monitor
+                </h4>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-semibold">Polegadas (")</Label>
+                    <Input
+                      placeholder="Ex: 27 Inches"
+                      value={formEq.polegadas}
+                      onChange={e => setFormEq(f => ({ ...f, polegadas: e.target.value }))}
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-semibold">Resolução</Label>
+                    <Input
+                      placeholder="Ex: 2560 x 1440 2K"
+                      value={formEq.resolucao}
+                      onChange={e => setFormEq(f => ({ ...f, resolucao: e.target.value }))}
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-semibold">Tipo de Painel</Label>
+                    <Input
+                      placeholder="Ex: IPS Black / OLED"
+                      value={formEq.tipoPainel}
+                      onChange={e => setFormEq(f => ({ ...f, tipoPainel: e.target.value }))}
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-semibold">Conexões</Label>
+                    <Input
+                      placeholder="HDMI, DisplayPort, Type-C"
+                      value={formEq.conexoes}
+                      onChange={e => setFormEq(f => ({ ...f, conexoes: e.target.value }))}
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ATRIBUIÇÃO E LOCALIZAÇÃO */}
+            <div className="border border-border/60 rounded-2xl p-3 space-y-2.5 bg-muted/20">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <User className="h-3.5 w-3.5" /> Atribuição e Localização
+              </h4>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-semibold">Colaborador Responsável</Label>
+                  <Input
+                    placeholder="Vazio = Estoque TI"
+                    value={formEq.colaboradorNome}
+                    onChange={e => setFormEq(f => ({ ...f, colaboradorNome: e.target.value }))}
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-semibold">Departamento / Setor</Label>
+                  <Input
+                    placeholder="Ex: Engenharia"
+                    value={formEq.departamento}
+                    onChange={e => setFormEq(f => ({ ...f, departamento: e.target.value }))}
+                    className="h-8 text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-[11px] font-semibold">Localização Física</Label>
                 <Input
-                  placeholder="Tecnologia"
-                  value={formEq.departamento}
-                  onChange={e => setFormEq(f => ({ ...f, departamento: e.target.value }))}
-                  className="h-9 text-xs"
+                  placeholder="Ex: Estação ENG-04 / Head Office"
+                  value={formEq.localFisica}
+                  onChange={e => setFormEq(f => ({ ...f, localFisica: e.target.value }))}
+                  className="h-8 text-xs"
                 />
               </div>
             </div>
 
-            <div className="space-y-1">
-              <Label className="text-xs font-semibold">Localização Física</Label>
-              <Input
-                placeholder="São Paulo - Sede"
-                value={formEq.localFisica}
-                onChange={e => setFormEq(f => ({ ...f, localFisica: e.target.value }))}
-                className="h-9 text-xs"
+            {/* VINCULAÇÃO FINANCEIRA */}
+            <div className="flex items-center justify-between p-3 rounded-2xl border border-primary/20 bg-primary/5">
+              <div className="space-y-0.5">
+                <Label className="text-xs font-bold text-foreground">Vincular ao Contas a Pagar</Label>
+                <p className="text-[10px] text-muted-foreground">Gera despesa financeira automática no ERP</p>
+              </div>
+              <Switch
+                checked={formEq.gerarDespesaFinanceira}
+                onCheckedChange={c => setFormEq(f => ({ ...f, gerarDespesaFinanceira: c }))}
               />
             </div>
           </div>
@@ -1195,44 +1548,67 @@ export function MobileEstoquePatrimonioView() {
           <div className="w-12 h-1.5 bg-muted-foreground/30 rounded-full mx-auto mb-3 shrink-0" />
           <SheetHeader className="text-left pb-2">
             <SheetTitle className="flex items-center gap-2 text-base font-bold">
-              <Package className="w-5 h-5 text-amber-500" /> Novo Item no Estoque / Almoxarifado
+              <Package className="w-5 h-5 text-orange-600" /> Novo Item do Escritório
             </SheetTitle>
             <SheetDescription className="text-xs text-muted-foreground">
-              Cadastre itens consumíveis, peças sobressalentes e insumos de TI.
+              Cadastre livros, Alexa, televisores, cafeteiras, mobiliário ou outros bens do escritório.
             </SheetDescription>
           </SheetHeader>
 
           <div className="space-y-3 py-2 text-xs">
+            <div className="grid grid-cols-3 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Código *</Label>
+                <Input
+                  placeholder="ESC-001"
+                  value={formEstoque.codigo}
+                  onChange={e => setFormEstoque(f => ({ ...f, codigo: e.target.value }))}
+                  className="h-9 text-xs font-mono font-bold"
+                />
+              </div>
+              <div className="col-span-2 space-y-1">
+                <Label className="text-xs font-semibold">Título / Nome do Item *</Label>
+                <Input
+                  placeholder="Ex: Echo Dot, Smart TV 55', Livro Clean Code"
+                  value={formEstoque.nome}
+                  onChange={e => setFormEstoque(f => ({ ...f, nome: e.target.value }))}
+                  className="h-9 text-xs"
+                />
+              </div>
+            </div>
+
             <div className="space-y-1">
-              <Label className="text-xs font-semibold">Nome do Item *</Label>
-              <Input
-                placeholder="Ex: Cabo HDMI 2.1 4K 2m"
-                value={formEstoque.nome}
-                onChange={e => setFormEstoque(f => ({ ...f, nome: e.target.value }))}
-                className="h-9 text-xs"
+              <Label className="text-xs font-semibold">Descrição / Detalhes</Label>
+              <Textarea
+                placeholder="Ex: Dispositivo inteligente para reuniões e avisos..."
+                value={formEstoque.descricao}
+                onChange={e => setFormEstoque(f => ({ ...f, descricao: e.target.value }))}
+                rows={2}
+                className="text-xs resize-none"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
-                <Label className="text-xs font-semibold">Código / SKU</Label>
-                <Input
-                  value={formEstoque.codigo}
-                  onChange={e => setFormEstoque(f => ({ ...f, codigo: e.target.value }))}
-                  className="h-9 text-xs"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold">Categoria</Label>
+                <Label className="text-xs font-semibold">Categoria *</Label>
                 <Select value={formEstoque.categoria} onValueChange={v => setFormEstoque(f => ({ ...f, categoria: v }))}>
                   <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Cabos & Adaptadores">Cabos & Adaptadores</SelectItem>
-                    <SelectItem value="Periféricos">Periféricos</SelectItem>
-                    <SelectItem value="Componentes & Peças">Componentes & Peças</SelectItem>
-                    <SelectItem value="Rede & Conectividade">Rede & Conectividade</SelectItem>
-                    <SelectItem value="Papelaria & Escritório">Papelaria & Escritório</SelectItem>
-                    <SelectItem value="Outros">Outros</SelectItem>
+                    {CATEGORIAS_ESCRITORIO.map(cat => (
+                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Estado de Conservação *</Label>
+                <Select value={formEstoque.estadoConservacao} onValueChange={(v: EstadoConservacaoItem) => setFormEstoque(f => ({ ...f, estadoConservacao: v }))}>
+                  <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {ESTADOS_CONSERVACAO.map(est => (
+                      <SelectItem key={est} value={est}>{est}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -1240,27 +1616,29 @@ export function MobileEstoquePatrimonioView() {
 
             <div className="grid grid-cols-3 gap-2">
               <div className="space-y-1">
-                <Label className="text-xs font-semibold">Qtd. Inicial</Label>
+                <Label className="text-xs font-semibold">Unidades (Qtd) *</Label>
                 <Input
                   type="number"
+                  min="1"
                   value={formEstoque.quantidade}
                   onChange={e => setFormEstoque(f => ({ ...f, quantidade: e.target.value }))}
-                  className="h-9 text-xs"
+                  className="h-9 text-xs font-bold"
                 />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs font-semibold">Qtd. Mínima</Label>
                 <Input
                   type="number"
+                  min="1"
                   value={formEstoque.quantidadeMinima}
                   onChange={e => setFormEstoque(f => ({ ...f, quantidadeMinima: e.target.value }))}
                   className="h-9 text-xs"
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs font-semibold">Custo Un. (R$)</Label>
+                <Label className="text-xs font-semibold">Valor Unit. (R$)</Label>
                 <Input
-                  placeholder="75,00"
+                  placeholder="0,00"
                   value={formEstoque.valorUnitario}
                   onChange={e => setFormEstoque(f => ({ ...f, valorUnitario: e.target.value }))}
                   className="h-9 text-xs"
@@ -1269,20 +1647,63 @@ export function MobileEstoquePatrimonioView() {
             </div>
 
             <div className="space-y-1">
-              <Label className="text-xs font-semibold">Localização no Almoxarifado</Label>
-              <Input
-                placeholder="Ex: Almoxarifado Central - Prateleira A"
-                value={formEstoque.localizacao}
-                onChange={e => setFormEstoque(f => ({ ...f, localizacao: e.target.value }))}
-                className="h-9 text-xs"
-              />
+              <Label className="text-xs font-semibold">Localização / Sala *</Label>
+              <div className="space-y-1.5">
+                <Input
+                  placeholder="Ex: Sala de Reunião Principal, Copa..."
+                  value={formEstoque.localizacao}
+                  onChange={e => setFormEstoque(f => ({ ...f, localizacao: e.target.value }))}
+                  className="h-9 text-xs"
+                />
+                <Select
+                  value=""
+                  onValueChange={val => {
+                    if (val) setFormEstoque(f => ({ ...f, localizacao: val }));
+                  }}
+                >
+                  <SelectTrigger className="h-8 text-[11px] bg-muted/40">
+                    <SelectValue placeholder="Selecionar sala sugerida..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SALAS_LOCAIS_SUGERIDOS.map(sala => (
+                      <SelectItem key={sala} value={sala}>{sala}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Responsável / Guardião</Label>
+                <Input
+                  placeholder="Ex: Equipe de Operações"
+                  value={formEstoque.responsavelNome}
+                  onChange={e => setFormEstoque(f => ({ ...f, responsavelNome: e.target.value }))}
+                  className="h-9 text-xs"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Status de Uso</Label>
+                <Select value={formEstoque.status} onValueChange={(v: any) => setFormEstoque(f => ({ ...f, status: v }))}>
+                  <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Em Uso">Em Uso</SelectItem>
+                    <SelectItem value="Disponível">Disponível</SelectItem>
+                    <SelectItem value="Emprestado">Emprestado</SelectItem>
+                    <SelectItem value="Manutenção">Manutenção</SelectItem>
+                    <SelectItem value="Baixado">Baixado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
 
           <SheetFooter className="gap-2 sm:gap-0 mt-4 flex-row justify-end">
             <Button variant="outline" size="sm" onClick={() => setNovoItemEstoqueOpen(false)}>Cancelar</Button>
-            <Button size="sm" onClick={handleCreateEstoqueItem} className="bg-amber-600 hover:bg-amber-700 text-white font-bold">
-              Salvar Item no Estoque
+            <Button size="sm" onClick={handleCreateEstoqueItem} className="bg-orange-600 hover:bg-orange-700 text-white font-bold">
+              Salvar Item do Escritório
             </Button>
           </SheetFooter>
         </SheetContent>
@@ -1297,81 +1718,115 @@ export function MobileEstoquePatrimonioView() {
               <KeyRound className="w-5 h-5 text-indigo-500" /> Nova Licença de Software / SaaS
             </SheetTitle>
             <SheetDescription className="text-xs text-muted-foreground">
-              Cadastre softwares por assinatura ou licenças perpétuas.
+              Cadastre softwares por assinatura ou licenças perpétuas com controle de centro de custos.
             </SheetDescription>
           </SheetHeader>
 
           <div className="space-y-3 py-2 text-xs">
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Nome do Software / Produto *</Label>
+              <Input
+                placeholder="Ex: Canva Premium, Microsoft 365, Figma"
+                value={formLicenca.nome}
+                onChange={e => setFormLicenca(f => ({ ...f, nome: e.target.value }))}
+                className="h-9 text-xs"
+              />
+            </div>
+
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
-                <Label className="text-xs font-semibold">Software *</Label>
+                <Label className="text-xs font-semibold">Fabricante / Fornecedor *</Label>
                 <Input
-                  placeholder="Ex: Figma, Slack, Canva"
-                  value={formLicenca.nome}
-                  onChange={e => setFormLicenca(f => ({ ...f, nome: e.target.value }))}
-                  className="h-9 text-xs"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold">Fabricante</Label>
-                <Input
-                  placeholder="Ex: Microsoft, Adobe"
+                  placeholder="Ex: Canva, Microsoft, Adobe"
                   value={formLicenca.fabricante}
                   onChange={e => setFormLicenca(f => ({ ...f, fabricante: e.target.value }))}
                   className="h-9 text-xs"
                 />
               </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
                 <Label className="text-xs font-semibold">Plano / Tier</Label>
                 <Input
-                  placeholder="Ex: Enterprise, Pro"
+                  placeholder="Ex: Enterprise, Pro Anual"
                   value={formLicenca.plano}
                   onChange={e => setFormLicenca(f => ({ ...f, plano: e.target.value }))}
                   className="h-9 text-xs"
                 />
               </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
               <div className="space-y-1">
                 <Label className="text-xs font-semibold">Tipo</Label>
                 <Select value={formLicenca.tipo} onValueChange={v => setFormLicenca(f => ({ ...f, tipo: v as any }))}>
                   <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Assinatura">Assinatura Recorrente</SelectItem>
-                    <SelectItem value="Perpétua">Licença Perpétua</SelectItem>
+                    <SelectItem value="Assinatura">Assinatura</SelectItem>
+                    <SelectItem value="Perpétua">Perpétua</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2">
               <div className="space-y-1">
-                <Label className="text-xs font-semibold">Total Assentos</Label>
+                <Label className="text-xs font-semibold">Assentos Totais</Label>
                 <Input
                   type="number"
+                  min="1"
                   value={formLicenca.quantidadeTotal}
                   onChange={e => setFormLicenca(f => ({ ...f, quantidadeTotal: e.target.value }))}
                   className="h-9 text-xs"
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs font-semibold">Em Uso</Label>
+                <Label className="text-xs font-semibold">Valor (R$) *</Label>
                 <Input
-                  type="number"
-                  value={formLicenca.quantidadeUsada}
-                  onChange={e => setFormLicenca(f => ({ ...f, quantidadeUsada: e.target.value }))}
-                  className="h-9 text-xs"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs font-semibold">Valor (R$)</Label>
-                <Input
-                  placeholder="145,00"
+                  placeholder="35,00"
                   value={formLicenca.valor}
                   onChange={e => setFormLicenca(f => ({ ...f, valor: e.target.value }))}
-                  className="h-9 text-xs"
+                  className="h-9 text-xs font-bold text-orange-600"
                 />
+              </div>
+            </div>
+
+            {/* CENTRO DE CUSTO E CATEGORIA FINANCEIRA */}
+            <div className="grid grid-cols-2 gap-2 p-2.5 rounded-2xl border bg-muted/30">
+              <div className="space-y-1">
+                <Label className="text-[11px] font-bold flex items-center gap-1 text-foreground">
+                  <Building2 className="w-3 h-3 text-primary" /> Centro de Custo *
+                </Label>
+                <Select
+                  value={formLicenca.centroCustoId || formLicenca.centroCustoNome}
+                  onValueChange={val => {
+                    const matched = centrosCusto.find(c => c.id === val || c.nome === val);
+                    setFormLicenca(f => ({
+                      ...f,
+                      centroCustoId: matched ? matched.id : val,
+                      centroCustoNome: matched ? matched.nome : val,
+                    }));
+                  }}
+                >
+                  <SelectTrigger className="h-8 text-xs bg-card"><SelectValue placeholder="Centro de custo" /></SelectTrigger>
+                  <SelectContent>
+                    {centrosCusto.map(cc => (
+                      <SelectItem key={cc.id} value={cc.id}>{cc.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-[11px] font-bold flex items-center gap-1 text-foreground">
+                  <Tag className="w-3 h-3 text-primary" /> Categoria *
+                </Label>
+                <Select
+                  value={formLicenca.categoriaFinanceira}
+                  onValueChange={val => setFormLicenca(f => ({ ...f, categoriaFinanceira: val }))}
+                >
+                  <SelectTrigger className="h-8 text-xs bg-card"><SelectValue placeholder="Categoria" /></SelectTrigger>
+                  <SelectContent>
+                    {categoriasDespesa.map(cat => (
+                      <SelectItem key={cat.id} value={cat.nome}>{cat.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -1386,25 +1841,67 @@ export function MobileEstoquePatrimonioView() {
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs font-semibold">Data Renovação</Label>
+                <Label className="text-xs font-semibold">Data Vencimento *</Label>
                 <Input
                   type="date"
                   value={formLicenca.vencimento}
                   onChange={e => setFormLicenca(f => ({ ...f, vencimento: e.target.value }))}
-                  className="h-9 text-xs"
+                  className="h-9 text-xs font-bold text-orange-600"
                 />
               </div>
             </div>
 
-            <div className="flex items-center justify-between p-2.5 rounded-xl border bg-muted/20">
-              <div className="space-y-0.5">
-                <Label className="text-xs font-semibold">Lançar no Contas a Pagar</Label>
-                <p className="text-[10px] text-muted-foreground">Cria despesa financeira automática</p>
-              </div>
-              <Switch
-                checked={formLicenca.gerarContaPagar}
-                onCheckedChange={c => setFormLicenca(f => ({ ...f, gerarContaPagar: c }))}
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Responsável / Guardião</Label>
+              <Input
+                placeholder="Ex: Equipe de TI & Marketing"
+                value={formLicenca.responsavelNome}
+                onChange={e => setFormLicenca(f => ({ ...f, responsavelNome: e.target.value }))}
+                className="h-9 text-xs"
               />
+            </div>
+
+            <div className="space-y-2 pt-1">
+              <div className="flex items-center justify-between p-2.5 rounded-2xl border bg-muted/20">
+                <div className="space-y-0.5">
+                  <Label className="text-xs font-semibold">Lançar no Contas a Pagar</Label>
+                  <p className="text-[10px] text-muted-foreground">Cria despesa financeira automática</p>
+                </div>
+                <Switch
+                  checked={formLicenca.gerarContaPagar}
+                  onCheckedChange={c => setFormLicenca(f => ({ ...f, gerarContaPagar: c }))}
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-2.5 rounded-2xl border bg-muted/20">
+                <div className="space-y-0.5">
+                  <Label className="text-xs font-semibold">Faturar para Cliente</Label>
+                  <p className="text-[10px] text-muted-foreground">Repassar custo via Contas a Receber</p>
+                </div>
+                <Switch
+                  checked={formLicenca.gerarContaReceber}
+                  onCheckedChange={c => setFormLicenca(f => ({ ...f, gerarContaReceber: c }))}
+                />
+              </div>
+
+              {formLicenca.gerarContaReceber && (
+                <div className="space-y-1 pt-1">
+                  <Label className="text-xs font-semibold">Cliente Destino *</Label>
+                  <Select
+                    value={formLicenca.clienteNome}
+                    onValueChange={val => setFormLicenca(f => ({ ...f, clienteNome: val }))}
+                  >
+                    <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Selecione o cliente" /></SelectTrigger>
+                    <SelectContent>
+                      {clientes.map((cli: any) => (
+                        <SelectItem key={cli.id} value={cli.nomeFantasia || cli.razaoSocial || cli.nome}>
+                          {cli.nomeFantasia || cli.razaoSocial || cli.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
           </div>
 
@@ -1412,6 +1909,494 @@ export function MobileEstoquePatrimonioView() {
             <Button variant="outline" size="sm" onClick={() => setNovaLicencaOpen(false)}>Cancelar</Button>
             <Button size="sm" onClick={handleCreateLicenca} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold">
               Salvar Licença
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+
+      {/* MODAL 4: NOVO BEM PATRIMONIAL */}
+      <Sheet open={novoPatrimonioOpen} onOpenChange={setNovoPatrimonioOpen}>
+        <SheetContent side="bottom" className="rounded-t-3xl max-h-[90vh] overflow-y-auto p-5 bg-background border-t border-border flex flex-col">
+          <div className="w-12 h-1.5 bg-muted-foreground/30 rounded-full mx-auto mb-3 shrink-0" />
+          <SheetHeader className="text-left pb-2">
+            <SheetTitle className="flex items-center gap-2 text-base font-bold">
+              <DollarSign className="w-5 h-5 text-emerald-500" /> Cadastrar Bem Patrimonial
+            </SheetTitle>
+            <SheetDescription className="text-xs text-muted-foreground">
+              Cadastre mobiliário, máquinas, instalações e ativos de longo prazo com depreciação contábil.
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="space-y-3 py-2 text-xs">
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Placa Patrimonial *</Label>
+                <Input
+                  value={formPatrimonio.numeroPatrimonial}
+                  onChange={e => setFormPatrimonio(f => ({ ...f, numeroPatrimonial: e.target.value }))}
+                  className="h-9 text-xs font-mono font-bold"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Código Interno</Label>
+                <Input
+                  value={formPatrimonio.codigoInterno}
+                  onChange={e => setFormPatrimonio(f => ({ ...f, codigoInterno: e.target.value }))}
+                  className="h-9 text-xs font-mono"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Categoria *</Label>
+                <Select value={formPatrimonio.categoria} onValueChange={v => setFormPatrimonio(f => ({ ...f, categoria: v }))}>
+                  <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {CATEGORIAS_PATRIMONIO.map(cat => (
+                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Conservação</Label>
+                <Select value={formPatrimonio.estadoConservacao} onValueChange={(v: any) => setFormPatrimonio(f => ({ ...f, estadoConservacao: v }))}>
+                  <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Novo">Novo</SelectItem>
+                    <SelectItem value="Bom">Bom</SelectItem>
+                    <SelectItem value="Regular">Regular</SelectItem>
+                    <SelectItem value="Ruim">Ruim</SelectItem>
+                    <SelectItem value="Obsoleto">Obsoleto</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Valor Compra (R$)*</Label>
+                <Input
+                  placeholder="2800,00"
+                  value={formPatrimonio.valorCompra}
+                  onChange={e => setFormPatrimonio(f => ({ ...f, valorCompra: e.target.value }))}
+                  className="h-9 text-xs font-bold text-emerald-600"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Depreciação (%)</Label>
+                <Input
+                  placeholder="10"
+                  value={formPatrimonio.taxaDepreciacaoAnual}
+                  onChange={e => setFormPatrimonio(f => ({ ...f, taxaDepreciacaoAnual: e.target.value }))}
+                  className="h-9 text-xs"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Vida Útil (Anos)</Label>
+                <Input
+                  placeholder="10"
+                  value={formPatrimonio.vidaUtilAnos}
+                  onChange={e => setFormPatrimonio(f => ({ ...f, vidaUtilAnos: e.target.value }))}
+                  className="h-9 text-xs"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Centro de Custo</Label>
+                <Select
+                  value={formPatrimonio.centroCustoId || formPatrimonio.centroCustoNome}
+                  onValueChange={val => {
+                    const matched = centrosCusto.find(c => c.id === val || c.nome === val);
+                    setFormPatrimonio(f => ({
+                      ...f,
+                      centroCustoId: matched ? matched.id : val,
+                      centroCustoNome: matched ? matched.nome : val,
+                    }));
+                  }}
+                >
+                  <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Centro de Custo" /></SelectTrigger>
+                  <SelectContent>
+                    {centrosCusto.map(cc => (
+                      <SelectItem key={cc.id} value={cc.id}>{cc.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Situação Contábil</Label>
+                <Select value={formPatrimonio.situacao} onValueChange={(v: any) => setFormPatrimonio(f => ({ ...f, situacao: v }))}>
+                  <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Ativo">Ativo</SelectItem>
+                    <SelectItem value="Baixado">Baixado</SelectItem>
+                    <SelectItem value="Descarte">Descarte</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Responsável</Label>
+                <Input
+                  placeholder="Ex: Gestor Administrativo"
+                  value={formPatrimonio.responsavel}
+                  onChange={e => setFormPatrimonio(f => ({ ...f, responsavel: e.target.value }))}
+                  className="h-9 text-xs"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Departamento</Label>
+                <Input
+                  placeholder="Ex: Operações"
+                  value={formPatrimonio.departamento}
+                  onChange={e => setFormPatrimonio(f => ({ ...f, departamento: e.target.value }))}
+                  className="h-9 text-xs"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Localização Física</Label>
+              <Input
+                placeholder="Ex: São Paulo - Sede (Sala de Reunião)"
+                value={formPatrimonio.localizacao}
+                onChange={e => setFormPatrimonio(f => ({ ...f, localizacao: e.target.value }))}
+                className="h-9 text-xs"
+              />
+            </div>
+          </div>
+
+          <SheetFooter className="gap-2 sm:gap-0 mt-4 flex-row justify-end">
+            <Button variant="outline" size="sm" onClick={() => setNovoPatrimonioOpen(false)}>Cancelar</Button>
+            <Button size="sm" onClick={handleCreatePatrimonio} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold">
+              Cadastrar Patrimônio
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+
+      {/* MODAL 5: NOVA MOVIMENTAÇÃO / TRANSFERÊNCIA */}
+      <Sheet open={novaMovimentacaoOpen} onOpenChange={setNovaMovimentacaoOpen}>
+        <SheetContent side="bottom" className="rounded-t-3xl max-h-[90vh] overflow-y-auto p-5 bg-background border-t border-border flex flex-col">
+          <div className="w-12 h-1.5 bg-muted-foreground/30 rounded-full mx-auto mb-3 shrink-0" />
+          <SheetHeader className="text-left pb-2">
+            <SheetTitle className="flex items-center gap-2 text-base font-bold">
+              <History className="w-5 h-5 text-primary" /> Registrar Movimentação de Ativo
+            </SheetTitle>
+            <SheetDescription className="text-xs text-muted-foreground">
+              Registre transferências, atribuições, devoluções, trocas de local ou baixas.
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="space-y-3 py-2 text-xs">
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Tipo de Movimentação *</Label>
+              <Select value={formMov.tipo} onValueChange={v => setFormMov(f => ({ ...f, tipo: v as any }))}>
+                <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Transferência">Transferência</SelectItem>
+                  <SelectItem value="Atribuição">Atribuição / Entrega ao Colaborador</SelectItem>
+                  <SelectItem value="Devolução">Devolução ao Almoxarifado</SelectItem>
+                  <SelectItem value="Entrada">Entrada</SelectItem>
+                  <SelectItem value="Saída">Saída</SelectItem>
+                  <SelectItem value="Manutenção">Envio para Manutenção</SelectItem>
+                  <SelectItem value="Alteração Responsável">Alteração de Responsável</SelectItem>
+                  <SelectItem value="Alteração Local">Alteração de Local</SelectItem>
+                  <SelectItem value="Baixa">Baixa</SelectItem>
+                  <SelectItem value="Descarte">Descarte</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Equipamento de TI (Opcional se for item de estoque)</Label>
+              <Select
+                value={formMov.equipamentoId}
+                onValueChange={v => setFormMov(f => ({ ...f, equipamentoId: v, estoqueItemId: '' }))}
+              >
+                <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Selecione o equipamento" /></SelectTrigger>
+                <SelectContent>
+                  {equipamentos.map(eq => (
+                    <SelectItem key={eq.id} value={eq.id}>
+                      {eq.codigoPatrimonial} - {eq.marca} {eq.modelo}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Item de Almoxarifado / Estoque (Opcional)</Label>
+              <Select
+                value={formMov.estoqueItemId}
+                onValueChange={v => setFormMov(f => ({ ...f, estoqueItemId: v, equipamentoId: '' }))}
+              >
+                <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Selecione o item do escritório" /></SelectTrigger>
+                <SelectContent>
+                  {estoqueItens.map(item => (
+                    <SelectItem key={item.id} value={item.id}>
+                      {item.codigo} - {item.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Origem</Label>
+                <Input
+                  placeholder="Ex: Estoque Central TI"
+                  value={formMov.origem}
+                  onChange={e => setFormMov(f => ({ ...f, origem: e.target.value }))}
+                  className="h-9 text-xs"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Destino</Label>
+                <Input
+                  placeholder="Ex: Estação de Trabalho"
+                  value={formMov.destino}
+                  onChange={e => setFormMov(f => ({ ...f, destino: e.target.value }))}
+                  className="h-9 text-xs"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Responsável / Usuário *</Label>
+                <Input
+                  placeholder="Nome do colaborador"
+                  value={formMov.responsavelNome}
+                  onChange={e => setFormMov(f => ({ ...f, responsavelNome: e.target.value }))}
+                  className="h-9 text-xs"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Departamento</Label>
+                <Input
+                  placeholder="Ex: Engenharia"
+                  value={formMov.departamento}
+                  onChange={e => setFormMov(f => ({ ...f, departamento: e.target.value }))}
+                  className="h-9 text-xs"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Observações / Motivo</Label>
+              <Textarea
+                placeholder="Motivo ou termo de custódia..."
+                value={formMov.observacoes}
+                onChange={e => setFormMov(f => ({ ...f, observacoes: e.target.value }))}
+                rows={2}
+                className="text-xs resize-none"
+              />
+            </div>
+          </div>
+
+          <SheetFooter className="gap-2 sm:gap-0 mt-4 flex-row justify-end">
+            <Button variant="outline" size="sm" onClick={() => setNovaMovimentacaoOpen(false)}>Cancelar</Button>
+            <Button size="sm" onClick={handleCreateMovimentacao} className="bg-primary text-white font-bold">
+              Registrar Movimentação
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+
+      {/* MODAL 6: NOVA MANUTENÇÃO GERAL */}
+      <Sheet open={novaManutencaoOpen} onOpenChange={setNovaManutencaoOpen}>
+        <SheetContent side="bottom" className="rounded-t-3xl max-h-[90vh] overflow-y-auto p-5 bg-background border-t border-border flex flex-col">
+          <div className="w-12 h-1.5 bg-muted-foreground/30 rounded-full mx-auto mb-3 shrink-0" />
+          <SheetHeader className="text-left pb-2">
+            <SheetTitle className="flex items-center gap-2 text-base font-bold">
+              <Wrench className="w-5 h-5 text-amber-500" /> Abrir Ordem de Manutenção
+            </SheetTitle>
+            <SheetDescription className="text-xs text-muted-foreground">
+              Abra chamados para conserto, reparo, limpeza e upgrades com integração contábil e financeira.
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="space-y-3 py-2 text-xs">
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Equipamento *</Label>
+              <Select value={formManutGeral.equipamentoId} onValueChange={v => setFormManutGeral(f => ({ ...f, equipamentoId: v }))}>
+                <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Selecione o equipamento" /></SelectTrigger>
+                <SelectContent>
+                  {equipamentos.map(eq => (
+                    <SelectItem key={eq.id} value={eq.id}>
+                      {eq.codigoPatrimonial} - {eq.marca} {eq.modelo}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Tipo de Serviço</Label>
+                <Select value={formManutGeral.tipo} onValueChange={v => setFormManutGeral(f => ({ ...f, tipo: v as any }))}>
+                  <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Preventiva">Preventiva</SelectItem>
+                    <SelectItem value="Corretiva">Corretiva</SelectItem>
+                    <SelectItem value="Upgrade">Upgrade</SelectItem>
+                    <SelectItem value="Troca">Troca de Peças</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Custo Estimado (R$) *</Label>
+                <Input
+                  placeholder="250,00"
+                  value={formManutGeral.valor}
+                  onChange={e => setFormManutGeral(f => ({ ...f, valor: e.target.value }))}
+                  className="h-9 text-xs font-bold text-rose-600"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Descrição do Problema / Serviço *</Label>
+              <Textarea
+                placeholder="Ex: Troca de teclado e limpeza preventiva..."
+                value={formManutGeral.descricao}
+                onChange={e => setFormManutGeral(f => ({ ...f, descricao: e.target.value }))}
+                rows={2}
+                className="text-xs resize-none"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Assistência / Prestador</Label>
+                <Input
+                  placeholder="Ex: Assistência Técnica Especializada"
+                  value={formManutGeral.prestador}
+                  onChange={e => setFormManutGeral(f => ({ ...f, prestador: e.target.value }))}
+                  className="h-9 text-xs"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Técnico / Responsável</Label>
+                <Input
+                  placeholder="Ex: Suporte Interno"
+                  value={formManutGeral.responsavel}
+                  onChange={e => setFormManutGeral(f => ({ ...f, responsavel: e.target.value }))}
+                  className="h-9 text-xs"
+                />
+              </div>
+            </div>
+
+            {/* CENTRO DE CUSTO E CATEGORIA */}
+            <div className="grid grid-cols-2 gap-2 p-2.5 rounded-2xl border bg-muted/30">
+              <div className="space-y-1">
+                <Label className="text-[11px] font-bold flex items-center gap-1 text-foreground">
+                  <Building2 className="w-3 h-3 text-primary" /> Centro de Custo
+                </Label>
+                <Select
+                  value={formManutGeral.centroCustoId || formManutGeral.centroCustoNome}
+                  onValueChange={val => {
+                    const matched = centrosCusto.find(c => c.id === val || c.nome === val);
+                    setFormManutGeral(f => ({
+                      ...f,
+                      centroCustoId: matched ? matched.id : val,
+                      centroCustoNome: matched ? matched.nome : val,
+                    }));
+                  }}
+                >
+                  <SelectTrigger className="h-8 text-xs bg-card"><SelectValue placeholder="Centro de Custo" /></SelectTrigger>
+                  <SelectContent>
+                    {centrosCusto.map(cc => (
+                      <SelectItem key={cc.id} value={cc.id}>{cc.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-[11px] font-bold flex items-center gap-1 text-foreground">
+                  <Tag className="w-3 h-3 text-primary" /> Categoria
+                </Label>
+                <Select
+                  value={formManutGeral.categoriaFinanceira}
+                  onValueChange={val => setFormManutGeral(f => ({ ...f, categoriaFinanceira: val }))}
+                >
+                  <SelectTrigger className="h-8 text-xs bg-card"><SelectValue placeholder="Categoria" /></SelectTrigger>
+                  <SelectContent>
+                    {categoriasDespesa.map(cat => (
+                      <SelectItem key={cat.id} value={cat.nome}>{cat.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Data de Vencimento da Fatura</Label>
+              <Input
+                type="date"
+                value={formManutGeral.vencimento}
+                onChange={e => setFormManutGeral(f => ({ ...f, vencimento: e.target.value }))}
+                className="h-9 text-xs"
+              />
+            </div>
+
+            <div className="space-y-2 pt-1">
+              <div className="flex items-center justify-between p-2.5 rounded-2xl border bg-muted/20">
+                <div className="space-y-0.5">
+                  <Label className="text-xs font-semibold">Lançar no Contas a Pagar</Label>
+                  <p className="text-[10px] text-muted-foreground">Cria despesa financeira automática</p>
+                </div>
+                <Switch
+                  checked={formManutGeral.gerarContaPagar}
+                  onCheckedChange={c => setFormManutGeral(f => ({ ...f, gerarContaPagar: c }))}
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-2.5 rounded-2xl border bg-muted/20">
+                <div className="space-y-0.5">
+                  <Label className="text-xs font-semibold">Faturar para Cliente</Label>
+                  <p className="text-[10px] text-muted-foreground">Faturamento gerado no Contas a Receber</p>
+                </div>
+                <Switch
+                  checked={formManutGeral.gerarContaReceber}
+                  onCheckedChange={c => setFormManutGeral(f => ({ ...f, gerarContaReceber: c }))}
+                />
+              </div>
+
+              {formManutGeral.gerarContaReceber && (
+                <div className="space-y-1 pt-1">
+                  <Label className="text-xs font-semibold">Cliente *</Label>
+                  <Select
+                    value={formManutGeral.clienteNome}
+                    onValueChange={val => setFormManutGeral(f => ({ ...f, clienteNome: val }))}
+                  >
+                    <SelectTrigger className="h-9 text-xs"><SelectValue placeholder="Selecione o cliente" /></SelectTrigger>
+                    <SelectContent>
+                      {clientes.map((cli: any) => (
+                        <SelectItem key={cli.id} value={cli.nomeFantasia || cli.razaoSocial || cli.nome}>
+                          {cli.nomeFantasia || cli.razaoSocial || cli.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <SheetFooter className="gap-2 sm:gap-0 mt-4 flex-row justify-end">
+            <Button variant="outline" size="sm" onClick={() => setNovaManutencaoOpen(false)}>Cancelar</Button>
+            <Button size="sm" onClick={handleCreateManutencaoGeral} className="bg-amber-600 hover:bg-amber-700 text-white font-bold">
+              Criar Ordem de Manutenção
             </Button>
           </SheetFooter>
         </SheetContent>
