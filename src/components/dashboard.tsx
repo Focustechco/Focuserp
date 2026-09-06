@@ -504,7 +504,7 @@ export function Dashboard() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Visão Geral</h1>
           <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
             Visão consolidada em tempo real do desempenho financeiro da Focus Tecnologia.
           </p>
