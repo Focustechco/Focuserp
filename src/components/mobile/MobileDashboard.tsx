@@ -9,6 +9,7 @@ import {
   Boxes,
   UserCog,
   BarChart3,
+  PieChart,
   ArrowRight,
   Zap,
   ChevronRight,
@@ -307,7 +308,7 @@ export function MobileDashboard() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-10 h-10 rounded-2xl bg-[#FFF4EB] dark:bg-orange-950/40 flex items-center justify-center shrink-0">
-              <BarChart3 className="w-5 h-5 text-[#FF5000]" />
+              <PieChart className="w-5 h-5 text-[#FF5000]" />
             </div>
             <div className="min-w-0">
               <h2 className="text-xs sm:text-sm font-bold text-slate-800 dark:text-zinc-200 uppercase tracking-wider whitespace-nowrap truncate">
@@ -319,17 +320,17 @@ export function MobileDashboard() {
             </div>
           </div>
 
-          {/* Botão de Olho (Privacidade / Omitir Valores) */}
+          {/* Botão de Olho Minimalista e Clean */}
           <button
             onClick={toggleHideValues}
-            className="h-9 w-9 rounded-2xl bg-[#FFF4EB] hover:bg-orange-100/80 dark:bg-orange-950/50 dark:hover:bg-orange-900/60 border border-orange-200/60 dark:border-orange-900/40 text-[#FF5000] flex items-center justify-center transition-colors cursor-pointer shrink-0 shadow-2xs"
+            className="h-8 w-8 rounded-xl text-slate-400 hover:text-[#FF5000] hover:bg-orange-500/10 active:bg-orange-500/20 dark:text-zinc-500 dark:hover:text-orange-400 transition-colors flex items-center justify-center cursor-pointer shrink-0"
             aria-label={hideValues ? "Exibir valores" : "Ocultar valores"}
             title={hideValues ? "Exibir valores" : "Ocultar valores"}
           >
             {hideValues ? (
-              <EyeOff className="w-4.5 h-4.5 text-[#FF5000]" />
+              <EyeOff className="w-4 h-4" />
             ) : (
-              <Eye className="w-4.5 h-4.5 text-[#FF5000]" />
+              <Eye className="w-4 h-4" />
             )}
           </button>
         </div>
@@ -490,12 +491,12 @@ export function MobileDashboard() {
         </div>
       </div>
 
-      {/* 2. ATALHOS RÁPIDOS (Cards Quadrados proporcionais com scroll horizontal) */}
+      {/* 2. ACESSOS RÁPIDOS (Cards Quadrados proporcionais com scroll horizontal) */}
       <div className="space-y-2.5 pt-1">
         <div>
           <h2 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
             <Zap className="w-4 h-4 text-[#FF5000] fill-[#FF5000]/20" />
-            Atalhos Rápidos
+            Acessos Rápidos
           </h2>
           <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
             Acesse as principais ações com poucos toques

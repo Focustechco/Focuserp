@@ -179,12 +179,12 @@ export function MobileHeader({ onOpenDrawer, onOpenMenu, onOpenSearch }: MobileH
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
-                  className="h-9 w-9 rounded-full ring-2 ring-white/90 hover:ring-white focus:outline-none transition-all overflow-hidden flex items-center justify-center bg-white cursor-pointer shrink-0 shadow-xs"
+                  className="h-9 w-9 rounded-full ring-2 ring-white/90 hover:ring-white focus:outline-none transition-all overflow-hidden flex items-center justify-center bg-white cursor-pointer shrink-0 shadow-xs p-0"
                   aria-label="Perfil da Empresa"
                 >
-                  <Avatar className="h-9 w-9 bg-white">
-                    <AvatarImage src={empresa?.logoUrl} className="object-contain p-0.5" />
-                    <AvatarFallback className="text-xs font-bold bg-white text-[#FF5000]">
+                  <Avatar className="h-full w-full rounded-full overflow-hidden bg-white">
+                    <AvatarImage src={empresa?.logoUrl} className="object-cover w-full h-full rounded-full" />
+                    <AvatarFallback className="text-xs font-bold bg-white text-[#FF5000] w-full h-full flex items-center justify-center">
                       {(empresa?.nomeFantasia || "FC").substring(0, 2).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
@@ -193,9 +193,9 @@ export function MobileHeader({ onOpenDrawer, onOpenMenu, onOpenSearch }: MobileH
 
               <DropdownMenuContent align="end" className="w-64 p-1.5 shadow-xl border rounded-2xl animate-in fade-in-50 zoom-in-95 bg-white dark:bg-card">
                 <div className="p-3 bg-muted/40 rounded-xl mb-1 flex items-center gap-3">
-                  <Avatar className="h-10 w-10 border border-border shrink-0 bg-white">
-                    <AvatarImage src={empresa?.logoUrl} className="object-contain p-0.5" />
-                    <AvatarFallback className="text-xs font-bold bg-orange-500/10 text-orange-600">
+                  <Avatar className="h-10 w-10 border border-border shrink-0 bg-white rounded-full overflow-hidden">
+                    <AvatarImage src={empresa?.logoUrl} className="object-cover w-full h-full rounded-full" />
+                    <AvatarFallback className="text-xs font-bold bg-orange-500/10 text-orange-600 w-full h-full flex items-center justify-center">
                       {(empresa?.nomeFantasia || "FC").substring(0, 2).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
