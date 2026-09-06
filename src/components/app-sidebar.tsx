@@ -26,6 +26,7 @@ import {
   Briefcase,
   FileText,
   Plug,
+  Cog,
   UserCog,
   Shield,
   Settings,
@@ -92,7 +93,7 @@ const groups = [
     label: "Operação & Projetos",
     items: [
       { title: "Projetos & Sprints", url: "/projetos", icon: Briefcase },
-      { title: "Produtos Focus", url: "/produtos", icon: Boxes },
+      { title: "Produtos Focus", url: "/produtos", icon: Cog },
       { title: "Desenvolvimento", url: "/desenvolvimento", icon: Code2 },
       { title: "Agenda de Entregas", url: "/agenda-de-entregas", icon: CalendarDays },
       { title: "Estoque & Patrimônio", url: "/estoque", icon: Package },

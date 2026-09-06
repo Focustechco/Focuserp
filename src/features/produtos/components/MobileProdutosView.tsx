@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { ProdutoFocus, CategoriaProduto, StatusProduto } from "../types";
 import { 
-  Search, ScanBarcode, Filter, Plus, Boxes, ArrowRight, ExternalLink, 
+  Search, ScanBarcode, Filter, Plus, Boxes, Cog, ArrowRight, ExternalLink, 
   Layers, CheckCircle2, Clock, ShieldCheck, Sparkles, SlidersHorizontal, Eye
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -173,7 +173,7 @@ export function MobileProdutosView({
       {/* 4. LISTA DE CARDS DE PRODUTOS (Print 1 logic) */}
       {filteredProdutos.length === 0 ? (
         <div className="p-10 text-center rounded-3xl border border-dashed border-border bg-muted/10 my-4 space-y-3">
-          <Boxes className="w-10 h-10 text-muted-foreground/40 mx-auto" />
+          <Cog className="w-10 h-10 text-muted-foreground/40 mx-auto" />
           <h3 className="font-extrabold text-sm text-foreground">Nenhum produto encontrado</h3>
           <p className="text-xs text-muted-foreground max-w-xs mx-auto">
             Não encontramos nenhum item com os filtros ou termo de busca informado.
@@ -208,7 +208,7 @@ export function MobileProdutosView({
                 <div className="flex items-start justify-between gap-3 pt-1">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-2xl bg-orange-500/10 text-orange-600 flex items-center justify-center font-black text-base shrink-0 border border-orange-500/20">
-                      <Boxes className="w-6 h-6" />
+                      <Cog className="w-6 h-6" />
                     </div>
                     <div>
                       <div className="flex items-center gap-1.5 flex-wrap">

@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/sheet";
 import { 
   LayoutDashboard, Wallet, TrendingUp, TrendingDown, Bell, Landmark, CalendarDays,
-  Users, Truck, Package, Building2, Tags, Briefcase, Code2, Headphones, Boxes,
+  Users, Truck, Package, Building2, Tags, Briefcase, Code2, Headphones, Boxes, Cog,
   Heart, UserCog, Megaphone, FolderOpen, FileCheck2, BarChart3, LineChart, PieChart,
   Shield, Plug, Settings, ChevronRight, LogOut, Receipt
 } from "lucide-react";
@@ -54,7 +54,7 @@ const MODULE_SECTIONS = [
     title: "Operação & Projetos",
     items: [
       { name: "Projetos & Sprints", path: "/projetos", icon: Briefcase },
-      { name: "Produtos Focus", path: "/produtos", icon: Boxes },
+      { name: "Produtos Focus", path: "/produtos", icon: Cog },
       { name: "Desenvolvimento", path: "/desenvolvimento", icon: Code2 },
       { name: "Agenda de Entregas", path: "/agenda-de-entregas", icon: CalendarDays },
       { name: "Estoque & Patrimônio", path: "/estoque", icon: Package },

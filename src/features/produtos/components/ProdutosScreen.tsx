@@ -5,7 +5,7 @@ import { DashboardExecutivo } from './DashboardExecutivo';
 import { CatalogoProdutos } from './CatalogoProdutos';
 import { WorkspaceProduto } from './WorkspaceProduto';
 import { ProdutoFocus } from '../types';
-import { Boxes, LayoutDashboard, Layers } from 'lucide-react';
+import { Cog, LayoutDashboard, Layers } from 'lucide-react';
 import { MobileProdutosView } from './MobileProdutosView';
 
 export function ProdutosScreen() {
@@ -80,7 +80,7 @@ export function ProdutosScreen() {
           <div className="w-full overflow-x-auto scrollbar-hide border-b pb-1">
             <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
               <TabsTrigger value="catalogo" className="text-xs font-semibold gap-1.5 shrink-0">
-                <Boxes className="h-4 w-4" /> Catálogo
+                <Cog className="h-4 w-4" /> Catálogo
               </TabsTrigger>
               <TabsTrigger value="dashboard" className="text-xs font-semibold gap-1.5 shrink-0">
                 <LayoutDashboard className="h-4 w-4" /> Dashboard Executivo

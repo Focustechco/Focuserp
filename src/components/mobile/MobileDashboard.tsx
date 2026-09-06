@@ -7,6 +7,7 @@ import {
   TrendingDown,
   Briefcase,
   Boxes,
+  Cog,
   UserCog,
   BarChart3,
   PieChart,
@@ -287,7 +288,7 @@ export function MobileDashboard() {
       title: "Produtos Focus",
       desc: "Catálogo de produtos, estoque e serviços",
       url: "/produtos",
-      icon: Boxes,
+      icon: Cog,
     },
     {
       title: "Agenda de Entregas",
