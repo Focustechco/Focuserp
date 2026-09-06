@@ -4,8 +4,7 @@ import { Equipamento, EstoqueItem, Licenca, Patrimonio, Movimentacao, Manutencao
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription } from '@/components/ui/sheet';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription, SheetFooter } from '@/components/ui/sheet';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
@@ -1063,20 +1062,21 @@ export function MobileEstoquePatrimonioView() {
       </div>
 
       {/* ======================================================== */}
-      {/* 4. MODAIS ESPECÍFICOS DE CRIAÇÃO POR SEÇÃO               */}
+      {/* 4. MODAIS ESPECÍFICOS DE CRIAÇÃO POR SEÇÃO (BOTTOM SHEET) */}
       {/* ======================================================== */}
 
       {/* MODAL 1: NOVO EQUIPAMENTO */}
-      <Dialog open={novoEquipamentoOpen} onOpenChange={setNovoEquipamentoOpen}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto rounded-3xl p-5 bg-background">
-          <DialogHeader className="text-left">
-            <DialogTitle className="flex items-center gap-2 text-base font-bold">
+      <Sheet open={novoEquipamentoOpen} onOpenChange={setNovoEquipamentoOpen}>
+        <SheetContent side="bottom" className="rounded-t-3xl max-h-[90vh] overflow-y-auto p-5 bg-background border-t border-border flex flex-col">
+          <div className="w-12 h-1.5 bg-muted-foreground/30 rounded-full mx-auto mb-3 shrink-0" />
+          <SheetHeader className="text-left pb-2">
+            <SheetTitle className="flex items-center gap-2 text-base font-bold">
               <Laptop className="w-5 h-5 text-primary" /> Cadastrar Equipamento de TI
-            </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">
+            </SheetTitle>
+            <SheetDescription className="text-xs text-muted-foreground">
               Cadastre notebooks, desktops, celulares e periféricos corporativos.
-            </DialogDescription>
-          </DialogHeader>
+            </SheetDescription>
+          </SheetHeader>
 
           <div className="space-y-3 py-2 text-xs">
             <div className="grid grid-cols-2 gap-2">
@@ -1180,26 +1180,27 @@ export function MobileEstoquePatrimonioView() {
             </div>
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0 mt-2">
+          <SheetFooter className="gap-2 sm:gap-0 mt-4 flex-row justify-end">
             <Button variant="outline" size="sm" onClick={() => setNovoEquipamentoOpen(false)}>Cancelar</Button>
             <Button size="sm" onClick={handleCreateEquipamento} className="bg-primary text-white font-bold">
               Cadastrar Equipamento
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
       {/* MODAL 2: NOVO ITEM NO ESTOQUE */}
-      <Dialog open={novoItemEstoqueOpen} onOpenChange={setNovoItemEstoqueOpen}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto rounded-3xl p-5 bg-background">
-          <DialogHeader className="text-left">
-            <DialogTitle className="flex items-center gap-2 text-base font-bold">
+      <Sheet open={novoItemEstoqueOpen} onOpenChange={setNovoItemEstoqueOpen}>
+        <SheetContent side="bottom" className="rounded-t-3xl max-h-[90vh] overflow-y-auto p-5 bg-background border-t border-border flex flex-col">
+          <div className="w-12 h-1.5 bg-muted-foreground/30 rounded-full mx-auto mb-3 shrink-0" />
+          <SheetHeader className="text-left pb-2">
+            <SheetTitle className="flex items-center gap-2 text-base font-bold">
               <Package className="w-5 h-5 text-amber-500" /> Novo Item no Estoque / Almoxarifado
-            </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">
+            </SheetTitle>
+            <SheetDescription className="text-xs text-muted-foreground">
               Cadastre itens consumíveis, peças sobressalentes e insumos de TI.
-            </DialogDescription>
-          </DialogHeader>
+            </SheetDescription>
+          </SheetHeader>
 
           <div className="space-y-3 py-2 text-xs">
             <div className="space-y-1">
@@ -1278,26 +1279,27 @@ export function MobileEstoquePatrimonioView() {
             </div>
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0 mt-2">
+          <SheetFooter className="gap-2 sm:gap-0 mt-4 flex-row justify-end">
             <Button variant="outline" size="sm" onClick={() => setNovoItemEstoqueOpen(false)}>Cancelar</Button>
             <Button size="sm" onClick={handleCreateEstoqueItem} className="bg-amber-600 hover:bg-amber-700 text-white font-bold">
               Salvar Item no Estoque
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
       {/* MODAL 3: NOVA LICENÇA SAAS */}
-      <Dialog open={novaLicencaOpen} onOpenChange={setNovaLicencaOpen}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto rounded-3xl p-5 bg-background">
-          <DialogHeader className="text-left">
-            <DialogTitle className="flex items-center gap-2 text-base font-bold">
+      <Sheet open={novaLicencaOpen} onOpenChange={setNovaLicencaOpen}>
+        <SheetContent side="bottom" className="rounded-t-3xl max-h-[90vh] overflow-y-auto p-5 bg-background border-t border-border flex flex-col">
+          <div className="w-12 h-1.5 bg-muted-foreground/30 rounded-full mx-auto mb-3 shrink-0" />
+          <SheetHeader className="text-left pb-2">
+            <SheetTitle className="flex items-center gap-2 text-base font-bold">
               <KeyRound className="w-5 h-5 text-indigo-500" /> Nova Licença de Software / SaaS
-            </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">
+            </SheetTitle>
+            <SheetDescription className="text-xs text-muted-foreground">
               Cadastre softwares por assinatura ou licenças perpétuas.
-            </DialogDescription>
-          </DialogHeader>
+            </SheetDescription>
+          </SheetHeader>
 
           <div className="space-y-3 py-2 text-xs">
             <div className="grid grid-cols-2 gap-2">
@@ -1406,26 +1408,27 @@ export function MobileEstoquePatrimonioView() {
             </div>
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0 mt-2">
+          <SheetFooter className="gap-2 sm:gap-0 mt-4 flex-row justify-end">
             <Button variant="outline" size="sm" onClick={() => setNovaLicencaOpen(false)}>Cancelar</Button>
             <Button size="sm" onClick={handleCreateLicenca} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold">
               Salvar Licença
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
       {/* MODAL 4: NOVO BEM PATRIMONIAL */}
-      <Dialog open={novoPatrimonioOpen} onOpenChange={setNovoPatrimonioOpen}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto rounded-3xl p-5 bg-background">
-          <DialogHeader className="text-left">
-            <DialogTitle className="flex items-center gap-2 text-base font-bold">
+      <Sheet open={novoPatrimonioOpen} onOpenChange={setNovoPatrimonioOpen}>
+        <SheetContent side="bottom" className="rounded-t-3xl max-h-[90vh] overflow-y-auto p-5 bg-background border-t border-border flex flex-col">
+          <div className="w-12 h-1.5 bg-muted-foreground/30 rounded-full mx-auto mb-3 shrink-0" />
+          <SheetHeader className="text-left pb-2">
+            <SheetTitle className="flex items-center gap-2 text-base font-bold">
               <DollarSign className="w-5 h-5 text-emerald-500" /> Cadastrar Bem Patrimonial
-            </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">
+            </SheetTitle>
+            <SheetDescription className="text-xs text-muted-foreground">
               Cadastre mobiliário, máquinas, instalações e ativos de longo prazo.
-            </DialogDescription>
-          </DialogHeader>
+            </SheetDescription>
+          </SheetHeader>
 
           <div className="space-y-3 py-2 text-xs">
             <div className="grid grid-cols-2 gap-2">
@@ -1505,26 +1508,27 @@ export function MobileEstoquePatrimonioView() {
             </div>
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0 mt-2">
+          <SheetFooter className="gap-2 sm:gap-0 mt-4 flex-row justify-end">
             <Button variant="outline" size="sm" onClick={() => setNovoPatrimonioOpen(false)}>Cancelar</Button>
             <Button size="sm" onClick={handleCreatePatrimonio} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold">
               Cadastrar Patrimônio
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
       {/* MODAL 5: NOVA MOVIMENTAÇÃO / TRANSFERÊNCIA */}
-      <Dialog open={novaMovimentacaoOpen} onOpenChange={setNovaMovimentacaoOpen}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto rounded-3xl p-5 bg-background">
-          <DialogHeader className="text-left">
-            <DialogTitle className="flex items-center gap-2 text-base font-bold">
+      <Sheet open={novaMovimentacaoOpen} onOpenChange={setNovaMovimentacaoOpen}>
+        <SheetContent side="bottom" className="rounded-t-3xl max-h-[90vh] overflow-y-auto p-5 bg-background border-t border-border flex flex-col">
+          <div className="w-12 h-1.5 bg-muted-foreground/30 rounded-full mx-auto mb-3 shrink-0" />
+          <SheetHeader className="text-left pb-2">
+            <SheetTitle className="flex items-center gap-2 text-base font-bold">
               <History className="w-5 h-5 text-primary" /> Registrar Movimentação de Ativo
-            </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">
+            </SheetTitle>
+            <SheetDescription className="text-xs text-muted-foreground">
               Registre transferências, empréstimos, devoluções e termos de custódia.
-            </DialogDescription>
-          </DialogHeader>
+            </SheetDescription>
+          </SheetHeader>
 
           <div className="space-y-3 py-2 text-xs">
             <div className="space-y-1">
@@ -1588,26 +1592,27 @@ export function MobileEstoquePatrimonioView() {
             </div>
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0 mt-2">
+          <SheetFooter className="gap-2 sm:gap-0 mt-4 flex-row justify-end">
             <Button variant="outline" size="sm" onClick={() => setNovaMovimentacaoOpen(false)}>Cancelar</Button>
             <Button size="sm" onClick={handleCreateMovimentacao} className="bg-primary text-white font-bold">
               Registrar Movimentação
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
       {/* MODAL 6: NOVA MANUTENÇÃO GERAL */}
-      <Dialog open={novaManutencaoOpen} onOpenChange={setNovaManutencaoOpen}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto rounded-3xl p-5 bg-background">
-          <DialogHeader className="text-left">
-            <DialogTitle className="flex items-center gap-2 text-base font-bold">
+      <Sheet open={novaManutencaoOpen} onOpenChange={setNovaManutencaoOpen}>
+        <SheetContent side="bottom" className="rounded-t-3xl max-h-[90vh] overflow-y-auto p-5 bg-background border-t border-border flex flex-col">
+          <div className="w-12 h-1.5 bg-muted-foreground/30 rounded-full mx-auto mb-3 shrink-0" />
+          <SheetHeader className="text-left pb-2">
+            <SheetTitle className="flex items-center gap-2 text-base font-bold">
               <Wrench className="w-5 h-5 text-amber-500" /> Abrir Ordem de Manutenção
-            </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">
+            </SheetTitle>
+            <SheetDescription className="text-xs text-muted-foreground">
               Abra chamados para conserto, reparo, limpeza e upgrades de equipamentos.
-            </DialogDescription>
-          </DialogHeader>
+            </SheetDescription>
+          </SheetHeader>
 
           <div className="space-y-3 py-2 text-xs">
             <div className="space-y-1">
@@ -1670,23 +1675,24 @@ export function MobileEstoquePatrimonioView() {
             </div>
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0 mt-2">
+          <SheetFooter className="gap-2 sm:gap-0 mt-4 flex-row justify-end">
             <Button variant="outline" size="sm" onClick={() => setNovaManutencaoOpen(false)}>Cancelar</Button>
             <Button size="sm" onClick={handleCreateManutencaoGeral} className="bg-amber-600 hover:bg-amber-700 text-white font-bold">
               Criar Ordem de Manutenção
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
       {/* MODAL AUXILIAR: TRANSFERÊNCIA DIRETA EM ITEM */}
-      <Dialog open={transferirModalOpen} onOpenChange={setTransferirModalOpen}>
-        <DialogContent className="max-w-md rounded-3xl p-5 bg-background">
-          <DialogHeader className="text-left">
-            <DialogTitle className="flex items-center gap-2 text-base font-bold">
+      <Sheet open={transferirModalOpen} onOpenChange={setTransferirModalOpen}>
+        <SheetContent side="bottom" className="rounded-t-3xl max-h-[90vh] overflow-y-auto p-5 bg-background border-t border-border flex flex-col">
+          <div className="w-12 h-1.5 bg-muted-foreground/30 rounded-full mx-auto mb-3 shrink-0" />
+          <SheetHeader className="text-left pb-2">
+            <SheetTitle className="flex items-center gap-2 text-base font-bold">
               <ArrowRightLeft className="w-5 h-5 text-primary" /> Transferir Equipamento
-            </DialogTitle>
-          </DialogHeader>
+            </SheetTitle>
+          </SheetHeader>
 
           {selectedEquipamento && (
             <div className="space-y-3 py-2 text-xs">
@@ -1739,23 +1745,24 @@ export function MobileEstoquePatrimonioView() {
             </div>
           )}
 
-          <DialogFooter className="gap-2 sm:gap-0 mt-2">
+          <SheetFooter className="gap-2 sm:gap-0 mt-4 flex-row justify-end">
             <Button variant="outline" size="sm" onClick={() => setTransferirModalOpen(false)}>Cancelar</Button>
             <Button size="sm" onClick={handleExecuteTransfer} className="bg-primary text-white font-bold">
               Confirmar Transferência
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
       {/* MODAL AUXILIAR: MANUTENÇÃO DIRETA EM ITEM */}
-      <Dialog open={manutencaoModalOpen} onOpenChange={setManutencaoModalOpen}>
-        <DialogContent className="max-w-md rounded-3xl p-5 bg-background">
-          <DialogHeader className="text-left">
-            <DialogTitle className="flex items-center gap-2 text-base font-bold">
+      <Sheet open={manutencaoModalOpen} onOpenChange={setManutencaoModalOpen}>
+        <SheetContent side="bottom" className="rounded-t-3xl max-h-[90vh] overflow-y-auto p-5 bg-background border-t border-border flex flex-col">
+          <div className="w-12 h-1.5 bg-muted-foreground/30 rounded-full mx-auto mb-3 shrink-0" />
+          <SheetHeader className="text-left pb-2">
+            <SheetTitle className="flex items-center gap-2 text-base font-bold">
               <Wrench className="w-5 h-5 text-amber-500" /> Abrir Manutenção
-            </DialogTitle>
-          </DialogHeader>
+            </SheetTitle>
+          </SheetHeader>
 
           {selectedEquipamento && (
             <div className="space-y-3 py-2 text-xs">
@@ -1811,23 +1818,24 @@ export function MobileEstoquePatrimonioView() {
             </div>
           )}
 
-          <DialogFooter className="gap-2 sm:gap-0 mt-2">
+          <SheetFooter className="gap-2 sm:gap-0 mt-4 flex-row justify-end">
             <Button variant="outline" size="sm" onClick={() => setManutencaoModalOpen(false)}>Cancelar</Button>
             <Button size="sm" onClick={handleExecuteManutencao} className="bg-amber-600 hover:bg-amber-700 text-white font-bold">
               Abrir Manutenção
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
       {/* MODAL AUXILIAR: AJUSTE DE ESTOQUE EM ITEM */}
-      <Dialog open={ajusteEstoqueModalOpen} onOpenChange={setAjusteEstoqueModalOpen}>
-        <DialogContent className="max-w-md rounded-3xl p-5 bg-background">
-          <DialogHeader className="text-left">
-            <DialogTitle className="flex items-center gap-2 text-base font-bold">
+      <Sheet open={ajusteEstoqueModalOpen} onOpenChange={setAjusteEstoqueModalOpen}>
+        <SheetContent side="bottom" className="rounded-t-3xl max-h-[90vh] overflow-y-auto p-5 bg-background border-t border-border flex flex-col">
+          <div className="w-12 h-1.5 bg-muted-foreground/30 rounded-full mx-auto mb-3 shrink-0" />
+          <SheetHeader className="text-left pb-2">
+            <SheetTitle className="flex items-center gap-2 text-base font-bold">
               <ArrowRightLeft className="w-5 h-5 text-primary" /> Movimentar Estoque
-            </DialogTitle>
-          </DialogHeader>
+            </SheetTitle>
+          </SheetHeader>
 
           {selectedEstoqueItem && (
             <div className="space-y-3 py-2 text-xs">
@@ -1870,14 +1878,14 @@ export function MobileEstoquePatrimonioView() {
             </div>
           )}
 
-          <DialogFooter className="gap-2 sm:gap-0 mt-2">
+          <SheetFooter className="gap-2 sm:gap-0 mt-4 flex-row justify-end">
             <Button variant="outline" size="sm" onClick={() => setAjusteEstoqueModalOpen(false)}>Cancelar</Button>
             <Button size="sm" onClick={handleExecuteAjusteEstoque} className="bg-primary text-white font-bold">
               Confirmar Movimentação
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
       {/* Relatórios Modal */}
       <RelatoriosModal open={relatoriosModalOpen} onOpenChange={setRelatoriosModalOpen} />
