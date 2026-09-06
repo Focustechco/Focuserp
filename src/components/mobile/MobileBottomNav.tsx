@@ -1,9 +1,8 @@
 import React from "react";
 import { useRouterState, useNavigate } from "@tanstack/react-router";
 import { 
-  Home, Wallet, Plus, CalendarDays, LineChart
+  Home, CalendarDays, Plus, BarChart3, LineChart
 } from "lucide-react";
-import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 
 interface MobileBottomNavProps {
@@ -24,8 +23,8 @@ export function MobileBottomNav({
   const handleCreate = onOpenQuickAction || onOpenQuickCreate;
 
   const isHome = pathname === "/";
-  const isFluxo = pathname === "/fluxo-de-caixa";
   const isAgenda = pathname === "/agenda" || pathname.startsWith("/agenda-de-entregas");
+  const isRelatorios = pathname === "/relatorios";
   const isIndicadores = pathname === "/indicadores";
 
   return (
@@ -43,16 +42,16 @@ export function MobileBottomNav({
           <span className="text-[10px] tracking-tight">Início</span>
         </button>
 
-        {/* 2. FLUXO DE CAIXA */}
+        {/* 2. AGENDA */}
         <button
-          onClick={() => navigate({ to: "/fluxo-de-caixa" })}
+          onClick={() => navigate({ to: "/agenda" })}
           className={cn(
             "flex flex-col items-center justify-center gap-1 h-full transition-colors active:scale-95 cursor-pointer px-0.5",
-            isFluxo ? "text-[#FF5000] font-bold" : "text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white"
+            isAgenda ? "text-[#FF5000] font-bold" : "text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white"
           )}
         >
-          <Wallet className={cn("h-5 w-5", isFluxo && "stroke-[2.5px]")} />
-          <span className="text-[10px] tracking-tight truncate max-w-full">Fluxo de Caixa</span>
+          <CalendarDays className={cn("h-5 w-5", isAgenda && "stroke-[2.5px]")} />
+          <span className="text-[10px] tracking-tight">Agenda</span>
         </button>
 
         {/* 3. BOTÃO CENTRAL DESTACADO: CRIAR (+) */}
@@ -66,16 +65,16 @@ export function MobileBottomNav({
           </button>
         </div>
 
-        {/* 4. AGENDA */}
+        {/* 4. RELATÓRIOS */}
         <button
-          onClick={() => navigate({ to: "/agenda" })}
+          onClick={() => navigate({ to: "/relatorios" })}
           className={cn(
             "flex flex-col items-center justify-center gap-1 h-full transition-colors active:scale-95 cursor-pointer px-0.5",
-            isAgenda ? "text-[#FF5000] font-bold" : "text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white"
+            isRelatorios ? "text-[#FF5000] font-bold" : "text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white"
           )}
         >
-          <CalendarDays className={cn("h-5 w-5", isAgenda && "stroke-[2.5px]")} />
-          <span className="text-[10px] tracking-tight">Agenda</span>
+          <BarChart3 className={cn("h-5 w-5", isRelatorios && "stroke-[2.5px]")} />
+          <span className="text-[10px] tracking-tight">Relatórios</span>
         </button>
 
         {/* 5. INDICADORES */}
