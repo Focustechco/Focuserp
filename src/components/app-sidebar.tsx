@@ -60,7 +60,7 @@ import { Badge } from "./ui/badge";
 
 const groups = [
   {
-    label: "Módulo Principal",
+    label: "Visão Geral",
     items: [
       { title: "Dashboard Executivo", url: "/", icon: LayoutDashboard },
     ],

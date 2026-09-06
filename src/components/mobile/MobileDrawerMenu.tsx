@@ -22,7 +22,7 @@ interface MobileDrawerMenuProps {
 
 const MODULE_SECTIONS = [
   {
-    title: "Módulo Principal",
+    title: "Visão Geral",
     items: [
       { name: "Dashboard Executivo", path: "/", icon: LayoutDashboard },
     ],
