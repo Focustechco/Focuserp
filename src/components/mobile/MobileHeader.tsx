@@ -204,18 +204,6 @@ export function MobileHeader({ onOpenDrawer, onOpenMenu, onOpenSearch }: MobileH
                   </div>
                 </div>
 
-                <DropdownMenuLabel className="text-[10px] uppercase font-bold text-muted-foreground px-2 py-1">
-                  Minha Conta
-                </DropdownMenuLabel>
-
-                <DropdownMenuItem 
-                  onClick={() => setProfileModalOpen(true)}
-                  className="cursor-pointer gap-2.5 py-2 text-xs rounded-xl hover:bg-orange-50 dark:hover:bg-orange-950/30"
-                >
-                  <User className="w-4 h-4 text-orange-500" />
-                  <span>Perfil & Segurança</span>
-                </DropdownMenuItem>
-
                 <DropdownMenuItem 
                   onClick={() => setEmpresaModalOpen(true)}
                   className="cursor-pointer gap-2.5 py-2 text-xs rounded-xl hover:bg-orange-50 dark:hover:bg-orange-950/30"
@@ -232,14 +220,28 @@ export function MobileHeader({ onOpenDrawer, onOpenMenu, onOpenSearch }: MobileH
                   <span>Configurações</span>
                 </DropdownMenuItem>
 
-                <DropdownMenuSeparator className="my-1" />
+                <DropdownMenuSeparator className="my-1.5" />
 
                 <DropdownMenuItem 
-                  onClick={toggleTheme} 
-                  className="cursor-pointer gap-2.5 py-2 text-xs rounded-xl"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    toggleTheme();
+                  }}
+                  className="cursor-pointer flex items-center justify-between py-2 px-3 text-xs rounded-xl bg-muted/40 hover:bg-muted/70 active:bg-muted font-medium transition-colors"
                 >
-                  {isDark ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-slate-700" />}
-                  <span>{isDark ? "Modo Claro" : "Modo Escuro"}</span>
+                  <div className="flex items-center gap-2.5">
+                    {isDark ? (
+                      <Moon className="w-4 h-4 text-purple-400" />
+                    ) : (
+                      <Sun className="w-4 h-4 text-amber-500" />
+                    )}
+                    <span className="font-semibold text-foreground">
+                      {isDark ? "Modo Escuro" : "Modo Claro"}
+                    </span>
+                  </div>
+                  <div className={`w-8 h-4 rounded-full p-0.5 transition-colors flex items-center ${isDark ? 'bg-orange-500 justify-end' : 'bg-slate-300 dark:bg-slate-700 justify-start'}`}>
+                    <div className="w-3 h-3 rounded-full bg-white shadow-xs" />
+                  </div>
                 </DropdownMenuItem>
 
                 <DropdownMenuItem 

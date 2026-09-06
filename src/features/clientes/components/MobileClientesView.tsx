@@ -17,7 +17,7 @@ import { toast } from 'sonner';
 export function MobileClientesView() {
   const { clientes, isLoading, saveCliente, deleteCliente } = useClientesQuery();
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeFilter, setActiveFilter] = useState<'todos' | 'ativos' | 'inativos' | 'pj' | 'pf'>('todos');
+  const [activeFilter, setActiveFilter] = useState<'ativos' | 'todos' | 'inativos' | 'pj' | 'pf'>('ativos');
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [selectedEstado, setSelectedEstado] = useState<string>('todos');
 
@@ -28,7 +28,7 @@ export function MobileClientesView() {
   const [clienteParaEditar, setClienteParaEditar] = useState<Cliente | null>(null);
 
   const filteredClientes = useMemo(() => {
-    return clientes.filter((c) => {
+    const list = clientes.filter((c) => {
       const matchesSearch =
         (c.razaoSocial || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (c.nomeFantasia || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -45,6 +45,15 @@ export function MobileClientesView() {
       if (selectedEstado !== 'todos' && c.endereco?.uf !== selectedEstado) return false;
 
       return true;
+    });
+
+    // Ordenar para garantir que Clientes Ativos sempre fiquem no topo
+    return list.sort((a, b) => {
+      const aInactive = a.status === 'Inativo' || a.status === 'inativo';
+      const bInactive = b.status === 'Inativo' || b.status === 'inativo';
+      if (!aInactive && bInactive) return -1;
+      if (aInactive && !bInactive) return 1;
+      return 0;
     });
   }, [clientes, searchTerm, activeFilter, selectedEstado]);
 
@@ -179,8 +188,8 @@ export function MobileClientesView() {
         {/* Category Pills (Horizontal Scroll) */}
         <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-0.5">
           {[
+            { id: 'ativos', label: `Clientes Ativos (${stats.ativos})` },
             { id: 'todos', label: `Todos (${clientes.length})` },
-            { id: 'ativos', label: `Ativos (${stats.ativos})` },
             { id: 'inativos', label: `Inativos (${stats.inativos})` },
             { id: 'pj', label: 'Empresas (PJ)' },
             { id: 'pf', label: 'Pessoa Física' },
