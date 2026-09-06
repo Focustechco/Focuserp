@@ -30,12 +30,12 @@ const MODULE_SECTIONS = [
   {
     title: "Financeiro & Contábil",
     items: [
+      { name: "Fluxo de Caixa", path: "/fluxo-de-caixa", icon: Wallet },
       { name: "Contas a Receber", path: "/contas-a-receber", icon: TrendingUp },
       { name: "Contas a Pagar", path: "/contas-a-pagar", icon: TrendingDown },
-      { name: "Fluxo de Caixa", path: "/fluxo-de-caixa", icon: Wallet },
+      { name: "Agenda Financeira", path: "/agenda", icon: CalendarDays },
       { name: "Cobranças", path: "/cobrancas", icon: Bell },
       { name: "Conciliação Bancária", path: "/conciliacao", icon: Landmark },
-      { name: "Agenda Financeira", path: "/agenda", icon: CalendarDays },
       { name: "DRE Gerencial", path: "/dre", icon: LineChart },
       { name: "Fiscal & NFe/NFSe", path: "/fiscal", icon: Receipt },
     ],

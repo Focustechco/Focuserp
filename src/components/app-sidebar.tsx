@@ -68,12 +68,12 @@ const groups = [
   {
     label: "Financeiro & Contábil",
     items: [
+      { title: "Fluxo de Caixa", url: "/fluxo-de-caixa", icon: Wallet },
       { title: "Contas a Receber", url: "/contas-a-receber", icon: TrendingUp },
       { title: "Contas a Pagar", url: "/contas-a-pagar", icon: TrendingDown },
-      { title: "Fluxo de Caixa", url: "/fluxo-de-caixa", icon: Wallet },
+      { title: "Agenda Financeira", url: "/agenda", icon: CalendarDays },
       { title: "Cobranças", url: "/cobrancas", icon: Bell },
       { title: "Conciliação Bancária", url: "/conciliacao", icon: Landmark },
-      { title: "Agenda Financeira", url: "/agenda", icon: CalendarDays },
       { title: "DRE Gerencial", url: "/dre", icon: PieChart },
       { title: "Fiscal & NFe/NFSe", url: "/fiscal", icon: Receipt },
     ],
