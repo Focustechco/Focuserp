@@ -7,7 +7,7 @@ export const Route = createFileRoute("/agenda-de-entregas")({
 
 function AgendaDeEntregasPage() {
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+    <div className="flex flex-col gap-4 sm:gap-6 p-3 sm:p-6 max-w-7xl mx-auto w-full">
       <AgendaProjetosScreen />
     </div>
   );

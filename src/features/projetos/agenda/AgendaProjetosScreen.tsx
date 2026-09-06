@@ -69,123 +69,60 @@ export function AgendaProjetosScreen() {
   });
 
   return (
-    <div className="space-y-6">
-      {/* HEADER E KPI CARDS */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="hidden md:block">
+    <div className="flex flex-col gap-4 sm:gap-6">
+      {/* 1. HEADER (order-0) */}
+      <div className="order-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
           <h2 className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
             <CalendarDays className="h-5 w-5 text-primary" /> Agenda de Entregas & Prazos PMO
           </h2>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground mt-0.5">
             Acompanhamento de prazos contratuais, datas de entrega de projetos, marcos de homologação e reuniões
           </p>
         </div>
-        <Button onClick={() => setIsNovoSheetOpen(true)} className="gap-2 text-xs font-semibold w-full sm:w-auto">
+        <Button onClick={() => setIsNovoSheetOpen(true)} className="gap-2 text-xs font-semibold w-full sm:w-auto shrink-0 shadow-xs">
           <Plus className="h-4 w-4" /> Agendar Marco / Entrega
         </Button>
       </div>
 
-      {/* KPI GRID */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-border/80">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Total de Prazos Agendados
-            </CardTitle>
-
-            <CalendarIcon className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-extrabold text-foreground">{totalEventos}</div>
-            <p className="text-[11px] text-muted-foreground mt-1">Marcos e datas de projetos</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/80">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Entregas Concludas
-            </CardTitle>
-
-            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
-              {entregasConcluidas}
-            </div>
-            <p className="text-[11px] text-muted-foreground mt-1">Marcos finalizados com sucesso</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/80">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Entregas Atrasadas / Em Risco
-            </CardTitle>
-
-            <AlertTriangle className="h-4 w-4 text-rose-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-extrabold text-rose-600 dark:text-rose-400">
-              {entregasAtrasadas}
-            </div>
-            <p className="text-[11px] text-rose-500 font-semibold mt-1">Requerem ateno imediata do PMO</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/80">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Prximos 7 Dias
-            </CardTitle>
-
-            <Clock className="h-4 w-4 text-amber-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-extrabold text-foreground">{proximasEntregas}</div>
-            <p className="text-[11px] text-muted-foreground mt-1">Entregas no horizonte prximo</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* CONTROLES DE FILTRO E ALTERNNCIA DE VISO */}
-      <Card>
-        <CardContent className="p-4 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex flex-1 flex-col sm:flex-row gap-3 w-full">
+      {/* 2. CONTROLES DE FILTRO E ALTERNÂNCIA DE VISÃO (order-1 no mobile, order-2 no desktop) */}
+      <Card className="order-1 md:order-2 border-border/80 shadow-2xs">
+        <CardContent className="p-3.5 sm:p-4 flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-4">
+          <div className="flex flex-1 flex-col sm:flex-row gap-2.5 sm:gap-3 w-full">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por prazo, nome do projeto ou responsvel..."
+                placeholder="Buscar por prazo, nome do projeto ou responsável..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 text-xs"
+                className="pl-9 text-xs h-9 rounded-lg"
               />
             </div>
             <div className="w-full sm:w-48">
               <Select value={tipoFilter} onValueChange={setTipoFilter}>
-                <SelectTrigger className="text-xs">
+                <SelectTrigger className="text-xs h-9 rounded-lg">
                   <SelectValue placeholder="Tipo de Entrega" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos os Tipos</SelectItem>
                   <SelectItem value="Entrega de Projeto">Entrega de Projeto</SelectItem>
                   <SelectItem value="Kickoff">Kickoff</SelectItem>
-                  <SelectItem value="Homologao">Homologao</SelectItem>
-                  <SelectItem value="Implantao">Implantao</SelectItem>
+                  <SelectItem value="Homologação">Homologação</SelectItem>
+                  <SelectItem value="Implantação">Implantação</SelectItem>
                   <SelectItem value="Marco / Milestone">Marco / Milestone</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="w-full sm:w-40">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="text-xs">
+                <SelectTrigger className="text-xs h-9 rounded-lg">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos os Status</SelectItem>
                   <SelectItem value="Previsto">Previsto</SelectItem>
                   <SelectItem value="Em Andamento">Em Andamento</SelectItem>
-                  <SelectItem value="Concludo">Concludo</SelectItem>
+                  <SelectItem value="Concluído">Concluído</SelectItem>
                   <SelectItem value="Atrasado">Atrasado</SelectItem>
                 </SelectContent>
               </Select>
@@ -193,11 +130,11 @@ export function AgendaProjetosScreen() {
           </div>
 
           {/* TOGGLE GRID / TIMELINE */}
-          <div className="flex items-center gap-1 bg-muted p-1 rounded-lg shrink-0">
+          <div className="flex items-center gap-1 bg-muted p-1 rounded-lg shrink-0 w-full sm:w-auto justify-center">
             <Button
               variant={viewMode === 'grid' ? 'default' : 'ghost'}
               size="sm"
-              className="h-7 text-xs gap-1.5 px-3"
+              className="h-8 text-xs gap-1.5 px-3 flex-1 sm:flex-initial"
               onClick={() => setViewMode('grid')}
             >
               <LayoutGrid className="h-3.5 w-3.5" /> Grade Mensal
@@ -205,7 +142,7 @@ export function AgendaProjetosScreen() {
             <Button
               variant={viewMode === 'timeline' ? 'default' : 'ghost'}
               size="sm"
-              className="h-7 text-xs gap-1.5 px-3"
+              className="h-8 text-xs gap-1.5 px-3 flex-1 sm:flex-initial"
               onClick={() => setViewMode('timeline')}
             >
               <List className="h-3.5 w-3.5" /> Linha do Tempo
@@ -214,12 +151,73 @@ export function AgendaProjetosScreen() {
         </CardContent>
       </Card>
 
-      {/* REA DA AGENDA */}
-      {viewMode === 'grid' ? (
-        <CalendarioGridProjetos eventos={filteredEvents} onEventClick={setSelectedEvent} />
-      ) : (
-        <TimelineProjetos eventos={filteredEvents} onEventClick={setSelectedEvent} />
-      )}
+      {/* 3. ÁREA DA AGENDA (order-2 no mobile: AO TOPO / À FRENTE DOS CARDS | order-3 no desktop) */}
+      <div className="order-2 md:order-3">
+        {viewMode === 'grid' ? (
+          <CalendarioGridProjetos eventos={filteredEvents} onEventClick={setSelectedEvent} />
+        ) : (
+          <TimelineProjetos eventos={filteredEvents} onEventClick={setSelectedEvent} />
+        )}
+      </div>
+
+      {/* 4. KPI CARDS (order-3 no mobile: ABAIXO DA AGENDA | order-1 no desktop: NO TOPO) */}
+      <div className="order-3 md:order-1 grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <Card className="border-border/80 shadow-2xs">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 sm:pb-2 p-3 sm:p-6">
+            <CardTitle className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Total Agendados
+            </CardTitle>
+            <CalendarIcon className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
+            <div className="text-xl sm:text-2xl font-extrabold text-foreground">{totalEventos}</div>
+            <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5">Marcos e datas</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/80 shadow-2xs">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 sm:pb-2 p-3 sm:p-6">
+            <CardTitle className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Concluídas
+            </CardTitle>
+            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+          </CardHeader>
+          <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
+            <div className="text-xl sm:text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
+              {entregasConcluidas}
+            </div>
+            <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5">Finalizadas com sucesso</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/80 shadow-2xs">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 sm:pb-2 p-3 sm:p-6">
+            <CardTitle className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Atrasadas / Risco
+            </CardTitle>
+            <AlertTriangle className="h-4 w-4 text-rose-600" />
+          </CardHeader>
+          <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
+            <div className="text-xl sm:text-2xl font-extrabold text-rose-600 dark:text-rose-400">
+              {entregasAtrasadas}
+            </div>
+            <p className="text-[10px] sm:text-[11px] text-rose-500 font-semibold mt-0.5">Atenção imediata PMO</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/80 shadow-2xs">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 sm:pb-2 p-3 sm:p-6">
+            <CardTitle className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Próximos 7 Dias
+            </CardTitle>
+            <Clock className="h-4 w-4 text-amber-500" />
+          </CardHeader>
+          <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
+            <div className="text-xl sm:text-2xl font-extrabold text-foreground">{proximasEntregas}</div>
+            <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5">Horizonte próximo</p>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* SHEET DE NOVO MARCO */}
       <NovoMarcoSheet
