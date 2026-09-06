@@ -132,72 +132,115 @@ export function MobileCobrancasView() {
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-zinc-950 pb-24">
-      {/* 1. TOP CARDS & RESUMO KPI */}
-      <div className="bg-gradient-to-b from-background to-muted/20 border-b p-3.5 space-y-3">
-        {/* Card Principal: Total em Carteira */}
-        <div className="bg-white dark:bg-card border border-border/80 rounded-2xl p-4 shadow-xs flex items-center justify-between">
-          <div className="space-y-1 min-w-0">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-              <Send className="w-3.5 h-3.5 text-primary" />
-              Total em Cobrança
-            </span>
-            <div className="text-2xl font-black tracking-tight text-foreground">
-              {formatCurrency(stats.totalValor)}
-            </div>
-            <p className="text-[10px] text-muted-foreground">
-              {stats.taxaRecuperacao.toFixed(1)}% recuperado ({formatCurrency(stats.totalPago)})
-            </p>
-          </div>
-
-          <div className="flex flex-col items-end gap-1.5 shrink-0">
-            <Badge variant="outline" className="text-[10px] font-bold px-2 py-0.5 bg-primary/10 text-primary border-primary/30">
-              {cobrancas.length} títulos
-            </Badge>
-          </div>
-        </div>
-
-        {/* Mini Cards: Pendentes & Vencidas */}
-        <div className="grid grid-cols-2 gap-2.5">
-          <div 
-            onClick={() => setActiveTab(activeTab === 'pendentes' ? 'todas' : 'pendentes')}
-            className={`bg-white dark:bg-card border rounded-2xl p-3 shadow-xs space-y-1 cursor-pointer transition-all active:scale-[0.99] ${
-              activeTab === 'pendentes' ? 'border-primary ring-1 ring-primary/20' : 'border-border/80'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
-                <Clock className="w-3 h-3 text-amber-500" />
-                Pendentes
-              </span>
-              <span className="w-2 h-2 rounded-full bg-amber-500" />
-            </div>
-            <div className="text-base font-black text-amber-600 dark:text-amber-400">
-              {stats.countPendentes} cobranças
-            </div>
-          </div>
-
-          <div 
-            onClick={() => setActiveTab(activeTab === 'vencidas' ? 'todas' : 'vencidas')}
-            className={`bg-white dark:bg-card border rounded-2xl p-3 shadow-xs space-y-1 cursor-pointer transition-all active:scale-[0.99] ${
-              activeTab === 'vencidas' ? 'border-rose-500 ring-1 ring-rose-500/20' : 'border-border/80'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
-                <AlertTriangle className="w-3 h-3 text-rose-500" />
-                Vencidas
-              </span>
-              <span className="w-2 h-2 rounded-full bg-rose-500" />
-            </div>
-            <div className="text-base font-black text-rose-600 dark:text-rose-400 truncate">
-              {formatCurrency(stats.totalVencido)}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. STICKY CONTROLS: SEÇÃO + BUSCA + FILTROS */}
+      {/* 1. STICKY TOP CONTROLS: BUSCA + FILTROS + SELETOR DE SEÇÕES */}
       <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md border-b px-3.5 py-2.5 space-y-2">
+        {/* Busca, Filtros & Botão Nova */}
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Buscar cliente, título, valor..."
+              className="h-9 pl-9 pr-3 text-xs rounded-xl bg-muted/40 border-muted-foreground/20 focus-visible:ring-1 focus-visible:ring-primary"
+            />
+          </div>
+
+          {/* Botão de Filtros */}
+          <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
+            <SheetTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-9 w-9 rounded-xl shrink-0 border-muted-foreground/20 text-muted-foreground hover:text-foreground relative"
+                aria-label="Filtrar"
+              >
+                <Filter className="w-4 h-4" />
+                {(statusFilter !== 'todos' || canalFilter !== 'todos') && (
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" />
+                )}
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="bottom" className="rounded-t-2xl max-h-[85vh] p-4">
+              <SheetHeader className="pb-3 border-b">
+                <SheetTitle className="text-base font-bold text-left">Filtros de Cobrança</SheetTitle>
+                <SheetDescription className="text-xs text-muted-foreground text-left">
+                  Filtre por canal de comunicação e status de envio.
+                </SheetDescription>
+              </SheetHeader>
+
+              <div className="py-4 space-y-4 text-xs">
+                {/* Status */}
+                <div>
+                  <label className="font-semibold text-muted-foreground block mb-2">Status da Cobrança</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { id: 'todos', label: 'Todos' },
+                      { id: 'Pendente', label: 'Pendente' },
+                      { id: 'Enviada', label: 'Enviada' },
+                      { id: 'Lida', label: 'Lida' },
+                      { id: 'Vencida', label: 'Vencida' },
+                      { id: 'Paga', label: 'Paga' },
+                    ].map((st) => (
+                      <Button
+                        key={st.id}
+                        type="button"
+                        variant={statusFilter === st.id ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setStatusFilter(st.id)}
+                        className={`text-xs h-8 ${statusFilter === st.id ? 'bg-primary text-white' : ''}`}
+                      >
+                        {st.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Canal */}
+                <div>
+                  <label className="font-semibold text-muted-foreground block mb-2">Canal de Disparo</label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[
+                      { id: 'todos', label: 'Todos' },
+                      { id: 'WhatsApp', label: 'WhatsApp' },
+                      { id: 'E-mail', label: 'E-mail' },
+                      { id: 'SMS', label: 'SMS' },
+                    ].map((c) => (
+                      <Button
+                        key={c.id}
+                        type="button"
+                        variant={canalFilter === c.id ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setCanalFilter(c.id)}
+                        className={`text-xs h-8 ${canalFilter === c.id ? 'bg-primary text-white' : ''}`}
+                      >
+                        {c.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                <Button
+                  onClick={() => setFilterSheetOpen(false)}
+                  className="w-full bg-primary hover:bg-primary/90 text-white mt-4 h-10 rounded-xl font-bold"
+                >
+                  Aplicar Filtros ({filteredData.length} resultados)
+                </Button>
+              </div>
+            </SheetContent>
+          </Sheet>
+
+          {/* Botão Nova Cobrança */}
+          <Button
+            size="sm"
+            onClick={() => setNovoCobrancaOpen(true)}
+            className="h-9 px-3 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-xs shadow-xs gap-1 shrink-0"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Nova
+          </Button>
+        </div>
+
         {/* Horizontal Section Selector */}
         <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-0.5">
           {[
@@ -224,143 +267,100 @@ export function MobileCobrancasView() {
           })}
         </div>
 
-        {/* Busca, Filtros & Botão Nova para Cobranças */}
+        {/* Category Pills (Horizontal Scroll) para Cobranças */}
         {activeSection === 'cobrancas' && (
-          <>
-            <div className="flex items-center gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Buscar cliente, título, valor..."
-                  className="h-9 pl-9 pr-3 text-xs rounded-xl bg-muted/40 border-muted-foreground/20 focus-visible:ring-1 focus-visible:ring-primary"
-                />
-              </div>
-
-              {/* Botão de Filtros */}
-              <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
-                <SheetTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-9 w-9 rounded-xl shrink-0 border-muted-foreground/20 text-muted-foreground hover:text-foreground relative"
-                    aria-label="Filtrar"
-                  >
-                    <Filter className="w-4 h-4" />
-                    {(statusFilter !== 'todos' || canalFilter !== 'todos') && (
-                      <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" />
-                    )}
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="bottom" className="rounded-t-2xl max-h-[85vh] p-4">
-                  <SheetHeader className="pb-3 border-b">
-                    <SheetTitle className="text-base font-bold text-left">Filtros de Cobrança</SheetTitle>
-                    <SheetDescription className="text-xs text-muted-foreground text-left">
-                      Filtre por canal de comunicação e status de envio.
-                    </SheetDescription>
-                  </SheetHeader>
-
-                  <div className="py-4 space-y-4 text-xs">
-                    {/* Status */}
-                    <div>
-                      <label className="font-semibold text-muted-foreground block mb-2">Status da Cobrança</label>
-                      <div className="grid grid-cols-3 gap-2">
-                        {[
-                          { id: 'todos', label: 'Todos' },
-                          { id: 'Pendente', label: 'Pendente' },
-                          { id: 'Enviada', label: 'Enviada' },
-                          { id: 'Lida', label: 'Lida' },
-                          { id: 'Vencida', label: 'Vencida' },
-                          { id: 'Paga', label: 'Paga' },
-                        ].map((st) => (
-                          <Button
-                            key={st.id}
-                            type="button"
-                            variant={statusFilter === st.id ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => setStatusFilter(st.id)}
-                            className={`text-xs h-8 ${statusFilter === st.id ? 'bg-primary text-white' : ''}`}
-                          >
-                            {st.label}
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Canal */}
-                    <div>
-                      <label className="font-semibold text-muted-foreground block mb-2">Canal de Disparo</label>
-                      <div className="grid grid-cols-4 gap-2">
-                        {[
-                          { id: 'todos', label: 'Todos' },
-                          { id: 'WhatsApp', label: 'WhatsApp' },
-                          { id: 'E-mail', label: 'E-mail' },
-                          { id: 'SMS', label: 'SMS' },
-                        ].map((c) => (
-                          <Button
-                            key={c.id}
-                            type="button"
-                            variant={canalFilter === c.id ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => setCanalFilter(c.id)}
-                            className={`text-xs h-8 ${canalFilter === c.id ? 'bg-primary text-white' : ''}`}
-                          >
-                            {c.label}
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <Button
-                      onClick={() => setFilterSheetOpen(false)}
-                      className="w-full bg-primary hover:bg-primary/90 text-white mt-4 h-10 rounded-xl font-bold"
-                    >
-                      Aplicar Filtros ({filteredData.length} resultados)
-                    </Button>
-                  </div>
-                </SheetContent>
-              </Sheet>
-
-              {/* Botão Nova Cobrança */}
-              <Button
-                size="sm"
-                onClick={() => setNovoCobrancaOpen(true)}
-                className="h-9 px-3 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-xs shadow-xs gap-1 shrink-0"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                Nova
-              </Button>
-            </div>
-
-            {/* Category Pills (Horizontal Scroll) */}
-            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-0.5">
-              {[
-                { id: 'todas', label: `Todas (${cobrancas.length})` },
-                { id: 'pendentes', label: `Pendentes (${stats.countPendentes})` },
-                { id: 'vencidas', label: `Vencidas (${stats.countVencidas})` },
-                { id: 'pagas', label: `Pagas (${stats.countPagas})` },
-                { id: 'whatsapp', label: 'WhatsApp' },
-              ].map((pill) => {
-                const isActive = activeTab === pill.id;
-                return (
-                  <button
-                    key={pill.id}
-                    onClick={() => setActiveTab(pill.id as any)}
-                    className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors border shrink-0 ${
-                      isActive
-                        ? 'bg-primary text-white border-primary font-semibold shadow-xs'
-                        : 'bg-background text-muted-foreground border-border hover:text-foreground'
-                    }`}
-                  >
-                    {pill.label}
-                  </button>
-                );
-              })}
-            </div>
-          </>
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-0.5">
+            {[
+              { id: 'todas', label: `Todas (${cobrancas.length})` },
+              { id: 'pendentes', label: `Pendentes (${stats.countPendentes})` },
+              { id: 'vencidas', label: `Vencidas (${stats.countVencidas})` },
+              { id: 'pagas', label: `Pagas (${stats.countPagas})` },
+              { id: 'whatsapp', label: 'WhatsApp' },
+            ].map((pill) => {
+              const isActive = activeTab === pill.id;
+              return (
+                <button
+                  key={pill.id}
+                  onClick={() => setActiveTab(pill.id as any)}
+                  className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors border shrink-0 ${
+                    isActive
+                      ? 'bg-primary text-white border-primary font-semibold shadow-xs'
+                      : 'bg-background text-muted-foreground border-border hover:text-foreground'
+                  }`}
+                >
+                  {pill.label}
+                </button>
+              );
+            })}
+          </div>
         )}
       </div>
+
+      {/* 2. CARDS & RESUMO KPI (ABAIXO DOS CONTROLES DO TOPO) */}
+      {activeSection === 'cobrancas' && (
+        <div className="bg-gradient-to-b from-background to-muted/20 border-b p-3.5 space-y-3">
+          {/* Card Principal: Total em Carteira */}
+          <div className="bg-white dark:bg-card border border-border/80 rounded-2xl p-4 shadow-xs flex items-center justify-between">
+            <div className="space-y-1 min-w-0">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <Send className="w-3.5 h-3.5 text-primary" />
+                Total em Cobrança
+              </span>
+              <div className="text-2xl font-black tracking-tight text-foreground">
+                {formatCurrency(stats.totalValor)}
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                {stats.taxaRecuperacao.toFixed(1)}% recuperado ({formatCurrency(stats.totalPago)})
+              </p>
+            </div>
+
+            <div className="flex flex-col items-end gap-1.5 shrink-0">
+              <Badge variant="outline" className="text-[10px] font-bold px-2 py-0.5 bg-primary/10 text-primary border-primary/30">
+                {cobrancas.length} títulos
+              </Badge>
+            </div>
+          </div>
+
+          {/* Mini Cards: Pendentes & Vencidas */}
+          <div className="grid grid-cols-2 gap-2.5">
+            <div 
+              onClick={() => setActiveTab(activeTab === 'pendentes' ? 'todas' : 'pendentes')}
+              className={`bg-white dark:bg-card border rounded-2xl p-3 shadow-xs space-y-1 cursor-pointer transition-all active:scale-[0.99] ${
+                activeTab === 'pendentes' ? 'border-primary ring-1 ring-primary/20' : 'border-border/80'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
+                  <Clock className="w-3 h-3 text-amber-500" />
+                  Pendentes
+                </span>
+                <span className="w-2 h-2 rounded-full bg-amber-500" />
+              </div>
+              <div className="text-base font-black text-amber-600 dark:text-amber-400">
+                {stats.countPendentes} cobranças
+              </div>
+            </div>
+
+            <div 
+              onClick={() => setActiveTab(activeTab === 'vencidas' ? 'todas' : 'vencidas')}
+              className={`bg-white dark:bg-card border rounded-2xl p-3 shadow-xs space-y-1 cursor-pointer transition-all active:scale-[0.99] ${
+                activeTab === 'vencidas' ? 'border-rose-500 ring-1 ring-rose-500/20' : 'border-border/80'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3 text-rose-500" />
+                  Vencidas
+                </span>
+                <span className="w-2 h-2 rounded-full bg-rose-500" />
+              </div>
+              <div className="text-base font-black text-rose-600 dark:text-rose-400 truncate">
+                {formatCurrency(stats.totalVencido)}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 3. CONTEÚDO DA SEÇÃO ATIVA */}
       {activeSection === 'historico' && (

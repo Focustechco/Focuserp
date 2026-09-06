@@ -155,86 +155,122 @@ export function MobileFluxoCaixaView() {
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-zinc-950 pb-24">
-      {/* 1. TOP CARDS & RESUMO KPI */}
-      <div className="bg-gradient-to-b from-background to-muted/20 border-b p-3.5 space-y-3">
-        {/* Card Principal: Saldo Atual em Caixa */}
-        <div className="bg-white dark:bg-card border border-border/80 rounded-2xl p-4 shadow-xs flex items-center justify-between">
-          <div className="space-y-1 min-w-0">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-              <Wallet className="w-3.5 h-3.5 text-primary" />
-              Saldo Real em Caixa
-            </span>
-            <div className={`text-2xl font-black tracking-tight ${
-              stats.saldoAtual >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
-            }`}>
-              {formatCurrency(stats.saldoAtual)}
-            </div>
-            <p className="text-[10px] text-muted-foreground">
-              {stats.totalMovimentacoes} transações liquidadas consolidadas
-            </p>
-          </div>
-
-          <div className="flex flex-col items-end gap-1.5 shrink-0">
-            <Badge variant="outline" className={`text-[10px] font-bold px-2 py-0.5 ${
-              stats.saldoAtual >= 0
-                ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-500/30'
-                : 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border-rose-500/30'
-            }`}>
-              {stats.saldoAtual >= 0 ? 'Positivo' : 'Déficit'}
-            </Badge>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleExportCSV}
-              className="h-7 text-[10px] gap-1 px-2 text-muted-foreground hover:text-foreground"
-            >
-              <Download className="w-3 h-3" /> Exportar
-            </Button>
-          </div>
-        </div>
-
-        {/* Mini Cards: Entradas e Saídas */}
-        <div className="grid grid-cols-2 gap-2.5">
-          <div 
-            onClick={() => setActiveTab(activeTab === 'entradas' ? 'todos' : 'entradas')}
-            className={`bg-white dark:bg-card border rounded-2xl p-3 shadow-xs space-y-1 cursor-pointer transition-all active:scale-[0.99] ${
-              activeTab === 'entradas' ? 'border-emerald-500 ring-1 ring-emerald-500/20' : 'border-border/80'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
-                <ArrowUpRight className="w-3 h-3 text-emerald-500" />
-                Entradas
-              </span>
-              <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            </div>
-            <div className="text-base font-black text-emerald-600 dark:text-emerald-400 truncate">
-              {formatCurrency(stats.totalEntradas)}
-            </div>
-          </div>
-
-          <div 
-            onClick={() => setActiveTab(activeTab === 'saidas' ? 'todos' : 'saidas')}
-            className={`bg-white dark:bg-card border rounded-2xl p-3 shadow-xs space-y-1 cursor-pointer transition-all active:scale-[0.99] ${
-              activeTab === 'saidas' ? 'border-rose-500 ring-1 ring-rose-500/20' : 'border-border/80'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
-                <ArrowDownRight className="w-3 h-3 text-rose-500" />
-                Saídas
-              </span>
-              <span className="w-2 h-2 rounded-full bg-rose-500" />
-            </div>
-            <div className="text-base font-black text-rose-600 dark:text-rose-400 truncate">
-              {formatCurrency(stats.totalSaidas)}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. STICKY CONTROLS: SEÇÃO + BUSCA + FILTROS */}
+      {/* 1. STICKY TOP CONTROLS: BUSCA + FILTRO + SELETOR DE SEÇÕES */}
       <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md border-b px-3.5 py-2.5 space-y-2">
+        {/* Barra de Procura + Filtro + Exportar */}
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Buscar cliente, fornecedor, descrição..."
+              className="h-9 pl-9 pr-3 text-xs rounded-xl bg-muted/40 border-muted-foreground/20 focus-visible:ring-1 focus-visible:ring-primary"
+            />
+          </div>
+
+          {/* Botão de Filtros */}
+          <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
+            <SheetTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-9 w-9 rounded-xl shrink-0 border-muted-foreground/20 text-muted-foreground hover:text-foreground relative"
+                aria-label="Filtrar"
+              >
+                <Filter className="w-4 h-4" />
+                {(categoriaFilter !== 'todas' || periodoFilter !== 'todos') && (
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" />
+                )}
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="bottom" className="rounded-t-2xl max-h-[85vh] p-4">
+              <SheetHeader className="pb-3 border-b">
+                <SheetTitle className="text-base font-bold text-left">Filtros do Extrato</SheetTitle>
+                <SheetDescription className="text-xs text-muted-foreground text-left">
+                  Filtre as movimentações por período, tipo e categoria contábil.
+                </SheetDescription>
+              </SheetHeader>
+
+              <div className="py-4 space-y-4 text-xs">
+                {/* Período */}
+                <div>
+                  <label className="font-semibold text-muted-foreground block mb-2">Período de Realização</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { id: 'todos', label: 'Todo Período' },
+                      { id: 'hoje', label: 'Hoje' },
+                      { id: '7dias', label: 'Últimos 7 dias' },
+                      { id: '30dias', label: 'Últimos 30 dias' },
+                      { id: 'ano_atual', label: 'Ano Atual' },
+                    ].map((p) => (
+                      <Button
+                        key={p.id}
+                        type="button"
+                        variant={periodoFilter === p.id ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setPeriodoFilter(p.id)}
+                        className={`text-xs h-8 ${periodoFilter === p.id ? 'bg-primary text-white' : ''}`}
+                      >
+                        {p.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Categorias */}
+                {categoriasDisponiveis.length > 0 && (
+                  <div>
+                    <label className="font-semibold text-muted-foreground block mb-2">Categoria</label>
+                    <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pr-1">
+                      <Button
+                        type="button"
+                        variant={categoriaFilter === 'todas' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setCategoriaFilter('todas')}
+                        className={`text-xs h-7 rounded-full ${categoriaFilter === 'todas' ? 'bg-primary text-white' : ''}`}
+                      >
+                        Todas
+                      </Button>
+                      {categoriasDisponiveis.map((cat) => (
+                        <Button
+                          key={cat}
+                          type="button"
+                          variant={categoriaFilter === cat ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setCategoriaFilter(cat)}
+                          className={`text-xs h-7 rounded-full ${categoriaFilter === cat ? 'bg-primary text-white' : ''}`}
+                        >
+                          {cat}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <Button
+                  onClick={() => setFilterSheetOpen(false)}
+                  className="w-full bg-primary hover:bg-primary/90 text-white mt-4 h-10 rounded-xl font-bold"
+                >
+                  Aplicar Filtros ({filteredData.length} resultados)
+                </Button>
+              </div>
+            </SheetContent>
+          </Sheet>
+
+          {/* Exportar CSV */}
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handleExportCSV}
+            className="h-9 w-9 rounded-xl shrink-0 border-muted-foreground/20 text-muted-foreground hover:text-foreground"
+            aria-label="Exportar CSV"
+            title="Exportar CSV"
+          >
+            <Download className="w-4 h-4" />
+          </Button>
+        </div>
+
         {/* Horizontal Section Selector */}
         <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-0.5">
           {[
@@ -262,137 +298,105 @@ export function MobileFluxoCaixaView() {
           })}
         </div>
 
-        {/* Barra de Procura + Filtro para Extrato */}
+        {/* Category Pills (Horizontal Scroll) para Extrato */}
         {activeSection === 'extrato' && (
-          <>
-            <div className="flex items-center gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Buscar por cliente, fornecedor, descrição..."
-                  className="h-9 pl-9 pr-3 text-xs rounded-xl bg-muted/40 border-muted-foreground/20 focus-visible:ring-1 focus-visible:ring-primary"
-                />
-              </div>
-
-              {/* Botão de Filtros */}
-              <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
-                <SheetTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-9 w-9 rounded-xl shrink-0 border-muted-foreground/20 text-muted-foreground hover:text-foreground relative"
-                    aria-label="Filtrar"
-                  >
-                    <Filter className="w-4 h-4" />
-                    {(categoriaFilter !== 'todas' || periodoFilter !== 'todos') && (
-                      <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" />
-                    )}
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="bottom" className="rounded-t-2xl max-h-[85vh] p-4">
-                  <SheetHeader className="pb-3 border-b">
-                    <SheetTitle className="text-base font-bold text-left">Filtros do Extrato</SheetTitle>
-                    <SheetDescription className="text-xs text-muted-foreground text-left">
-                      Filtre as movimentações por período, tipo e categoria contábil.
-                    </SheetDescription>
-                  </SheetHeader>
-
-                  <div className="py-4 space-y-4 text-xs">
-                    {/* Período */}
-                    <div>
-                      <label className="font-semibold text-muted-foreground block mb-2">Período de Realização</label>
-                      <div className="grid grid-cols-3 gap-2">
-                        {[
-                          { id: 'todos', label: 'Todo Período' },
-                          { id: 'hoje', label: 'Hoje' },
-                          { id: '7dias', label: 'Últimos 7 dias' },
-                          { id: '30dias', label: 'Últimos 30 dias' },
-                          { id: 'ano_atual', label: 'Ano Atual' },
-                        ].map((p) => (
-                          <Button
-                            key={p.id}
-                            type="button"
-                            variant={periodoFilter === p.id ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => setPeriodoFilter(p.id)}
-                            className={`text-xs h-8 ${periodoFilter === p.id ? 'bg-primary text-white' : ''}`}
-                          >
-                            {p.label}
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Categorias */}
-                    {categoriasDisponiveis.length > 0 && (
-                      <div>
-                        <label className="font-semibold text-muted-foreground block mb-2">Categoria</label>
-                        <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pr-1">
-                          <Button
-                            type="button"
-                            variant={categoriaFilter === 'todas' ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => setCategoriaFilter('todas')}
-                            className={`text-xs h-7 rounded-full ${categoriaFilter === 'todas' ? 'bg-primary text-white' : ''}`}
-                          >
-                            Todas
-                          </Button>
-                          {categoriasDisponiveis.map((cat) => (
-                            <Button
-                              key={cat}
-                              type="button"
-                              variant={categoriaFilter === cat ? 'default' : 'outline'}
-                              size="sm"
-                              onClick={() => setCategoriaFilter(cat)}
-                              className={`text-xs h-7 rounded-full ${categoriaFilter === cat ? 'bg-primary text-white' : ''}`}
-                            >
-                              {cat}
-                            </Button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    <Button
-                      onClick={() => setFilterSheetOpen(false)}
-                      className="w-full bg-primary hover:bg-primary/90 text-white mt-4 h-10 rounded-xl font-bold"
-                    >
-                      Aplicar Filtros ({filteredData.length} resultados)
-                    </Button>
-                  </div>
-                </SheetContent>
-              </Sheet>
-            </div>
-
-            {/* Category Pills (Horizontal Scroll) */}
-            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-0.5">
-              {[
-                { id: 'todos', label: `Todas (${fluxoConsolidado.length})` },
-                { id: 'entradas', label: `Entradas (${fluxoConsolidado.filter(m => m.tipo === 'Entrada').length})` },
-                { id: 'saidas', label: `Saídas (${fluxoConsolidado.filter(m => m.tipo === 'Saída').length})` },
-                { id: 'mes_atual', label: 'Mês Atual' },
-              ].map((pill) => {
-                const isActive = activeTab === pill.id;
-                return (
-                  <button
-                    key={pill.id}
-                    onClick={() => setActiveTab(pill.id as any)}
-                    className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors border shrink-0 ${
-                      isActive
-                        ? 'bg-primary text-white border-primary font-semibold shadow-xs'
-                        : 'bg-background text-muted-foreground border-border hover:text-foreground'
-                    }`}
-                  >
-                    {pill.label}
-                  </button>
-                );
-              })}
-            </div>
-          </>
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-0.5">
+            {[
+              { id: 'todos', label: `Todas (${fluxoConsolidado.length})` },
+              { id: 'entradas', label: `Entradas (${fluxoConsolidado.filter(m => m.tipo === 'Entrada').length})` },
+              { id: 'saidas', label: `Saídas (${fluxoConsolidado.filter(m => m.tipo === 'Saída').length})` },
+              { id: 'mes_atual', label: 'Mês Atual' },
+            ].map((pill) => {
+              const isActive = activeTab === pill.id;
+              return (
+                <button
+                  key={pill.id}
+                  onClick={() => setActiveTab(pill.id as any)}
+                  className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors border shrink-0 ${
+                    isActive
+                      ? 'bg-primary text-white border-primary font-semibold shadow-xs'
+                      : 'bg-background text-muted-foreground border-border hover:text-foreground'
+                  }`}
+                >
+                  {pill.label}
+                </button>
+              );
+            })}
+          </div>
         )}
       </div>
+
+      {/* 2. CARDS & RESUMO KPI (ABAIXO DOS CONTROLES DO TOPO) */}
+      {activeSection === 'extrato' && (
+        <div className="bg-gradient-to-b from-background to-muted/20 border-b p-3.5 space-y-3">
+          {/* Card Principal: Saldo Atual em Caixa */}
+          <div className="bg-white dark:bg-card border border-border/80 rounded-2xl p-4 shadow-xs flex items-center justify-between">
+            <div className="space-y-1 min-w-0">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <Wallet className="w-3.5 h-3.5 text-primary" />
+                Saldo Real em Caixa
+              </span>
+              <div className={`text-2xl font-black tracking-tight ${
+                stats.saldoAtual >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+              }`}>
+                {formatCurrency(stats.saldoAtual)}
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                {stats.totalMovimentacoes} transações liquidadas consolidadas
+              </p>
+            </div>
+
+            <div className="flex flex-col items-end gap-1.5 shrink-0">
+              <Badge variant="outline" className={`text-[10px] font-bold px-2 py-0.5 ${
+                stats.saldoAtual >= 0
+                  ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-500/30'
+                  : 'bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border-rose-500/30'
+              }`}>
+                {stats.saldoAtual >= 0 ? 'Positivo' : 'Déficit'}
+              </Badge>
+            </div>
+          </div>
+
+          {/* Mini Cards: Entradas e Saídas */}
+          <div className="grid grid-cols-2 gap-2.5">
+            <div 
+              onClick={() => setActiveTab(activeTab === 'entradas' ? 'todos' : 'entradas')}
+              className={`bg-white dark:bg-card border rounded-2xl p-3 shadow-xs space-y-1 cursor-pointer transition-all active:scale-[0.99] ${
+                activeTab === 'entradas' ? 'border-emerald-500 ring-1 ring-emerald-500/20' : 'border-border/80'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
+                  <ArrowUpRight className="w-3 h-3 text-emerald-500" />
+                  Entradas
+                </span>
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              </div>
+              <div className="text-base font-black text-emerald-600 dark:text-emerald-400 truncate">
+                {formatCurrency(stats.totalEntradas)}
+              </div>
+            </div>
+
+            <div 
+              onClick={() => setActiveTab(activeTab === 'saidas' ? 'todos' : 'saidas')}
+              className={`bg-white dark:bg-card border rounded-2xl p-3 shadow-xs space-y-1 cursor-pointer transition-all active:scale-[0.99] ${
+                activeTab === 'saidas' ? 'border-rose-500 ring-1 ring-rose-500/20' : 'border-border/80'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
+                  <ArrowDownRight className="w-3 h-3 text-rose-500" />
+                  Saídas
+                </span>
+                <span className="w-2 h-2 rounded-full bg-rose-500" />
+              </div>
+              <div className="text-base font-black text-rose-600 dark:text-rose-400 truncate">
+                {formatCurrency(stats.totalSaidas)}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 3. CONTEÚDO DA SEÇÃO SELECIONADA */}
       {activeSection === 'projecoes' && (
