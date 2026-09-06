@@ -2,13 +2,12 @@ import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Download, Printer, FileText, FileSpreadsheet, ShieldCheck, QrCode, Lock, X, CheckCircle2, Loader2 } from 'lucide-react';
+import { Download, Printer, FileText, FileSpreadsheet, ShieldCheck, QrCode, Lock, X, Loader2 } from 'lucide-react';
 import { GeneratedReportData, ReportFormat } from '../types';
 import { toast } from 'sonner';
 import { jsPDF } from 'jspdf';
 import { toJpeg } from 'html-to-image';
 import { useRelatoriosStore } from '../hooks/useRelatoriosStore';
-import { dmsService } from '@/services/dmsService';
 import focusLogoHq from '@/assets/focus-erp-logo-hq.png';
 
 interface PreviewProps {
@@ -76,7 +75,7 @@ export function ReportDocumentPreviewModal({ data, isOpen, onClose }: PreviewPro
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent hideCloseButton className="w-full sm:max-w-5xl h-[100dvh] sm:h-[94vh] max-h-[100dvh] sm:max-h-[94vh] p-0 border-none shadow-2xl bg-slate-950/95 backdrop-blur-md flex flex-col overflow-hidden">
+      <DialogContent hideCloseButton className="w-full sm:max-w-5xl h-[100dvh] sm:h-[94vh] max-h-[100dvh] sm:max-h-[94vh] p-0 border-none shadow-2xl bg-slate-950/95 backdrop-blur-md flex flex-col overflow-hidden rounded-none sm:rounded-2xl">
         
         {/* Acessibilidade DialogHeader oculto */}
         <div className="sr-only">
@@ -181,7 +180,7 @@ export function ReportDocumentPreviewModal({ data, isOpen, onClose }: PreviewPro
           
           {/* DOCUMENTO INSTITUCIONAL FOCUS (FOLHA A4 RESPONSIVA) */}
           <div 
-            className="w-full max-w-4xl bg-white text-slate-900 rounded-xl shadow-2xl border border-slate-200 p-4 sm:p-8 md:p-10 flex flex-col justify-between transition-all duration-200 overflow-hidden" 
+            className="w-full max-w-4xl bg-white text-slate-900 rounded-xl shadow-2xl border border-slate-200 p-3.5 sm:p-8 md:p-10 flex flex-col justify-between transition-all duration-200 overflow-hidden" 
             id="report-printable-area"
             style={{ backgroundColor: '#ffffff', color: '#0f172a' }}
           >
@@ -213,7 +212,7 @@ export function ReportDocumentPreviewModal({ data, isOpen, onClose }: PreviewPro
                     <span className="text-[10px] font-bold uppercase tracking-widest text-orange-600 bg-orange-100 px-2 py-0.5 rounded inline-block mb-1">
                       Módulo {data.definition.category}
                     </span>
-                    <h2 className="text-lg sm:text-xl font-bold text-slate-900 leading-tight">
+                    <h2 className="text-base sm:text-xl font-bold text-slate-900 leading-tight">
                       {data.definition.title}
                     </h2>
                   </div>
@@ -225,11 +224,11 @@ export function ReportDocumentPreviewModal({ data, isOpen, onClose }: PreviewPro
 
               {/* 3. CARDS DE RESUMO EXECUTIVO (100% RESPONSIVO) */}
               {data.metricsSummary && data.metricsSummary.length > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
                   {data.metricsSummary.map((m, i) => (
-                    <div key={i} className="border border-slate-200 rounded-lg p-3 sm:p-3.5 bg-slate-50">
+                    <div key={i} className="border border-slate-200 rounded-lg p-2.5 sm:p-3.5 bg-slate-50">
                       <p className="text-[11px] sm:text-xs text-slate-500 font-medium truncate">{m.label}</p>
-                      <p className={`text-base sm:text-lg font-bold mt-0.5 truncate ${m.color || 'text-slate-900'}`}>
+                      <p className={`text-sm sm:text-lg font-bold mt-0.5 truncate ${m.color || 'text-slate-900'}`}>
                         {m.value}
                       </p>
                     </div>
@@ -240,11 +239,11 @@ export function ReportDocumentPreviewModal({ data, isOpen, onClose }: PreviewPro
               {/* 4. TABELA DE DADOS CORPORATIVA (COM OVERFLOW HORIZONTAL CONTROLADO) */}
               <div className="border border-slate-200 rounded-lg overflow-hidden w-full max-w-full">
                 <div className="overflow-x-auto w-full max-w-full scrollbar-thin">
-                  <table className="w-full text-xs text-left min-w-[500px] sm:min-w-full border-collapse">
+                  <table className="w-full text-xs text-left min-w-[340px] sm:min-w-full border-collapse">
                     <thead className="bg-slate-100 border-b border-slate-200 text-slate-700 font-semibold uppercase text-[10px] sm:text-xs">
                       <tr>
                         {data.definition.columns.map(col => (
-                          <th key={col.key} className="p-2.5 sm:p-3 whitespace-nowrap">
+                          <th key={col.key} className="p-2 sm:p-3 whitespace-nowrap">
                             {col.label}
                           </th>
                         ))}
@@ -261,7 +260,7 @@ export function ReportDocumentPreviewModal({ data, isOpen, onClose }: PreviewPro
                         data.rows.map((row, idx) => (
                           <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
                             {data.definition.columns.map(col => (
-                              <td key={col.key} className="p-2.5 sm:p-3 font-medium text-slate-800 text-[11px] sm:text-xs whitespace-nowrap sm:whitespace-normal">
+                              <td key={col.key} className="p-2 sm:p-3 font-medium text-slate-800 text-[11px] sm:text-xs whitespace-nowrap sm:whitespace-normal">
                                 {row[col.key] || '-'}
                               </td>
                             ))}
@@ -283,9 +282,9 @@ export function ReportDocumentPreviewModal({ data, isOpen, onClose }: PreviewPro
             </div>
 
             {/* 6. RODAPÉ INSTITUCIONAL COM QR CODE E AUTENTICIDADE */}
-            <div className="border-t-2 border-slate-900 pt-3.5 sm:pt-4 mt-6 sm:mt-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-[10px] sm:text-[11px] text-slate-500">
-              <div className="flex items-center gap-2.5">
-                <QrCode className="w-8 h-8 sm:w-9 sm:h-9 text-slate-800 p-0.5 border rounded bg-white shrink-0" />
+            <div className="border-t-2 border-slate-900 pt-3 sm:pt-4 mt-5 sm:mt-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2.5 text-[10px] sm:text-[11px] text-slate-500">
+              <div className="flex items-center gap-2">
+                <QrCode className="w-7 h-7 sm:w-9 sm:h-9 text-slate-800 p-0.5 border rounded bg-white shrink-0" />
                 <div className="space-y-0.5">
                   <p className="font-bold text-slate-800 flex items-center gap-1">
                     <Lock className="w-3 h-3 text-orange-500" /> Autenticidade Digital Verificada

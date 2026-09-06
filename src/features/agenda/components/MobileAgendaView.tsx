@@ -1,29 +1,24 @@
 import React, { useState } from 'react';
-import { useRelatoriosStore } from '../hooks/useRelatoriosStore';
-import { Button } from '@/components/ui/button';
+import { LayoutList, Calendar, Activity, Search, Filter, Plus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import {
-  FileSpreadsheet, Search, Filter, Wand2,
-  Clock, Calendar, LayoutGrid
-} from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription } from '@/components/ui/sheet';
-import { ReportCatalogView } from './ReportCatalogView';
-import { ReportDashboard } from './ReportDashboard';
-import { ReportGeneratorWizard } from './ReportGeneratorWizard';
-import { ReportHistoryView } from './ReportHistoryView';
-import { ReportSchedulesView } from './ReportSchedulesView';
+import { AgendaTimeline } from './AgendaTimeline';
+import { CalendarioGrid } from './CalendarioGrid';
+import { Dashboard } from './Dashboard';
+import { DetalheEventoSheet } from './DetalheEventoSheet';
+import { NovoEventoAgendaSheet } from './NovoEventoAgendaSheet';
+import { EventoFinanceiro } from '../types';
 
-export function MobileRelatoriosView() {
-  const { catalog, history, schedules } = useRelatoriosStore();
-  const [activeMainTab, setActiveMainTab] = useState<'catalogo' | 'dashboard' | 'wizard' | 'historico' | 'agendamentos'>('catalogo');
-  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+export function MobileAgendaView() {
+  const [activeTab, setActiveTab] = useState<'timeline' | 'calendario' | 'dashboard'>('timeline');
+  const [selectedEvent, setSelectedEvent] = useState<EventoFinanceiro | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const sections = [
-    { id: 'catalogo', label: `Catálogo (${catalog.length})`, icon: FileSpreadsheet },
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutGrid },
-    { id: 'wizard', label: 'Gerador Wizard', icon: Wand2 },
-    { id: 'historico', label: `Histórico (${history.length})`, icon: Clock },
-    { id: 'agendamentos', label: `Agendamentos (${schedules.length})`, icon: Calendar },
+    { id: 'timeline', label: 'Lista / Timeline', icon: LayoutList },
+    { id: 'calendario', label: 'Calendário Mensal', icon: Calendar },
+    { id: 'dashboard', label: 'Dashboard Financeiro', icon: Activity },
   ];
 
   return (
@@ -32,7 +27,7 @@ export function MobileRelatoriosView() {
       <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md border-b px-3.5 py-2.5 space-y-2">
         <div className="flex items-center gap-2">
           {/* Seletor Rápido de Seção Drawer */}
-          <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
+          <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
             <SheetTrigger asChild>
               <Button
                 variant="outline"
@@ -41,22 +36,22 @@ export function MobileRelatoriosView() {
               >
                 <Filter className="w-3.5 h-3.5 text-muted-foreground" />
                 <span className="truncate">
-                  {sections.find((s) => s.id === activeMainTab)?.label}
+                  {sections.find((s) => s.id === activeTab)?.label}
                 </span>
               </Button>
             </SheetTrigger>
             <SheetContent side="bottom" className="rounded-t-2xl max-h-[85vh] p-4">
               <SheetHeader className="pb-3 border-b text-left">
-                <SheetTitle className="text-base font-bold">Seções da Central de Relatórios</SheetTitle>
+                <SheetTitle className="text-base font-bold">Seções da Agenda</SheetTitle>
                 <SheetDescription className="text-xs text-muted-foreground">
-                  Navegue entre o Catálogo, Dashboard, Gerador Wizard, Histórico e Agendamentos.
+                  Escolha como deseja visualizar os lançamentos e compromissos
                 </SheetDescription>
               </SheetHeader>
 
               <div className="grid grid-cols-1 gap-2 py-4">
                 {sections.map((sec) => {
                   const Icon = sec.icon;
-                  const isCurrent = activeMainTab === sec.id;
+                  const isCurrent = activeTab === sec.id;
                   return (
                     <Button
                       key={sec.id}
@@ -64,8 +59,8 @@ export function MobileRelatoriosView() {
                       variant={isCurrent ? 'default' : 'outline'}
                       size="sm"
                       onClick={() => {
-                        setActiveMainTab(sec.id as any);
-                        setFilterSheetOpen(false);
+                        setActiveTab(sec.id as any);
+                        setSheetOpen(false);
                       }}
                       className={`h-11 justify-start gap-2.5 text-xs rounded-xl ${
                         isCurrent ? 'bg-primary text-white font-bold' : ''
@@ -80,25 +75,26 @@ export function MobileRelatoriosView() {
             </SheetContent>
           </Sheet>
 
-          {/* Botão Wizard Direto */}
-          <Button
-            onClick={() => setActiveMainTab('wizard')}
-            size="sm"
-            className="h-9 px-3 bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs rounded-xl gap-1 shadow-xs shrink-0"
-          >
-            <Wand2 className="w-3.5 h-3.5" /> Wizard
-          </Button>
+          {/* Botão Novo Evento / Lembrete */}
+          <NovoEventoAgendaSheet>
+            <Button
+              size="sm"
+              className="h-9 px-3 bg-primary text-white font-bold text-xs rounded-xl gap-1 shadow-xs shrink-0"
+            >
+              <Plus className="w-3.5 h-3.5" /> Lembrete
+            </Button>
+          </NovoEventoAgendaSheet>
         </div>
 
         {/* Horizontal Section Pills */}
         <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-0.5">
-          {sections.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeMainTab === tab.id;
+          {sections.map((sec) => {
+            const Icon = sec.icon;
+            const isActive = activeTab === sec.id;
             return (
               <button
-                key={tab.id}
-                onClick={() => setActiveMainTab(tab.id as any)}
+                key={sec.id}
+                onClick={() => setActiveTab(sec.id as any)}
                 className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors border shrink-0 flex items-center gap-1.5 ${
                   isActive
                     ? 'bg-primary text-white border-primary font-semibold shadow-xs'
@@ -106,35 +102,34 @@ export function MobileRelatoriosView() {
                 }`}
               >
                 <Icon className="w-3.5 h-3.5" />
-                {tab.label}
+                {sec.label}
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* 2. CONTEÚDO DA SEÇÃO ATIVA COM TODAS AS FERRAMENTAS E DADOS REAIS */}
+      {/* 2. CONTEÚDO DA SEÇÃO ATIVA */}
       <div className="p-3.5 space-y-4">
-        {activeMainTab === 'catalogo' && (
-          <ReportCatalogView />
+        {activeTab === 'timeline' && (
+          <AgendaTimeline onEventClick={setSelectedEvent} />
         )}
 
-        {activeMainTab === 'dashboard' && (
-          <ReportDashboard />
+        {activeTab === 'calendario' && (
+          <CalendarioGrid onEventClick={setSelectedEvent} />
         )}
 
-        {activeMainTab === 'wizard' && (
-          <ReportGeneratorWizard />
-        )}
-
-        {activeMainTab === 'historico' && (
-          <ReportHistoryView />
-        )}
-
-        {activeMainTab === 'agendamentos' && (
-          <ReportSchedulesView />
+        {activeTab === 'dashboard' && (
+          <Dashboard />
         )}
       </div>
+
+      {/* Sheet de Detalhes do Evento */}
+      <DetalheEventoSheet
+        evento={selectedEvent}
+        isOpen={!!selectedEvent}
+        onClose={() => setSelectedEvent(null)}
+      />
     </div>
   );
 }
