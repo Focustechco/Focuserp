@@ -6,6 +6,7 @@ import { CrmKanbanView } from "@/features/crm/components/CrmKanbanView";
 import { LeadsView } from "@/features/crm/components/LeadsView";
 import { EmpresasContatosView } from "@/features/crm/components/EmpresasContatosView";
 import { ClickUpConfigView } from "@/features/crm/components/ClickUpConfigView";
+import { MobileCrmView } from "@/features/crm/components/MobileCrmView";
 import { Target, LayoutGrid, Award, Building2, RefreshCw } from "lucide-react";
 
 export const Route = createFileRoute("/crm")({
@@ -16,59 +17,67 @@ function ModuloCrmPage() {
   const [activeTab, setActiveTab] = useState("kanban");
 
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-[1400px] mx-auto w-full animate-fade-in">
-      {/* Cabeçalho do Módulo CRM */}
-      <div className="hidden md:flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">CRM Pipeline</h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Camada de gestão executiva integrada ao ClickUp em tempo real. Automação nativa para Clientes, Contratos e Financeiro.
-          </p>
-        </div>
+    <>
+      {/* Versão Mobile Touch Otimizada */}
+      <div className="md:hidden">
+        <MobileCrmView />
       </div>
 
-      {/* Navegação por Abas Padrão Monocromática */}
-      <Tabs defaultValue="kanban" className="space-y-6 mt-2" onValueChange={setActiveTab}>
-        <div className="border-b pb-2 w-full overflow-x-auto scrollbar-hide">
-          <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
-            <TabsTrigger value="kanban" className="gap-2 font-medium shrink-0">
-              <Target className="w-4 h-4" /> CRM
-            </TabsTrigger>
-            <TabsTrigger value="dashboard" className="gap-2 font-medium shrink-0">
-              <LayoutGrid className="w-4 h-4" /> Dashboard
-            </TabsTrigger>
-            <TabsTrigger value="leads" className="gap-2 font-medium shrink-0">
-              <Award className="w-4 h-4" /> Desempenho
-            </TabsTrigger>
-            <TabsTrigger value="empresas" className="gap-2 font-medium shrink-0">
-              <Building2 className="w-4 h-4" /> Clientes & Follow-ups
-            </TabsTrigger>
-            <TabsTrigger value="clickup" className="gap-2 font-medium shrink-0">
-              <RefreshCw className="w-4 h-4" /> ClickUp Engine & Logs
-            </TabsTrigger>
-          </TabsList>
+      {/* Versão Desktop */}
+      <div className="hidden md:flex flex-col gap-6 p-6 max-w-[1400px] mx-auto w-full animate-fade-in">
+        {/* Cabeçalho do Módulo CRM */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">CRM Pipeline</h1>
+            <p className="text-muted-foreground mt-1 text-sm">
+              Camada de gestão executiva integrada ao ClickUp em tempo real. Automação nativa para Clientes, Contratos e Financeiro.
+            </p>
+          </div>
         </div>
 
-        <TabsContent value="kanban" className="space-y-4 outline-none">
-          <CrmKanbanView />
-        </TabsContent>
+        {/* Navegação por Abas Padrão Monocromática */}
+        <Tabs defaultValue="kanban" className="space-y-6 mt-2" onValueChange={setActiveTab}>
+          <div className="border-b pb-2 w-full overflow-x-auto scrollbar-hide">
+            <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
+              <TabsTrigger value="kanban" className="gap-2 font-medium shrink-0">
+                <Target className="w-4 h-4" /> CRM
+              </TabsTrigger>
+              <TabsTrigger value="dashboard" className="gap-2 font-medium shrink-0">
+                <LayoutGrid className="w-4 h-4" /> Dashboard
+              </TabsTrigger>
+              <TabsTrigger value="leads" className="gap-2 font-medium shrink-0">
+                <Award className="w-4 h-4" /> Desempenho
+              </TabsTrigger>
+              <TabsTrigger value="empresas" className="gap-2 font-medium shrink-0">
+                <Building2 className="w-4 h-4" /> Clientes & Follow-ups
+              </TabsTrigger>
+              <TabsTrigger value="clickup" className="gap-2 font-medium shrink-0">
+                <RefreshCw className="w-4 h-4" /> ClickUp Engine & Logs
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
-        <TabsContent value="dashboard" className="space-y-4 outline-none">
-          <CrmDashboard />
-        </TabsContent>
+          <TabsContent value="kanban" className="space-y-4 outline-none">
+            <CrmKanbanView />
+          </TabsContent>
 
-        <TabsContent value="leads" className="space-y-4 outline-none">
-          <LeadsView />
-        </TabsContent>
+          <TabsContent value="dashboard" className="space-y-4 outline-none">
+            <CrmDashboard />
+          </TabsContent>
 
-        <TabsContent value="empresas" className="space-y-4 outline-none">
-          <EmpresasContatosView />
-        </TabsContent>
+          <TabsContent value="leads" className="space-y-4 outline-none">
+            <LeadsView />
+          </TabsContent>
 
-        <TabsContent value="clickup" className="space-y-4 outline-none">
-          <ClickUpConfigView />
-        </TabsContent>
-      </Tabs>
-    </div>
+          <TabsContent value="empresas" className="space-y-4 outline-none">
+            <EmpresasContatosView />
+          </TabsContent>
+
+          <TabsContent value="clickup" className="space-y-4 outline-none">
+            <ClickUpConfigView />
+          </TabsContent>
+        </Tabs>
+      </div>
+    </>
   );
 }
