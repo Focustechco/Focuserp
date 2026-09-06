@@ -67,6 +67,27 @@ export const dmsService = {
     } catch {}
   },
 
+  async deletePasta(id: string): Promise<void> {
+    const list = this.getPastas();
+    const updated = list.filter((p) => p.id !== id);
+    await this.savePastas(updated);
+
+    try {
+      await supabase.from('dms_pastas').delete().eq('id', id);
+    } catch {}
+  },
+
+  async deletePastasBatch(ids: string[]): Promise<void> {
+    const idSet = new Set(ids);
+    const list = this.getPastas();
+    const updated = list.filter((p) => !idSet.has(p.id));
+    await this.savePastas(updated);
+
+    try {
+      await supabase.from('dms_pastas').delete().in('id', ids);
+    } catch {}
+  },
+
   // ---------------------------------------------------------------------------
   // Garantir Criação de Pasta Raiz ou Subpasta Específica de Entidade
   // ---------------------------------------------------------------------------

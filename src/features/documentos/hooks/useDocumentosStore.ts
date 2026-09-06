@@ -11,6 +11,7 @@ export function useDocumentosStore() {
   const { data: lixeira, addItem: addTrashItem, removeItem: removeTrashItem, save: saveLixeira } = useLocalStorageState<DocumentoDMS>('focus_dms_lixeira', []);
   const { data: auditLogs, addItem: addAuditItem } = useLocalStorageState<AuditLogDocumento>('focus_dms_audit', []);
   const { data: deletedDocIds, addItem: addDeletedId, save: saveDeletedIds } = useLocalStorageState<string>('focus_dms_deleted_ids', []);
+  const { data: deletedFolderIds, addItem: addDeletedFolderId, save: saveDeletedFolderIds } = useLocalStorageState<string>('focus_dms_deleted_folder_ids', []);
 
   // Leitura de entidades para sincronização automática de pastas
   const { data: clientes } = useLocalStorageState<any>('focus_clientes', []);
@@ -186,8 +187,32 @@ export function useDocumentosStore() {
       }
     });
 
-    return Array.from(map.values());
-  }, [rawPastas, clientes, fornecedores, projetos, colaboradores, produtos]);
+    const deletedSet = new Set(deletedFolderIds || []);
+    if (deletedSet.size === 0) {
+      return Array.from(map.values());
+    }
+
+    // Filtrar pastas excluídas e recursivamente suas filhas
+    const result: PastaDMS[] = [];
+    const isExcluded = (folder: PastaDMS): boolean => {
+      if (deletedSet.has(folder.id)) return true;
+      let currentParentId = folder.parentId;
+      while (currentParentId) {
+        if (deletedSet.has(currentParentId)) return true;
+        const parent = map.get(currentParentId);
+        currentParentId = parent ? parent.parentId : null;
+      }
+      return false;
+    };
+
+    map.forEach((p) => {
+      if (!isExcluded(p)) {
+        result.push(p);
+      }
+    });
+
+    return result;
+  }, [rawPastas, clientes, fornecedores, projetos, colaboradores, produtos, deletedFolderIds]);
 
   // Persistir pastas sincronizadas se houver alteração
   useEffect(() => {
@@ -474,12 +499,111 @@ export function useDocumentosStore() {
     updateDocItem(docId, updates);
   };
 
+  // Exclusão de Pastas (individual e em lote)
+  const deleteFolder = (folderId: string) => {
+    const targetFolder = pastas.find((p) => p.id === folderId);
+    if (!targetFolder) return;
+
+    const allFolderIdsToDelete: string[] = [folderId];
+    const findSubfolders = (parentId: string) => {
+      const children = pastas.filter((p) => p.parentId === parentId);
+      children.forEach((c) => {
+        allFolderIdsToDelete.push(c.id);
+        findSubfolders(c.id);
+      });
+    };
+    findSubfolders(folderId);
+
+    const folderIdSet = new Set(allFolderIdsToDelete);
+
+    const docsInFolders = documentos.filter((d) => {
+      if (folderIdSet.has(d.pastaId)) return true;
+      if (d.caminhoPasta && (d.caminhoPasta === targetFolder.caminhoCompleto || d.caminhoPasta.startsWith(targetFolder.caminhoCompleto + '/'))) {
+        return true;
+      }
+      return false;
+    });
+
+    if (docsInFolders.length > 0) {
+      moveToTrashBatch(docsInFolders.map((d) => d.id));
+    }
+
+    const newDeletedFolders = Array.from(new Set([...(deletedFolderIds || []), ...allFolderIdsToDelete]));
+    saveDeletedFolderIds(newDeletedFolders);
+
+    savePastas((rawPastas || []).filter((p) => !folderIdSet.has(p.id)));
+    dmsService.deletePastasBatch(allFolderIdsToDelete);
+
+    logAction(targetFolder.id, targetFolder.nome, 'Exclusão', `Pasta '${targetFolder.nome}' e ${docsInFolders.length} documento(s) contidos foram excluídos.`);
+  };
+
+  const deleteFoldersBatch = (folderIds: string[]) => {
+    if (folderIds.length === 0) return;
+
+    const allFolderIdsToDelete: string[] = [];
+    const findSubfolders = (parentId: string) => {
+      const children = pastas.filter((p) => p.parentId === parentId);
+      children.forEach((c) => {
+        if (!allFolderIdsToDelete.includes(c.id)) {
+          allFolderIdsToDelete.push(c.id);
+          findSubfolders(c.id);
+        }
+      });
+    };
+
+    folderIds.forEach((fId) => {
+      if (!allFolderIdsToDelete.includes(fId)) {
+        allFolderIdsToDelete.push(fId);
+        findSubfolders(fId);
+      }
+    });
+
+    const folderIdSet = new Set(allFolderIdsToDelete);
+    const targetFolders = pastas.filter((p) => folderIdSet.has(p.id));
+    const targetPaths = targetFolders.map((p) => p.caminhoCompleto);
+
+    const docsInFolders = documentos.filter((d) => {
+      if (folderIdSet.has(d.pastaId)) return true;
+      if (d.caminhoPasta && targetPaths.some((tp) => d.caminhoPasta === tp || d.caminhoPasta.startsWith(tp + '/'))) {
+        return true;
+      }
+      return false;
+    });
+
+    if (docsInFolders.length > 0) {
+      moveToTrashBatch(docsInFolders.map((d) => d.id));
+    }
+
+    const newDeletedFolders = Array.from(new Set([...(deletedFolderIds || []), ...allFolderIdsToDelete]));
+    saveDeletedFolderIds(newDeletedFolders);
+
+    savePastas((rawPastas || []).filter((p) => !folderIdSet.has(p.id)));
+    dmsService.deletePastasBatch(allFolderIdsToDelete);
+
+    logAction('batch-folder-delete', `${folderIds.length} Pastas`, 'Exclusão', `Exclusão em lote de ${folderIds.length} pasta(s) e ${docsInFolders.length} documento(s).`);
+  };
+
+  const downloadDocument = (doc: DocumentoDMS) => {
+    if (!doc.urlConteudo) {
+      return;
+    }
+    const a = document.createElement('a');
+    a.href = doc.urlConteudo;
+    a.download = doc.nome;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    logAction(doc.id, doc.nome, 'Download', `Download realizado pelo usuário`);
+  };
+
   return {
     pastas,
     documentos,
     lixeira: lixeira || [],
     auditLogs: auditLogs || [],
     createFolder,
+    deleteFolder,
+    deleteFoldersBatch,
     uploadDocument,
     uploadFileFromModule,
     addVersion,
@@ -491,6 +615,7 @@ export function useDocumentosStore() {
     deletePermanently,
     deletePermanentlyBatch,
     updateDocument,
+    downloadDocument,
     logAction,
   };
 }

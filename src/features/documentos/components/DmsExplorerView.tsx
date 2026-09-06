@@ -30,6 +30,8 @@ export function DmsExplorerView() {
     pastas, 
     documentos, 
     createFolder, 
+    deleteFolder,
+    deleteFoldersBatch,
     toggleFavorite, 
     moveToTrash, 
     moveToTrashBatch,
@@ -44,8 +46,10 @@ export function DmsExplorerView() {
   // Modo de Seleção exclusivo por botão "Selecionar"
   const [isSelectionMode, setIsSelectionMode] = useState<boolean>(false);
   const [selectedDocIds, setSelectedDocIds] = useState<string[]>([]);
+  const [selectedFolderIds, setSelectedFolderIds] = useState<string[]>([]);
   const [isBatchDeleteDialogOpen, setIsBatchDeleteDialogOpen] = useState(false);
   const [docToDeleteSingle, setDocToDeleteSingle] = useState<DocumentoDMS | null>(null);
+  const [folderToDeleteSingle, setFolderToDeleteSingle] = useState<PastaDMS | null>(null);
 
   // Modal Criar Pasta
   const [openNewFolderModal, setOpenNewFolderModal] = useState(false);
@@ -135,22 +139,49 @@ export function DmsExplorerView() {
     );
   };
 
+  const handleToggleSelectFolder = (folderId: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setSelectedFolderIds(prev => 
+      prev.includes(folderId) ? prev.filter(id => id !== folderId) : [...prev, folderId]
+    );
+  };
+
+  const totalVisibleCount = visibleFolders.length + visibleDocs.length;
+  const totalSelectedCount = selectedDocIds.length + selectedFolderIds.length;
+
   const handleSelectAllVisible = (checked: boolean) => {
     if (checked) {
       setSelectedDocIds(Array.from(new Set([...selectedDocIds, ...visibleDocs.map(d => d.id)])));
+      setSelectedFolderIds(Array.from(new Set([...selectedFolderIds, ...visibleFolders.map(f => f.id)])));
     } else {
-      const visibleSet = new Set(visibleDocs.map(d => d.id));
-      setSelectedDocIds(prev => prev.filter(id => !visibleSet.has(id)));
+      const visibleDocSet = new Set(visibleDocs.map(d => d.id));
+      const visibleFolderSet = new Set(visibleFolders.map(f => f.id));
+      setSelectedDocIds(prev => prev.filter(id => !visibleDocSet.has(id)));
+      setSelectedFolderIds(prev => prev.filter(id => !visibleFolderSet.has(id)));
     }
   };
 
-  const isAllVisibleSelected = visibleDocs.length > 0 && visibleDocs.every(d => selectedDocIds.includes(d.id));
+  const isAllVisibleSelected = totalVisibleCount > 0 && 
+    visibleDocs.every(d => selectedDocIds.includes(d.id)) && 
+    visibleFolders.every(f => selectedFolderIds.includes(f.id));
 
   const handleConfirmBatchDelete = () => {
-    if (selectedDocIds.length === 0) return;
-    moveToTrashBatch(selectedDocIds);
-    toast.success(`${selectedDocIds.length} documento(s) movido(s) para a lixeira!`);
+    if (totalSelectedCount === 0) return;
+    
+    if (selectedDocIds.length > 0) {
+      moveToTrashBatch(selectedDocIds);
+    }
+    if (selectedFolderIds.length > 0) {
+      deleteFoldersBatch(selectedFolderIds);
+    }
+
+    const feedbackParts: string[] = [];
+    if (selectedFolderIds.length > 0) feedbackParts.push(`${selectedFolderIds.length} pasta(s)`);
+    if (selectedDocIds.length > 0) feedbackParts.push(`${selectedDocIds.length} documento(s)`);
+    toast.success(`${feedbackParts.join(' e ')} excluído(s) com sucesso!`);
+
     setSelectedDocIds([]);
+    setSelectedFolderIds([]);
     setIsBatchDeleteDialogOpen(false);
     setIsSelectionMode(false);
   };
@@ -160,6 +191,13 @@ export function DmsExplorerView() {
     moveToTrash(docToDeleteSingle.id);
     toast.success(`"${docToDeleteSingle.nome}" movido para a lixeira!`);
     setDocToDeleteSingle(null);
+  };
+
+  const handleConfirmSingleFolderDelete = () => {
+    if (!folderToDeleteSingle) return;
+    deleteFolder(folderToDeleteSingle.id);
+    toast.success(`Pasta "${folderToDeleteSingle.nome}" excluída com sucesso!`);
+    setFolderToDeleteSingle(null);
   };
 
   const renderFileIcon = (ext: string) => {
@@ -222,10 +260,13 @@ export function DmsExplorerView() {
             onClick={() => {
               const next = !isSelectionMode;
               setIsSelectionMode(next);
-              if (!next) setSelectedDocIds([]);
+              if (!next) {
+                setSelectedDocIds([]);
+                setSelectedFolderIds([]);
+              }
             }}
             className={`gap-1.5 h-8 text-xs ${isSelectionMode ? 'bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-950/40 dark:text-orange-300 dark:border-orange-800 font-semibold' : ''}`}
-            title="Ativar/Desativar modo de seleção para exclusão"
+            title="Ativar/Desativar modo de seleção para exclusão de pastas e documentos"
           >
             <CheckSquare className="w-3.5 h-3.5 text-orange-600" />
             {isSelectionMode ? 'Cancelar Seleção' : 'Selecionar'}
@@ -270,14 +311,16 @@ export function DmsExplorerView() {
       </div>
 
       {/* BARRA DE AÇÃO EM LOTE QUANDO HÁ SELEÇÃO NO MODO SELECIONAR */}
-      {isSelectionMode && selectedDocIds.length > 0 && (
+      {isSelectionMode && totalSelectedCount > 0 && (
         <div className="bg-primary/10 border border-primary/30 rounded-lg p-3 flex items-center justify-between animate-fade-in">
           <div className="flex items-center gap-3">
             <Badge variant="default" className="bg-primary text-primary-foreground text-xs font-bold">
-              {selectedDocIds.length} selecionado(s)
+              {totalSelectedCount} selecionado(s)
             </Badge>
             <span className="text-xs text-muted-foreground hidden sm:inline">
-              Documentos selecionados para ações em massa
+              {selectedFolderIds.length > 0 && `${selectedFolderIds.length} pasta(s)`}
+              {selectedFolderIds.length > 0 && selectedDocIds.length > 0 && ' e '}
+              {selectedDocIds.length > 0 && `${selectedDocIds.length} documento(s)`} selecionados para exclusão
             </span>
           </div>
 
@@ -285,7 +328,10 @@ export function DmsExplorerView() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setSelectedDocIds([])}
+              onClick={() => {
+                setSelectedDocIds([]);
+                setSelectedFolderIds([]);
+              }}
               className="h-8 text-xs gap-1"
             >
               <X className="w-3.5 h-3.5" /> Limpar Seleção
@@ -296,7 +342,7 @@ export function DmsExplorerView() {
               onClick={() => setIsBatchDeleteDialogOpen(true)}
               className="h-8 text-xs gap-1.5"
             >
-              <Trash2 className="w-3.5 h-3.5" /> Excluir Selecionados
+              <Trash2 className="w-3.5 h-3.5" /> Excluir Selecionados ({totalSelectedCount})
             </Button>
           </div>
         </div>
@@ -368,7 +414,7 @@ export function DmsExplorerView() {
             </div>
 
             <div className="flex items-center gap-3">
-              {isSelectionMode && visibleDocs.length > 0 && (
+              {isSelectionMode && totalVisibleCount > 0 && (
                 <div className="flex items-center gap-2 text-xs animate-fade-in">
                   <Checkbox 
                     checked={isAllVisibleSelected} 
@@ -376,13 +422,20 @@ export function DmsExplorerView() {
                     id="select-all-docs"
                   />
                   <Label htmlFor="select-all-docs" className="text-xs cursor-pointer text-muted-foreground font-semibold">
-                    Selecionar Todos
+                    Selecionar Todos ({totalVisibleCount})
                   </Label>
                 </div>
               )}
-              <Badge variant="secondary" className="text-xs">
-                {visibleDocs.length} arquivo(s)
-              </Badge>
+              <div className="flex items-center gap-1.5">
+                {visibleFolders.length > 0 && (
+                  <Badge variant="outline" className="text-xs">
+                    {visibleFolders.length} pasta(s)
+                  </Badge>
+                )}
+                <Badge variant="secondary" className="text-xs">
+                  {visibleDocs.length} arquivo(s)
+                </Badge>
+              </div>
             </div>
           </div>
 
@@ -392,23 +445,65 @@ export function DmsExplorerView() {
               {/* Seção de Pastas */}
               {visibleFolders.length > 0 && (
                 <div>
-                  <h4 className="text-xs font-bold text-muted-foreground uppercase mb-2">Pastas ({visibleFolders.length})</h4>
+                  <h4 className="text-xs font-bold text-muted-foreground uppercase mb-2 flex items-center justify-between">
+                    <span>Pastas ({visibleFolders.length})</span>
+                    {isSelectionMode && (
+                      <span className="text-[10px] text-orange-600 font-normal normal-case">
+                        Clique em uma pasta para selecioná-la para exclusão
+                      </span>
+                    )}
+                  </h4>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                     {visibleFolders.map(p => {
                       const docCount = countDocsInFolder(p);
+                      const isFolderSelected = selectedFolderIds.includes(p.id);
+
                       return (
                         <div 
                           key={p.id}
-                          onClick={() => setCurrentFolderId(p.id)}
-                          className="p-3 border rounded-lg hover:border-primary/50 cursor-pointer flex items-center justify-between bg-card transition-all group hover:shadow-xs"
+                          onClick={() => {
+                            if (isSelectionMode) {
+                              handleToggleSelectFolder(p.id);
+                            } else {
+                              setCurrentFolderId(p.id);
+                            }
+                          }}
+                          className={`p-3 border rounded-lg cursor-pointer flex items-center justify-between bg-card transition-all group ${
+                            isFolderSelected && isSelectionMode 
+                              ? 'border-orange-500 bg-orange-50/60 dark:bg-orange-950/30 ring-1 ring-orange-500 shadow-xs' 
+                              : 'hover:border-primary/50 hover:shadow-xs'
+                          }`}
                         >
-                          <div className="flex items-center gap-2.5 truncate">
-                            <Folder className="w-6 h-6 text-amber-500 shrink-0 group-hover:scale-105 transition-transform" />
-                            <div className="truncate text-xs">
-                              <p className="font-semibold truncate">{p.nome}</p>
+                          <div className="flex items-center gap-2.5 truncate min-w-0">
+                            {isSelectionMode && (
+                              <Checkbox 
+                                checked={isFolderSelected} 
+                                onCheckedChange={() => handleToggleSelectFolder(p.id)}
+                                onClick={(e) => e.stopPropagation()}
+                                className="animate-fade-in shrink-0"
+                              />
+                            )}
+                            <Folder className={`w-6 h-6 shrink-0 transition-transform ${isFolderSelected && isSelectionMode ? 'text-orange-600' : 'text-amber-500 group-hover:scale-105'}`} />
+                            <div className="truncate text-xs min-w-0">
+                              <p className="font-semibold truncate" title={p.nome}>{p.nome}</p>
                               <p className="text-[10px] text-muted-foreground">{docCount} arquivo(s)</p>
                             </div>
                           </div>
+
+                          {!isSelectionMode && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 shrink-0 ml-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setFolderToDeleteSingle(p);
+                              }}
+                              title="Excluir pasta"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          )}
                         </div>
                       );
                     })}
@@ -522,19 +617,59 @@ export function DmsExplorerView() {
           ) : (
             /* VISUALIZAÇÃO EM LISTA */
             <div className="space-y-2">
-              {visibleFolders.map(p => (
-                <div 
-                  key={p.id}
-                  onClick={() => setCurrentFolderId(p.id)}
-                  className="flex items-center justify-between p-2.5 border rounded-md hover:bg-muted/40 cursor-pointer text-xs"
-                >
-                  <div className="flex items-center gap-2">
-                    <Folder className="w-4 h-4 text-amber-500" />
-                    <span className="font-semibold">{p.nome}</span>
+              {visibleFolders.map(p => {
+                const docCount = countDocsInFolder(p);
+                const isFolderSelected = selectedFolderIds.includes(p.id);
+
+                return (
+                  <div 
+                    key={p.id}
+                    onClick={() => {
+                      if (isSelectionMode) {
+                        handleToggleSelectFolder(p.id);
+                      } else {
+                        setCurrentFolderId(p.id);
+                      }
+                    }}
+                    className={`flex items-center justify-between p-2.5 border rounded-md cursor-pointer text-xs transition-colors group ${
+                      isFolderSelected && isSelectionMode 
+                        ? 'border-orange-500 bg-orange-50/60 dark:bg-orange-950/30' 
+                        : 'hover:bg-muted/40'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      {isSelectionMode && (
+                        <Checkbox 
+                          checked={isFolderSelected} 
+                          onCheckedChange={() => handleToggleSelectFolder(p.id)}
+                          onClick={(e) => e.stopPropagation()}
+                          className="animate-fade-in shrink-0"
+                        />
+                      )}
+                      <Folder className={`w-4 h-4 shrink-0 ${isFolderSelected && isSelectionMode ? 'text-orange-600' : 'text-amber-500'}`} />
+                      <div className="min-w-0">
+                        <span className="font-semibold truncate block" title={p.nome}>{p.nome}</span>
+                        <span className="text-[10px] text-muted-foreground">{docCount} documento(s)</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                      <span className="text-[11px] text-muted-foreground hidden sm:inline">Pasta</span>
+                      {!isSelectionMode && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                          onClick={() => setFolderToDeleteSingle(p)}
+                          title="Excluir pasta"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                  <span className="text-[11px] text-muted-foreground">Pasta</span>
-                </div>
-              ))}
+                );
+              })}
 
               {visibleDocs.map(doc => {
                 const isSelected = selectedDocIds.includes(doc.id);
@@ -560,7 +695,7 @@ export function DmsExplorerView() {
                           checked={isSelected} 
                           onCheckedChange={() => handleToggleSelectDoc(doc.id)}
                           onClick={(e) => e.stopPropagation()}
-                          className="animate-fade-in"
+                          className="animate-fade-in shrink-0"
                         />
                       )}
                       {renderFileIcon(doc.extensao)}
@@ -649,7 +784,7 @@ export function DmsExplorerView() {
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Confirmação: Exclusão Única */}
+      {/* Modal de Confirmação: Exclusão Única de Documento */}
       <Dialog open={!!docToDeleteSingle} onOpenChange={(open) => !open && setDocToDeleteSingle(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -672,15 +807,48 @@ export function DmsExplorerView() {
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Confirmação: Exclusão em Lote */}
+      {/* Modal de Confirmação: Exclusão Única de Pasta */}
+      <Dialog open={!!folderToDeleteSingle} onOpenChange={(open) => !open && setFolderToDeleteSingle(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-semibold flex items-center gap-2 text-rose-600">
+              <Trash2 className="w-5 h-5" /> Confirmar Exclusão de Pasta
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground pt-1">
+              Tem certeza de que deseja excluir a pasta <strong>{folderToDeleteSingle?.nome}</strong>?
+              Todos os documentos e subpastas contidos nela também serão excluídos / movidos para a lixeira corporativa.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0 mt-3">
+            <Button variant="outline" size="sm" onClick={() => setFolderToDeleteSingle(null)}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" size="sm" onClick={handleConfirmSingleFolderDelete}>
+              Confirmar Exclusão da Pasta
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Confirmação: Exclusão em Lote (Pastas e Documentos) */}
       <Dialog open={isBatchDeleteDialogOpen} onOpenChange={setIsBatchDeleteDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-sm font-semibold flex items-center gap-2 text-rose-600">
-              <Trash2 className="w-5 h-5" /> Excluir {selectedDocIds.length} documento(s)
+              <Trash2 className="w-5 h-5" /> Excluir {totalSelectedCount} item(ns) selecionado(s)
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground pt-1">
-              Esta ação moverá todos os <strong>{selectedDocIds.length} documentos selecionados</strong> para a lixeira do DMS.
+              Esta ação excluirá:
+              {selectedFolderIds.length > 0 && (
+                <span className="block font-medium text-foreground mt-1">
+                  • {selectedFolderIds.length} pasta(s) e todos os seus conteúdos / subpastas
+                </span>
+              )}
+              {selectedDocIds.length > 0 && (
+                <span className="block font-medium text-foreground mt-1">
+                  • {selectedDocIds.length} documento(s) (enviados para a lixeira do DMS)
+                </span>
+              )}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0 mt-3">
@@ -688,7 +856,7 @@ export function DmsExplorerView() {
               Cancelar
             </Button>
             <Button variant="destructive" size="sm" onClick={handleConfirmBatchDelete}>
-              Excluir {selectedDocIds.length} Itens
+              Excluir {totalSelectedCount} Itens
             </Button>
           </DialogFooter>
         </DialogContent>
