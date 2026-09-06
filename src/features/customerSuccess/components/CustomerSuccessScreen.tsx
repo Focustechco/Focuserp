@@ -22,6 +22,7 @@ import { DashboardExecutivoCs } from './DashboardExecutivoCs';
 import { ModalRegistrarNps } from './ModalRegistrarNps';
 import { ModalNovaAcaoCs } from './ModalNovaAcaoCs';
 import { ModalNovaExpansao } from './ModalNovaExpansao';
+import { MobileCustomerSuccessView } from './MobileCustomerSuccessView';
 
 export function CustomerSuccessScreen() {
   const {
@@ -84,17 +85,25 @@ export function CustomerSuccessScreen() {
   };
 
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
-      {/* HEADER PRINCIPAL PADRONIZADO */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="hidden md:block">
-          <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
-            <Heart className="h-8 w-8 text-rose-500 fill-rose-500/20" /> Customer Service
-          </h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Gestão estratégica do ciclo de vida do cliente: Onboarding, Health Score, NPS, Retenção e Expansão
-          </p>
-        </div>
+    <>
+      {/* Visualização Mobile Otimizada */}
+      <div className="md:hidden">
+        <MobileCustomerSuccessView />
+      </div>
+
+      {/* Visualização Desktop */}
+      <div className="hidden md:flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+        {/* HEADER PRINCIPAL PADRONIZADO */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
+              <Heart className="h-8 w-8 text-rose-500 fill-rose-500/20" /> Customer Service
+            </h1>
+            <p className="text-muted-foreground mt-1 text-sm">
+              Gestão estratégica do ciclo de vida do cliente: Onboarding, Health Score, NPS, Retenção e Expansão
+            </p>
+          </div>
+
 
         <div className="flex flex-wrap items-center gap-2">
           <Button
@@ -250,6 +259,7 @@ export function CustomerSuccessScreen() {
         defaultClientId={selectedClientId}
         onAddExpansionOpportunity={addExpansionOpportunity}
       />
-    </div>
+      </div>
+    </>
   );
 }

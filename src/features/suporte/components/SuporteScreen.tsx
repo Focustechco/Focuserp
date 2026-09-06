@@ -6,6 +6,7 @@ import { ChamadosList } from './ChamadosList';
 import { WorkspaceChamado } from './WorkspaceChamado';
 import { BaseConhecimentoView } from './BaseConhecimentoView';
 import { NovoChamadoModal } from './NovoChamadoModal';
+import { MobileSuporteView } from './MobileSuporteView';
 import { ChamadoSuporte } from '../types';
 import { Headphones, LayoutDashboard, BookOpen, MessageSquare, Plus } from 'lucide-react';
 
@@ -40,24 +41,32 @@ export function SuporteScreen() {
   };
 
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
-      {/* HEADER PRINCIPAL */}
-      <div className="hidden md:flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">
-            Suporte (Central)
-          </h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Central de suporte técnico, solicitações, incidentes, SLAs, base de conhecimento e integração com Desenvolvimento
-          </p>
-        </div>
+    <>
+      {/* Visualização Mobile Otimizada */}
+      <div className="md:hidden">
+        <MobileSuporteView />
       </div>
 
-      {/* TABS PRINCIPAIS */}
-      <Tabs value={mainTab} onValueChange={(val: any) => setMainTab(val)} className="space-y-6">
-        <div className="w-full overflow-x-auto scrollbar-hide border-b pb-1">
-          <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
-            <TabsTrigger value="chamados" className="text-xs font-semibold gap-1.5 shrink-0">
+      {/* Visualização Desktop */}
+      <div className="hidden md:flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+        {/* HEADER PRINCIPAL */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">
+              Suporte (Central)
+            </h1>
+            <p className="text-muted-foreground mt-1 text-sm">
+              Central de suporte técnico, solicitações, incidentes, SLAs, base de conhecimento e integração com Desenvolvimento
+            </p>
+          </div>
+        </div>
+
+        {/* TABS PRINCIPAIS */}
+        <Tabs value={mainTab} onValueChange={(val: any) => setMainTab(val)} className="space-y-6">
+          <div className="w-full overflow-x-auto scrollbar-hide border-b pb-1">
+            <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
+              <TabsTrigger value="chamados" className="text-xs font-semibold gap-1.5 shrink-0">
+
               <Headphones className="h-4 w-4" /> Fila de Chamados
             </TabsTrigger>
             <TabsTrigger value="dashboard" className="text-xs font-semibold gap-1.5 shrink-0">
@@ -122,6 +131,7 @@ export function SuporteScreen() {
         projetos={projetos}
         onAbrirChamado={abrirNovoChamado}
       />
-    </div>
+      </div>
+    </>
   );
 }
