@@ -4,6 +4,7 @@ import { Dashboard } from "@/features/fluxo-caixa/components/Dashboard";
 import { FluxoTimeline } from "@/features/fluxo-caixa/components/FluxoTimeline";
 import { ProjecoesSection } from "@/features/fluxo-caixa/components/ProjecoesSection";
 import { ComparativoSection } from "@/features/fluxo-caixa/components/ComparativoSection";
+import { MobileFluxoCaixaView } from "@/features/fluxo-caixa/components/MobileFluxoCaixaView";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
@@ -13,15 +14,17 @@ export const Route = createFileRoute("/fluxo-de-caixa")({
 
 function FluxoCaixaPage() {
   return (
-    <div className="flex flex-col gap-4 sm:gap-6 p-3 sm:p-6 max-w-7xl mx-auto w-full">
-      <div className="hidden md:flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <>
+      <div className="md:hidden">
+        <MobileFluxoCaixaView />
+      </div>
+      <div className="hidden md:flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Fluxo de Caixa</h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-1 max-w-2xl">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Fluxo de Caixa</h1>
+          <p className="text-muted-foreground mt-2">
             Visão consolidada do saldo, projeções preditivas, comparativo previsto vs. realizado e histórico financeiro.
           </p>
         </div>
-      </div>
 
       <Tabs defaultValue="extrato" className="space-y-6">
         <div className="w-full overflow-x-auto scrollbar-hide border-b pb-1">
@@ -47,5 +50,6 @@ function FluxoCaixaPage() {
         </TabsContent>
       </Tabs>
     </div>
+    </>
   );
 }
