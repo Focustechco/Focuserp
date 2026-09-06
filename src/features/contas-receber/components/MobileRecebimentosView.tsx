@@ -1,13 +1,15 @@
 import React, { useState, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useContasReceberQuery } from '../hooks/useContasReceberQuery';
 import { financeiroService } from '@/services/financeiroService';
+import { useLocalStorageState } from '@/hooks/useDataStore';
 import { TituloReceber } from '../types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
   Search, Filter, Plus, TrendingUp, CheckCircle2, Clock,
-  AlertTriangle, ChevronRight, Check
+  AlertTriangle, ChevronRight, Check, RefreshCw, Trash2
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { NovoRecebimentoSheet } from './NovoRecebimentoSheet';
@@ -19,24 +21,51 @@ const formatCurrency = (value?: number | null) => {
 };
 
 export function MobileRecebimentosView() {
-  const { titulos, isLoading, saveTitulo } = useContasReceberQuery();
+  const queryClient = useQueryClient();
+  const { data: localTitulos = [], saveItem: saveLocalTitulo, removeItem: deleteLocalTitulo } = useLocalStorageState<TituloReceber>('focus_contas_receber');
+  const { titulos: queryTitulos = [], isLoading, refetch, saveTitulo: saveQueryTitulo, deleteTitulo: deleteQueryTitulo } = useContasReceberQuery();
+
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<'todos' | 'a_receber' | 'vencidos' | 'recebidos'>('todos');
+  const [categoriaFilter, setCategoriaFilter] = useState<string>('todas');
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [novoRecebimentoOpen, setNovoRecebimentoOpen] = useState(false);
   const [tituloParaEditar, setTituloParaEditar] = useState<TituloReceber | null>(null);
 
   const todayIso = getBrasiliaTodayIso();
 
+  // Fusão consistente para garantir que todos os títulos reais sincronizados apareçam
+  const titulos = useMemo(() => {
+    const map = new Map<string, any>();
+    localTitulos.forEach(t => {
+      if (t && t.id && ((t.cliente || t.clienteNome) || t.descricao || (t.numero && !t.numero.startsWith('REC-0000')) || Number(t.valorOriginal || t.valor || 0) > 0)) {
+        map.set(t.id, t);
+      }
+    });
+    queryTitulos.forEach(t => {
+      if (t && t.id && ((t.cliente || t.clienteNome) || t.descricao || (t.numero && !t.numero.startsWith('REC-0000')) || Number(t.valorOriginal || t.valor || 0) > 0)) {
+        if (!map.has(t.id)) map.set(t.id, t);
+      }
+    });
+    return Array.from(map.values());
+  }, [localTitulos, queryTitulos]);
+
   const enrichedTitulos = useMemo(() => {
     return titulos.map((t) => {
-      const valor = Number(t.valor || 0);
+      const valorNum = Number(t.valorOriginal ?? t.valor ?? t.saldo ?? 0) || 0;
+      const valorRecebido = Number(t.valorRecebido ?? 0) || 0;
+      const clienteNome = t.cliente || t.clienteNome || t.nomeCliente || 'Cliente';
       const statusNorm = (t.status || '').trim().toLowerCase();
       const isPago = statusNorm === 'recebido' || statusNorm === 'liquidado' || statusNorm === 'pago';
-      const isVencido = !isPago && t.dataVencimento && t.dataVencimento < todayIso;
+      const dataVenc = t.dataVencimento || t.vencimento || t.data_vencimento || '';
+      const isVencido = !isPago && Boolean(dataVenc) && dataVenc < todayIso;
+
       return {
         ...t,
-        valorNum: valor,
+        clienteNome,
+        valorNum,
+        valorRecebido,
+        dataVencimento: dataVenc,
         isPago,
         isVencido,
       };
@@ -50,7 +79,7 @@ export function MobileRecebimentosView() {
 
     enrichedTitulos.forEach((t) => {
       if (t.isPago) {
-        totalRecebido += t.valorNum;
+        totalRecebido += (t.valorRecebido || t.valorNum);
       } else if (t.isVencido) {
         totalVencido += t.valorNum;
       } else {
@@ -61,15 +90,28 @@ export function MobileRecebimentosView() {
     return { totalAReceber, totalVencido, totalRecebido };
   }, [enrichedTitulos]);
 
+  const categoriasDisponiveis = useMemo(() => {
+    const set = new Set<string>();
+    enrichedTitulos.forEach(t => {
+      if (t.categoria) set.add(t.categoria);
+    });
+    return Array.from(set);
+  }, [enrichedTitulos]);
+
   const filteredList = useMemo(() => {
     return enrichedTitulos.filter((t) => {
       const matchesSearch =
         (t.clienteNome || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (t.descricao || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (t.numero || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (t.codigo || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (t.numeroDocumento || '').includes(searchTerm);
+        (t.categoria || '').toLowerCase().includes(searchTerm.toLowerCase());
 
       if (!matchesSearch) return false;
+
+      if (categoriaFilter !== 'todas' && t.categoria !== categoriaFilter) {
+        return false;
+      }
 
       if (activeTab === 'a_receber') return !t.isPago && !t.isVencido;
       if (activeTab === 'vencidos') return t.isVencido;
@@ -77,18 +119,46 @@ export function MobileRecebimentosView() {
 
       return true;
     });
-  }, [enrichedTitulos, searchTerm, activeTab]);
+  }, [enrichedTitulos, searchTerm, activeTab, categoriaFilter]);
 
-  const handleBaixarTitulo = async (titulo: TituloReceber, e: React.MouseEvent) => {
+  const handleBaixarTitulo = async (titulo: any, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
+      const today = getBrasiliaTodayIso();
+      const updated = {
+        ...titulo,
+        status: 'Recebido',
+        dataRecebimento: today,
+        valorRecebido: titulo.valorNum,
+        saldo: 0,
+      };
+
+      saveLocalTitulo(updated);
+
       await financeiroService.liquidarTituloReceber(titulo.id, {
-        dataRecebimento: getBrasiliaTodayIso(),
-        valorRecebido: titulo.valor,
+        dataRecebimento: today,
+        valorRecebido: titulo.valorNum,
       });
-      toast.success(`Título de ${formatCurrency(titulo.valor)} baixado com sucesso!`);
+
+      queryClient.setQueryData(['contas_receber'], (old: any) => {
+        if (!Array.isArray(old)) return [updated];
+        return old.map((item: any) => item.id === titulo.id ? updated : item);
+      });
+      queryClient.invalidateQueries({ queryKey: ['contas_receber'] });
+      queryClient.invalidateQueries({ queryKey: ['fluxo_caixa'] });
+
+      toast.success(`Título de ${formatCurrency(titulo.valorNum)} baixado com sucesso!`);
     } catch (err: any) {
       toast.error(`Erro ao dar baixa: ${err?.message || 'Falha na operação'}`);
+    }
+  };
+
+  const handleRefresh = async () => {
+    try {
+      await refetch();
+      toast.success('Dados sincronizados com o servidor!');
+    } catch {
+      toast.error('Erro ao sincronizar.');
     }
   };
 
@@ -124,40 +194,109 @@ export function MobileRecebimentosView() {
           </div>
         </div>
 
-        {/* Busca, Filtros & Botão Novo */}
-        <div className="flex items-center gap-2">
+        {/* Busca, Filtros, Refresh & Botão Novo */}
+        <div className="flex items-center gap-1.5">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
             <Input
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Buscar cliente, descrição, doc..."
-              className="h-9 pl-9 pr-3 text-xs rounded-xl bg-muted/40 border-muted-foreground/20 focus-visible:ring-1 focus-visible:ring-[#FF6A00]"
+              className="h-8.5 pl-8.5 pr-3 text-xs rounded-xl bg-muted/40 border-muted-foreground/20 focus-visible:ring-1 focus-visible:ring-[#FF6A00]"
             />
           </div>
+
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={handleRefresh}
+            className="h-8.5 w-8.5 rounded-xl shrink-0 border-muted-foreground/20 text-muted-foreground hover:text-foreground"
+            aria-label="Atualizar"
+            title="Sincronizar"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-[#FF6A00]' : ''}`} />
+          </Button>
 
           <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
             <SheetTrigger asChild>
               <Button
-                variant="outline"
+                variant={categoriaFilter !== 'todas' ? 'default' : 'outline'}
                 size="icon"
-                className="h-9 w-9 rounded-xl shrink-0 border-muted-foreground/20 text-muted-foreground"
+                className={`h-8.5 w-8.5 rounded-xl shrink-0 ${
+                  categoriaFilter !== 'todas'
+                    ? 'bg-[#FF6A00] text-white'
+                    : 'border-muted-foreground/20 text-muted-foreground hover:text-foreground'
+                }`}
                 aria-label="Filtrar"
               >
-                <Filter className="w-4 h-4" />
+                <Filter className="w-3.5 h-3.5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="bottom" className="rounded-t-2xl max-h-[80vh] p-4">
-              <SheetHeader className="pb-3 border-b">
-                <SheetTitle className="text-base font-bold text-left">Filtros de Recebimentos</SheetTitle>
-              </SheetHeader>
-              <div className="py-4 space-y-3 text-xs">
-                <Button
+            <SheetContent side="bottom" hideCloseButton className="rounded-t-2xl max-h-[80vh] p-4 bg-background">
+              <SheetHeader className="pb-3 border-b flex flex-row items-center justify-between">
+                <div>
+                  <SheetTitle className="text-base font-bold text-left">Filtros de Recebimentos</SheetTitle>
+                  <p className="text-xs text-muted-foreground text-left">Filtre por categoria e status financeiro</p>
+                </div>
+                <button
+                  type="button"
                   onClick={() => setFilterSheetOpen(false)}
-                  className="w-full bg-[#FF6A00] hover:bg-orange-600 text-white h-10 rounded-xl font-bold"
+                  className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100/90 dark:bg-zinc-800/90 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-500 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-white transition-all active:scale-95 cursor-pointer shadow-xs"
+                  aria-label="Fechar"
                 >
-                  Aplicar Filtros ({filteredList.length} encontrados)
-                </Button>
+                  <span className="text-sm font-bold leading-none">&times;</span>
+                </button>
+              </SheetHeader>
+              <div className="py-4 space-y-4 text-xs">
+                <div>
+                  <label className="font-semibold text-foreground block mb-2">Categoria</label>
+                  <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto">
+                    <button
+                      type="button"
+                      onClick={() => setCategoriaFilter('todas')}
+                      className={`px-3 py-1.5 rounded-lg text-xs transition-colors border ${
+                        categoriaFilter === 'todas'
+                          ? 'bg-[#FF6A00] text-white border-[#FF6A00] font-semibold'
+                          : 'bg-muted/40 border-border text-foreground hover:bg-muted'
+                      }`}
+                    >
+                      Todas ({enrichedTitulos.length})
+                    </button>
+                    {categoriasDisponiveis.map(cat => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setCategoriaFilter(cat)}
+                        className={`px-3 py-1.5 rounded-lg text-xs transition-colors border ${
+                          categoriaFilter === cat
+                            ? 'bg-[#FF6A00] text-white border-[#FF6A00] font-semibold'
+                            : 'bg-muted/40 border-border text-foreground hover:bg-muted'
+                        }`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="pt-2 flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setCategoriaFilter('todas');
+                      setSearchTerm('');
+                    }}
+                    className="flex-1 h-10 rounded-xl"
+                  >
+                    Limpar
+                  </Button>
+                  <Button
+                    onClick={() => setFilterSheetOpen(false)}
+                    className="flex-1 bg-[#FF6A00] hover:bg-orange-600 text-white h-10 rounded-xl font-bold"
+                  >
+                    Aplicar ({filteredList.length})
+                  </Button>
+                </div>
               </div>
             </SheetContent>
           </Sheet>
@@ -168,7 +307,7 @@ export function MobileRecebimentosView() {
               setTituloParaEditar(null);
               setNovoRecebimentoOpen(true);
             }}
-            className="h-9 px-3 rounded-xl bg-[#FF6A00] hover:bg-orange-600 text-white font-bold text-xs shadow-xs gap-1 shrink-0"
+            className="h-8.5 px-3 rounded-xl bg-[#FF6A00] hover:bg-orange-600 text-white font-bold text-xs shadow-xs gap-1 shrink-0"
           >
             <Plus className="w-3.5 h-3.5" />
             Novo
@@ -178,7 +317,7 @@ export function MobileRecebimentosView() {
         {/* Status Horizontal Tabs */}
         <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-0.5">
           {[
-            { id: 'todos', label: 'Todos' },
+            { id: 'todos', label: `Todos (${enrichedTitulos.length})` },
             { id: 'a_receber', label: 'A Vencer' },
             { id: 'vencidos', label: 'Vencidos' },
             { id: 'recebidos', label: 'Recebidos' },
@@ -229,11 +368,16 @@ export function MobileRecebimentosView() {
                   <div className="text-[11px] text-muted-foreground truncate mt-0.5">
                     {t.descricao || 'Título a Receber'}
                   </div>
+                  {t.categoria && (
+                    <span className="inline-block mt-1 text-[10px] bg-muted/60 text-muted-foreground px-2 py-0.5 rounded-md font-medium">
+                      {t.categoria}
+                    </span>
+                  )}
                 </div>
 
                 <div className="text-right shrink-0">
                   <div className="font-bold text-sm text-foreground">
-                    {formatCurrency(t.valor)}
+                    {formatCurrency(t.valorNum)}
                   </div>
                   <Badge
                     variant="outline"
@@ -264,7 +408,7 @@ export function MobileRecebimentosView() {
                     size="sm"
                     variant="outline"
                     onClick={(e) => handleBaixarTitulo(t, e)}
-                    className="h-7 px-2.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-50 rounded-lg gap-1"
+                    className="h-7 px-2.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-lg gap-1"
                   >
                     <Check className="w-3 h-3" />
                     Baixar
