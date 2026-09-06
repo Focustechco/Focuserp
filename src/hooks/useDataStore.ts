@@ -535,6 +535,58 @@ function toSnakeCasePayload(table: string, item: any): any {
     };
   }
 
+  if (table.includes('movimentac')) {
+    return {
+      ...base,
+      tipo: item.tipo || 'Transferência',
+      equipamento_id: toNullableValidUuid(item.equipamentoId || item.equipamento_id),
+      equipamento_nome: item.equipamentoNome || item.equipamento_nome || null,
+      estoque_item_id: toNullableValidUuid(item.estoqueItemId || item.estoque_item_id),
+      estoque_item_nome: item.estoqueItemNome || item.estoque_item_nome || null,
+      colaborador_origem_id: toNullableValidUuid(item.colaboradorOrigemId || item.colaborador_origem_id),
+      colaborador_origem_nome: item.colaboradorOrigemNome || item.colaborador_origem_nome || null,
+      colaborador_destino_id: toNullableValidUuid(item.colaboradorDestinoId || item.colaborador_destino_id),
+      colaborador_destino_nome: item.colaboradorDestinoNome || item.colaborador_destino_nome || null,
+      origem: item.origem || 'Estoque',
+      destino: item.destino || 'Colaborador',
+      motivo: item.motivo || item.observacao || null,
+      data_movimentacao: item.dataMovimentacao || item.data_movimentacao || new Date().toISOString(),
+      responsavel_nome: item.responsavelNome || item.responsavel_nome || 'Administrador',
+    };
+  }
+
+  if (table.includes('manutenc')) {
+    return {
+      ...base,
+      equipamento_id: toNullableValidUuid(item.equipamentoId || item.equipamento_id),
+      equipamento_nome: item.equipamentoNome || item.equipamento_nome || 'Equipamento',
+      tipo: item.tipo || 'Preventiva',
+      descricao: item.descricao || 'Manutenção de equipamento',
+      data_abertura: item.dataAbertura || item.data_abertura || new Date().toISOString().split('T')[0],
+      data_conclusao: item.dataConclusao || item.data_conclusao || null,
+      custo_total: Number(item.custoTotal ?? item.custo_total ?? 0) || 0,
+      fornecedor_nome: item.fornecedorNome || item.fornecedor_nome || null,
+      fornecedor_id: toNullableValidUuid(item.fornecedorId || item.fornecedor_id),
+      responsavel_nome: item.responsavelNome || item.responsavel_nome || 'Técnico',
+      status: item.status || 'Aberta',
+      laudo_tecnico: item.laudoTecnico || item.laudo_tecnico || null,
+    };
+  }
+
+  if (table.includes('inventario')) {
+    return {
+      ...base,
+      titulo: item.titulo || item.nome || 'Inventário Periódico',
+      data_inicio: item.dataInicio || item.data_inicio || new Date().toISOString().split('T')[0],
+      data_conclusao: item.dataConclusao || item.data_conclusao || null,
+      responsavel_nome: item.responsavelNome || item.responsavel_nome || 'Gestor de Patrimônio',
+      status: item.status || 'Em Andamento',
+      total_itens_esperados: Number(item.totalItensEsperados ?? item.total_itens_esperados ?? 0) || 0,
+      total_itens_contados: Number(item.totalItensContados ?? item.total_itens_contados ?? 0) || 0,
+      divergencias_encontradas: Number(item.divergenciasEncontradas ?? item.divergencias_encontradas ?? 0) || 0,
+    };
+  }
+
   if (table.includes('centros_custo') || table.includes('centro_custos')) {
     return {
       ...base,
@@ -763,6 +815,47 @@ function fromSnakeCaseRow(table: string, row: any): any {
       dataAquisicao: row.data_aquisicao,
     };
   }
+  if (table.includes('movimentac')) {
+    return {
+      ...row,
+      id: String(row.id),
+      equipamentoId: row.equipamento_id || row.equipamentoId,
+      equipamentoNome: row.equipamento_nome || row.equipamentoNome,
+      estoqueItemId: row.estoque_item_id || row.estoqueItemId,
+      estoqueItemNome: row.estoque_item_nome || row.estoqueItemNome,
+      colaboradorOrigemId: row.colaborador_origem_id || row.colaboradorOrigemId,
+      colaboradorOrigemNome: row.colaborador_origem_nome || row.colaboradorOrigemNome,
+      colaboradorDestinoId: row.colaborador_destino_id || row.colaboradorDestinoId,
+      colaboradorDestinoNome: row.colaborador_destino_nome || row.colaboradorDestinoNome,
+      dataMovimentacao: row.data_movimentacao || row.dataMovimentacao || row.created_at,
+      responsavelNome: row.responsavel_nome || row.responsavelNome,
+    };
+  }
+  if (table.includes('manutenc')) {
+    return {
+      ...row,
+      id: String(row.id),
+      equipamentoId: row.equipamento_id || row.equipamentoId,
+      equipamentoNome: row.equipamento_nome || row.equipamentoNome,
+      dataAbertura: row.data_abertura || row.dataAbertura,
+      dataConclusao: row.data_conclusao || row.dataConclusao,
+      custoTotal: Number(row.custo_total ?? row.custoTotal ?? 0) || 0,
+      fornecedorNome: row.fornecedor_nome || row.fornecedorNome,
+      responsavelNome: row.responsavel_nome || row.responsavelNome,
+    };
+  }
+  if (table.includes('inventario')) {
+    return {
+      ...row,
+      id: String(row.id),
+      dataInicio: row.data_inicio || row.dataInicio,
+      dataConclusao: row.data_conclusao || row.dataConclusao,
+      responsavelNome: row.responsavel_nome || row.responsavelNome,
+      totalItensEsperados: Number(row.total_itens_esperados ?? 0),
+      totalItensContados: Number(row.total_itens_contados ?? 0),
+      divergenciasEncontradas: Number(row.divergencias_encontradas ?? 0),
+    };
+  }
   if (table.includes('centros_custo') || table.includes('centro_custos')) {
     return {
       ...row,
@@ -983,6 +1076,29 @@ const TABLE_MAP: Record<string, string> = {
   'agenda_eventos': 'agenda_eventos',
   'focus_cobrancas_regua': 'cobrancas_reguas_templates',
   'cobrancas_reguas_templates': 'cobrancas_reguas_templates',
+
+  // 12. Estoque e Patrimônio (ITAM)
+  'focus_itam_equipamentos': 'equipamentos',
+  'equipamentos': 'equipamentos',
+  'focus_equipamentos': 'equipamentos',
+  'focus_itam_estoque_itens': 'estoque_itens',
+  'estoque_itens': 'estoque_itens',
+  'focus_estoque_itens': 'estoque_itens',
+  'focus_itam_licencas': 'licencas_software',
+  'licencas_software': 'licencas_software',
+  'focus_licencas': 'licencas_software',
+  'focus_itam_patrimonios': 'patrimonios',
+  'patrimonios': 'patrimonios',
+  'focus_patrimonios': 'patrimonios',
+  'focus_itam_movimentacoes': 'movimentacoes_patrimonio',
+  'movimentacoes_patrimonio': 'movimentacoes_patrimonio',
+  'focus_movimentacoes': 'movimentacoes_patrimonio',
+  'focus_itam_inventarios': 'inventarios',
+  'inventarios': 'inventarios',
+  'focus_inventarios': 'inventarios',
+  'focus_itam_manutencoes': 'manutencoes',
+  'manutencoes': 'manutencoes',
+  'focus_manutencoes': 'manutencoes',
 };
 
 /**
