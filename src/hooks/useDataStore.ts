@@ -624,7 +624,39 @@ function toSnakeCasePayload(table: string, item: any): any {
     };
   }
 
-  return { ...item, id: validId, updated_at: new Date().toISOString() };
+  // Conversão genérica automática camelCase -> snake_case para todas as novas tabelas
+  const converted = objectToSnakeCase(item);
+  return { ...converted, id: validId, updated_at: new Date().toISOString() };
+}
+
+function camelToSnakeKey(key: string): string {
+  return key.replace(/([A-Z])/g, '_$1').toLowerCase();
+}
+
+function snakeToCamelKey(key: string): string {
+  return key.replace(/_([a-z0-9])/g, (_, letter) => letter.toUpperCase());
+}
+
+function objectToSnakeCase(obj: any): any {
+  if (obj === null || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(objectToSnakeCase);
+  const result: any = {};
+  for (const [k, v] of Object.entries(obj)) {
+    const snakeK = camelToSnakeKey(k);
+    result[snakeK] = v;
+  }
+  return result;
+}
+
+function objectFromSnakeCase(obj: any): any {
+  if (!obj || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map(objectFromSnakeCase);
+  const result: any = {};
+  for (const [k, v] of Object.entries(obj)) {
+    const camelK = snakeToCamelKey(k);
+    result[camelK] = v;
+  }
+  return { ...result, ...obj };
 }
 
 function fromSnakeCaseRow(table: string, row: any): any {
@@ -793,8 +825,165 @@ function fromSnakeCaseRow(table: string, row: any): any {
       lancamentoFinanceiroId: row.conta_vinculada_id || row.lancamentoFinanceiroId || undefined,
     };
   }
-  return row;
+  return objectFromSnakeCase(row);
 }
+
+/**
+ * Mapeamento completo e determinístico de chaves de estado para tabelas relacionais do Supabase
+ */
+const TABLE_MAP: Record<string, string> = {
+  // 1. Comercial
+  'focus_comercial_equipe': 'comercial_equipe',
+  'comercial_equipe': 'comercial_equipe',
+  'focus_comercial_metas': 'comercial_metas',
+  'comercial_metas': 'comercial_metas',
+  'focus_comercial_okrs': 'comercial_okrs',
+  'comercial_okrs': 'comercial_okrs',
+  'focus_comercial_regras_comissao': 'comercial_regras_comissao',
+  'comercial_regras_comissao': 'comercial_regras_comissao',
+  'focus_comercial_registros_comissao': 'comercial_registros_comissao',
+  'comercial_registros_comissao': 'comercial_registros_comissao',
+  'focus_comercial_propostas': 'propostas_comerciais',
+  'propostas_comerciais': 'propostas_comerciais',
+  'focus_comercial_servicos': 'comercial_servicos',
+  'comercial_servicos': 'comercial_servicos',
+  'focus_comercial_tabelas': 'comercial_tabelas_preco',
+  'comercial_tabelas_preco': 'comercial_tabelas_preco',
+  'focus_comercial_scripts': 'comercial_scripts',
+  'comercial_scripts': 'comercial_scripts',
+  'focus_comercial_estrategias': 'comercial_estrategias',
+  'comercial_estrategias': 'comercial_estrategias',
+  'focus_comercial_playbooks': 'comercial_playbooks',
+  'comercial_playbooks': 'comercial_playbooks',
+  'focus_comercial_atividades': 'comercial_atividades',
+  'comercial_atividades': 'comercial_atividades',
+  'focus_comercial_agenda': 'comercial_agenda',
+  'comercial_agenda': 'comercial_agenda',
+
+  // 2. CRM
+  'focus_crm_oportunidades': 'crm_oportunidades',
+  'crm_oportunidades': 'crm_oportunidades',
+  'focus_crm_empresas': 'crm_empresas',
+  'crm_empresas': 'crm_empresas',
+  'focus_crm_contatos': 'crm_contatos',
+  'crm_contatos': 'crm_contatos',
+  'focus_crm_interacoes': 'crm_interacoes',
+  'crm_interacoes': 'crm_interacoes',
+  'focus_crm_atividades': 'crm_atividades',
+  'crm_atividades': 'crm_atividades',
+  'focus_crm_clickup_config': 'crm_clickup_config',
+  'crm_clickup_config': 'crm_clickup_config',
+  'focus_crm_sync_logs': 'crm_sync_logs',
+  'crm_sync_logs': 'crm_sync_logs',
+  'focus_crm_leads': 'crm_leads',
+  'crm_leads': 'crm_leads',
+
+  // 3. Customer Success
+  'focus_cs_customers': 'cs_customers',
+  'cs_customers': 'cs_customers',
+  'focus_cs_onboardings': 'cs_onboardings',
+  'cs_onboardings': 'cs_onboardings',
+  'focus_cs_health_factors': 'cs_health_factors',
+  'cs_health_factors': 'cs_health_factors',
+  'focus_cs_nps_surveys': 'cs_nps_surveys',
+  'cs_nps_surveys': 'cs_nps_surveys',
+  'focus_cs_renewals': 'cs_renewals',
+  'cs_renewals': 'cs_renewals',
+  'focus_cs_expansions': 'cs_expansions',
+  'cs_expansions': 'cs_expansions',
+  'focus_cs_churn_records': 'cs_churn_records',
+  'cs_churn_records': 'cs_churn_records',
+  'focus_cs_action_plans': 'cs_action_plans',
+  'cs_action_plans': 'cs_action_plans',
+  'focus_cs_timelines': 'cs_timelines',
+  'cs_timelines': 'cs_timelines',
+  'focus_cs_tasks_meetings': 'cs_tasks_meetings',
+  'cs_tasks_meetings': 'cs_tasks_meetings',
+
+  // 4. Desenvolvimento & Engenharia
+  'focus_dev_backlog': 'dev_backlog',
+  'dev_backlog': 'dev_backlog',
+  'focus_dev_sprints': 'dev_sprints',
+  'dev_sprints': 'dev_sprints',
+  'focus_dev_versions': 'dev_versions',
+  'dev_versions': 'dev_versions',
+  'focus_dev_git': 'dev_git_repos',
+  'dev_git_repos': 'dev_git_repos',
+  'focus_dev_branches': 'dev_git_branches',
+  'dev_git_branches': 'dev_git_branches',
+  'focus_dev_deploys': 'dev_deploys',
+  'dev_deploys': 'dev_deploys',
+  'focus_dev_qa_tests': 'dev_qa_tests',
+  'dev_qa_tests': 'dev_qa_tests',
+  'focus_dev_bugs': 'dev_bugs',
+  'dev_bugs': 'dev_bugs',
+  'focus_dev_cicd': 'dev_cicd_pipelines',
+  'dev_cicd_pipelines': 'dev_cicd_pipelines',
+
+  // 5. Suporte & Helpdesk
+  'focus_suporte_chamados': 'suporte_tickets',
+  'suporte_tickets': 'suporte_tickets',
+  'focus_suporte_mensagens': 'suporte_mensagens',
+  'suporte_mensagens': 'suporte_mensagens',
+  'focus_suporte_kb': 'suporte_kb_artigos',
+  'suporte_kb_artigos': 'suporte_kb_artigos',
+  'focus_suporte_timeline': 'suporte_timeline',
+  'suporte_timeline': 'suporte_timeline',
+
+  // 6. RH Avançado
+  'focus_rh_folha_pagamento': 'rh_folha_pagamento',
+  'rh_folha_pagamento': 'rh_folha_pagamento',
+  'focus_rh_ferias': 'rh_ferias',
+  'rh_ferias': 'rh_ferias',
+  'focus_rh_beneficios': 'rh_beneficios',
+  'rh_beneficios': 'rh_beneficios',
+  'focus_rh_ponto': 'rh_ponto_registros',
+  'rh_ponto_registros': 'rh_ponto_registros',
+  'focus_rh_desempenho': 'rh_desempenho_ciclos',
+  'rh_desempenho_ciclos': 'rh_desempenho_ciclos',
+  'focus_rh_onboarding': 'rh_onboarding_processos',
+  'rh_onboarding_processos': 'rh_onboarding_processos',
+  'focus_rh_treinamentos': 'rh_treinamentos',
+  'rh_treinamentos': 'rh_treinamentos',
+
+  // 7. Fiscal
+  'focus_fiscal_documentos': 'fiscal_documentos',
+  'fiscal_documentos': 'fiscal_documentos',
+
+  // 8. Integrações
+  'focus_integracoes_conectores': 'integracoes_conectores',
+  'integracoes_conectores': 'integracoes_conectores',
+  'focus_integracoes_webhooks': 'integracoes_webhooks',
+  'integracoes_webhooks': 'integracoes_webhooks',
+  'focus_integracoes_keys': 'integracoes_api_keys',
+  'integracoes_api_keys': 'integracoes_api_keys',
+  'focus_integracoes_logs': 'integracoes_logs',
+  'integracoes_logs': 'integracoes_logs',
+
+  // 9. Assinaturas
+  'focus_assinaturas_modelos': 'assinaturas_modelos',
+  'assinaturas_modelos': 'assinaturas_modelos',
+  'focus_assinaturas_certificados': 'assinaturas_certificados',
+  'assinaturas_certificados': 'assinaturas_certificados',
+
+  // 10. Marketing
+  'focus_marketing_editorial': 'marketing_posts_editorial',
+  'marketing_posts_editorial': 'marketing_posts_editorial',
+  'focus_marketing_midia': 'marketing_ativos_midia',
+  'marketing_ativos_midia': 'marketing_ativos_midia',
+  'focus_marketing_ads': 'marketing_anuncios_ads',
+  'marketing_anuncios_ads': 'marketing_anuncios_ads',
+  'focus_marketing_planejamento': 'marketing_planejamento_seo',
+  'marketing_planejamento_seo': 'marketing_planejamento_seo',
+
+  // 11. Permissões, Agenda & Cobranças
+  'focus_permissoes_perfis': 'permissoes_roles',
+  'permissoes_roles': 'permissoes_roles',
+  'focus_agenda_custom': 'agenda_eventos',
+  'agenda_eventos': 'agenda_eventos',
+  'focus_cobrancas_regua': 'cobrancas_reguas_templates',
+  'cobrancas_reguas_templates': 'cobrancas_reguas_templates',
+};
 
 /**
  * Hook de Persistência 100% Relacional com Isolamento Estrito de Tabelas no Supabase / PostgreSQL.
@@ -838,6 +1027,8 @@ export function useLocalStorageState<T extends { id: string }>(
     ? 'clientes'
     : isUsersTable
     ? 'users'
+    : TABLE_MAP[table]
+    ? TABLE_MAP[table]
     : table === 'focus_cobrancas' || table === 'cobrancas'
     ? 'cobrancas'
     : table === 'focus_centro_custos' || table === 'centros_custo' || table === 'centro_custos'
