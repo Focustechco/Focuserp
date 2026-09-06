@@ -22,7 +22,7 @@ interface MobileDrawerMenuProps {
 
 const MODULE_SECTIONS = [
   {
-    title: "Principal",
+    title: "Módulo Principal",
     items: [
       { name: "Dashboard Executivo", path: "/", icon: LayoutDashboard },
     ],
@@ -31,9 +31,9 @@ const MODULE_SECTIONS = [
     title: "Comercial & Vendas",
     items: [
       { name: "Clientes", path: "/clientes", icon: Users },
-      { name: "CRM & Oportunidades", path: "/crm", icon: TrendingUp },
+      { name: "CRM Focus", path: "/crm", icon: TrendingUp },
       { name: "Contratos & Recorrência", path: "/contratos", icon: FileCheck2 },
-      { name: "Propostas Comerciais", path: "/comercial", icon: Megaphone },
+      { name: "Comercial OS", path: "/comercial", icon: Megaphone },
       { name: "Marketing & Growth", path: "/marketing", icon: Megaphone },
     ],
   },
@@ -55,18 +55,18 @@ const MODULE_SECTIONS = [
     items: [
       { name: "Projetos & Sprints", path: "/projetos", icon: Briefcase },
       { name: "Produtos Focus", path: "/produtos", icon: Boxes },
-      { name: "Desenvolvimento Técnico", path: "/desenvolvimento", icon: Code2 },
+      { name: "Desenvolvimento", path: "/desenvolvimento", icon: Code2 },
       { name: "Agenda de Entregas", path: "/agenda-de-entregas", icon: CalendarDays },
       { name: "Estoque & Patrimônio", path: "/estoque", icon: Package },
       { name: "Fornecedores", path: "/fornecedores", icon: Truck },
-      { name: "Suporte & Help Desk", path: "/suporte", icon: Headphones },
+      { name: "Suporte ( central)", path: "/suporte", icon: Headphones },
     ],
   },
   {
     title: "Pessoas & Documentos",
     items: [
       { name: "Recursos Humanos (RH)", path: "/rh", icon: UserCog },
-      { name: "Central de Documentos (DMS)", path: "/documentos", icon: FolderOpen },
+      { name: "Central de Documentos", path: "/documentos", icon: FolderOpen },
       { name: "Assinaturas Digitais", path: "/assinaturas", icon: FileCheck2 },
       { name: "Customer Success", path: "/customer-success", icon: Heart },
     ],
@@ -78,10 +78,10 @@ const MODULE_SECTIONS = [
       { name: "Indicadores & KPIs", path: "/indicadores", icon: PieChart },
       { name: "Centro de Custos", path: "/centro-de-custos", icon: Building2 },
       { name: "Categorias", path: "/categorias", icon: Tags },
-      { name: "Usuários & Contas", path: "/usuarios", icon: Users },
-      { name: "Matriz de Permissões (IAM)", path: "/permissoes", icon: Shield },
-      { name: "Hub de Integrações", path: "/integracoes", icon: Plug },
-      { name: "Configurações da Empresa", path: "/configuracoes", icon: Settings },
+      { name: "Usuários", path: "/usuarios", icon: Users },
+      { name: "Permissões", path: "/permissoes", icon: Shield },
+      { name: "Integrações (API Hub)", path: "/integracoes", icon: Plug },
+      { name: "Configurações", path: "/configuracoes", icon: Settings },
     ],
   },
 ];

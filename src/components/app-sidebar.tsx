@@ -60,77 +60,62 @@ import { Badge } from "./ui/badge";
 
 const groups = [
   {
-    label: "Visão Geral",
+    label: "Módulo Principal",
     items: [
-      { title: "Dashboard", url: "/", icon: LayoutDashboard },
+      { title: "Dashboard Executivo", url: "/", icon: LayoutDashboard },
     ],
   },
   {
-    label: "Financeiro",
-    items: [
-      { title: "Fluxo de Caixa", url: "/fluxo-de-caixa", icon: Wallet },
-      { title: "Contas a Receber", url: "/contas-a-receber", icon: TrendingUp },
-      { title: "Contas a Pagar", url: "/contas-a-pagar", icon: TrendingDown },
-      { title: "Cobranças", url: "/cobrancas", icon: Bell },
-      { title: "Conciliação", url: "/conciliacao", icon: Landmark },
-      { title: "Fiscal (NFe/NFSe)", url: "/fiscal", icon: Receipt },
-      { title: "Agenda Financeira", url: "/agenda", icon: CalendarDays },
-    ],
-  },
-  {
-    label: "Cadastros",
+    label: "Comercial & Vendas",
     items: [
       { title: "Clientes", url: "/clientes", icon: Users },
-      { title: "Fornecedores", url: "/fornecedores", icon: Truck },
+      { title: "CRM Focus", url: "/crm", icon: Target },
+      { title: "Contratos & Recorrência", url: "/contratos", icon: FileText },
+      { title: "Comercial OS", url: "/comercial", icon: ShoppingBag },
+      { title: "Marketing & Growth", url: "/marketing", icon: Megaphone },
+    ],
+  },
+  {
+    label: "Financeiro & Tesouraria",
+    items: [
+      { title: "Contas a Receber", url: "/contas-a-receber", icon: TrendingUp },
+      { title: "Contas a Pagar", url: "/contas-a-pagar", icon: TrendingDown },
+      { title: "Fluxo de Caixa", url: "/fluxo-de-caixa", icon: Wallet },
+      { title: "Cobranças", url: "/cobrancas", icon: Bell },
+      { title: "Conciliação Bancária", url: "/conciliacao", icon: Landmark },
+      { title: "Agenda Financeira", url: "/agenda", icon: CalendarDays },
+      { title: "DRE Gerencial", url: "/dre", icon: PieChart },
+      { title: "Fiscal & NFe/NFSe", url: "/fiscal", icon: Receipt },
+    ],
+  },
+  {
+    label: "Operação & Projetos",
+    items: [
+      { title: "Projetos & Sprints", url: "/projetos", icon: Briefcase },
+      { title: "Produtos Focus", url: "/produtos", icon: Boxes },
+      { title: "Desenvolvimento", url: "/desenvolvimento", icon: Code2 },
+      { title: "Agenda de Entregas", url: "/agenda-de-entregas", icon: CalendarDays },
       { title: "Estoque & Patrimônio", url: "/estoque", icon: Package },
+      { title: "Fornecedores", url: "/fornecedores", icon: Truck },
+      { title: "Suporte ( central)", url: "/suporte", icon: Headphones },
+    ],
+  },
+  {
+    label: "Pessoas & Documentos",
+    items: [
+      { title: "Recursos Humanos (RH)", url: "/rh", icon: Users },
+      { title: "Central de Documentos", url: "/documentos", icon: FolderOpen },
+      { title: "Assinaturas Digitais", url: "/assinaturas", icon: FileText },
+      { title: "Customer Success", url: "/customer-success", icon: Heart },
+    ],
+  },
+  {
+    label: "Administração & Estratégia",
+    items: [
+      { title: "Central de Relatórios", url: "/relatorios", icon: BarChart3 },
+      { title: "Indicadores & KPIs", url: "/indicadores", icon: LineChart },
       { title: "Centro de Custos", url: "/centro-de-custos", icon: Building2 },
       { title: "Categorias", url: "/categorias", icon: Tags },
-    ],
-  },
-  {
-    label: "Tecnologia",
-    items: [
-      { title: "Projetos", url: "/projetos", icon: Briefcase },
-      { title: "Agenda de Entregas", url: "/agenda-de-entregas", icon: CalendarDays },
-      { title: "Desenvolvimento", url: "/desenvolvimento", icon: Code2 },
-      { title: "Suporte (Central)", url: "/suporte", icon: Headphones },
-      { title: "Produtos Focus", url: "/produtos", icon: Boxes },
-    ],
-  },
-  {
-    label: "Pessoas e Cultura",
-    items: [
-      { title: "RH (Gestão)", url: "/rh", icon: Users },
-      { title: "Customer Service", url: "/customer-success", icon: Heart },
-    ],
-  },
-  {
-    label: "Vendas e Operações",
-    items: [
-      { title: "Comercial OS", url: "/comercial", icon: ShoppingBag },
-      { title: "CRM Focus", url: "/crm", icon: Target },
-      { title: "Marketing", url: "/marketing", icon: Megaphone },
-    ],
-  },
-  {
-    label: "Documentos e Contratos",
-    items: [
-      { title: "Gestão de Documentos", url: "/documentos", icon: FolderOpen },
-      { title: "Assinaturas Digitais", url: "/assinaturas", icon: FileText },
-      { title: "Contratos", url: "/contratos", icon: FileText },
-    ],
-  },
-  {
-    label: "Análises e Relatórios",
-    items: [
-      { title: "Relatórios", url: "/relatorios", icon: BarChart3 },
-      { title: "DRE Gerencial", url: "/dre", icon: PieChart },
-      { title: "Indicadores / KPIs", url: "/indicadores", icon: LineChart },
-    ],
-  },
-  {
-    label: "Administração",
-    items: [
       { title: "Usuários", url: "/usuarios", icon: UserCog },
       { title: "Permissões", url: "/permissoes", icon: Shield },
       { title: "Integrações (API Hub)", url: "/integracoes", icon: Plug },
