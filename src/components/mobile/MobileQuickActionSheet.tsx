@@ -117,7 +117,7 @@ export function MobileQuickActionSheet({ open, onOpenChange }: MobileQuickAction
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent side="bottom" className="rounded-t-3xl max-h-[85vh] p-0 bg-white dark:bg-zinc-900 border-t border-slate-200/80 dark:border-zinc-800 shadow-2xl">
+        <SheetContent side="bottom" hideCloseButton className="rounded-t-3xl max-h-[85vh] p-0 bg-white dark:bg-zinc-900 border-t border-slate-200/80 dark:border-zinc-800 shadow-2xl">
           {/* Top orange accent line */}
           <div className="h-1 w-full bg-[#FF6A00]" />
 
