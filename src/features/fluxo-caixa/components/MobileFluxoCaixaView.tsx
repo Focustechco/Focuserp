@@ -7,10 +7,14 @@ import { consolidateFluxoFromStores } from '../utils/consolidateData';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { ProjecoesSection } from './ProjecoesSection';
+import { ComparativoSection } from './ComparativoSection';
+import { Dashboard } from './Dashboard';
 import {
   Search, Filter, ArrowUpRight, ArrowDownRight, Wallet,
   Calendar, CheckCircle2, ChevronRight, TrendingUp, TrendingDown,
-  Layers, Plus, Download, ArrowRight, ExternalLink, RefreshCw
+  Layers, Plus, Download, ArrowRight, ExternalLink, RefreshCw,
+  BarChart3, ArrowLeftRight, FileText
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription } from '@/components/ui/sheet';
 import { formatDateBrasilia, getBrasiliaTodayIso, parseDateSafe } from '@/lib/dateUtils';
@@ -28,6 +32,7 @@ export function MobileFluxoCaixaView() {
   const { data: titulos = [] } = useLocalStorageState<TituloReceber>('focus_contas_receber');
   const { data: contas = [] } = useLocalStorageState<ContaPagar>('focus_contas_pagar');
 
+  const [activeSection, setActiveSection] = useState<'extrato' | 'projecoes' | 'comparativo' | 'dashboard'>('extrato');
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<'todos' | 'entradas' | 'saidas' | 'mes_atual'>('todos');
   const [categoriaFilter, setCategoriaFilter] = useState<string>('todas');
@@ -228,227 +233,279 @@ export function MobileFluxoCaixaView() {
         </div>
       </div>
 
-      {/* 2. STICKY SEARCH & FILTER BAR */}
+      {/* 2. STICKY CONTROLS: SEÇÃO + BUSCA + FILTROS */}
       <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md border-b px-3.5 py-2.5 space-y-2">
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Buscar por cliente, fornecedor, descrição..."
-              className="h-9 pl-9 pr-3 text-xs rounded-xl bg-muted/40 border-muted-foreground/20 focus-visible:ring-1 focus-visible:ring-primary"
-            />
-          </div>
-
-          {/* Botão de Filtros */}
-          <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
-            <SheetTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-9 w-9 rounded-xl shrink-0 border-muted-foreground/20 text-muted-foreground hover:text-foreground relative"
-                aria-label="Filtrar"
-              >
-                <Filter className="w-4 h-4" />
-                {(categoriaFilter !== 'todas' || periodoFilter !== 'todos') && (
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" />
-                )}
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="bottom" className="rounded-t-2xl max-h-[85vh] p-4">
-              <SheetHeader className="pb-3 border-b">
-                <SheetTitle className="text-base font-bold text-left">Filtros do Extrato</SheetTitle>
-                <SheetDescription className="text-xs text-muted-foreground text-left">
-                  Filtre as movimentações por período, tipo e categoria contábil.
-                </SheetDescription>
-              </SheetHeader>
-
-              <div className="py-4 space-y-4 text-xs">
-                {/* Período */}
-                <div>
-                  <label className="font-semibold text-muted-foreground block mb-2">Período de Realização</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[
-                      { id: 'todos', label: 'Todo Período' },
-                      { id: 'hoje', label: 'Hoje' },
-                      { id: '7dias', label: 'Últimos 7 dias' },
-                      { id: '30dias', label: 'Últimos 30 dias' },
-                      { id: 'ano_atual', label: 'Ano Atual' },
-                    ].map((p) => (
-                      <Button
-                        key={p.id}
-                        type="button"
-                        variant={periodoFilter === p.id ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setPeriodoFilter(p.id)}
-                        className={`text-xs h-8 ${periodoFilter === p.id ? 'bg-primary text-white' : ''}`}
-                      >
-                        {p.label}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Categorias */}
-                {categoriasDisponiveis.length > 0 && (
-                  <div>
-                    <label className="font-semibold text-muted-foreground block mb-2">Categoria</label>
-                    <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pr-1">
-                      <Button
-                        type="button"
-                        variant={categoriaFilter === 'todas' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setCategoriaFilter('todas')}
-                        className={`text-xs h-7 rounded-full ${categoriaFilter === 'todas' ? 'bg-primary text-white' : ''}`}
-                      >
-                        Todas
-                      </Button>
-                      {categoriasDisponiveis.map((cat) => (
-                        <Button
-                          key={cat}
-                          type="button"
-                          variant={categoriaFilter === cat ? 'default' : 'outline'}
-                          size="sm"
-                          onClick={() => setCategoriaFilter(cat)}
-                          className={`text-xs h-7 rounded-full ${categoriaFilter === cat ? 'bg-primary text-white' : ''}`}
-                        >
-                          {cat}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <Button
-                  onClick={() => setFilterSheetOpen(false)}
-                  className="w-full bg-primary hover:bg-primary/90 text-white mt-4 h-10 rounded-xl font-bold"
-                >
-                  Aplicar Filtros ({filteredData.length} resultados)
-                </Button>
-              </div>
-            </SheetContent>
-          </Sheet>
-        </div>
-
-        {/* Category Pills (Horizontal Scroll) */}
+        {/* Horizontal Section Selector */}
         <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-0.5">
           {[
-            { id: 'todos', label: `Todas (${fluxoConsolidado.length})` },
-            { id: 'entradas', label: `Entradas (${fluxoConsolidado.filter(m => m.tipo === 'Entrada').length})` },
-            { id: 'saidas', label: `Saídas (${fluxoConsolidado.filter(m => m.tipo === 'Saída').length})` },
-            { id: 'mes_atual', label: 'Mês Atual' },
-          ].map((pill) => {
-            const isActive = activeTab === pill.id;
+            { id: 'extrato', label: 'Extrato / Timeline', icon: Layers },
+            { id: 'projecoes', label: 'Projeções', icon: TrendingUp },
+            { id: 'comparativo', label: 'Comparativo', icon: ArrowLeftRight },
+            { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+          ].map((sec) => {
+            const Icon = sec.icon;
+            const isActive = activeSection === sec.id;
             return (
               <button
-                key={pill.id}
-                onClick={() => setActiveTab(pill.id as any)}
-                className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors border shrink-0 ${
+                key={sec.id}
+                onClick={() => setActiveSection(sec.id as any)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors border shrink-0 flex items-center gap-1.5 ${
                   isActive
                     ? 'bg-primary text-white border-primary font-semibold shadow-xs'
                     : 'bg-background text-muted-foreground border-border hover:text-foreground'
                 }`}
               >
-                {pill.label}
+                <Icon className="w-3.5 h-3.5" />
+                {sec.label}
               </button>
             );
           })}
         </div>
-      </div>
 
-      {/* 3. LISTA DE MOVIMENTAÇÕES (CARDS TOUCH) */}
-      <div className="p-3.5 space-y-2.5">
-        {filteredData.length === 0 ? (
-          <div className="bg-card rounded-2xl border p-8 text-center space-y-3 mt-4">
-            <Layers className="w-10 h-10 text-muted-foreground mx-auto opacity-40" />
-            <div className="font-semibold text-sm text-foreground">Nenhuma movimentação encontrada</div>
-            <p className="text-xs text-muted-foreground">
-              Não foram encontradas transações liquidadas com os filtros ou termo pesquisado.
-            </p>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setSearchTerm('');
-                setActiveTab('todos');
-                setCategoriaFilter('todas');
-                setPeriodoFilter('todos');
-              }}
-              className="text-xs"
-            >
-              Limpar Filtros
-            </Button>
-          </div>
-        ) : (
-          filteredData.map((mov) => {
-            const isEntrada = mov.tipo === 'Entrada';
-
-            return (
-              <div
-                key={mov.id}
-                onClick={() => setSelectedMovimento(mov)}
-                className="bg-card rounded-2xl border border-border/80 p-3.5 shadow-xs transition-all active:scale-[0.99] cursor-pointer flex flex-col gap-2 relative overflow-hidden"
-              >
-                {/* Linha superior indicadora de tipo */}
-                <div className={`h-1 w-full absolute top-0 left-0 ${
-                  isEntrada ? 'bg-emerald-500' : 'bg-rose-500'
-                }`} />
-
-                <div className="flex items-start justify-between gap-2.5 pt-0.5">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${
-                      isEntrada
-                        ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-500/30'
-                        : 'bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 border-rose-500/30'
-                    }`}>
-                      {isEntrada ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
-                    </div>
-
-                    <div className="min-w-0">
-                      <h4 className="font-bold text-xs text-foreground truncate">
-                        {mov.clienteFornecedor || mov.descricao || 'Movimentação'}
-                      </h4>
-                      <p className="text-[11px] text-muted-foreground truncate">
-                        {mov.descricao || mov.categoria}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Valor Realizado */}
-                  <div className="text-right shrink-0">
-                    <div className={`font-mono text-xs font-extrabold ${
-                      isEntrada ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
-                    }`}>
-                      {isEntrada ? '+' : '-'} {formatCurrency(mov.valorRealizado)}
-                    </div>
-                    <span className="text-[10px] text-muted-foreground font-mono">
-                      Saldo: {formatCurrency(mov.saldoAcumuladoDia)}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Linha Inferior: Data, Módulo de Origem e Categoria */}
-                <div className="flex items-center justify-between pt-1 border-t border-dashed text-[10px] text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <span className="flex items-center gap-1 font-medium">
-                      <Calendar className="w-3 h-3 text-muted-foreground" />
-                      {mov.dataCompetencia ? formatDateBrasilia(mov.dataCompetencia) : 'Data N/A'}
-                    </span>
-                    <Badge variant="outline" className="text-[9px] py-0 px-1.5 h-4 border-muted-foreground/30 font-medium">
-                      {mov.categoria || 'Geral'}
-                    </Badge>
-                  </div>
-
-                  <span className="font-medium text-primary text-[10px]">
-                    {mov.moduloOrigem}
-                  </span>
-                </div>
+        {/* Barra de Procura + Filtro para Extrato */}
+        {activeSection === 'extrato' && (
+          <>
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Buscar por cliente, fornecedor, descrição..."
+                  className="h-9 pl-9 pr-3 text-xs rounded-xl bg-muted/40 border-muted-foreground/20 focus-visible:ring-1 focus-visible:ring-primary"
+                />
               </div>
-            );
-          })
+
+              {/* Botão de Filtros */}
+              <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
+                <SheetTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-9 w-9 rounded-xl shrink-0 border-muted-foreground/20 text-muted-foreground hover:text-foreground relative"
+                    aria-label="Filtrar"
+                  >
+                    <Filter className="w-4 h-4" />
+                    {(categoriaFilter !== 'todas' || periodoFilter !== 'todos') && (
+                      <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" />
+                    )}
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="bottom" className="rounded-t-2xl max-h-[85vh] p-4">
+                  <SheetHeader className="pb-3 border-b">
+                    <SheetTitle className="text-base font-bold text-left">Filtros do Extrato</SheetTitle>
+                    <SheetDescription className="text-xs text-muted-foreground text-left">
+                      Filtre as movimentações por período, tipo e categoria contábil.
+                    </SheetDescription>
+                  </SheetHeader>
+
+                  <div className="py-4 space-y-4 text-xs">
+                    {/* Período */}
+                    <div>
+                      <label className="font-semibold text-muted-foreground block mb-2">Período de Realização</label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { id: 'todos', label: 'Todo Período' },
+                          { id: 'hoje', label: 'Hoje' },
+                          { id: '7dias', label: 'Últimos 7 dias' },
+                          { id: '30dias', label: 'Últimos 30 dias' },
+                          { id: 'ano_atual', label: 'Ano Atual' },
+                        ].map((p) => (
+                          <Button
+                            key={p.id}
+                            type="button"
+                            variant={periodoFilter === p.id ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setPeriodoFilter(p.id)}
+                            className={`text-xs h-8 ${periodoFilter === p.id ? 'bg-primary text-white' : ''}`}
+                          >
+                            {p.label}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Categorias */}
+                    {categoriasDisponiveis.length > 0 && (
+                      <div>
+                        <label className="font-semibold text-muted-foreground block mb-2">Categoria</label>
+                        <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pr-1">
+                          <Button
+                            type="button"
+                            variant={categoriaFilter === 'todas' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setCategoriaFilter('todas')}
+                            className={`text-xs h-7 rounded-full ${categoriaFilter === 'todas' ? 'bg-primary text-white' : ''}`}
+                          >
+                            Todas
+                          </Button>
+                          {categoriasDisponiveis.map((cat) => (
+                            <Button
+                              key={cat}
+                              type="button"
+                              variant={categoriaFilter === cat ? 'default' : 'outline'}
+                              size="sm"
+                              onClick={() => setCategoriaFilter(cat)}
+                              className={`text-xs h-7 rounded-full ${categoriaFilter === cat ? 'bg-primary text-white' : ''}`}
+                            >
+                              {cat}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <Button
+                      onClick={() => setFilterSheetOpen(false)}
+                      className="w-full bg-primary hover:bg-primary/90 text-white mt-4 h-10 rounded-xl font-bold"
+                    >
+                      Aplicar Filtros ({filteredData.length} resultados)
+                    </Button>
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
+
+            {/* Category Pills (Horizontal Scroll) */}
+            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-0.5">
+              {[
+                { id: 'todos', label: `Todas (${fluxoConsolidado.length})` },
+                { id: 'entradas', label: `Entradas (${fluxoConsolidado.filter(m => m.tipo === 'Entrada').length})` },
+                { id: 'saidas', label: `Saídas (${fluxoConsolidado.filter(m => m.tipo === 'Saída').length})` },
+                { id: 'mes_atual', label: 'Mês Atual' },
+              ].map((pill) => {
+                const isActive = activeTab === pill.id;
+                return (
+                  <button
+                    key={pill.id}
+                    onClick={() => setActiveTab(pill.id as any)}
+                    className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors border shrink-0 ${
+                      isActive
+                        ? 'bg-primary text-white border-primary font-semibold shadow-xs'
+                        : 'bg-background text-muted-foreground border-border hover:text-foreground'
+                    }`}
+                  >
+                    {pill.label}
+                  </button>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
+
+      {/* 3. CONTEÚDO DA SEÇÃO SELECIONADA */}
+      {activeSection === 'projecoes' && (
+        <div className="p-3.5">
+          <ProjecoesSection />
+        </div>
+      )}
+
+      {activeSection === 'comparativo' && (
+        <div className="p-3.5">
+          <ComparativoSection />
+        </div>
+      )}
+
+      {activeSection === 'dashboard' && (
+        <div className="p-3.5">
+          <Dashboard />
+        </div>
+      )}
+
+      {activeSection === 'extrato' && (
+        <div className="p-3.5 space-y-2.5">
+          {filteredData.length === 0 ? (
+            <div className="bg-card rounded-2xl border p-8 text-center space-y-3 mt-4">
+              <Layers className="w-10 h-10 text-muted-foreground mx-auto opacity-40" />
+              <div className="font-semibold text-sm text-foreground">Nenhuma movimentação encontrada</div>
+              <p className="text-xs text-muted-foreground">
+                Não foram encontradas transações liquidadas com os filtros ou termo pesquisado.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSearchTerm('');
+                  setActiveTab('todos');
+                  setCategoriaFilter('todas');
+                  setPeriodoFilter('todos');
+                }}
+                className="text-xs"
+              >
+                Limpar Filtros
+              </Button>
+            </div>
+          ) : (
+            filteredData.map((mov) => {
+              const isEntrada = mov.tipo === 'Entrada';
+
+              return (
+                <div
+                  key={mov.id}
+                  onClick={() => setSelectedMovimento(mov)}
+                  className="bg-card rounded-2xl border border-border/80 p-3.5 shadow-xs transition-all active:scale-[0.99] cursor-pointer flex flex-col gap-2 relative overflow-hidden"
+                >
+                  {/* Linha superior indicadora de tipo */}
+                  <div className={`h-1 w-full absolute top-0 left-0 ${
+                    isEntrada ? 'bg-emerald-500' : 'bg-rose-500'
+                  }`} />
+
+                  <div className="flex items-start justify-between gap-2.5 pt-0.5">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${
+                        isEntrada
+                          ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-500/30'
+                          : 'bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 border-rose-500/30'
+                      }`}>
+                        {isEntrada ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+                      </div>
+
+                      <div className="min-w-0">
+                        <h4 className="font-bold text-xs text-foreground truncate">
+                          {mov.clienteFornecedor || mov.descricao || 'Movimentação'}
+                        </h4>
+                        <p className="text-[11px] text-muted-foreground truncate">
+                          {mov.descricao || mov.categoria}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Valor Realizado */}
+                    <div className="text-right shrink-0">
+                      <div className={`font-mono text-xs font-extrabold ${
+                        isEntrada ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+                      }`}>
+                        {isEntrada ? '+' : '-'} {formatCurrency(mov.valorRealizado)}
+                      </div>
+                      <span className="text-[10px] text-muted-foreground font-mono">
+                        Saldo: {formatCurrency(mov.saldoAcumuladoDia)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Linha Inferior: Data, Módulo de Origem e Categoria */}
+                  <div className="flex items-center justify-between pt-1 border-t border-dashed text-[10px] text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <span className="flex items-center gap-1 font-medium">
+                        <Calendar className="w-3 h-3 text-muted-foreground" />
+                        {mov.dataCompetencia ? formatDateBrasilia(mov.dataCompetencia) : 'Data N/A'}
+                      </span>
+                      <Badge variant="outline" className="text-[9px] py-0 px-1.5 h-4 border-muted-foreground/30 font-medium">
+                        {mov.categoria || 'Geral'}
+                      </Badge>
+                    </div>
+
+                    <span className="font-medium text-primary text-[10px]">
+                      {mov.moduloOrigem}
+                    </span>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
 
       {/* 4. SHEET DE DETALHES DA MOVIMENTAÇÃO */}
       <Sheet open={Boolean(selectedMovimento)} onOpenChange={(open) => !open && setSelectedMovimento(null)}>

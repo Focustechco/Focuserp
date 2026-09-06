@@ -9,11 +9,15 @@ import { Input } from '@/components/ui/input';
 import {
   Search, Filter, Plus, ArrowUpRight, ArrowDownRight, Landmark,
   CheckCircle2, AlertTriangle, Clock, ChevronRight, Check, RefreshCw,
-  Link as LinkIcon, Unlink, UploadCloud, Building2, ExternalLink
+  Link as LinkIcon, Unlink, UploadCloud, Building2, ExternalLink,
+  Scale, BarChart3
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription } from '@/components/ui/sheet';
 import { ImportarExtrato } from './ImportarExtrato';
 import { NovaContaBancariaSheet } from './NovaContaBancariaSheet';
+import { DivergenciasList } from './DivergenciasList';
+import { ContasBancariasList } from './ContasBancariasList';
+import { Dashboard } from './Dashboard';
 import { formatDateBrasilia, getBrasiliaTodayIso } from '@/lib/dateUtils';
 import { toast } from 'sonner';
 
@@ -28,8 +32,9 @@ export function MobileConciliacaoView() {
   const { data: contasPagar = [] } = useLocalStorageState<ContaPagar>('focus_contas_pagar', []);
   const { data: contasReceber = [] } = useLocalStorageState<TituloReceber>('focus_contas_receber', []);
 
+  const [activeSection, setActiveSection] = useState<'conciliacao' | 'divergencias' | 'importar' | 'contas' | 'dashboard'>('conciliacao');
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState<'todos' | 'pendentes' | 'conciliados' | 'contas'>('todos');
+  const [activeTab, setActiveTab] = useState<'todos' | 'pendentes' | 'conciliados'>('todos');
   const [selectedContaFilter, setSelectedContaFilter] = useState<string>('todas');
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
 
@@ -191,154 +196,176 @@ export function MobileConciliacaoView() {
         </div>
       </div>
 
-      {/* 2. STICKY SEARCH & FILTER BAR */}
+      {/* 2. STICKY CONTROLS: SEÇÃO + BUSCA + FILTROS */}
       <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md border-b px-3.5 py-2.5 space-y-2">
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Buscar extrato por histórico, valor, banco..."
-              className="h-9 pl-9 pr-3 text-xs rounded-xl bg-muted/40 border-muted-foreground/20 focus-visible:ring-1 focus-visible:ring-primary"
-            />
-          </div>
-
-          {/* Botão de Filtros */}
-          <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
-            <SheetTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-9 w-9 rounded-xl shrink-0 border-muted-foreground/20 text-muted-foreground hover:text-foreground relative"
-                aria-label="Filtrar"
-              >
-                <Filter className="w-4 h-4" />
-                {selectedContaFilter !== 'todas' && (
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" />
-                )}
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="bottom" className="rounded-t-2xl max-h-[85vh] p-4">
-              <SheetHeader className="pb-3 border-b">
-                <SheetTitle className="text-base font-bold text-left">Filtros de Conciliação</SheetTitle>
-                <SheetDescription className="text-xs text-muted-foreground text-left">
-                  Selecione a conta bancária para filtrar o extrato.
-                </SheetDescription>
-              </SheetHeader>
-
-              <div className="py-4 space-y-4 text-xs">
-                <div>
-                  <label className="font-semibold text-muted-foreground block mb-2">Conta Bancária</label>
-                  <div className="space-y-1.5">
-                    <Button
-                      type="button"
-                      variant={selectedContaFilter === 'todas' ? 'default' : 'outline'}
-                      size="sm"
-                      onClick={() => setSelectedContaFilter('todas')}
-                      className={`w-full justify-start text-xs h-9 rounded-xl ${selectedContaFilter === 'todas' ? 'bg-primary text-white' : ''}`}
-                    >
-                      Todas as Contas ({contasBancarias.length})
-                    </Button>
-                    {contasBancarias.map((conta) => (
-                      <Button
-                        key={conta.id}
-                        type="button"
-                        variant={selectedContaFilter === conta.id ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setSelectedContaFilter(conta.id)}
-                        className={`w-full justify-start text-xs h-9 rounded-xl gap-2 ${selectedContaFilter === conta.id ? 'bg-primary text-white' : ''}`}
-                      >
-                        <Building2 className="w-3.5 h-3.5" />
-                        <span className="truncate">{conta.banco} - {conta.nomeConta}</span>
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-
-                <Button
-                  onClick={() => setFilterSheetOpen(false)}
-                  className="w-full bg-primary hover:bg-primary/90 text-white mt-4 h-10 rounded-xl font-bold"
-                >
-                  Aplicar Filtros ({filteredExtratos.length} resultados)
-                </Button>
-              </div>
-            </SheetContent>
-          </Sheet>
-
-          {/* Botão Importar OFX */}
-          <Button
-            size="sm"
-            onClick={() => setImportarModalOpen(true)}
-            className="h-9 px-3 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-xs shadow-xs gap-1 shrink-0"
-          >
-            <UploadCloud className="w-3.5 h-3.5" />
-            OFX
-          </Button>
-        </div>
-
-        {/* Category Pills (Horizontal Scroll) */}
+        {/* Horizontal Section Selector */}
         <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-0.5">
           {[
-            { id: 'todos', label: `Todos (${extratos.length})` },
-            { id: 'pendentes', label: `Pendentes (${stats.countPendentes})` },
-            { id: 'conciliados', label: `Conciliados (${stats.countConciliados})` },
-            { id: 'contas', label: `Contas Bancárias (${contasBancarias.length})` },
-          ].map((pill) => {
-            const isActive = activeTab === pill.id;
+            { id: 'conciliacao', label: 'Conciliar', icon: Scale },
+            { id: 'divergencias', label: 'Divergências', icon: AlertTriangle },
+            { id: 'importar', label: 'Importar OFX', icon: UploadCloud },
+            { id: 'contas', label: 'Contas Bancárias', icon: Building2 },
+            { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+          ].map((sec) => {
+            const Icon = sec.icon;
+            const isActive = activeSection === sec.id;
             return (
               <button
-                key={pill.id}
-                onClick={() => setActiveTab(pill.id as any)}
-                className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors border shrink-0 ${
+                key={sec.id}
+                onClick={() => setActiveSection(sec.id as any)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors border shrink-0 flex items-center gap-1.5 ${
                   isActive
                     ? 'bg-primary text-white border-primary font-semibold shadow-xs'
                     : 'bg-background text-muted-foreground border-border hover:text-foreground'
                 }`}
               >
-                {pill.label}
+                <Icon className="w-3.5 h-3.5" />
+                {sec.label}
               </button>
             );
           })}
         </div>
-      </div>
 
-      {/* 3. CONTEÚDO PRINCIPAL (EXTRATOS OU CONTAS BANCÁRIAS) */}
-      {activeTab === 'contas' ? (
-        <div className="p-3.5 space-y-3">
-          {contasBancarias.length === 0 ? (
-            <div className="bg-card rounded-2xl border p-8 text-center space-y-3 mt-4">
-              <Landmark className="w-10 h-10 text-muted-foreground mx-auto opacity-40" />
-              <div className="font-semibold text-sm text-foreground">Nenhuma conta bancária cadastrada</div>
-              <Button size="sm" onClick={() => setNovaContaModalOpen(true)} className="text-xs">
-                Cadastrar Nova Conta
+        {/* Busca, Filtros & Ação para Conciliação */}
+        {activeSection === 'conciliacao' && (
+          <>
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Buscar extrato por histórico, valor, banco..."
+                  className="h-9 pl-9 pr-3 text-xs rounded-xl bg-muted/40 border-muted-foreground/20 focus-visible:ring-1 focus-visible:ring-primary"
+                />
+              </div>
+
+              {/* Botão de Filtros */}
+              <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
+                <SheetTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-9 w-9 rounded-xl shrink-0 border-muted-foreground/20 text-muted-foreground hover:text-foreground relative"
+                    aria-label="Filtrar"
+                  >
+                    <Filter className="w-4 h-4" />
+                    {selectedContaFilter !== 'todas' && (
+                      <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" />
+                    )}
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="bottom" className="rounded-t-2xl max-h-[85vh] p-4">
+                  <SheetHeader className="pb-3 border-b">
+                    <SheetTitle className="text-base font-bold text-left">Filtros de Conciliação</SheetTitle>
+                    <SheetDescription className="text-xs text-muted-foreground text-left">
+                      Selecione a conta bancária para filtrar o extrato.
+                    </SheetDescription>
+                  </SheetHeader>
+
+                  <div className="py-4 space-y-4 text-xs">
+                    <div>
+                      <label className="font-semibold text-muted-foreground block mb-2">Conta Bancária</label>
+                      <div className="space-y-1.5">
+                        <Button
+                          type="button"
+                          variant={selectedContaFilter === 'todas' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setSelectedContaFilter('todas')}
+                          className={`w-full justify-start text-xs h-9 rounded-xl ${selectedContaFilter === 'todas' ? 'bg-primary text-white' : ''}`}
+                        >
+                          Todas as Contas ({contasBancarias.length})
+                        </Button>
+                        {contasBancarias.map((conta) => (
+                          <Button
+                            key={conta.id}
+                            type="button"
+                            variant={selectedContaFilter === conta.id ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setSelectedContaFilter(conta.id)}
+                            className={`w-full justify-start text-xs h-9 rounded-xl gap-2 ${selectedContaFilter === conta.id ? 'bg-primary text-white' : ''}`}
+                          >
+                            <Building2 className="w-3.5 h-3.5" />
+                            <span className="truncate">{conta.banco} - {conta.nomeConta}</span>
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <Button
+                      onClick={() => setFilterSheetOpen(false)}
+                      className="w-full bg-primary hover:bg-primary/90 text-white mt-4 h-10 rounded-xl font-bold"
+                    >
+                      Aplicar Filtros ({filteredExtratos.length} resultados)
+                    </Button>
+                  </div>
+                </SheetContent>
+              </Sheet>
+
+              {/* Botão Importar OFX */}
+              <Button
+                size="sm"
+                onClick={() => setActiveSection('importar')}
+                className="h-9 px-3 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-xs shadow-xs gap-1 shrink-0"
+              >
+                <UploadCloud className="w-3.5 h-3.5" />
+                OFX
               </Button>
             </div>
-          ) : (
-            contasBancarias.map((conta) => (
-              <div key={conta.id} className="bg-card rounded-2xl border border-border/80 p-4 shadow-xs space-y-2">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <span className="font-mono text-[10px] text-muted-foreground">{conta.codigoBanco || '000'}</span>
-                    <h4 className="font-bold text-sm text-foreground">{conta.banco}</h4>
-                    <p className="text-xs text-muted-foreground">{conta.nomeConta}</p>
-                  </div>
-                  <Badge variant="outline" className="text-[10px] font-bold bg-muted/40">
-                    {conta.tipoConta || 'Corrente'}
-                  </Badge>
-                </div>
 
-                <div className="flex items-center justify-between pt-2 border-t text-xs">
-                  <span className="text-muted-foreground">Ag: {conta.agencia || '-'} • CC: {conta.conta || '-'}</span>
-                  <span className="font-mono font-extrabold text-sm text-foreground">
-                    {formatCurrency(conta.saldoAtual ?? conta.saldoInicial)}
-                  </span>
-                </div>
-              </div>
-            ))
-          )}
+            {/* Category Pills (Horizontal Scroll) */}
+            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-0.5">
+              {[
+                { id: 'todos', label: `Todos (${extratos.length})` },
+                { id: 'pendentes', label: `Pendentes (${stats.countPendentes})` },
+                { id: 'conciliados', label: `Conciliados (${stats.countConciliados})` },
+              ].map((pill) => {
+                const isActive = activeTab === pill.id;
+                return (
+                  <button
+                    key={pill.id}
+                    onClick={() => setActiveTab(pill.id as any)}
+                    className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors border shrink-0 ${
+                      isActive
+                        ? 'bg-primary text-white border-primary font-semibold shadow-xs'
+                        : 'bg-background text-muted-foreground border-border hover:text-foreground'
+                    }`}
+                  >
+                    {pill.label}
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* 3. CONTEÚDO DA SEÇÃO ATIVA */}
+      {activeSection === 'divergencias' && (
+        <div className="p-3.5">
+          <DivergenciasList />
         </div>
-      ) : (
+      )}
+
+      {activeSection === 'importar' && (
+        <div className="p-3.5">
+          <ImportarExtrato />
+        </div>
+      )}
+
+      {activeSection === 'contas' && (
+        <div className="p-3.5">
+          <ContasBancariasList />
+        </div>
+      )}
+
+      {activeSection === 'dashboard' && (
+        <div className="p-3.5">
+          <Dashboard />
+        </div>
+      )}
+
+      {activeSection === 'conciliacao' && (
         <div className="p-3.5 space-y-2.5">
           {filteredExtratos.length === 0 ? (
             <div className="bg-card rounded-2xl border p-8 text-center space-y-3 mt-4">
@@ -446,7 +473,6 @@ export function MobileConciliacaoView() {
 
       {/* Sheets / Modais */}
       <NovaContaBancariaSheet open={novaContaModalOpen} onOpenChange={setNovaContaModalOpen} />
-      <ImportarExtrato open={importarModalOpen} onOpenChange={setImportarModalOpen} />
     </div>
   );
 }
