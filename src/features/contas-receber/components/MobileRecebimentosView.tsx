@@ -304,64 +304,10 @@ export function MobileRecebimentosView() {
             Novo
           </Button>
         </div>
-
-        {/* Horizontal Section Selector */}
-        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-0.5">
-          {[
-            { id: 'titulos', label: 'Títulos Emitidos', icon: DollarSign },
-            { id: 'futuros', label: 'Recebimentos Futuros', icon: Clock },
-            { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-          ].map((sec) => {
-            const Icon = sec.icon;
-            const isActive = activeSection === sec.id;
-            return (
-              <button
-                key={sec.id}
-                onClick={() => setActiveSection(sec.id as any)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors border shrink-0 flex items-center gap-1.5 ${
-                  isActive
-                    ? 'bg-[#FF6A00] text-white border-[#FF6A00] font-semibold shadow-xs'
-                    : 'bg-background text-muted-foreground border-border hover:text-foreground'
-                }`}
-              >
-                <Icon className="w-3.5 h-3.5" />
-                {sec.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Status Horizontal Tabs para Títulos */}
-        {activeSection === 'titulos' && (
-          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-0.5">
-            {[
-              { id: 'todos', label: `Todos (${enrichedTitulos.length})` },
-              { id: 'a_receber', label: 'A Vencer' },
-              { id: 'vencidos', label: 'Vencidos' },
-              { id: 'recebidos', label: 'Recebidos' },
-            ].map((pill) => {
-              const isActive = activeTab === pill.id;
-              return (
-                <button
-                  key={pill.id}
-                  onClick={() => setActiveTab(pill.id as any)}
-                  className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors border shrink-0 ${
-                    isActive
-                      ? 'bg-orange-500 text-white border-orange-500 font-semibold shadow-xs'
-                      : 'bg-background text-muted-foreground border-border hover:text-foreground'
-                  }`}
-                >
-                  {pill.label}
-                </button>
-              );
-            })}
-          </div>
-        )}
       </div>
 
-      {/* 2. CARDS & RESUMO KPI (ABAIXO DOS CONTROLES DO TOPO) */}
-      {activeSection === 'titulos' && (
-        <div className="bg-gradient-to-b from-background to-muted/20 border-b p-3.5 space-y-3">
+      {/* 2. CARDS KPI */}
+      <div className="bg-gradient-to-b from-background to-muted/20 border-b p-3.5 space-y-3">
           {/* Mini Cards de Resumo Financeiro */}
           <div className="grid grid-cols-3 gap-2">
             <div className="bg-white dark:bg-card p-2.5 rounded-xl border border-border/80 shadow-xs">
@@ -390,23 +336,9 @@ export function MobileRecebimentosView() {
             </div>
           </div>
         </div>
-      )}
 
-      {/* 3. CONTEÚDO DA SEÇÃO ATIVA */}
-      {activeSection === 'futuros' && (
-        <div className="p-3.5">
-          <RecebimentosFuturosTab />
-        </div>
-      )}
-
-      {activeSection === 'dashboard' && (
-        <div className="p-3.5">
-          <Dashboard />
-        </div>
-      )}
-
-      {activeSection === 'titulos' && (
-        <div className="p-3 space-y-2.5">
+      {/* 3. LISTA DE TÍTULOS */}
+      <div className="p-3 space-y-2.5">
           {filteredList.length === 0 ? (
             <div className="bg-card rounded-2xl border p-8 text-center space-y-3 mt-4">
               <TrendingUp className="w-10 h-10 text-muted-foreground mx-auto opacity-40" />
@@ -488,7 +420,6 @@ export function MobileRecebimentosView() {
             ))
           )}
         </div>
-      )}
 
       {/* Sheet de Detalhes da Conta Selecionada (Descrição e Dados Completos) */}
       <DetalhesRecebimentoSheet

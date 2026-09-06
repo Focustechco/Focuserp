@@ -182,36 +182,8 @@ export function MobileContasPagarView() {
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-zinc-950 pb-24">
-      {/* Top Mobile Sticky Header */}
-      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md border-b px-3.5 py-3 space-y-2.5">
-        {/* Mini Cards de Resumo Financeiro */}
-        <div className="grid grid-cols-3 gap-2">
-          <div className="bg-card p-2.5 rounded-xl border shadow-2xs">
-            <div className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
-              <Clock className="w-3 h-3 text-amber-500" /> A Pagar
-            </div>
-            <div className="text-xs font-bold text-foreground mt-0.5 truncate">
-              {formatCurrency(stats.totalAPagar)}
-            </div>
-          </div>
-          <div className="bg-card p-2.5 rounded-xl border shadow-2xs">
-            <div className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
-              <AlertTriangle className="w-3 h-3 text-rose-500" /> Vencidas
-            </div>
-            <div className="text-xs font-bold text-rose-600 dark:text-rose-400 mt-0.5 truncate">
-              {formatCurrency(stats.totalVencido)}
-            </div>
-          </div>
-          <div className="bg-card p-2.5 rounded-xl border shadow-2xs">
-            <div className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
-              <CheckCircle2 className="w-3 h-3 text-emerald-500" /> Pagas
-            </div>
-            <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-0.5 truncate">
-              {formatCurrency(stats.totalPago)}
-            </div>
-          </div>
-        </div>
-
+      {/* 1. STICKY TOP CONTROLS: BUSCA + FILTROS */}
+      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md border-b px-3.5 py-2.5 space-y-2">
         {/* Busca, Filtros, Refresh & Botão Novo */}
         <div className="flex items-center gap-1.5">
           <div className="relative flex-1">
@@ -328,30 +300,35 @@ export function MobileContasPagarView() {
             Nova
           </Button>
         </div>
+      </div>
 
-        {/* Status Horizontal Tabs */}
-        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-0.5">
-          {[
-            { id: 'todos', label: `Todas (${enrichedContas.length})` },
-            { id: 'a_pagar', label: 'A Pagar' },
-            { id: 'vencidas', label: 'Vencidas' },
-            { id: 'pagas', label: 'Pagas' },
-          ].map((pill) => {
-            const isActive = activeTab === pill.id;
-            return (
-              <button
-                key={pill.id}
-                onClick={() => setActiveTab(pill.id as any)}
-                className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors border shrink-0 ${
-                  isActive
-                    ? 'bg-rose-600 text-white border-rose-600 font-semibold shadow-xs'
-                    : 'bg-background text-muted-foreground border-border hover:text-foreground'
-                }`}
-              >
-                {pill.label}
-              </button>
-            );
-          })}
+      {/* 2. CARDS KPI (ABAIXO DO HEADER STICKY) */}
+      <div className="bg-gradient-to-b from-background to-muted/20 border-b p-3.5 space-y-3">
+        <div className="grid grid-cols-3 gap-2">
+          <div className="bg-card p-2.5 rounded-xl border shadow-2xs">
+            <div className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
+              <Clock className="w-3 h-3 text-amber-500" /> A Pagar
+            </div>
+            <div className="text-xs font-bold text-foreground mt-0.5 truncate">
+              {formatCurrency(stats.totalAPagar)}
+            </div>
+          </div>
+          <div className="bg-card p-2.5 rounded-xl border shadow-2xs">
+            <div className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
+              <AlertTriangle className="w-3 h-3 text-rose-500" /> Vencidas
+            </div>
+            <div className="text-xs font-bold text-rose-600 dark:text-rose-400 mt-0.5 truncate">
+              {formatCurrency(stats.totalVencido)}
+            </div>
+          </div>
+          <div className="bg-card p-2.5 rounded-xl border shadow-2xs">
+            <div className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
+              <CheckCircle2 className="w-3 h-3 text-emerald-500" /> Pagas
+            </div>
+            <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-0.5 truncate">
+              {formatCurrency(stats.totalPago)}
+            </div>
+          </div>
         </div>
       </div>
 

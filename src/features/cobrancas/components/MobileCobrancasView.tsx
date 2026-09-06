@@ -241,142 +241,74 @@ export function MobileCobrancasView() {
           </Button>
         </div>
 
-        {/* Horizontal Section Selector */}
-        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-0.5">
-          {[
-            { id: 'cobrancas', label: 'Cobranças', icon: Send },
-            { id: 'historico', label: 'Histórico & Interações', icon: History },
-            { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-          ].map((sec) => {
-            const Icon = sec.icon;
-            const isActive = activeSection === sec.id;
-            return (
-              <button
-                key={sec.id}
-                onClick={() => setActiveSection(sec.id as any)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors border shrink-0 flex items-center gap-1.5 ${
-                  isActive
-                    ? 'bg-primary text-white border-primary font-semibold shadow-xs'
-                    : 'bg-background text-muted-foreground border-border hover:text-foreground'
-                }`}
-              >
-                <Icon className="w-3.5 h-3.5" />
-                {sec.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Category Pills (Horizontal Scroll) para Cobranças */}
-        {activeSection === 'cobrancas' && (
-          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-0.5">
-            {[
-              { id: 'todas', label: `Todas (${cobrancas.length})` },
-              { id: 'pendentes', label: `Pendentes (${stats.countPendentes})` },
-              { id: 'vencidas', label: `Vencidas (${stats.countVencidas})` },
-              { id: 'pagas', label: `Pagas (${stats.countPagas})` },
-              { id: 'whatsapp', label: 'WhatsApp' },
-            ].map((pill) => {
-              const isActive = activeTab === pill.id;
-              return (
-                <button
-                  key={pill.id}
-                  onClick={() => setActiveTab(pill.id as any)}
-                  className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors border shrink-0 ${
-                    isActive
-                      ? 'bg-primary text-white border-primary font-semibold shadow-xs'
-                      : 'bg-background text-muted-foreground border-border hover:text-foreground'
-                  }`}
-                >
-                  {pill.label}
-                </button>
-              );
-            })}
-          </div>
-        )}
       </div>
 
       {/* 2. CARDS & RESUMO KPI (ABAIXO DOS CONTROLES DO TOPO) */}
-      {activeSection === 'cobrancas' && (
-        <div className="bg-gradient-to-b from-background to-muted/20 border-b p-3.5 space-y-3">
-          {/* Card Principal: Total em Carteira */}
-          <div className="bg-white dark:bg-card border border-border/80 rounded-2xl p-4 shadow-xs flex items-center justify-between">
-            <div className="space-y-1 min-w-0">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                <Send className="w-3.5 h-3.5 text-primary" />
-                Total em Cobrança
+      <div className="bg-gradient-to-b from-background to-muted/20 border-b p-3.5 space-y-3">
+        {/* Card Principal: Total em Carteira */}
+        <div className="bg-white dark:bg-card border border-border/80 rounded-2xl p-4 shadow-xs flex items-center justify-between">
+          <div className="space-y-1 min-w-0">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <Send className="w-3.5 h-3.5 text-primary" />
+              Total em Cobrança
+            </span>
+            <div className="text-2xl font-black tracking-tight text-foreground">
+              {formatCurrency(stats.totalValor)}
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              {stats.taxaRecuperacao.toFixed(1)}% recuperado ({formatCurrency(stats.totalPago)})
+            </p>
+          </div>
+
+          <div className="flex flex-col items-end gap-1.5 shrink-0">
+            <Badge variant="outline" className="text-[10px] font-bold px-2 py-0.5 bg-primary/10 text-primary border-primary/30">
+              {cobrancas.length} títulos
+            </Badge>
+          </div>
+        </div>
+
+        {/* Mini Cards: Pendentes & Vencidas */}
+        <div className="grid grid-cols-2 gap-2.5">
+          <div 
+            onClick={() => setActiveTab(activeTab === 'pendentes' ? 'todas' : 'pendentes')}
+            className={`bg-white dark:bg-card border rounded-2xl p-3 shadow-xs space-y-1 cursor-pointer transition-all active:scale-[0.99] ${
+              activeTab === 'pendentes' ? 'border-primary ring-1 ring-primary/20' : 'border-border/80'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
+                <Clock className="w-3 h-3 text-amber-500" />
+                Pendentes
               </span>
-              <div className="text-2xl font-black tracking-tight text-foreground">
-                {formatCurrency(stats.totalValor)}
-              </div>
-              <p className="text-[10px] text-muted-foreground">
-                {stats.taxaRecuperacao.toFixed(1)}% recuperado ({formatCurrency(stats.totalPago)})
-              </p>
+              <span className="w-2 h-2 rounded-full bg-amber-500" />
             </div>
-
-            <div className="flex flex-col items-end gap-1.5 shrink-0">
-              <Badge variant="outline" className="text-[10px] font-bold px-2 py-0.5 bg-primary/10 text-primary border-primary/30">
-                {cobrancas.length} títulos
-              </Badge>
+            <div className="text-base font-black text-amber-600 dark:text-amber-400">
+              {stats.countPendentes} cobranças
             </div>
           </div>
 
-          {/* Mini Cards: Pendentes & Vencidas */}
-          <div className="grid grid-cols-2 gap-2.5">
-            <div 
-              onClick={() => setActiveTab(activeTab === 'pendentes' ? 'todas' : 'pendentes')}
-              className={`bg-white dark:bg-card border rounded-2xl p-3 shadow-xs space-y-1 cursor-pointer transition-all active:scale-[0.99] ${
-                activeTab === 'pendentes' ? 'border-primary ring-1 ring-primary/20' : 'border-border/80'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
-                  <Clock className="w-3 h-3 text-amber-500" />
-                  Pendentes
-                </span>
-                <span className="w-2 h-2 rounded-full bg-amber-500" />
-              </div>
-              <div className="text-base font-black text-amber-600 dark:text-amber-400">
-                {stats.countPendentes} cobranças
-              </div>
+          <div 
+            onClick={() => setActiveTab(activeTab === 'vencidas' ? 'todas' : 'vencidas')}
+            className={`bg-white dark:bg-card border rounded-2xl p-3 shadow-xs space-y-1 cursor-pointer transition-all active:scale-[0.99] ${
+              activeTab === 'vencidas' ? 'border-rose-500 ring-1 ring-rose-500/20' : 'border-border/80'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
+                <AlertTriangle className="w-3 h-3 text-rose-500" />
+                Vencidas
+              </span>
+              <span className="w-2 h-2 rounded-full bg-rose-500" />
             </div>
-
-            <div 
-              onClick={() => setActiveTab(activeTab === 'vencidas' ? 'todas' : 'vencidas')}
-              className={`bg-white dark:bg-card border rounded-2xl p-3 shadow-xs space-y-1 cursor-pointer transition-all active:scale-[0.99] ${
-                activeTab === 'vencidas' ? 'border-rose-500 ring-1 ring-rose-500/20' : 'border-border/80'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
-                  <AlertTriangle className="w-3 h-3 text-rose-500" />
-                  Vencidas
-                </span>
-                <span className="w-2 h-2 rounded-full bg-rose-500" />
-              </div>
-              <div className="text-base font-black text-rose-600 dark:text-rose-400 truncate">
-                {formatCurrency(stats.totalVencido)}
-              </div>
+            <div className="text-base font-black text-rose-600 dark:text-rose-400 truncate">
+              {formatCurrency(stats.totalVencido)}
             </div>
           </div>
         </div>
-      )}
+      </div>
 
-      {/* 3. CONTEÚDO DA SEÇÃO ATIVA */}
-      {activeSection === 'historico' && (
-        <div className="p-3.5">
-          <HistoricoInteracoes />
-        </div>
-      )}
-
-      {activeSection === 'dashboard' && (
-        <div className="p-3.5">
-          <Dashboard />
-        </div>
-      )}
-
-      {activeSection === 'cobrancas' && (
-        <div className="p-3.5 space-y-2.5">
+      {/* 3. LISTA DE COBRANÇAS */}
+      <div className="p-3.5 space-y-2.5">
         {filteredData.length === 0 ? (
           <div className="bg-card rounded-2xl border p-8 text-center space-y-3 mt-4">
             <Send className="w-10 h-10 text-muted-foreground mx-auto opacity-40" />
@@ -488,7 +420,6 @@ export function MobileCobrancasView() {
           })
         )}
       </div>
-      )}
 
       {/* Modais Integrados */}
       <NovaCobrancaSheet open={novaCobrancaOpen} onOpenChange={setNovoCobrancaOpen} />

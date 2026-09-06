@@ -271,64 +271,10 @@ export function MobileFluxoCaixaView() {
           </Button>
         </div>
 
-        {/* Horizontal Section Selector */}
-        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-0.5">
-          {[
-            { id: 'extrato', label: 'Extrato / Timeline', icon: Layers },
-            { id: 'projecoes', label: 'Projeções', icon: TrendingUp },
-            { id: 'comparativo', label: 'Comparativo', icon: ArrowLeftRight },
-            { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-          ].map((sec) => {
-            const Icon = sec.icon;
-            const isActive = activeSection === sec.id;
-            return (
-              <button
-                key={sec.id}
-                onClick={() => setActiveSection(sec.id as any)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors border shrink-0 flex items-center gap-1.5 ${
-                  isActive
-                    ? 'bg-primary text-white border-primary font-semibold shadow-xs'
-                    : 'bg-background text-muted-foreground border-border hover:text-foreground'
-                }`}
-              >
-                <Icon className="w-3.5 h-3.5" />
-                {sec.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Category Pills (Horizontal Scroll) para Extrato */}
-        {activeSection === 'extrato' && (
-          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-0.5">
-            {[
-              { id: 'todos', label: `Todas (${fluxoConsolidado.length})` },
-              { id: 'entradas', label: `Entradas (${fluxoConsolidado.filter(m => m.tipo === 'Entrada').length})` },
-              { id: 'saidas', label: `Saídas (${fluxoConsolidado.filter(m => m.tipo === 'Saída').length})` },
-              { id: 'mes_atual', label: 'Mês Atual' },
-            ].map((pill) => {
-              const isActive = activeTab === pill.id;
-              return (
-                <button
-                  key={pill.id}
-                  onClick={() => setActiveTab(pill.id as any)}
-                  className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors border shrink-0 ${
-                    isActive
-                      ? 'bg-primary text-white border-primary font-semibold shadow-xs'
-                      : 'bg-background text-muted-foreground border-border hover:text-foreground'
-                  }`}
-                >
-                  {pill.label}
-                </button>
-              );
-            })}
-          </div>
-        )}
       </div>
 
       {/* 2. CARDS & RESUMO KPI (ABAIXO DOS CONTROLES DO TOPO) */}
-      {activeSection === 'extrato' && (
-        <div className="bg-gradient-to-b from-background to-muted/20 border-b p-3.5 space-y-3">
+      <div className="bg-gradient-to-b from-background to-muted/20 border-b p-3.5 space-y-3">
           {/* Card Principal: Saldo Atual em Caixa */}
           <div className="bg-white dark:bg-card border border-border/80 rounded-2xl p-4 shadow-xs flex items-center justify-between">
             <div className="space-y-1 min-w-0">
@@ -396,29 +342,9 @@ export function MobileFluxoCaixaView() {
             </div>
           </div>
         </div>
-      )}
 
-      {/* 3. CONTEÚDO DA SEÇÃO SELECIONADA */}
-      {activeSection === 'projecoes' && (
-        <div className="p-3.5">
-          <ProjecoesSection />
-        </div>
-      )}
-
-      {activeSection === 'comparativo' && (
-        <div className="p-3.5">
-          <ComparativoSection />
-        </div>
-      )}
-
-      {activeSection === 'dashboard' && (
-        <div className="p-3.5">
-          <Dashboard />
-        </div>
-      )}
-
-      {activeSection === 'extrato' && (
-        <div className="p-3.5 space-y-2.5">
+      {/* 3. LISTA DE MOVIMENTAÇÕES */}
+      <div className="p-3.5 space-y-2.5">
           {filteredData.length === 0 ? (
             <div className="bg-card rounded-2xl border p-8 text-center space-y-3 mt-4">
               <Layers className="w-10 h-10 text-muted-foreground mx-auto opacity-40" />
@@ -509,7 +435,6 @@ export function MobileFluxoCaixaView() {
             })
           )}
         </div>
-      )}
 
       {/* 4. SHEET DE DETALHES DA MOVIMENTAÇÃO */}
       <Sheet open={Boolean(selectedMovimento)} onOpenChange={(open) => !open && setSelectedMovimento(null)}>

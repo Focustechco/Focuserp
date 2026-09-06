@@ -211,162 +211,82 @@ export function MobileConciliacaoView() {
           </Button>
         </div>
 
-        {/* Horizontal Section Selector */}
-        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-0.5">
-          {[
-            { id: 'conciliacao', label: 'Conciliar', icon: Scale },
-            { id: 'divergencias', label: 'Divergências', icon: AlertTriangle },
-            { id: 'importar', label: 'Importar OFX', icon: UploadCloud },
-            { id: 'contas', label: 'Contas Bancárias', icon: Building2 },
-            { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-          ].map((sec) => {
-            const Icon = sec.icon;
-            const isActive = activeSection === sec.id;
-            return (
-              <button
-                key={sec.id}
-                onClick={() => setActiveSection(sec.id as any)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors border shrink-0 flex items-center gap-1.5 ${
-                  isActive
-                    ? 'bg-primary text-white border-primary font-semibold shadow-xs'
-                    : 'bg-background text-muted-foreground border-border hover:text-foreground'
-                }`}
-              >
-                <Icon className="w-3.5 h-3.5" />
-                {sec.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Category Pills (Horizontal Scroll) para Conciliação */}
-        {activeSection === 'conciliacao' && (
-          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-0.5">
-            {[
-              { id: 'todos', label: `Todos (${extratos.length})` },
-              { id: 'pendentes', label: `Pendentes (${stats.countPendentes})` },
-              { id: 'conciliados', label: `Conciliados (${stats.countConciliados})` },
-            ].map((pill) => {
-              const isActive = activeTab === pill.id;
-              return (
-                <button
-                  key={pill.id}
-                  onClick={() => setActiveTab(pill.id as any)}
-                  className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors border shrink-0 ${
-                    isActive
-                      ? 'bg-primary text-white border-primary font-semibold shadow-xs'
-                      : 'bg-background text-muted-foreground border-border hover:text-foreground'
-                  }`}
-                >
-                  {pill.label}
-                </button>
-              );
-            })}
-          </div>
-        )}
       </div>
 
       {/* 2. CARDS & RESUMO KPI (ABAIXO DOS CONTROLES DO TOPO) */}
-      {activeSection === 'conciliacao' && (
-        <div className="bg-gradient-to-b from-background to-muted/20 border-b p-3.5 space-y-3">
-          {/* Card Principal: Saldo Consolidado em Bancos */}
-          <div className="bg-white dark:bg-card border border-border/80 rounded-2xl p-4 shadow-xs flex items-center justify-between">
-            <div className="space-y-1 min-w-0">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                <Landmark className="w-3.5 h-3.5 text-primary" />
-                Saldo Bancário Consolidado
+      <div className="bg-gradient-to-b from-background to-muted/20 border-b p-3.5 space-y-3">
+        {/* Card Principal: Saldo Consolidado em Bancos */}
+        <div className="bg-white dark:bg-card border border-border/80 rounded-2xl p-4 shadow-xs flex items-center justify-between">
+          <div className="space-y-1 min-w-0">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <Landmark className="w-3.5 h-3.5 text-primary" />
+              Saldo Bancário Consolidado
+            </span>
+            <div className="text-2xl font-black tracking-tight text-foreground">
+              {formatCurrency(stats.saldoTotalContas)}
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              {contasBancarias.length} contas bancárias ativas cadastradas
+            </p>
+          </div>
+
+          <div className="flex flex-col items-end gap-1.5 shrink-0">
+            <Badge variant="outline" className="text-[10px] font-bold px-2 py-0.5 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-500/30">
+              {stats.taxaConciliacao.toFixed(0)}% Conciliado
+            </Badge>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setNovaContaModalOpen(true)}
+              className="h-7 text-[10px] gap-1 px-2 text-muted-foreground hover:text-foreground"
+            >
+              <Plus className="w-3 h-3" /> Nova Conta
+            </Button>
+          </div>
+        </div>
+
+        {/* Mini Cards: Pendentes vs Conciliados */}
+        <div className="grid grid-cols-2 gap-2.5">
+          <div 
+            onClick={() => setActiveTab(activeTab === 'pendentes' ? 'todos' : 'pendentes')}
+            className={`bg-white dark:bg-card border rounded-2xl p-3 shadow-xs space-y-1 cursor-pointer transition-all active:scale-[0.99] ${
+              activeTab === 'pendentes' ? 'border-amber-500 ring-1 ring-amber-500/20' : 'border-border/80'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
+                <Clock className="w-3 h-3 text-amber-500" />
+                Pendentes
               </span>
-              <div className="text-2xl font-black tracking-tight text-foreground">
-                {formatCurrency(stats.saldoTotalContas)}
-              </div>
-              <p className="text-[10px] text-muted-foreground">
-                {contasBancarias.length} contas bancárias ativas cadastradas
-              </p>
+              <span className="w-2 h-2 rounded-full bg-amber-500" />
             </div>
-
-            <div className="flex flex-col items-end gap-1.5 shrink-0">
-              <Badge variant="outline" className="text-[10px] font-bold px-2 py-0.5 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-500/30">
-                {stats.taxaConciliacao.toFixed(0)}% Conciliado
-              </Badge>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setNovaContaModalOpen(true)}
-                className="h-7 text-[10px] gap-1 px-2 text-muted-foreground hover:text-foreground"
-              >
-                <Plus className="w-3 h-3" /> Nova Conta
-              </Button>
+            <div className="text-base font-black text-amber-600 dark:text-amber-400">
+              {stats.countPendentes} lançamentos
             </div>
           </div>
 
-          {/* Mini Cards: Pendentes vs Conciliados */}
-          <div className="grid grid-cols-2 gap-2.5">
-            <div 
-              onClick={() => setActiveTab(activeTab === 'pendentes' ? 'todos' : 'pendentes')}
-              className={`bg-white dark:bg-card border rounded-2xl p-3 shadow-xs space-y-1 cursor-pointer transition-all active:scale-[0.99] ${
-                activeTab === 'pendentes' ? 'border-amber-500 ring-1 ring-amber-500/20' : 'border-border/80'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
-                  <Clock className="w-3 h-3 text-amber-500" />
-                  Pendentes
-                </span>
-                <span className="w-2 h-2 rounded-full bg-amber-500" />
-              </div>
-              <div className="text-base font-black text-amber-600 dark:text-amber-400">
-                {stats.countPendentes} lançamentos
-              </div>
+          <div 
+            onClick={() => setActiveTab(activeTab === 'conciliados' ? 'todos' : 'conciliados')}
+            className={`bg-white dark:bg-card border rounded-2xl p-3 shadow-xs space-y-1 cursor-pointer transition-all active:scale-[0.99] ${
+              activeTab === 'conciliados' ? 'border-emerald-500 ring-1 ring-emerald-500/20' : 'border-border/80'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                Conciliados
+              </span>
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
             </div>
-
-            <div 
-              onClick={() => setActiveTab(activeTab === 'conciliados' ? 'todos' : 'conciliados')}
-              className={`bg-white dark:bg-card border rounded-2xl p-3 shadow-xs space-y-1 cursor-pointer transition-all active:scale-[0.99] ${
-                activeTab === 'conciliados' ? 'border-emerald-500 ring-1 ring-emerald-500/20' : 'border-border/80'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
-                  <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                  Conciliados
-                </span>
-                <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              </div>
-              <div className="text-base font-black text-emerald-600 dark:text-emerald-400 truncate">
-                {stats.countConciliados} transações
-              </div>
+            <div className="text-base font-black text-emerald-600 dark:text-emerald-400 truncate">
+              {stats.countConciliados} transações
             </div>
           </div>
         </div>
-      )}
+      </div>
 
-      {/* 3. CONTEÚDO DA SEÇÃO ATIVA */}
-      {activeSection === 'divergencias' && (
-        <div className="p-3.5">
-          <DivergenciasList />
-        </div>
-      )}
-
-      {activeSection === 'importar' && (
-        <div className="p-3.5">
-          <ImportarExtrato />
-        </div>
-      )}
-
-      {activeSection === 'contas' && (
-        <div className="p-3.5">
-          <ContasBancariasList />
-        </div>
-      )}
-
-      {activeSection === 'dashboard' && (
-        <div className="p-3.5">
-          <Dashboard />
-        </div>
-      )}
-
-      {activeSection === 'conciliacao' && (
-        <div className="p-3.5 space-y-2.5">
+      {/* 3. LISTA DE CONCILIAÇÃO */}
+      <div className="p-3.5 space-y-2.5">
           {filteredExtratos.length === 0 ? (
             <div className="bg-card rounded-2xl border p-8 text-center space-y-3 mt-4">
               <Landmark className="w-10 h-10 text-muted-foreground mx-auto opacity-40" />
@@ -469,7 +389,6 @@ export function MobileConciliacaoView() {
             })
           )}
         </div>
-      )}
 
       {/* Sheets / Modais */}
       <NovaContaBancariaSheet open={novaContaModalOpen} onOpenChange={setNovaContaModalOpen} />
