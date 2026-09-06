@@ -72,7 +72,7 @@ export function MobileQuickActionSheet({ open, onOpenChange }: MobileQuickAction
   const actions = [
     {
       key: "cliente",
-      title: "Cliente",
+      title: "Clientes",
       desc: "Cadastrar novo cliente no diretório",
       icon: Users,
     },
@@ -90,13 +90,13 @@ export function MobileQuickActionSheet({ open, onOpenChange }: MobileQuickAction
     },
     {
       key: "projeto",
-      title: "Projeto",
+      title: "Projetos",
       desc: "Iniciar novo projeto e cronograma",
       icon: Briefcase,
     },
     {
       key: "contrato",
-      title: "Contrato",
+      title: "Contratos",
       desc: "Registrar contrato de prestação de serviços",
       icon: FileText,
     },
@@ -155,7 +155,7 @@ export function MobileQuickActionSheet({ open, onOpenChange }: MobileQuickAction
                     </div>
                     <div className="text-left min-w-0">
                       <span className="font-bold text-xs text-slate-900 dark:text-white group-hover:text-[#FF6A00] transition-colors block truncate">
-                        + {act.title}
+                        {act.title}
                       </span>
                       <span className="text-[11px] text-slate-500 dark:text-zinc-400 block truncate">
                         {act.desc}

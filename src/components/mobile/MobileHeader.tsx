@@ -17,6 +17,7 @@ import { useNotificacoesStore } from "@/features/notificacoes/useNotificacoesSto
 import { useSidebar } from "@/components/ui/sidebar";
 import { UserProfileModal } from "@/components/UserProfileModal";
 import { EmpresaProfileModal } from "@/components/EmpresaProfileModal";
+import { NotificationBellDropdown } from "@/features/notificacoes/components/NotificationBellDropdown";
 
 // Mapeamento de rotas para títulos amigáveis no cabeçalho mobile
 const ROUTE_TITLES: Record<string, string> = {
@@ -159,21 +160,12 @@ export function MobileHeader({ onOpenDrawer, onOpenMenu, onOpenSearch }: MobileH
 
           {/* LADO DIREITO (AÇÕES) */}
           <div className="flex items-center gap-2 shrink-0">
-            {/* Sino de Notificações */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate({ to: "/notificacoes" })}
-              className="h-9 w-9 text-white hover:bg-white/20 active:bg-white/30 rounded-full relative"
-              aria-label="Notificações"
-            >
-              <Bell className="h-5 w-5 text-white" />
-              {naoLidasCount > 0 && (
-                <span className="absolute top-1 right-1 flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-white px-0.5 text-[8px] font-extrabold text-[#FF5000] shadow-xs">
-                  {naoLidasCount > 9 ? "9+" : naoLidasCount}
-                </span>
-              )}
-            </Button>
+            {/* Sino de Notificações com Modal/Dropdown */}
+            <NotificationBellDropdown
+              triggerClassName="h-9 w-9 text-white hover:bg-white/20 active:bg-white/30 rounded-full relative flex items-center justify-center cursor-pointer"
+              iconClassName="h-5 w-5 text-white"
+              badgeClassName="absolute top-1 right-1 flex h-3.5 min-w-[14px] items-center justify-center rounded-full bg-white px-0.5 text-[8px] font-extrabold text-[#FF5000] shadow-xs"
+            />
 
             {/* Foto / Perfil da Empresa */}
             <DropdownMenu>
