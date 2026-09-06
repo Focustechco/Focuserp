@@ -23,9 +23,12 @@ import {
   EyeOff,
   Info,
   Calendar,
+  CalendarDays,
   ChevronDown,
   ArrowUp,
   ArrowDown,
+  Target,
+  FileText,
 } from "lucide-react";
 import { useAuth } from "@/features/auth/AuthContext";
 import { useContasReceberQuery } from "@/features/contas-receber/hooks/useContasReceberQuery";
@@ -236,22 +239,10 @@ export function MobileDashboard() {
     };
   }, [contasReceber, contasPagar, clientes, contratos, projetos]);
 
-// Lista dos Principais Módulos do Focus ERP (1 por linha, proporções perfeitas)
+// Lista dos Principais Módulos do Focus ERP com os ícones e títulos reais da Sidebar
   const modulesGrid = [
     {
-      title: "Clientes",
-      desc: "Consultar e gerenciar seus clientes",
-      url: "/clientes",
-      icon: Users,
-    },
-    {
-      title: "Produtos & Estoque",
-      desc: "Consultar produtos, estoque e serviços",
-      url: "/produtos",
-      icon: Package,
-    },
-    {
-      title: "Financeiro & Caixa",
+      title: "Fluxo de Caixa",
       desc: "Visão financeira da empresa e fluxo de caixa",
       url: "/fluxo-de-caixa",
       icon: Wallet,
@@ -269,34 +260,58 @@ export function MobileDashboard() {
       icon: TrendingDown,
     },
     {
-      title: "Oportunidades & CRM",
-      desc: "Acompanhe suas oportunidades e pipeline",
+      title: "Clientes",
+      desc: "Consultar e gerenciar seus clientes",
+      url: "/clientes",
+      icon: Users,
+    },
+    {
+      title: "CRM Pipeline",
+      desc: "Funil de vendas, oportunidades e negociações",
       url: "/crm",
-      icon: Sparkles,
+      icon: Target,
     },
     {
-      title: "Projetos",
-      desc: "Gerencie seus projetos, sprints e entregas",
-      url: "/projetos",
-      icon: FolderOpen,
-    },
-    {
-      title: "Tarefas & Prazos",
-      desc: "Acompanhe suas tarefas e calendário de entregas",
-      url: "/agenda-de-entregas",
-      icon: FileCheck2,
-    },
-    {
-      title: "Contratos",
+      title: "Contratos & Recorrência",
       desc: "Contratos vigentes, termos e recorrências",
       url: "/contratos",
-      icon: FileCheck2,
+      icon: FileText,
+    },
+    {
+      title: "Projetos & Sprints",
+      desc: "Gerencie seus projetos, sprints e entregas",
+      url: "/projetos",
+      icon: Briefcase,
+    },
+    {
+      title: "Produtos Focus",
+      desc: "Catálogo de produtos, estoque e serviços",
+      url: "/produtos",
+      icon: Boxes,
+    },
+    {
+      title: "Agenda de Entregas",
+      desc: "Acompanhe suas tarefas e calendário de entregas",
+      url: "/agenda-de-entregas",
+      icon: CalendarDays,
+    },
+    {
+      title: "Estoque & Patrimônio",
+      desc: "Controle patrimonial e inventário de TI",
+      url: "/estoque",
+      icon: Package,
     },
     {
       title: "Recursos Humanos (RH)",
       desc: "Colaboradores, cargos e equipe",
       url: "/rh",
       icon: Users,
+    },
+    {
+      title: "Central de Documentos",
+      desc: "Cofre digital, contratos e arquivos",
+      url: "/documentos",
+      icon: FolderOpen,
     },
   ];
 

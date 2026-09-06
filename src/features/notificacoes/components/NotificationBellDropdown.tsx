@@ -109,12 +109,17 @@ export function NotificationBellDropdown({
         )}
       </PopoverTrigger>
 
-      <PopoverContent align="end" className="w-[calc(100vw-24px)] max-w-[390px] sm:w-[420px] p-0 shadow-2xl border rounded-2xl bg-white dark:bg-zinc-900 z-50">
-        <div className="flex items-center justify-between border-b px-4 py-3 bg-muted/30">
+      <PopoverContent
+        align="end"
+        sideOffset={8}
+        collisionPadding={16}
+        className="w-[calc(100vw-32px)] max-w-[345px] sm:max-w-[375px] p-0 shadow-2xl border rounded-2xl bg-white dark:bg-zinc-900 z-50 overflow-hidden"
+      >
+        <div className="flex items-center justify-between border-b px-3.5 py-2.5 bg-muted/30">
           <div className="flex items-center gap-2">
-            <h3 className="font-semibold text-sm">Notificações</h3>
+            <h3 className="font-bold text-xs sm:text-sm text-foreground">Notificações</h3>
             {naoLidasCount > 0 && (
-              <Badge variant="secondary" className="text-xs bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300">
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300 font-bold">
                 {naoLidasCount} nova{naoLidasCount > 1 ? 's' : ''}
               </Badge>
             )}
@@ -126,15 +131,15 @@ export function NotificationBellDropdown({
                 size="sm" 
                 onClick={() => marcarTodasComoLidas()} 
                 title="Marcar todas como lidas"
-                className="h-7 px-2 text-[11px] text-muted-foreground hover:text-foreground"
+                className="h-6.5 px-2 text-[10px] font-semibold text-muted-foreground hover:text-foreground cursor-pointer"
               >
-                <CheckCheck className="w-3.5 h-3.5 mr-1" /> Lidas
+                <CheckCheck className="w-3 h-3 mr-1" /> Lidas
               </Button>
             )}
             <Button 
               variant="ghost" 
               size="icon" 
-              className="h-7 w-7" 
+              className="h-6.5 w-6.5 cursor-pointer" 
               onClick={() => { navigate({ to: '/configuracoes' }); setOpen(false); }}
               title="Preferências de Notificações"
             >
@@ -144,12 +149,12 @@ export function NotificationBellDropdown({
         </div>
 
         <Tabs defaultValue="todas" className="w-full">
-          <div className="border-b px-4 pt-1 bg-background">
-            <TabsList className="h-8 p-0 bg-transparent gap-4">
-              <TabsTrigger value="todas" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-8 text-xs px-1">
+          <div className="border-b px-3.5 pt-1 bg-background">
+            <TabsList className="h-7.5 p-0 bg-transparent gap-4">
+              <TabsTrigger value="todas" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-7.5 text-xs px-1 font-semibold">
                 Todas ({notificacoes.length})
               </TabsTrigger>
-              <TabsTrigger value="naoLidas" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-8 text-xs px-1">
+              <TabsTrigger value="naoLidas" className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-7.5 text-xs px-1 font-semibold">
                 Não Lidas ({notificacoesNaoLidas.length})
               </TabsTrigger>
             </TabsList>
@@ -157,7 +162,7 @@ export function NotificationBellDropdown({
 
           {/* ABA TODAS */}
           <TabsContent value="todas" className="m-0">
-            <ScrollArea className="h-[360px]">
+            <ScrollArea className="h-[260px] sm:h-[300px]">
               {notificacoes.length === 0 ? (
                 <div className="p-8 text-center text-muted-foreground space-y-2">
                   <Bell className="w-8 h-8 opacity-20 mx-auto" />
@@ -227,7 +232,7 @@ export function NotificationBellDropdown({
 
           {/* ABA NÃO LIDAS */}
           <TabsContent value="naoLidas" className="m-0">
-            <ScrollArea className="h-[360px]">
+            <ScrollArea className="h-[260px] sm:h-[300px]">
               {notificacoesNaoLidas.length === 0 ? (
                 <div className="p-8 text-center text-muted-foreground space-y-2">
                   <CheckCircle2 className="w-8 h-8 text-emerald-500/30 mx-auto" />
