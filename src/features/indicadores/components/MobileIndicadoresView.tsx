@@ -31,7 +31,7 @@ export function MobileIndicadoresView() {
     { id: 'rh', label: 'Recursos Humanos', icon: Users },
     { id: 'fornecedores', label: 'Fornecedores', icon: Building2 },
     { id: 'clientes', label: 'Clientes', icon: UserCheck },
-    { id: 'softwares', label: 'Softwares & SaaS', icon: Settings },
+    { id: 'softwares', label: 'Softwares', icon: Settings },
     { id: 'projetos', label: 'Projetos', icon: Briefcase },
   ];
 

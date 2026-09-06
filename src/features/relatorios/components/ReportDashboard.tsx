@@ -11,7 +11,7 @@ export function ReportDashboard() {
   const relatoriosMes = history.length;
   const totalExportacoes = history.length;
   const agendamentosAtivos = schedules.filter(s => s.status === 'Ativo').length;
-  const totalFavoritos = favorites.length;
+  const totalFavoritos = catalog.filter((c) => favorites.includes(c.id)).length;
 
   // Gráfico 1: Relatórios por Módulo/Categoria
   const categoryCounts: Record<string, number> = {};

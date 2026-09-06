@@ -108,7 +108,7 @@ export function MetricasSaaSTab() {
         <Card className="order-1 md:order-1 rounded-2xl border shadow-xs bg-card">
           <CardHeader className="pb-2 p-4 sm:p-6">
             <CardTitle className="text-sm sm:text-base font-bold flex items-center gap-2">
-              <PieChartIcon className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500" /> Distribuição de Softwares & Planos SaaS
+              <PieChartIcon className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500" /> Distribuição de Softwares
             </CardTitle>
             <CardDescription className="text-xs">
               Composição da receita recorrente por produto e licença

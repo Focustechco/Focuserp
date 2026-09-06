@@ -23,13 +23,23 @@ const FAVORITES_STATE_NAME = '__FOCUS_STATE__relatorios_favorites';
 function sanitizeFavorites(input: any): string[] {
   if (!input) return [];
   if (Array.isArray(input)) {
-    return input
-      .map((item: any) => {
-        if (typeof item === 'string') return item.trim();
-        if (item && typeof item === 'object') return (item.report_id || item.reportId || item.id || '').trim();
-        return '';
-      })
-      .filter((id: string) => Boolean(id) && id.length > 0);
+    const validCatalogIds = new Set(REPORT_CATALOG.map((r) => r.id));
+    const seen = new Set<string>();
+    const result: string[] = [];
+
+    for (const item of input) {
+      const id = typeof item === 'string'
+        ? item.trim()
+        : item && typeof item === 'object'
+        ? (item.report_id || item.reportId || item.id || '').trim()
+        : '';
+
+      if (id && validCatalogIds.has(id) && !seen.has(id)) {
+        seen.add(id);
+        result.push(id);
+      }
+    }
+    return result;
   }
   return [];
 }

@@ -18,9 +18,13 @@ export function ReportCatalogView() {
   const [selectedForPreview, setSelectedForPreview] = useState<GeneratedReportData | null>(null);
   const [showPreview, setShowPreview] = useState(false);
 
+  const favoriteCount = useMemo(() => {
+    return catalog.filter((item) => favorites.includes(item.id)).length;
+  }, [catalog, favorites]);
+
   const categories: Array<{ id: string; label: string }> = [
     { id: 'todos', label: 'Todos' },
-    { id: 'favoritos', label: `⭐ Favoritos (${favorites.length})` },
+    { id: 'favoritos', label: `⭐ Favoritos (${favoriteCount})` },
     { id: 'Financeiro', label: 'Financeiro' },
     { id: 'Clientes', label: 'Clientes' },
     { id: 'Projetos', label: 'Projetos' },

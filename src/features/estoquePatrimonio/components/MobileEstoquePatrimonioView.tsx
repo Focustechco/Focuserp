@@ -14,7 +14,7 @@ import {
   History, Wrench, Trash2, ArrowRightLeft, Check, AlertTriangle,
   FileText, Building2, User, Calendar, ShieldAlert, Layers,
   Boxes, ShieldCheck, Tag, Hash, RefreshCw, Smartphone, Monitor,
-  Cpu, HardDrive, CheckCircle2, ChevronRight
+  Cpu, HardDrive, CheckCircle2, ChevronRight, Server, Network
 } from 'lucide-react';
 import { useLocalStorageState } from '@/hooks/useDataStore';
 import { CentroCusto } from '@/features/centro-de-custos/types';
@@ -730,6 +730,26 @@ export function MobileEstoquePatrimonioView() {
     }
   };
 
+  const renderCategoryIcon = (categoria: CategoriaEquipamento) => {
+    switch (categoria) {
+      case 'Notebook':
+        return <Laptop className="h-4 w-4 text-blue-500" />;
+      case 'Monitor':
+        return <Monitor className="h-4 w-4 text-indigo-500" />;
+      case 'Desktop':
+        return <Cpu className="h-4 w-4 text-cyan-500" />;
+      case 'Celular':
+      case 'Tablet':
+        return <Smartphone className="h-4 w-4 text-emerald-500" />;
+      case 'Servidor':
+        return <Server className="h-4 w-4 text-amber-500" />;
+      case 'Switch':
+        return <Network className="h-4 w-4 text-purple-500" />;
+      default:
+        return <HardDrive className="h-4 w-4 text-slate-500" />;
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-zinc-950 pb-28">
       {/* 1. STICKY SEARCH, FILTER & ACTION BAR */}
@@ -936,20 +956,25 @@ export function MobileEstoquePatrimonioView() {
                 key={eq.id}
                 className="bg-card rounded-2xl border border-border/80 p-3.5 shadow-xs transition-all active:scale-[0.99] flex flex-col gap-2.5"
               >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="font-mono text-[10px] text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded-md font-bold">
-                        {eq.codigoPatrimonial}
-                      </span>
-                      {getSituacaoBadge(eq.situacao)}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                    <div className="p-2 rounded-xl bg-muted/60 dark:bg-muted/40 border border-border/80 shrink-0 flex items-center justify-center mt-0.5">
+                      {renderCategoryIcon(eq.categoria)}
                     </div>
-                    <h4 className="font-bold text-xs text-foreground mt-1 truncate">
-                      {eq.marca} {eq.modelo}
-                    </h4>
-                    <p className="text-[11px] text-muted-foreground truncate">
-                      SN: {eq.numeroSerie || 'Não registrado'} • {eq.categoria}
-                    </p>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-mono text-[10px] text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded-md font-bold">
+                          {eq.codigoPatrimonial}
+                        </span>
+                        {getSituacaoBadge(eq.situacao)}
+                      </div>
+                      <h4 className="font-bold text-xs text-foreground mt-1 truncate">
+                        {eq.marca} {eq.modelo}
+                      </h4>
+                      <p className="text-[11px] text-muted-foreground truncate">
+                        SN: {eq.numeroSerie || 'Não registrado'} • {eq.categoria}
+                      </p>
+                    </div>
                   </div>
 
                   <div className="text-right shrink-0">
