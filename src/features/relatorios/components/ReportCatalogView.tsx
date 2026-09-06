@@ -147,16 +147,9 @@ export function ReportCatalogView() {
               >
                 <CardHeader className="pb-3">
                   <div className="flex justify-between items-start mb-2">
-                    <div className="flex items-center gap-1.5">
-                      <Badge variant="outline" className="text-[10px] font-semibold">
-                        {item.category}
-                      </Badge>
-                      {isFav && (
-                        <Badge className="text-[10px] font-medium bg-amber-500 hover:bg-amber-600 text-white border-0 py-0 h-5 gap-1">
-                          <Star className="w-3 h-3 fill-white" /> Fixado no Topo
-                        </Badge>
-                      )}
-                    </div>
+                    <Badge variant="outline" className="text-[10px] font-semibold">
+                      {item.category}
+                    </Badge>
                     <Button 
                       variant="ghost" 
                       size="icon" 
