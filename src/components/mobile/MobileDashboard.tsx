@@ -433,18 +433,13 @@ export function MobileDashboard() {
           {/* Card A Receber */}
           <div className="bg-[#F2FAF6] dark:bg-emerald-950/20 border border-[#D5EFE3] dark:border-emerald-900/40 rounded-2xl p-3.5 flex flex-col justify-between shadow-2xs">
             <div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-6.5 h-6.5 rounded-lg bg-[#FFE8D6] dark:bg-orange-950/60 text-[#FF5000] flex items-center justify-center shrink-0">
-                    <Wallet className="w-3.5 h-3.5 text-[#FF5000]" />
-                  </div>
-                  <span className="text-[10px] font-bold text-slate-600 dark:text-zinc-300 uppercase tracking-wider">
-                    A Receber
-                  </span>
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-[#FFE8D6] dark:bg-orange-950/60 text-[#FF5000] flex items-center justify-center shrink-0">
+                  <TrendingUp className="w-3.5 h-3.5 text-[#FF5000]" />
                 </div>
-                <div className="w-6.5 h-6.5 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600 dark:text-emerald-300 flex items-center justify-center shrink-0">
-                  <ArrowDown className="w-3.5 h-3.5 stroke-[2.5]" />
-                </div>
+                <span className="text-[11px] font-bold text-slate-600 dark:text-zinc-300 uppercase tracking-wider whitespace-nowrap truncate">
+                  A Receber
+                </span>
               </div>
 
               <div className="text-lg sm:text-xl font-black text-emerald-700 dark:text-emerald-400 mt-2.5 tracking-tight">
@@ -467,18 +462,13 @@ export function MobileDashboard() {
           {/* Card A Pagar */}
           <div className="bg-[#FEF5F5] dark:bg-rose-950/20 border border-[#FCDADA] dark:border-rose-900/40 rounded-2xl p-3.5 flex flex-col justify-between shadow-2xs">
             <div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-6.5 h-6.5 rounded-lg bg-[#FFE8D6] dark:bg-orange-950/60 text-[#FF5000] flex items-center justify-center shrink-0">
-                    <Wallet className="w-3.5 h-3.5 text-[#FF5000]" />
-                  </div>
-                  <span className="text-[10px] font-bold text-slate-600 dark:text-zinc-300 uppercase tracking-wider">
-                    A Pagar
-                  </span>
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-[#FFE8D6] dark:bg-orange-950/60 text-[#FF5000] flex items-center justify-center shrink-0">
+                  <TrendingDown className="w-3.5 h-3.5 text-[#FF5000]" />
                 </div>
-                <div className="w-6.5 h-6.5 rounded-full bg-rose-100 dark:bg-rose-900/60 text-rose-600 dark:text-rose-300 flex items-center justify-center shrink-0">
-                  <ArrowUp className="w-3.5 h-3.5 stroke-[2.5]" />
-                </div>
+                <span className="text-[11px] font-bold text-slate-600 dark:text-zinc-300 uppercase tracking-wider whitespace-nowrap truncate">
+                  A Pagar
+                </span>
               </div>
 
               <div className="text-lg sm:text-xl font-black text-rose-600 dark:text-rose-400 mt-2.5 tracking-tight">
