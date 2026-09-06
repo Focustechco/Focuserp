@@ -7,7 +7,7 @@ import React, { useState, useEffect } from "react";
 import { 
   Search, Bell, Command, Moon, Sun, ArrowRight, LayoutDashboard, Wallet, 
   Users, FileText, Briefcase, BarChart3, FolderOpen, Plug, Plus, ChevronDown, 
-  TrendingUp, TrendingDown, Receipt, Target, User, Building2, Settings, Palette, LogOut, Megaphone 
+  TrendingUp, TrendingDown, Receipt, Target, User, Building2, Settings, LogOut, Megaphone 
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -314,14 +314,6 @@ export function TopBar() {
               >
                 <Settings className="w-4 h-4 text-muted-foreground" />
                 <span>Configurações & Dados Fiscais</span>
-              </DropdownMenuItem>
-
-              <DropdownMenuItem 
-                onClick={() => navigate({ to: '/configuracoes' as any })}
-                className="cursor-pointer gap-2 py-1.5 text-xs rounded-md"
-              >
-                <Palette className="w-4 h-4 text-purple-500" />
-                <span>Identidade Visual & Logos</span>
               </DropdownMenuItem>
 
               <DropdownMenuSeparator className="my-1" />
