@@ -386,45 +386,36 @@ export function MobileDashboard() {
             </div>
           </div>
 
-          {/* Linha Inferior: 3 Colunas (Receitas, Despesas, Resultado) */}
-          <div className="grid grid-cols-3 gap-2 pt-3 border-t border-slate-100 dark:border-zinc-800 mt-3.5">
+          {/* Linha Inferior: 2 Colunas (Receitas & Despesas com porcentagem na lateral) */}
+          <div className="grid grid-cols-2 gap-4 pt-3.5 border-t border-slate-100 dark:border-zinc-800 mt-3.5">
             {/* 1. Receitas */}
-            <div>
-              <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider block">
+            <div className="min-w-0">
+              <span className="text-[11px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider block">
                 Receitas
               </span>
-              <span className="text-xs sm:text-[13px] font-extrabold text-slate-900 dark:text-white block mt-0.5 truncate">
-                {renderValor(metrics.totalRecebido)}
-              </span>
-              <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-0.5 mt-0.5">
-                <ArrowUp className="w-2.5 h-2.5 stroke-[2.5]" /> 8,2%
-              </span>
+              <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                <span className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white truncate">
+                  {renderValor(metrics.totalRecebido)}
+                </span>
+                <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 inline-flex items-center gap-0.5 shrink-0 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded-md">
+                  <ArrowUp className="w-2.5 h-2.5 stroke-[2.5]" /> 8,2%
+                </span>
+              </div>
             </div>
 
             {/* 2. Despesas */}
-            <div>
-              <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider block">
+            <div className="min-w-0 pl-2 sm:pl-4 border-l border-slate-100 dark:border-zinc-800">
+              <span className="text-[11px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider block">
                 Despesas
               </span>
-              <span className="text-xs sm:text-[13px] font-extrabold text-slate-900 dark:text-white block mt-0.5 truncate">
-                {renderValor(metrics.totalPago)}
-              </span>
-              <span className="text-[10px] font-bold text-rose-500 flex items-center gap-0.5 mt-0.5">
-                <ArrowUp className="w-2.5 h-2.5 stroke-[2.5]" /> 3,6%
-              </span>
-            </div>
-
-            {/* 3. Resultado */}
-            <div>
-              <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider block">
-                Resultado
-              </span>
-              <span className="text-xs sm:text-[13px] font-extrabold text-slate-900 dark:text-white block mt-0.5 truncate">
-                {renderValor(metrics.saldoReal)}
-              </span>
-              <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-0.5 mt-0.5">
-                <ArrowUp className="w-2.5 h-2.5 stroke-[2.5]" /> 12,5%
-              </span>
+              <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                <span className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white truncate">
+                  {renderValor(metrics.totalPago)}
+                </span>
+                <span className="text-[11px] font-bold text-rose-500 dark:text-rose-400 inline-flex items-center gap-0.5 shrink-0 bg-rose-50 dark:bg-rose-950/40 px-1.5 py-0.5 rounded-md">
+                  <ArrowUp className="w-2.5 h-2.5 stroke-[2.5]" /> 3,6%
+                </span>
+              </div>
             </div>
           </div>
         </div>
