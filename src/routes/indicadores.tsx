@@ -8,6 +8,7 @@ import { FinanceiroTab } from "@/features/indicadores/components/FinanceiroTab";
 import { RhTab } from "@/features/indicadores/components/RhTab";
 import { FornecedoresTab } from "@/features/indicadores/components/FornecedoresTab";
 import { ClientesTab } from "@/features/indicadores/components/ClientesTab";
+import { MobileIndicadoresView } from "@/features/indicadores/components/MobileIndicadoresView";
 import { 
   Settings, Activity, Briefcase, Users, Wallet, 
   Target, Building2, UserCheck 
@@ -19,13 +20,21 @@ export const Route = createFileRoute("/indicadores")({
 
 function IndicadoresPage() {
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-[1400px] mx-auto w-full">
-      <div className="hidden md:block">
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">Indicadores Estratégicos (KPIs)</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Centro de inteligência gerencial e performance integrada de toda a operação.
-        </p>
+    <>
+      {/* Visualização Mobile Otimizada */}
+      <div className="md:hidden">
+        <MobileIndicadoresView />
       </div>
+
+      {/* Visualização Desktop */}
+      <div className="hidden md:flex flex-col gap-6 p-6 max-w-[1400px] mx-auto w-full">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">Indicadores Estratégicos (KPIs)</h1>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Centro de inteligência gerencial e performance integrada de toda a operação.
+          </p>
+        </div>
+
 
       <Tabs defaultValue="dashboard" className="space-y-6 mt-2">
         <div className="w-full overflow-x-auto scrollbar-hide border-b pb-1">
@@ -89,6 +98,7 @@ function IndicadoresPage() {
           <ProjetosTab />
         </TabsContent>
       </Tabs>
-    </div>
+      </div>
+    </>
   );
 }

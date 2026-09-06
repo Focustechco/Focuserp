@@ -6,8 +6,8 @@ import { ReportCatalogView } from "@/features/relatorios/components/ReportCatalo
 import { ReportGeneratorWizard } from "@/features/relatorios/components/ReportGeneratorWizard";
 import { ReportHistoryView } from "@/features/relatorios/components/ReportHistoryView";
 import { ReportSchedulesView } from "@/features/relatorios/components/ReportSchedulesView";
-import { FileSpreadsheet, LayoutGrid, Wand2, Clock, Calendar, ShieldCheck } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { MobileRelatoriosView } from "@/features/relatorios/components/MobileRelatoriosView";
+import { FileSpreadsheet, LayoutGrid, Wand2, Clock, Calendar } from "lucide-react";
 
 export const Route = createFileRoute("/relatorios")({
   component: CentralRelatoriosPage,
@@ -17,59 +17,68 @@ function CentralRelatoriosPage() {
   const [activeTab, setActiveTab] = useState("catalogo");
 
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-[1400px] mx-auto w-full animate-fade-in">
-      {/* Cabeçalho da Central de Relatórios */}
-      <div className="hidden md:flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Central de Relatórios</h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Mecanismo corporativo único para geração, padronização, agendamento e exportação de documentos do Focus Finance.
-          </p>
-        </div>
+    <>
+      {/* Visualização Mobile Otimizada */}
+      <div className="md:hidden">
+        <MobileRelatoriosView />
       </div>
 
-      {/* Navegação por Abas Principais */}
-      <Tabs defaultValue="catalogo" className="space-y-6 mt-2" onValueChange={setActiveTab}>
-        <div className="border-b pb-2 w-full overflow-x-auto scrollbar-hide">
-          <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
-            <TabsTrigger value="catalogo" className="gap-2 shrink-0">
-              <FileSpreadsheet className="w-4 h-4" /> Catálogo de Relatórios
-            </TabsTrigger>
-            <TabsTrigger value="dashboard" className="gap-2 shrink-0">
-              <LayoutGrid className="w-4 h-4" /> Dashboard Executivo
-            </TabsTrigger>
-            <TabsTrigger value="wizard" className="gap-2 text-orange-600 font-semibold shrink-0">
-              <Wand2 className="w-4 h-4" /> Gerador Wizard
-            </TabsTrigger>
-            <TabsTrigger value="historico" className="gap-2 shrink-0">
-              <Clock className="w-4 h-4" /> Histórico & Auditoria
-            </TabsTrigger>
-            <TabsTrigger value="agendamentos" className="gap-2 shrink-0">
-              <Calendar className="w-4 h-4" /> Agendamentos
-            </TabsTrigger>
-          </TabsList>
+      {/* Visualização Desktop */}
+      <div className="hidden md:flex flex-col gap-6 p-6 max-w-[1400px] mx-auto w-full animate-fade-in">
+        {/* Cabeçalho da Central de Relatórios */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Central de Relatórios</h1>
+            <p className="text-muted-foreground mt-1 text-sm">
+              Mecanismo corporativo único para geração, padronização, agendamento e exportação de documentos do Focus Finance.
+            </p>
+          </div>
         </div>
 
-        <TabsContent value="dashboard" className="space-y-4 outline-none">
-          <ReportDashboard />
-        </TabsContent>
+        {/* Navegação por Abas Principais */}
+        <Tabs defaultValue="catalogo" className="space-y-6 mt-2" onValueChange={setActiveTab}>
+          <div className="border-b pb-2 w-full overflow-x-auto scrollbar-hide">
+            <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
+              <TabsTrigger value="catalogo" className="gap-2 shrink-0">
+                <FileSpreadsheet className="w-4 h-4" /> Catálogo de Relatórios
+              </TabsTrigger>
+              <TabsTrigger value="dashboard" className="gap-2 shrink-0">
+                <LayoutGrid className="w-4 h-4" /> Dashboard Executivo
+              </TabsTrigger>
+              <TabsTrigger value="wizard" className="gap-2 text-orange-600 font-semibold shrink-0">
+                <Wand2 className="w-4 h-4" /> Gerador Wizard
+              </TabsTrigger>
+              <TabsTrigger value="historico" className="gap-2 shrink-0">
+                <Clock className="w-4 h-4" /> Histórico & Auditoria
+              </TabsTrigger>
+              <TabsTrigger value="agendamentos" className="gap-2 shrink-0">
+                <Calendar className="w-4 h-4" /> Agendamentos
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
-        <TabsContent value="catalogo" className="space-y-4 outline-none">
-          <ReportCatalogView />
-        </TabsContent>
+          <TabsContent value="dashboard" className="space-y-4 outline-none">
+            <ReportDashboard />
+          </TabsContent>
 
-        <TabsContent value="wizard" className="space-y-4 outline-none">
-          <ReportGeneratorWizard />
-        </TabsContent>
+          <TabsContent value="catalogo" className="space-y-4 outline-none">
+            <ReportCatalogView />
+          </TabsContent>
 
-        <TabsContent value="historico" className="space-y-4 outline-none">
-          <ReportHistoryView />
-        </TabsContent>
+          <TabsContent value="wizard" className="space-y-4 outline-none">
+            <ReportGeneratorWizard />
+          </TabsContent>
 
-        <TabsContent value="agendamentos" className="space-y-4 outline-none">
-          <ReportSchedulesView />
-        </TabsContent>
-      </Tabs>
-    </div>
+          <TabsContent value="historico" className="space-y-4 outline-none">
+            <ReportHistoryView />
+          </TabsContent>
+
+          <TabsContent value="agendamentos" className="space-y-4 outline-none">
+            <ReportSchedulesView />
+          </TabsContent>
+        </Tabs>
+      </div>
+    </>
   );
 }
+
