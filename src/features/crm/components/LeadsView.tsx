@@ -168,9 +168,9 @@ export function LeadsView() {
   }, [oportunidades, selectedUserModal]);
 
   return (
-    <div className="space-y-6 animate-fade-in pt-1">
+    <div className="flex flex-col space-y-6 animate-fade-in pt-1">
       {/* Cabeçalho da Seção de Desempenho */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+      <div className="order-1 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
           <h3 className="font-bold text-lg flex items-center gap-2 text-foreground">
             <Award className="w-5 h-5 text-orange-500" /> Desempenho Comercial & Equipe (ClickUp Real)
@@ -192,7 +192,7 @@ export function LeadsView() {
       </div>
 
       {/* KPI Cards de Resumo Global */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="order-3 md:order-2 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card className="shadow-2xs bg-card border">
           <CardContent className="p-4 space-y-1">
             <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">Membros Ativos</span>
@@ -236,7 +236,7 @@ export function LeadsView() {
 
       {/* TOP 3 RANKING DE DESEMPENHO */}
       {userPerformance.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+        <div className="order-4 md:order-3 grid grid-cols-1 md:grid-cols-3 gap-3.5">
           {userPerformance.slice(0, 3).map((user, rankIdx) => {
             const medal = rankIdx === 0 ? '🥇 1º Lugar' : rankIdx === 1 ? '🥈 2º Lugar' : '🥉 3º Lugar';
             const borderColors = rankIdx === 0 ? 'border-amber-400/60 bg-amber-50/20 dark:bg-amber-950/10' : 'border-border bg-card';
@@ -293,7 +293,7 @@ export function LeadsView() {
       )}
 
       {/* TABELA DETALHADA DE DESEMPENHO DOS USUÁRIOS */}
-      <Card className="rounded-2xl border shadow-xs">
+      <Card className="order-5 md:order-4 rounded-2xl border shadow-xs">
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-bold flex items-center justify-between">
             <span>Quadro Geral de Produtividade por Usuário</span>
@@ -397,7 +397,7 @@ export function LeadsView() {
 
       {/* GRÁFICO COMPARATIVO */}
       {chartData.length > 0 && (
-        <Card className="rounded-2xl border shadow-xs">
+        <Card className="order-2 md:order-5 rounded-2xl border shadow-xs">
           <CardHeader>
             <CardTitle className="text-sm font-bold flex items-center gap-2">
               <BarChart3 className="w-4 h-4 text-primary" /> Comparativo de Volume de Tarefas por Membro da Equipe

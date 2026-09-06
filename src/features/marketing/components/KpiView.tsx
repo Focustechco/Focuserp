@@ -40,8 +40,8 @@ export function KpiView() {
   }));
 
   return (
-    <div className="space-y-6 animate-fade-in pb-8">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="flex flex-col space-y-6 animate-fade-in pb-8">
+      <div className="order-2 md:order-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {kpiData.map((kpi, idx) => (
           <Card key={idx} className="hover:border-primary/50 transition-colors">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -60,7 +60,7 @@ export function KpiView() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="order-1 md:order-2 grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Funil de Conversão (Evolução)</CardTitle>

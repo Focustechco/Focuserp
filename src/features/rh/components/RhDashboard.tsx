@@ -50,8 +50,8 @@ export function RhDashboard() {
   const retentionTaxa = total > 0 ? '100.0%' : '0.0%';
 
   return (
-    <div className="space-y-6 animate-fade-in pt-1">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="flex flex-col space-y-6 animate-fade-in pt-1">
+      <div className="order-2 md:order-1 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Total de Colaboradores</CardTitle>
@@ -107,7 +107,7 @@ export function RhDashboard() {
         </Card>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+      <div className="order-1 md:order-2 grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="col-span-4">
           <CardHeader>
             <CardTitle className="flex items-center gap-2"><BarChart3 className="w-5 h-5 text-primary" /> Headcount: Entradas x Saídas</CardTitle>

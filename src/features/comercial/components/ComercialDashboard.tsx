@@ -69,9 +69,9 @@ export function ComercialDashboard() {
   }, [oportunidades, propostas, kpisExecutivos]);
 
   return (
-    <div className="space-y-6 animate-fade-in pt-1">
+    <div className="flex flex-col space-y-6 animate-fade-in pt-1">
       {/* Grid de KPIs Executivos Principais */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
+      <div className="order-2 md:order-1 grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
         <Card className="rounded-2xl border shadow-xs bg-card">
           <CardContent className="p-4 space-y-1">
             <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block">Receita Comercial Fechada</span>
@@ -129,7 +129,7 @@ export function ComercialDashboard() {
       </div>
 
       {/* Gráficos de Gestão Comercial */}
-      <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
+      <div className="order-1 md:order-2 grid grid-cols-1 lg:grid-cols-7 gap-4">
         {/* Gráfico 1: Vendas vs Meta da Equipe */}
         <Card className="lg:col-span-4 rounded-2xl border shadow-xs">
           <CardHeader className="pb-2">
@@ -193,7 +193,7 @@ export function ComercialDashboard() {
       </div>
 
       {/* RANKING & LEADERBOARD DO TIME COMERCIAL */}
-      <Card className="rounded-2xl border shadow-xs">
+      <Card className="order-3 md:order-3 rounded-2xl border shadow-xs">
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-bold flex items-center justify-between">
             <span className="flex items-center gap-2">

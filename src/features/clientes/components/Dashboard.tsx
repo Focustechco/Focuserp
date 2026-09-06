@@ -26,8 +26,8 @@ export function Dashboard() {
   const COLORS = ['#3b82f6', '#10b981', '#f43f5e', '#f59e0b'];
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="flex flex-col space-y-6 animate-fade-in">
+      <div className="order-2 md:order-1 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Clientes</CardTitle>
@@ -44,7 +44,7 @@ export function Dashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Clientes Ativos</CardTitle>
-            <Activity className="h-4 w-4 text-emerald-500" />
+            <CheckCircle className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
@@ -87,7 +87,7 @@ export function Dashboard() {
         </Card>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="order-1 md:order-2 grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Distribuição por Tipo</CardTitle>

@@ -57,9 +57,9 @@ export function Dashboard() {
   }));
 
   return (
-    <div className="space-y-6 animate-fade-in pt-4">
+    <div className="flex flex-col space-y-6 animate-fade-in pt-4">
       {/* Indicadores Principais */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="order-2 md:order-1 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Agenda de Hoje</CardTitle>
@@ -121,7 +121,7 @@ export function Dashboard() {
         </Card>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="order-1 md:order-2 grid gap-4 md:grid-cols-2">
         {/* Gráfico Pizza */}
         <Card>
           <CardHeader>

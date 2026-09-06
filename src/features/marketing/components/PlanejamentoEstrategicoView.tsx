@@ -251,14 +251,66 @@ export function PlanejamentoEstrategicoView() {
   const { data: iniciativas, addItem: addIniciativa, removeItem: removeIniciativa } = useLocalStorageState<IniciativaItem>('focus_marketing_iniciativas', defaultIniciativas);
 
   return (
-    <div className="space-y-6 animate-fade-in pb-8">
-      <div className="pb-2 border-b">
+    <div className="flex flex-col space-y-6 animate-fade-in pb-8">
+      <div className="order-1 pb-2 border-b">
         <h3 className="font-medium text-lg">Planejamento Estratégico de Marketing</h3>
         <p className="text-sm text-muted-foreground">OKRs, budget anual e maturidade dos canais de aquisição.</p>
       </div>
 
+      {/* Charts / Radar & Budget */}
+      <div className="order-2 md:order-3 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Budget por Canal */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <DollarSign className="w-5 h-5 text-primary" /> Budget Mensal por Canal
+            </CardTitle>
+            <p className="text-xs text-muted-foreground mt-1">Total: <strong>R$ 12.200/mês</strong></p>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {budget.map((item, idx) => (
+                <div key={idx} className="space-y-1.5">
+                  <div className="flex justify-between text-sm">
+                    <span className="font-medium">{item.canal}</span>
+                    <span className="text-muted-foreground font-semibold">{item.valor} ({item.percentual}%)</span>
+                  </div>
+                  <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                    <div className={`h-full ${item.cor} rounded-full`} style={{ width: `${item.percentual}%` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Radar de Maturidade */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-primary" /> Maturidade dos Canais
+            </CardTitle>
+            <p className="text-xs text-muted-foreground mt-1">Score de 0–100 por canal</p>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[260px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <RadarChart data={radarData} margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
+                  <PolarGrid stroke="hsl(var(--border))" />
+                  <PolarAngleAxis dataKey="area" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
+                  <RechartsTooltip
+                    contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: '8px' }}
+                  />
+                  <Radar name="Maturidade" dataKey="valor" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.25} strokeWidth={2} />
+                </RadarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* OKRs */}
-      <div className="space-y-4">
+      <div className="order-3 md:order-2 space-y-4">
         <div className="flex items-center justify-between">
           <h4 className="font-semibold text-base flex items-center gap-2">
             <Target className="w-5 h-5 text-primary" /> OKRs de Marketing
@@ -318,59 +370,8 @@ export function PlanejamentoEstrategicoView() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Budget por Canal */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <DollarSign className="w-5 h-5 text-primary" /> Budget Mensal por Canal
-            </CardTitle>
-            <p className="text-xs text-muted-foreground mt-1">Total: <strong>R$ 12.200/mês</strong></p>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {budget.map((b, i) => (
-                <div key={i}>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="font-medium">{b.canal}</span>
-                    <span className="text-muted-foreground">{b.valor} ({b.percentual}%)</span>
-                  </div>
-                  <div className="w-full bg-secondary rounded-full h-2">
-                    <div className={`h-2 rounded-full ${b.cor} transition-all`} style={{ width: `${b.percentual}%` }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Radar de Maturidade */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-primary" /> Maturidade dos Canais
-            </CardTitle>
-            <p className="text-xs text-muted-foreground mt-1">Score de 0–100 por canal</p>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[260px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <RadarChart data={radarData} margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
-                  <PolarGrid stroke="hsl(var(--border))" />
-                  <PolarAngleAxis dataKey="area" tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }} />
-                  <RechartsTooltip
-                    contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: '8px' }}
-                  />
-                  <Radar name="Maturidade" dataKey="valor" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.25} strokeWidth={2} />
-                </RadarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Iniciativas */}
-      <Card>
+      <Card className="order-4 md:order-4">
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-lg flex items-center gap-2">
             <Users className="w-5 h-5 text-primary" /> Iniciativas Estratégicas — H2 2026

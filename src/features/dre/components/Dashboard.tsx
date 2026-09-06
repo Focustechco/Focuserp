@@ -54,9 +54,9 @@ export function Dashboard() {
   }, [contasReceber, contasPagar]);
 
   return (
-    <div className="space-y-6 animate-fade-in pt-2">
+    <div className="flex flex-col space-y-6 animate-fade-in pt-2">
       {/* Header com Filtro de Período do Dashboard */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-card p-3 rounded-lg border">
+      <div className="order-1 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-card p-3 rounded-lg border">
         <div className="flex items-center gap-2">
           <Calendar className="w-4 h-4 text-primary shrink-0" />
           <span className="text-xs font-semibold text-muted-foreground uppercase">Período de Análise:</span>
@@ -86,7 +86,7 @@ export function Dashboard() {
       </div>
 
       {/* Indicadores Principais */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="order-3 md:order-2 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         
         {/* Receita Bruta */}
         <Card>
@@ -154,7 +154,7 @@ export function Dashboard() {
       </div>
 
       {/* Gráficos de Evolução */}
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="order-2 md:order-3 grid gap-6 md:grid-cols-2">
         <Card className="p-4">
           <CardHeader className="p-0 pb-4">
             <CardTitle className="text-base font-semibold">Histórico Mensal: Faturamento vs Despesas</CardTitle>

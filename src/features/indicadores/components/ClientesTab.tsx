@@ -65,9 +65,9 @@ export function ClientesTab() {
   ];
 
   return (
-    <div className="space-y-6 animate-fade-in pt-1">
+    <div className="flex flex-col space-y-6 animate-fade-in pt-1">
       {/* 4 CARDS DE KPIS CLIENTES */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="order-2 md:order-1 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card className="rounded-2xl border shadow-xs bg-card">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Base de Clientes Ativos</CardTitle>
@@ -130,7 +130,7 @@ export function ClientesTab() {
       </div>
 
       {/* GRÁFICOS */}
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="order-1 md:order-2 grid gap-6 md:grid-cols-2">
         {/* Evolução da Base */}
         <Card className="rounded-2xl border shadow-xs bg-card">
           <CardHeader className="pb-3">

@@ -75,9 +75,9 @@ export function DashboardExecutivoCs({
   }, [clients]);
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col space-y-6">
       {/* KPI HERO CARDS */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="order-2 md:order-1 grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="rounded-xl border shadow-xs bg-card">
           <CardContent className="p-4">
             <span className="text-xs text-muted-foreground">MRR Total da Carteira</span>
@@ -125,7 +125,7 @@ export function DashboardExecutivoCs({
       </div>
 
       {/* GRÁFICOS EXECUTIVOS */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="order-1 md:order-2 grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* DISTRIBUIÇÃO HEALTH SCORE */}
         <Card className="rounded-xl border shadow-xs">
           <CardHeader className="py-4 border-b">

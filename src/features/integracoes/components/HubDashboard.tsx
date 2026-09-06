@@ -37,9 +37,9 @@ export function HubDashboard() {
   ];
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="flex flex-col space-y-6 animate-fade-in">
       {/* Cards de Métricas Principais */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
+      <div className="order-2 md:order-1 grid gap-4 md:grid-cols-2 lg:grid-cols-6">
         <Card className="hover:border-primary/50 transition-colors">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-xs font-medium text-muted-foreground">Integrações Ativas</CardTitle>
@@ -108,7 +108,7 @@ export function HubDashboard() {
       </div>
 
       {/* Gráficos do Hub */}
-      <div className="grid gap-6 md:grid-cols-7">
+      <div className="order-1 md:order-2 grid gap-6 md:grid-cols-7">
         <Card className="col-span-4">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">

@@ -102,9 +102,9 @@ export function Dashboard() {
   }, [cobrancas]);
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="flex flex-col space-y-6 animate-fade-in">
       {/* Cards de Métricas Principais */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="order-2 md:order-1 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card className="shadow-xs">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -184,7 +184,7 @@ export function Dashboard() {
       </div>
 
       {/* Gráficos de Desempenho e Canais */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+      <div className="order-1 md:order-2 grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="col-span-4 shadow-xs">
           <CardHeader>
             <CardTitle className="text-base font-bold">Funil de Eficiência de Cobrança</CardTitle>

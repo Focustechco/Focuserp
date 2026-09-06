@@ -75,9 +75,9 @@ export function RhTab() {
   ];
 
   return (
-    <div className="space-y-6 animate-fade-in pt-1">
+    <div className="flex flex-col space-y-6 animate-fade-in pt-1">
       {/* 4 CARDS DE KPIS RH */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="order-2 md:order-1 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card className="rounded-2xl border shadow-xs bg-card">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Quadro de Colaboradores</CardTitle>
@@ -140,7 +140,7 @@ export function RhTab() {
       </div>
 
       {/* GRÁFICOS DE DEPARTAMENTOS E HEADCOUNT */}
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="order-1 md:order-2 grid gap-6 md:grid-cols-2">
         {/* Distribuição por Departamento */}
         <Card className="rounded-2xl border shadow-xs bg-card">
           <CardHeader className="pb-3">
@@ -218,7 +218,7 @@ export function RhTab() {
       </div>
 
       {/* TABELA RESUMO DE DEPARTAMENTOS */}
-      <Card className="rounded-2xl border shadow-xs bg-card">
+      <Card className="order-3 md:order-3 rounded-2xl border shadow-xs bg-card">
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-bold flex items-center justify-between">
             <div className="flex items-center gap-2">

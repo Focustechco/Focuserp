@@ -49,8 +49,8 @@ export function Dashboard() {
   }));
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="flex flex-col space-y-6 animate-fade-in">
+      <div className="order-2 md:order-1 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {/* Card 1: Saldo Real em Caixa */}
         <Card className="border-emerald-200 dark:border-emerald-900 bg-gradient-to-br from-card to-emerald-50/20 dark:to-emerald-950/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -119,7 +119,7 @@ export function Dashboard() {
       </div>
 
       {/* Gráfico de Evolução do Saldo */}
-      <Card>
+      <Card className="order-1 md:order-2">
         <CardHeader>
           <CardTitle className="text-base font-semibold">Evolução do Saldo de Caixa Realizado</CardTitle>
         </CardHeader>

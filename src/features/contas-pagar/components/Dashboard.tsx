@@ -63,8 +63,8 @@ export function Dashboard() {
   });
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="flex flex-col space-y-6 animate-fade-in">
+      <div className="order-2 md:order-1 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">Total a Pagar</CardTitle>
@@ -118,7 +118,7 @@ export function Dashboard() {
         </Card>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+      <div className="order-1 md:order-2 grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="col-span-4">
           <CardHeader>
             <CardTitle>Pagamentos: Previsto x Realizado</CardTitle>

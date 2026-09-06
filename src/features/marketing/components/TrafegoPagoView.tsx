@@ -82,8 +82,8 @@ export function TrafegoPagoView() {
       </div>
 
       {activeTab === 'dashboard' && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="flex flex-col space-y-6">
+          <div className="order-2 md:order-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {kpis.map((kpi, idx) => (
               <Card key={idx}>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -98,7 +98,7 @@ export function TrafegoPagoView() {
             ))}
           </div>
 
-          <Card>
+          <Card className="order-1 md:order-2">
             <CardHeader>
               <CardTitle className="text-lg">Investimento vs Retorno por Plataforma</CardTitle>
             </CardHeader>

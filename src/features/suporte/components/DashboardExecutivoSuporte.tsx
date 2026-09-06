@@ -66,9 +66,9 @@ export function DashboardExecutivoSuporte({ chamados }: DashboardExecutivoSuport
   }));
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="flex flex-col space-y-6 animate-fade-in">
       {/* KPI CARDS ITSM */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+      <div className="order-2 md:order-1 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         <Card className="border-border/80">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 pt-3 px-3">
             <CardTitle className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -136,7 +136,7 @@ export function DashboardExecutivoSuporte({ chamados }: DashboardExecutivoSuport
       </div>
 
       {/* GRÁFICOS VISUAIS DE ATENDIMENTO */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="order-1 md:order-2 grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Gráfico de Status */}
         <Card className="border-border/80">
           <CardHeader className="py-4">

@@ -43,15 +43,15 @@ export function FiscalDashboard() {
   ];
 
   return (
-    <div className="space-y-6 animate-fade-in pt-2">
-      <div className="flex justify-between items-center">
+    <div className="flex flex-col space-y-6 animate-fade-in pt-2">
+      <div className="order-1 flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Painel Fiscal Executivo</h2>
           <p className="text-muted-foreground mt-1 text-sm">Visão geral em tempo real dos documentos e tributos computados no Focus Finance.</p>
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="order-3 md:order-2 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {/* Total Documentos */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -109,7 +109,7 @@ export function FiscalDashboard() {
         </Card>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+      <div className="order-2 md:order-3 grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="col-span-4">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base"><ScanLine className="w-5 h-5 text-orange-600" /> Faturamento vs Compras (Tributado)</CardTitle>

@@ -91,8 +91,8 @@ export function ComercialTab() {
   const COLORS = ['#f97316', '#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#06b6d4'];
 
   return (
-    <div className="space-y-6 animate-fade-in pt-1">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="flex flex-col space-y-6 animate-fade-in pt-1">
+      <div className="order-2 md:order-1 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card className="rounded-2xl border shadow-xs bg-card">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Meta Comercial do Mês</CardTitle>
@@ -157,7 +157,7 @@ export function ComercialTab() {
         </Card>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="order-1 md:order-2 grid gap-6 md:grid-cols-2">
         <Card className="rounded-2xl border shadow-xs bg-card">
           <CardHeader className="pb-3">
             <CardTitle className="text-base font-bold flex items-center gap-2">
@@ -236,7 +236,7 @@ export function ComercialTab() {
         </Card>
       </div>
 
-      <Card className="rounded-2xl border shadow-xs bg-card">
+      <Card className="order-3 md:order-3 rounded-2xl border shadow-xs bg-card">
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-bold flex items-center justify-between">
             <div className="flex items-center gap-2">
