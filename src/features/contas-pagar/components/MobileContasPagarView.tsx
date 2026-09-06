@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { NovaContaSheet } from './NovaContaSheet';
+import { DetalhesContaPagarSheet } from './DetalhesContaPagarSheet';
 import { formatDateBrasilia, getBrasiliaTodayIso } from '@/lib/dateUtils';
 import { toast } from 'sonner';
 
@@ -30,7 +31,8 @@ export function MobileContasPagarView() {
   const [categoriaFilter, setCategoriaFilter] = useState<string>('todas');
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [novaContaOpen, setNovaContaOpen] = useState(false);
-  const [contaParaEditar, setContaParaEditar] = useState<ContaPagar | null>(null);
+  const [detalhesOpen, setDetalhesOpen] = useState(false);
+  const [contaSelecionada, setContaSelecionada] = useState<any | null>(null);
 
   const todayIso = getBrasiliaTodayIso();
 
@@ -150,6 +152,22 @@ export function MobileContasPagarView() {
       toast.success(`Conta de ${formatCurrency(conta.valorNum)} liquidada com sucesso!`);
     } catch (err: any) {
       toast.error(`Erro ao liquidar conta: ${err?.message || 'Falha na operação'}`);
+    }
+  };
+
+  const handleExcluirConta = async (conta: any) => {
+    try {
+      deleteLocalConta(conta.id);
+      queryClient.setQueryData(['contas_pagar'], (old: any) => {
+        if (!Array.isArray(old)) return [];
+        return old.filter((item: any) => item.id !== conta.id);
+      });
+      await financeiroService.deleteContaPagar(conta.id);
+      queryClient.invalidateQueries({ queryKey: ['contas_pagar'] });
+      queryClient.invalidateQueries({ queryKey: ['fluxo_caixa'] });
+      toast.success('Conta excluída com sucesso!');
+    } catch (err: any) {
+      toast.error('Erro ao excluir conta: ' + (err?.message || 'Tente novamente.'));
     }
   };
 
@@ -303,14 +321,11 @@ export function MobileContasPagarView() {
 
           <Button
             size="sm"
-            onClick={() => {
-              setContaParaEditar(null);
-              setNovaContaOpen(true);
-            }}
+            onClick={() => setNovaContaOpen(true)}
             className="h-8.5 px-3 rounded-xl bg-[#FF6A00] hover:bg-orange-600 text-white font-bold text-xs shadow-xs gap-1 shrink-0"
           >
             <Plus className="w-3.5 h-3.5" />
-            Novo
+            Nova
           </Button>
         </div>
 
@@ -355,17 +370,17 @@ export function MobileContasPagarView() {
             <div
               key={c.id}
               onClick={() => {
-                setContaParaEditar(c);
-                setNovaContaOpen(true);
+                setContaSelecionada(c);
+                setDetalhesOpen(true);
               }}
-              className="bg-card rounded-2xl border border-border/80 p-3.5 shadow-xs transition-all active:scale-[0.99] cursor-pointer flex flex-col gap-2.5"
+              className="bg-card rounded-2xl border border-border/80 p-3.5 shadow-xs transition-all active:scale-[0.99] cursor-pointer flex flex-col gap-2.5 hover:border-orange-500/40"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <div className="font-semibold text-xs text-foreground truncate">
                     {c.fornecedorNome || 'Fornecedor não informado'}
                   </div>
-                  <div className="text-[11px] text-muted-foreground truncate mt-0.5">
+                  <div className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">
                     {c.descricao || 'Despesa / Conta a Pagar'}
                   </div>
                   {c.categoria && (
@@ -424,14 +439,19 @@ export function MobileContasPagarView() {
         )}
       </div>
 
-      {/* Sheet de Cadastro / Edição */}
+      {/* Sheet de Detalhes da Conta Selecionada (Descrição e Dados Completos) */}
+      <DetalhesContaPagarSheet
+        open={detalhesOpen}
+        onOpenChange={setDetalhesOpen}
+        conta={contaSelecionada}
+        onPagar={(c) => handlePagarConta(c, { stopPropagation: () => {} } as any)}
+        onExcluir={handleExcluirConta}
+      />
+
+      {/* Sheet de Cadastro / Nova Conta */}
       <NovaContaSheet
         open={novaContaOpen}
-        onOpenChange={(op) => {
-          setNovaContaOpen(op);
-          if (!op) setContaParaEditar(null);
-        }}
-        contaParaEditar={contaParaEditar}
+        onOpenChange={setNovaContaOpen}
       />
     </div>
   );

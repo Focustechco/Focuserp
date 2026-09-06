@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { NovoRecebimentoSheet } from './NovoRecebimentoSheet';
+import { DetalhesRecebimentoSheet } from './DetalhesRecebimentoSheet';
 import { formatDateBrasilia, getBrasiliaTodayIso, parseDateSafe } from '@/lib/dateUtils';
 import { toast } from 'sonner';
 
@@ -30,7 +31,8 @@ export function MobileRecebimentosView() {
   const [categoriaFilter, setCategoriaFilter] = useState<string>('todas');
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [novoRecebimentoOpen, setNovoRecebimentoOpen] = useState(false);
-  const [tituloParaEditar, setTituloParaEditar] = useState<TituloReceber | null>(null);
+  const [detalhesOpen, setDetalhesOpen] = useState(false);
+  const [tituloSelecionado, setTituloSelecionado] = useState<any | null>(null);
 
   const todayIso = getBrasiliaTodayIso();
 
@@ -150,6 +152,22 @@ export function MobileRecebimentosView() {
       toast.success(`Título de ${formatCurrency(titulo.valorNum)} baixado com sucesso!`);
     } catch (err: any) {
       toast.error(`Erro ao dar baixa: ${err?.message || 'Falha na operação'}`);
+    }
+  };
+
+  const handleExcluirTitulo = async (titulo: any) => {
+    try {
+      deleteLocalTitulo(titulo.id);
+      queryClient.setQueryData(['contas_receber'], (old: any) => {
+        if (!Array.isArray(old)) return [];
+        return old.filter((item: any) => item.id !== titulo.id);
+      });
+      await financeiroService.deleteContaReceber(titulo.id);
+      queryClient.invalidateQueries({ queryKey: ['contas_receber'] });
+      queryClient.invalidateQueries({ queryKey: ['fluxo_caixa'] });
+      toast.success('Título excluído com sucesso!');
+    } catch (err: any) {
+      toast.error('Erro ao excluir título: ' + (err?.message || 'Tente novamente.'));
     }
   };
 
@@ -303,10 +321,7 @@ export function MobileRecebimentosView() {
 
           <Button
             size="sm"
-            onClick={() => {
-              setTituloParaEditar(null);
-              setNovoRecebimentoOpen(true);
-            }}
+            onClick={() => setNovoRecebimentoOpen(true)}
             className="h-8.5 px-3 rounded-xl bg-[#FF6A00] hover:bg-orange-600 text-white font-bold text-xs shadow-xs gap-1 shrink-0"
           >
             <Plus className="w-3.5 h-3.5" />
@@ -355,17 +370,17 @@ export function MobileRecebimentosView() {
             <div
               key={t.id}
               onClick={() => {
-                setTituloParaEditar(t);
-                setNovoRecebimentoOpen(true);
+                setTituloSelecionado(t);
+                setDetalhesOpen(true);
               }}
-              className="bg-card rounded-2xl border border-border/80 p-3.5 shadow-xs transition-all active:scale-[0.99] cursor-pointer flex flex-col gap-2.5"
+              className="bg-card rounded-2xl border border-border/80 p-3.5 shadow-xs transition-all active:scale-[0.99] cursor-pointer flex flex-col gap-2.5 hover:border-orange-500/40"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <div className="font-semibold text-xs text-foreground truncate">
                     {t.clienteNome || 'Cliente não identificado'}
                   </div>
-                  <div className="text-[11px] text-muted-foreground truncate mt-0.5">
+                  <div className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">
                     {t.descricao || 'Título a Receber'}
                   </div>
                   {t.categoria && (
@@ -424,14 +439,19 @@ export function MobileRecebimentosView() {
         )}
       </div>
 
-      {/* Sheet de Cadastro / Edição */}
+      {/* Sheet de Detalhes da Conta Selecionada (Descrição e Dados Completos) */}
+      <DetalhesRecebimentoSheet
+        open={detalhesOpen}
+        onOpenChange={setDetalhesOpen}
+        titulo={tituloSelecionado}
+        onBaixar={(t) => handleBaixarTitulo(t, { stopPropagation: () => {} } as any)}
+        onExcluir={handleExcluirTitulo}
+      />
+
+      {/* Sheet de Criação de Novo Recebimento */}
       <NovoRecebimentoSheet
         open={novoRecebimentoOpen}
-        onOpenChange={(op) => {
-          setNovoRecebimentoOpen(op);
-          if (!op) setTituloParaEditar(null);
-        }}
-        tituloParaEditar={tituloParaEditar}
+        onOpenChange={setNovoRecebimentoOpen}
       />
     </div>
   );
