@@ -44,6 +44,9 @@ import { NovoClienteSheet } from "@/features/clientes/components/NovoClienteShee
 import { NovoContratoSheet } from "@/features/contratos/components/NovoContratoSheet";
 import { NovoProjetoSheet } from "@/features/projetos/components/NovoProjetoSheet";
 
+import { TituloReceber } from "@/features/contas-receber/types";
+import { ContaPagar } from "@/features/contas-pagar/types";
+
 const formatBRL = (v?: number | null) => {
   const num = typeof v === "number" && !isNaN(v) ? v : 0;
   return num.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 2 });
@@ -54,12 +57,47 @@ export function MobileDashboard() {
   const { currentUser } = useAuth();
   const { setOpenMobile } = useSidebar();
 
-  // Queries de Dados Reais
-  const { data: contasReceber = [] } = useContasReceberQuery();
-  const { data: contasPagar = [] } = useContasPagarQuery();
+  // Queries e Estados de Dados Reais
+  const { data: localTitulos = [] } = useLocalStorageState<TituloReceber>("focus_contas_receber");
+  const { titulos: queryTitulos = [] } = useContasReceberQuery();
+
+  const { data: localContas = [] } = useLocalStorageState<ContaPagar>("focus_contas_pagar");
+  const { contas: queryContas = [] } = useContasPagarQuery();
+
   const { data: clientes = [] } = useClientesQuery();
   const { data: contratos = [] } = useLocalStorageState<Contrato>("focus_contratos");
   const { data: projetos = [] } = useLocalStorageState<Projeto>("focus_projetos");
+
+  // Fusão Consistente de Dados Reais
+  const contasReceber = useMemo(() => {
+    const map = new Map<string, any>();
+    localTitulos.forEach((t) => {
+      if (t && t.id && ((t.cliente || t.clienteNome) || t.descricao || (t.numero && !t.numero.startsWith('REC-0000')) || Number(t.valorOriginal || t.valor || 0) > 0)) {
+        map.set(t.id, t);
+      }
+    });
+    queryTitulos.forEach((t) => {
+      if (t && t.id && ((t.cliente || t.clienteNome) || t.descricao || (t.numero && !t.numero.startsWith('REC-0000')) || Number(t.valorOriginal || t.valor || 0) > 0)) {
+        if (!map.has(t.id)) map.set(t.id, t);
+      }
+    });
+    return Array.from(map.values());
+  }, [localTitulos, queryTitulos]);
+
+  const contasPagar = useMemo(() => {
+    const map = new Map<string, any>();
+    localContas.forEach((c) => {
+      if (c && c.id && ((c.fornecedor || c.fornecedorNome || c.beneficiario) || c.descricao || Number(c.valorOriginal || c.valor || 0) > 0)) {
+        map.set(c.id, c);
+      }
+    });
+    queryContas.forEach((c) => {
+      if (c && c.id && ((c.fornecedor || c.fornecedorNome || c.beneficiario) || c.descricao || Number(c.valorOriginal || c.valor || 0) > 0)) {
+        if (!map.has(c.id)) map.set(c.id, c);
+      }
+    });
+    return Array.from(map.values());
+  }, [localContas, queryContas]);
 
   // Modais de Criação Rápida
   const [novoRecebimentoOpen, setNovoRecebimentoOpen] = useState(false);
@@ -92,9 +130,9 @@ export function MobileDashboard() {
     });
   };
 
-  const renderValor = (v?: number | null, fallbackNum: number = 0) => {
+  const renderValor = (v?: number | null) => {
     if (hideValues) return "••••••";
-    const val = typeof v === "number" && !isNaN(v) && v !== 0 ? v : (v === 0 ? 0 : fallbackNum);
+    const val = typeof v === "number" && !isNaN(v) ? v : 0;
     return formatBRL(val);
   };
 
@@ -120,56 +158,77 @@ export function MobileDashboard() {
   const metrics = useMemo(() => {
     const hojeIso = getBrasiliaTodayIso();
 
-    const totalRecebido = (contasReceber || [])
-      .filter((t) => {
-        const st = String(t.status || "").toLowerCase();
-        return st === "recebido" || st === "liquidado" || st === "pago";
-      })
-      .reduce((acc, t) => acc + (Number(t.valorRecebido ?? t.valorOriginal ?? t.valor ?? 0) || 0), 0);
+    let totalRecebido = 0;
+    let totalAReceberPendente = 0;
+    let totalReceberHoje = 0;
+    let countReceberHoje = 0;
+    let countAReceberGeral = 0;
 
-    const totalPago = (contasPagar || [])
-      .filter((p) => {
-        const st = String(p.status || "").toLowerCase();
-        return st === "pago" || st === "liquidado" || st === "paga";
-      })
-      .reduce((acc, p) => acc + (Number(p.valorPago ?? p.valorOriginal ?? p.valor ?? 0) || 0), 0);
+    contasReceber.forEach((t) => {
+      const valor = Number(t.valorOriginal ?? t.valor ?? t.saldo ?? 0) || 0;
+      const valorRecebido = Number(t.valorRecebido ?? 0) || 0;
+      const st = String(t.status || "").trim().toLowerCase();
+      const isPago = st === "recebido" || st === "liquidado" || st === "pago";
+      const dataVenc = t.dataVencimento || t.vencimento || t.data_vencimento || "";
+
+      if (isPago) {
+        totalRecebido += (valorRecebido || valor);
+      } else {
+        totalAReceberPendente += valor;
+        countAReceberGeral++;
+        if (dataVenc === hojeIso) {
+          totalReceberHoje += valor;
+          countReceberHoje++;
+        }
+      }
+    });
+
+    let totalPago = 0;
+    let totalAPagarPendente = 0;
+    let totalPagarHoje = 0;
+    let countPagarHoje = 0;
+    let countAPagarGeral = 0;
+
+    contasPagar.forEach((p) => {
+      const valor = Number(p.valorOriginal ?? p.valor ?? p.saldo ?? 0) || 0;
+      const valorPago = Number(p.valorPago ?? 0) || 0;
+      const st = String(p.status || "").trim().toLowerCase();
+      const isPago = st === "pago" || st === "liquidado" || st === "paga";
+      const dataVenc = p.dataVencimento || p.vencimento || p.data_vencimento || "";
+
+      if (isPago) {
+        totalPago += (valorPago || valor);
+      } else {
+        totalAPagarPendente += valor;
+        countAPagarGeral++;
+        if (dataVenc === hojeIso) {
+          totalPagarHoje += valor;
+          countPagarHoje++;
+        }
+      }
+    });
 
     const saldoReal = totalRecebido - totalPago;
-
-    const titulosReceberHoje = (contasReceber || []).filter((t) => {
-      const st = String(t.status || "").toLowerCase();
-      const isNaoPago = st !== "recebido" && st !== "liquidado" && st !== "pago";
-      return isNaoPago && t.dataVencimento === hojeIso;
-    });
-
-    const receberHoje = titulosReceberHoje.reduce(
-      (acc, t) => acc + (Number(t.valorOriginal ?? t.valor ?? 0) || 0),
-      0
-    );
-
-    const titulosPagarHoje = (contasPagar || []).filter((p) => {
-      const st = String(p.status || "").toLowerCase();
-      const isNaoPago = st !== "pago" && st !== "liquidado" && st !== "paga";
-      return isNaoPago && p.dataVencimento === hojeIso;
-    });
-
-    const pagarHoje = titulosPagarHoje.reduce(
-      (acc, p) => acc + (Number(p.valorOriginal ?? p.valor ?? 0) || 0),
-      0
-    );
 
     const clientesAtivos = (clientes || []).filter((c) => String(c.status || "").toLowerCase() !== "inativo").length;
     const contratosAtivos = (contratos || []).filter((c) => String(c.status || "").toLowerCase() === "ativo").length;
     const projetosAtivos = (projetos || []).filter((p) => p.status === "Em Andamento" || p.status === "Planejamento").length;
 
+    const aReceberExibicao = totalReceberHoje > 0 ? totalReceberHoje : totalAReceberPendente;
+    const aPagarExibicao = totalPagarHoje > 0 ? totalPagarHoje : totalAPagarPendente;
+    const countReceberExibicao = totalReceberHoje > 0 ? countReceberHoje : countAReceberGeral;
+    const countPagarExibicao = totalPagarHoje > 0 ? countPagarHoje : countAPagarGeral;
+
     return {
       saldoReal,
       totalRecebido,
       totalPago,
-      receberHoje,
-      pagarHoje,
-      titulosReceberHojeCount: titulosReceberHoje.length,
-      titulosPagarHojeCount: titulosPagarHoje.length,
+      receberHoje: aReceberExibicao,
+      pagarHoje: aPagarExibicao,
+      totalAReceberPendente,
+      totalAPagarPendente,
+      titulosReceberHojeCount: countReceberExibicao,
+      titulosPagarHojeCount: countPagarExibicao,
       clientesAtivos,
       contratosAtivos,
       projetosAtivos,
@@ -200,13 +259,13 @@ export function MobileDashboard() {
       title: "Contas a Receber",
       desc: "Faturamento, cobranças e recebimentos",
       url: "/contas-a-receber",
-      icon: TrendingDown,
+      icon: TrendingUp,
     },
     {
       title: "Contas a Pagar",
       desc: "Controle de despesas e fornecedores",
       url: "/contas-a-pagar",
-      icon: TrendingUp,
+      icon: TrendingDown,
     },
     {
       title: "Oportunidades & CRM",
@@ -297,7 +356,7 @@ export function MobileDashboard() {
           <div className="flex items-center justify-between mt-2.5">
             <div>
               <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-                {renderValor(metrics.saldoReal, 7606.49)}
+                {renderValor(metrics.saldoReal)}
               </div>
             </div>
 
@@ -334,7 +393,7 @@ export function MobileDashboard() {
                 Receitas
               </span>
               <span className="text-xs sm:text-[13px] font-extrabold text-slate-900 dark:text-white block mt-0.5 truncate">
-                {renderValor(metrics.totalRecebido, 12480)}
+                {renderValor(metrics.totalRecebido)}
               </span>
               <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-0.5 mt-0.5">
                 <ArrowUp className="w-2.5 h-2.5 stroke-[2.5]" /> 8,2%
@@ -347,7 +406,7 @@ export function MobileDashboard() {
                 Despesas
               </span>
               <span className="text-xs sm:text-[13px] font-extrabold text-slate-900 dark:text-white block mt-0.5 truncate">
-                {renderValor(metrics.totalPago, 4873.51)}
+                {renderValor(metrics.totalPago)}
               </span>
               <span className="text-[10px] font-bold text-rose-500 flex items-center gap-0.5 mt-0.5">
                 <ArrowUp className="w-2.5 h-2.5 stroke-[2.5]" /> 3,6%
@@ -360,7 +419,7 @@ export function MobileDashboard() {
                 Resultado
               </span>
               <span className="text-xs sm:text-[13px] font-extrabold text-slate-900 dark:text-white block mt-0.5 truncate">
-                {renderValor(metrics.saldoReal, 7606.49)}
+                {renderValor(metrics.saldoReal)}
               </span>
               <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-0.5 mt-0.5">
                 <ArrowUp className="w-2.5 h-2.5 stroke-[2.5]" /> 12,5%
@@ -389,10 +448,10 @@ export function MobileDashboard() {
               </div>
 
               <div className="text-lg sm:text-xl font-black text-emerald-700 dark:text-emerald-400 mt-2.5 tracking-tight">
-                {renderValor(metrics.receberHoje, 2450)}
+                {renderValor(metrics.receberHoje)}
               </div>
               <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-0.5">
-                {metrics.titulosReceberHojeCount || 12} títulos
+                {metrics.titulosReceberHojeCount} títulos
               </p>
             </div>
 
@@ -423,10 +482,10 @@ export function MobileDashboard() {
               </div>
 
               <div className="text-lg sm:text-xl font-black text-rose-600 dark:text-rose-400 mt-2.5 tracking-tight">
-                {renderValor(metrics.pagarHoje, 1230)}
+                {renderValor(metrics.pagarHoje)}
               </div>
               <p className="text-[11px] text-slate-500 dark:text-zinc-400 mt-0.5">
-                {metrics.titulosPagarHojeCount || 8} títulos
+                {metrics.titulosPagarHojeCount} títulos
               </p>
             </div>
 
