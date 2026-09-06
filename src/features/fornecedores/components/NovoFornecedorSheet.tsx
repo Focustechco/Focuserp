@@ -303,7 +303,7 @@ export function NovoFornecedorSheet({
     if (!files || files.length === 0) return;
 
     setIsUploadingDoc(true);
-    const targetId = fornecedorToEdit?.id || `forn-${Date.now()}`;
+    const targetId = fornecedorToEdit?.id || crypto.randomUUID();
     const targetNome = fornecedorNomeOficial || 'Fornecedor';
 
     Array.from(files).forEach(file => {
@@ -367,8 +367,21 @@ export function NovoFornecedorSheet({
       return;
     }
 
-    const targetId = fornecedorToEdit?.id || `forn-${Date.now()}`;
-    const codigoOficial = fornecedorToEdit?.codigo || `F-${Math.floor(100 + Math.random() * 900)}`;
+    const cleanDoc = documento.replace(/\D/g, '');
+    const cleanName = (nomeFantasia.trim() || razaoSocial.trim()).toLowerCase();
+    const existingSame = !isEditing && Array.isArray(fornecedores)
+      ? fornecedores.find(f => {
+          if (!f) return false;
+          const fDoc = (f.documento || f.cnpj || '').replace(/\D/g, '');
+          if (cleanDoc.length >= 11 && fDoc === cleanDoc) return true;
+          const fName = (f.nomeFantasia || f.razaoSocial || '').toLowerCase().trim();
+          if (cleanName && fName === cleanName) return true;
+          return false;
+        })
+      : null;
+
+    const targetId = fornecedorToEdit?.id || existingSame?.id || crypto.randomUUID();
+    const codigoOficial = fornecedorToEdit?.codigo || existingSame?.codigo || `F-${Math.floor(100 + Math.random() * 900)}`;
 
     const novoFornecedor: Fornecedor = {
       id: targetId,
@@ -399,7 +412,7 @@ export function NovoFornecedorSheet({
 
       contatos: [
         {
-          id: `cont-${Date.now()}`,
+          id: crypto.randomUUID(),
           nome: contatoNome.trim() || 'Contato Comercial',
           cargo: contatoCargo.trim() || 'Representante',
           departamento: contatoDepartamento.trim() || 'Comercial',
@@ -413,7 +426,7 @@ export function NovoFornecedorSheet({
 
       dadosBancarios: bancoNome ? [
         {
-          id: `banc-${Date.now()}`,
+          id: crypto.randomUUID(),
           banco: bancoNome.trim(),
           tipoConta: tipoConta,
           agencia: agencia.trim(),

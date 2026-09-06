@@ -50,6 +50,13 @@ export function FornecedoresList() {
     const target = fornecedorToDelete;
     const nome = target.nomeFantasia || target.razaoSocial || 'Fornecedor';
     try {
+      try {
+        const rawDel = localStorage.getItem('focus_app_deleted_fornecedores_ids');
+        const deletedSet = new Set(rawDel ? JSON.parse(rawDel) : []);
+        deletedSet.add(String(target.id));
+        localStorage.setItem('focus_app_deleted_fornecedores_ids', JSON.stringify(Array.from(deletedSet)));
+      } catch {}
+
       deleteItem(target.id);
       await fornecedorService.deleteFornecedor(target.id).catch(err => {
         console.warn('Supabase delete warning (local cache synced):', err);
@@ -70,8 +77,17 @@ export function FornecedoresList() {
   const safeFornecedores = Array.isArray(fornecedores) ? fornecedores : [];
 
   const filteredData = useMemo(() => {
-    return safeFornecedores.filter((f: any) => {
-      if (!f || !f.id) return false;
+    let deletedIds = new Set<string>();
+    try {
+      const rawDel = localStorage.getItem('focus_app_deleted_fornecedores_ids');
+      if (rawDel) {
+        const parsed = JSON.parse(rawDel);
+        if (Array.isArray(parsed)) deletedIds = new Set(parsed.map(String));
+      }
+    } catch {}
+
+    const filtered = safeFornecedores.filter((f: any) => {
+      if (!f || !f.id || deletedIds.has(String(f.id))) return false;
       if (f.caminhoCompleto || f.parentId !== undefined) return false;
       const name = f.nomeFantasia || f.razaoSocial || f.name || f.nome;
       if (!name || name.trim() === '' || name === 'Fornecedor Sem Nome') return false;
@@ -90,6 +106,32 @@ export function FornecedoresList() {
 
       return true;
     });
+
+    // Deduplicação estrita para garantir que nenhum card duplicado seja renderizado
+    const deduplicated: Fornecedor[] = [];
+    const seenIds = new Set<string>();
+    const seenCnpjs = new Set<string>();
+    const seenNames = new Set<string>();
+
+    for (const f of filtered) {
+      if (seenIds.has(String(f.id))) continue;
+      const docClean = (f.documento || f.cnpj || '').replace(/\D/g, '');
+      const nameClean = (f.nomeFantasia || f.razaoSocial || '').toLowerCase().trim();
+
+      if (docClean.length >= 11 && seenCnpjs.has(docClean)) {
+        continue;
+      }
+      if (nameClean && seenNames.has(nameClean) && docClean.length < 11) {
+        continue;
+      }
+
+      seenIds.add(String(f.id));
+      if (docClean.length >= 11) seenCnpjs.add(docClean);
+      if (nameClean) seenNames.add(nameClean);
+      deduplicated.push(f);
+    }
+
+    return deduplicated;
   }, [safeFornecedores, searchTerm, categoriaFilter, statusFilter]);
 
   // Separação em Fornecedores Ativos e Fornecedores Inativos

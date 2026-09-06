@@ -112,9 +112,14 @@ export const fornecedorService = {
       console.warn('[fornecedorService.deleteFornecedor] Erro ao deletar no Supabase:', err?.message);
     }
 
-    // 2. Limpar caches locais
+    // 2. Limpar caches locais e registrar ID excluído
     if (typeof window !== 'undefined') {
       try {
+        const rawDel = window.localStorage.getItem('focus_app_deleted_fornecedores_ids');
+        const deletedSet = new Set(rawDel ? JSON.parse(rawDel) : []);
+        deletedSet.add(String(id));
+        window.localStorage.setItem('focus_app_deleted_fornecedores_ids', JSON.stringify(Array.from(deletedSet)));
+
         ['focus_fornecedores', 'focus_app_focus_fornecedores', 'focus_app_fornecedores'].forEach(key => {
           const raw = window.localStorage.getItem(key);
           if (raw) {

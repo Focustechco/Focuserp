@@ -10,7 +10,21 @@ function toValidUuid(idStr?: string): string {
   if (!idStr) return crypto.randomUUID();
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (uuidRegex.test(idStr)) return idStr;
-  return crypto.randomUUID();
+
+  // Mapeamento determinístico para prefixos customizados (evita gerar novos UUIDs a cada sync)
+  let hash1 = 5381;
+  let hash2 = 52711;
+  for (let i = 0; i < idStr.length; i++) {
+    const char = idStr.charCodeAt(i);
+    hash1 = ((hash1 << 5) + hash1) ^ char;
+    hash2 = ((hash2 << 5) + hash2) ^ char;
+  }
+  const hex1 = Math.abs(hash1).toString(16).padStart(8, '0');
+  const hex2 = Math.abs(hash2).toString(16).padStart(8, '0');
+  const hex3 = Math.abs(hash1 ^ hash2).toString(16).padStart(8, '0');
+  const hex4 = Math.abs(hash1 + hash2).toString(16).padStart(8, '0');
+  const fullHex = (hex1 + hex2 + hex3 + hex4).slice(0, 32);
+  return `${fullHex.slice(0, 8)}-${fullHex.slice(8, 12)}-4${fullHex.slice(13, 16)}-a${fullHex.slice(17, 20)}-${fullHex.slice(20, 32)}`;
 }
 
 function toNullableValidUuid(idStr?: string | null): string | null {
@@ -413,6 +427,21 @@ function toSnakeCasePayload(table: string, item: any): any {
       projeto_id: toNullableValidUuid(item.projetoId || item.projeto_id),
       contrato_id: toNullableValidUuid(item.contratoId || item.contrato_id),
       colaborador_id: toNullableValidUuid(item.colaboradorId || item.colaborador_id),
+      updated_at: new Date().toISOString(),
+    };
+  }
+
+  if (table.includes('fornecedores') || table === 'fornecedores' || table === 'focus_fornecedores') {
+    return {
+      ...base,
+      codigo: item.codigo || `FOR-${validId.slice(0, 4).toUpperCase()}`,
+      razao_social: item.razaoSocial || item.razao_social || item.nomeFantasia || item.nome || 'Fornecedor',
+      nome_fantasia: item.nomeFantasia || item.nome_fantasia || item.razaoSocial || item.razao_social || 'Fornecedor',
+      cnpj: item.cnpj || item.documento || '00.000.000/0001-00',
+      email: item.email || null,
+      telefone: item.telefone || null,
+      categoria: item.categoria || 'Geral',
+      status: item.status === 'Inativo' ? 'Inativo' : 'Ativo',
       updated_at: new Date().toISOString(),
     };
   }
@@ -1335,6 +1364,17 @@ export function useLocalStorageState<T extends { id: string }>(
         }
 
         if (isFornecedores) {
+          let deletedFornecedoresIds = new Set<string>();
+          try {
+            const rawDel = localStorage.getItem('focus_app_deleted_fornecedores_ids');
+            if (rawDel) {
+              const parsed = JSON.parse(rawDel);
+              if (Array.isArray(parsed)) {
+                deletedFornecedoresIds = new Set(parsed.map(String));
+              }
+            }
+          } catch {}
+
           const { data: dbRows, error: dbErr } = await supabase
             .from('fornecedores')
             .select('*')
@@ -1345,11 +1385,19 @@ export function useLocalStorageState<T extends { id: string }>(
           if (!dbErr && Array.isArray(dbRows)) {
             const localMap = new Map<string, any>();
             localCached.forEach((lc: any) => {
-              if (lc && lc.id) localMap.set(String(lc.id), lc);
+              if (lc && lc.id && !deletedFornecedoresIds.has(String(lc.id))) {
+                localMap.set(String(lc.id), lc);
+              }
             });
 
             const mapped = dbRows
-              .filter((item: any) => item && (item.razao_social || item.nome_fantasia || item.nome) && !isDmsFolderObject(item))
+              .filter((item: any) => 
+                item && 
+                item.id && 
+                !deletedFornecedoresIds.has(String(item.id)) && 
+                (item.razao_social || item.nome_fantasia || item.nome) && 
+                !isDmsFolderObject(item)
+              )
               .map((item: any) => {
                 const existing = localMap.get(String(item.id)) || {};
                 const end = item.endereco || existing.endereco || {};
@@ -1403,13 +1451,38 @@ export function useLocalStorageState<T extends { id: string }>(
               }) as unknown as T[];
 
             localCached.forEach((lc: any) => {
-              if (lc && lc.id && !mapped.some((m: any) => m.id === lc.id)) {
+              if (lc && lc.id && !deletedFornecedoresIds.has(String(lc.id)) && !mapped.some((m: any) => m.id === lc.id)) {
                 mapped.push(lc);
               }
             });
 
-            setData(mapped);
-            writeLocalCache(table, mapped);
+            // Deduplicação inteligente de fornecedores (por id, por CNPJ limpo e por nome limpo)
+            const deduplicated: any[] = [];
+            const seenIds = new Set<string>();
+            const seenCnpjs = new Set<string>();
+            const seenNames = new Set<string>();
+
+            for (const item of mapped as any[]) {
+              if (!item || !item.id || seenIds.has(String(item.id))) continue;
+              
+              const docClean = (item.documento || item.cnpj || '').replace(/\D/g, '');
+              const nameClean = (item.nomeFantasia || item.razaoSocial || '').toLowerCase().trim();
+
+              if (docClean.length >= 11 && seenCnpjs.has(docClean)) {
+                continue;
+              }
+              if (nameClean && seenNames.has(nameClean) && docClean.length < 11) {
+                continue;
+              }
+
+              seenIds.add(String(item.id));
+              if (docClean.length >= 11) seenCnpjs.add(docClean);
+              if (nameClean) seenNames.add(nameClean);
+              deduplicated.push(item);
+            }
+
+            setData(deduplicated as unknown as T[]);
+            writeLocalCache(table, deduplicated);
             setError(null);
             return;
           }
@@ -1802,6 +1875,15 @@ export function useLocalStorageState<T extends { id: string }>(
         writeLocalCache(table, updated);
         return updated;
       });
+
+      if (isFornecedores || table === 'focus_fornecedores' || table === 'fornecedores' || primaryDbTable === 'fornecedores') {
+        try {
+          const rawDel = localStorage.getItem('focus_app_deleted_fornecedores_ids');
+          const deletedSet = new Set(rawDel ? JSON.parse(rawDel) : []);
+          deletedSet.add(String(id));
+          localStorage.setItem('focus_app_deleted_fornecedores_ids', JSON.stringify(Array.from(deletedSet)));
+        } catch {}
+      }
 
       if (isUsersTable) {
         try {
