@@ -732,83 +732,7 @@ export function MobileEstoquePatrimonioView() {
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-zinc-950 pb-28">
-      {/* 1. TOP CARDS & RESUMO KPI */}
-      <div className="bg-gradient-to-b from-background to-muted/20 border-b p-3.5 space-y-3">
-        {/* Card Principal: Total Ativos */}
-        <div className="bg-white dark:bg-card border border-border/80 rounded-2xl p-4 shadow-xs flex items-center justify-between">
-          <div className="space-y-1 min-w-0">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-              <Laptop className="w-3.5 h-3.5 text-primary" />
-              Equipamentos & Ativos
-            </span>
-            <div className="text-2xl font-black tracking-tight text-foreground">
-              {stats.totalEquipamentos} ativos
-            </div>
-            <p className="text-[10px] text-muted-foreground">
-              {stats.equipamentosEmUso} em uso ({stats.totalEquipamentos > 0 ? Math.round((stats.equipamentosEmUso / stats.totalEquipamentos) * 100) : 0}%)
-            </p>
-          </div>
-
-          <div className="flex flex-col items-end gap-1.5 shrink-0">
-            <Badge variant="outline" className="text-[10px] font-bold px-2 py-0.5 bg-primary/10 text-primary border-primary/30">
-              {formatCurrency(stats.totalPatrimonioValor)}
-            </Badge>
-            <span className="text-[10px] text-muted-foreground">
-              {stats.totalLicencas} licenças SaaS
-            </span>
-          </div>
-        </div>
-
-        {/* Mini Cards: Estoque & Licenças */}
-        <div className="grid grid-cols-2 gap-2.5">
-          <div
-            onClick={() => setActiveTab('estoque')}
-            className={`bg-white dark:bg-card border rounded-2xl p-3 shadow-xs space-y-1 cursor-pointer transition-all active:scale-[0.99] ${
-              activeTab === 'estoque' ? 'border-primary ring-1 ring-primary/20' : 'border-border/80'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
-                <Package className="w-3 h-3 text-amber-500" />
-                Almoxarifado
-              </span>
-              {stats.itensAbaixoMinimo > 0 ? (
-                <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
-              ) : (
-                <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              )}
-            </div>
-            <div className="text-base font-black text-foreground">
-              {stats.totalEstoqueItens} itens
-            </div>
-            {stats.itensAbaixoMinimo > 0 && (
-              <p className="text-[10px] text-rose-600 font-bold">
-                {stats.itensAbaixoMinimo} abaixo do mín.
-              </p>
-            )}
-          </div>
-
-          <div
-            onClick={() => setActiveTab('licencas')}
-            className={`bg-white dark:bg-card border rounded-2xl p-3 shadow-xs space-y-1 cursor-pointer transition-all active:scale-[0.99] ${
-              activeTab === 'licencas' ? 'border-primary ring-1 ring-primary/20' : 'border-border/80'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
-                <KeyRound className="w-3 h-3 text-indigo-500" />
-                SaaS & Licenças
-              </span>
-              <span className="w-2 h-2 rounded-full bg-indigo-500" />
-            </div>
-            <div className="text-sm font-black text-indigo-600 dark:text-indigo-400 truncate">
-              {formatCurrency(stats.totalLicencasCusto)}/mês
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. STICKY SEARCH, FILTER & ACTION BAR */}
+      {/* 1. STICKY SEARCH, FILTER & ACTION BAR */}
       <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md border-b px-3.5 py-2.5 space-y-2">
         <div className="flex items-center gap-2">
           <div className="relative flex-1">
@@ -915,6 +839,82 @@ export function MobileEstoquePatrimonioView() {
               </button>
             );
           })}
+        </div>
+      </div>
+
+      {/* 2. TOP CARDS & RESUMO KPI */}
+      <div className="bg-gradient-to-b from-background to-muted/20 border-b p-3.5 space-y-3">
+        {/* Card Principal: Total Ativos */}
+        <div className="bg-white dark:bg-card border border-border/80 rounded-2xl p-4 shadow-xs flex items-center justify-between">
+          <div className="space-y-1 min-w-0">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <Laptop className="w-3.5 h-3.5 text-primary" />
+              Equipamentos & Ativos
+            </span>
+            <div className="text-2xl font-black tracking-tight text-foreground">
+              {stats.totalEquipamentos} ativos
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              {stats.equipamentosEmUso} em uso ({stats.totalEquipamentos > 0 ? Math.round((stats.equipamentosEmUso / stats.totalEquipamentos) * 100) : 0}%)
+            </p>
+          </div>
+
+          <div className="flex flex-col items-end gap-1.5 shrink-0">
+            <Badge variant="outline" className="text-[10px] font-bold px-2 py-0.5 bg-primary/10 text-primary border-primary/30">
+              {formatCurrency(stats.totalPatrimonioValor)}
+            </Badge>
+            <span className="text-[10px] text-muted-foreground">
+              {stats.totalLicencas} licenças SaaS
+            </span>
+          </div>
+        </div>
+
+        {/* Mini Cards: Estoque & Licenças */}
+        <div className="grid grid-cols-2 gap-2.5">
+          <div
+            onClick={() => setActiveTab('estoque')}
+            className={`bg-white dark:bg-card border rounded-2xl p-3 shadow-xs space-y-1 cursor-pointer transition-all active:scale-[0.99] ${
+              activeTab === 'estoque' ? 'border-primary ring-1 ring-primary/20' : 'border-border/80'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
+                <Package className="w-3 h-3 text-amber-500" />
+                Almoxarifado
+              </span>
+              {stats.itensAbaixoMinimo > 0 ? (
+                <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+              ) : (
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              )}
+            </div>
+            <div className="text-base font-black text-foreground">
+              {stats.totalEstoqueItens} itens
+            </div>
+            {stats.itensAbaixoMinimo > 0 && (
+              <p className="text-[10px] text-rose-600 font-bold">
+                {stats.itensAbaixoMinimo} abaixo do mín.
+              </p>
+            )}
+          </div>
+
+          <div
+            onClick={() => setActiveTab('licencas')}
+            className={`bg-white dark:bg-card border rounded-2xl p-3 shadow-xs space-y-1 cursor-pointer transition-all active:scale-[0.99] ${
+              activeTab === 'licencas' ? 'border-primary ring-1 ring-primary/20' : 'border-border/80'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
+                <KeyRound className="w-3 h-3 text-indigo-500" />
+                SaaS & Licenças
+              </span>
+              <span className="w-2 h-2 rounded-full bg-indigo-500" />
+            </div>
+            <div className="text-sm font-black text-indigo-600 dark:text-indigo-400 truncate">
+              {formatCurrency(stats.totalLicencasCusto)}/mês
+            </div>
+          </div>
         </div>
       </div>
 
