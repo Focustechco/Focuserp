@@ -11,6 +11,7 @@ import { ConfigApis } from "@/features/configuracoes/components/ConfigApis";
 import { ConfigWebhooks } from "@/features/configuracoes/components/ConfigWebhooks";
 import { ConfigBackup } from "@/features/configuracoes/components/ConfigBackup";
 import { ConfigLogsAuditoria } from "@/features/configuracoes/components/ConfigLogsAuditoria";
+import { MobileConfiguracoesView } from "@/features/configuracoes/components/MobileConfiguracoesView";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Building2, 
@@ -32,7 +33,14 @@ export const Route = createFileRoute("/configuracoes")({
 
 function ConfiguracoesPage() {
   return (
-    <div className="flex-1 space-y-4 p-4 sm:p-6 lg:p-8 pt-6 max-w-full overflow-x-hidden animate-fade-in">
+    <>
+      {/* VISTA MOBILE DEDICADA */}
+      <div className="md:hidden">
+        <MobileConfiguracoesView />
+      </div>
+
+      {/* VISTA DESKTOP */}
+      <div className="hidden md:block flex-1 space-y-4 p-4 sm:p-6 lg:p-8 pt-6 max-w-full overflow-x-hidden animate-fade-in">
       {/* Cabeçalho Padrão do Módulo */}
       <div className="hidden md:flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -154,6 +162,7 @@ function ConfiguracoesPage() {
           <ConfigDashboard />
         </TabsContent>
       </Tabs>
-    </div>
+      </div>
+    </>
   );
 }
