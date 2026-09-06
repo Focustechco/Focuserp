@@ -12,7 +12,6 @@ import {
 import { useEffect, useState, type ReactNode } from "react";
 import { MobileHeader } from "@/components/mobile/MobileHeader";
 import { MobileBottomNav } from "@/components/mobile/MobileBottomNav";
-import { MobileDrawerMenu } from "@/components/mobile/MobileDrawerMenu";
 import { MobileQuickActionSheet } from "@/components/mobile/MobileQuickActionSheet";
 import {
   autoRegisterServiceWorker,
@@ -141,30 +140,20 @@ function RouteAccessGate() {
 
 function AuthenticatedAppContent() {
   const { setOpenMobile } = useSidebar();
-  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [mobileQuickActionOpen, setMobileQuickActionOpen] = useState(false);
-
-  const handleOpenMenu = () => {
-    setMobileDrawerOpen(true);
-    setOpenMobile(true);
-  };
 
   return (
     <div className="flex min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-background">
       <AppSidebar />
       <SidebarInset className="flex min-w-0 flex-1 flex-col w-full max-w-[100vw]">
         <TopBar />
-        <MobileHeader onOpenMenu={handleOpenMenu} />
+        <MobileHeader onOpenMenu={() => setOpenMobile(true)} />
         <div className="flex-1 overflow-x-hidden w-full max-w-[100vw] pb-[calc(4.75rem+env(safe-area-inset-bottom,0px))] md:pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
           <RouteAccessGate />
         </div>
         <MobileBottomNav
-          onOpenMenu={handleOpenMenu}
+          onOpenMenu={() => setOpenMobile(true)}
           onOpenQuickAction={() => setMobileQuickActionOpen(true)}
-        />
-        <MobileDrawerMenu
-          open={mobileDrawerOpen}
-          onOpenChange={setMobileDrawerOpen}
         />
         <MobileQuickActionSheet
           open={mobileQuickActionOpen}
