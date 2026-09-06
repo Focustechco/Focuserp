@@ -82,7 +82,7 @@ const groups = [
     label: "Comercial & Vendas",
     items: [
       { title: "Clientes", url: "/clientes", icon: Users },
-      { title: "CRM Focus", url: "/crm", icon: Target },
+      { title: "CRM Pipeline", url: "/crm", icon: Target },
       { title: "Contratos & Recorrência", url: "/contratos", icon: FileText },
       { title: "Comercial OS", url: "/comercial", icon: ShoppingBag },
       { title: "Marketing & Growth", url: "/marketing", icon: Megaphone },

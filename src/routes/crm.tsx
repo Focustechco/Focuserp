@@ -20,7 +20,7 @@ function ModuloCrmPage() {
       {/* Cabeçalho do Módulo CRM */}
       <div className="hidden md:flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">CRM Focus</h1>
+          <h1 className="text-3xl font-bold tracking-tight">CRM Pipeline</h1>
           <p className="text-muted-foreground mt-1 text-sm">
             Camada de gestão executiva integrada ao ClickUp em tempo real. Automação nativa para Clientes, Contratos e Financeiro.
           </p>

@@ -44,7 +44,7 @@ const MODULE_SECTIONS = [
     title: "Comercial & Vendas",
     items: [
       { name: "Clientes", path: "/clientes", icon: Users },
-      { name: "CRM Focus", path: "/crm", icon: TrendingUp },
+      { name: "CRM Pipeline", path: "/crm", icon: TrendingUp },
       { name: "Contratos & Recorrência", path: "/contratos", icon: FileCheck2 },
       { name: "Comercial OS", path: "/comercial", icon: Megaphone },
       { name: "Marketing & Growth", path: "/marketing", icon: Megaphone },
