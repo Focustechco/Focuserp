@@ -11,13 +11,13 @@ import { NovoEventoAgendaSheet } from './NovoEventoAgendaSheet';
 import { EventoFinanceiro } from '../types';
 
 export function MobileAgendaView() {
-  const [activeTab, setActiveTab] = useState<'timeline' | 'calendario' | 'dashboard'>('timeline');
+  const [activeTab, setActiveTab] = useState<'calendario' | 'timeline' | 'dashboard'>('calendario');
   const [selectedEvent, setSelectedEvent] = useState<EventoFinanceiro | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
 
   const sections = [
-    { id: 'timeline', label: 'Lista / Timeline', icon: LayoutList },
     { id: 'calendario', label: 'Calendário Mensal', icon: Calendar },
+    { id: 'timeline', label: 'Lista / Timeline', icon: LayoutList },
     { id: 'dashboard', label: 'Dashboard Financeiro', icon: Activity },
   ];
 
