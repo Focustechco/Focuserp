@@ -1,11 +1,11 @@
-import React, { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PermissoesDashboard } from "@/features/permissoes/components/PermissoesDashboard";
 import { ColaboradoresPermissoesView } from "@/features/permissoes/components/ColaboradoresPermissoesView";
 import { MatrizPermissoesView } from "@/features/permissoes/components/MatrizPermissoesView";
-import { ShieldCheck, Users, LayoutGrid, RefreshCw, Lock } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { MobilePermissoesView } from "@/features/permissoes/components/MobilePermissoesView";
+import { ShieldCheck, Users, LayoutGrid, Lock } from "lucide-react";
+import { useState } from "react";
 
 export const Route = createFileRoute("/permissoes")({
   component: PermissoesPage,
@@ -15,45 +15,51 @@ function PermissoesPage() {
   const [activeTab, setActiveTab] = useState("colaboradores");
 
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-[1400px] mx-auto w-full animate-fade-in">
-      {/* Cabeçalho do Módulo de Permissões */}
-      <div className="hidden md:flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Permissões & Governança</h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            Gestão de perfis de acesso, matriz de permissões por módulo e alteração de setores com sincronização automática com os módulos RH e Usuários.
-          </p>
-        </div>
+    <>
+      {/* Visualização Mobile Otimizada */}
+      <div className="md:hidden">
+        <MobilePermissoesView />
       </div>
 
-      {/* Navegação por Abas */}
-      <Tabs defaultValue="colaboradores" className="space-y-6 mt-2" onValueChange={setActiveTab}>
-        <div className="border-b pb-2 w-full overflow-x-auto scrollbar-hide">
-          <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
-            <TabsTrigger value="colaboradores" className="gap-2 text-orange-600 font-semibold shrink-0">
-              <Users className="w-4 h-4" /> Colaboradores & Sincronização de Setor
-            </TabsTrigger>
-            <TabsTrigger value="matriz" className="gap-2 shrink-0">
-              <Lock className="w-4 h-4" /> Matriz de Permissões
-            </TabsTrigger>
-            <TabsTrigger value="dashboard" className="gap-2 shrink-0">
-              <LayoutGrid className="w-4 h-4" /> Dashboard de Governança
-            </TabsTrigger>
-          </TabsList>
+      {/* Visualização Desktop */}
+      <div className="hidden md:flex flex-col gap-6 p-6 max-w-[1400px] mx-auto w-full animate-fade-in">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Permissões & Governança</h1>
+            <p className="text-muted-foreground mt-1 text-sm">
+              Gestão de perfis de acesso, matriz de permissões por módulo e alteração de setores com sincronização automática com os módulos RH e Usuários.
+            </p>
+          </div>
         </div>
 
-        <TabsContent value="colaboradores" className="space-y-4 outline-none">
-          <ColaboradoresPermissoesView />
-        </TabsContent>
+        <Tabs defaultValue="colaboradores" className="space-y-6 mt-2" onValueChange={setActiveTab}>
+          <div className="border-b pb-2 w-full overflow-x-auto scrollbar-hide">
+            <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
+              <TabsTrigger value="colaboradores" className="gap-2 text-orange-600 font-semibold shrink-0">
+                <Users className="w-4 h-4" /> Colaboradores & Sincronização de Setor
+              </TabsTrigger>
+              <TabsTrigger value="matriz" className="gap-2 shrink-0">
+                <Lock className="w-4 h-4" /> Matriz de Permissões
+              </TabsTrigger>
+              <TabsTrigger value="dashboard" className="gap-2 shrink-0">
+                <LayoutGrid className="w-4 h-4" /> Dashboard de Governança
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
-        <TabsContent value="matriz" className="space-y-4 outline-none">
-          <MatrizPermissoesView />
-        </TabsContent>
+          <TabsContent value="colaboradores" className="space-y-4 outline-none">
+            <ColaboradoresPermissoesView />
+          </TabsContent>
 
-        <TabsContent value="dashboard" className="space-y-4 outline-none">
-          <PermissoesDashboard />
-        </TabsContent>
-      </Tabs>
-    </div>
+          <TabsContent value="matriz" className="space-y-4 outline-none">
+            <MatrizPermissoesView />
+          </TabsContent>
+
+          <TabsContent value="dashboard" className="space-y-4 outline-none">
+            <PermissoesDashboard />
+          </TabsContent>
+        </Tabs>
+      </div>
+    </>
   );
 }
