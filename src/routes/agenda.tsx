@@ -42,14 +42,14 @@ function AgendaPage() {
           </NovoEventoAgendaSheet>
         </div>
 
-        <Tabs defaultValue="timeline" className="space-y-6 mt-4">
+        <Tabs defaultValue="mensal" className="space-y-6 mt-4">
           <div className="w-full overflow-x-auto scrollbar-hide border-b pb-1">
             <TabsList className="bg-muted/50 p-1 flex w-max min-w-full justify-start gap-1">
-              <TabsTrigger value="timeline" className="gap-2 shrink-0">
-                <LayoutList className="w-4 h-4" /> Lista / Timeline
-              </TabsTrigger>
               <TabsTrigger value="mensal" className="gap-2 text-primary font-medium shrink-0">
                 <Calendar className="w-4 h-4" /> Calendário Mensal
+              </TabsTrigger>
+              <TabsTrigger value="timeline" className="gap-2 shrink-0">
+                <LayoutList className="w-4 h-4" /> Lista / Timeline
               </TabsTrigger>
               <TabsTrigger value="dashboard" className="gap-2 shrink-0">
                 <MapPin className="w-4 h-4" /> Dashboard
@@ -57,12 +57,12 @@ function AgendaPage() {
             </TabsList>
           </div>
 
-          <TabsContent value="timeline" className="space-y-4 outline-none">
-            <AgendaTimeline onEventClick={setSelectedEvent} />
-          </TabsContent>
-
           <TabsContent value="mensal" className="space-y-4 outline-none">
             <CalendarioGrid onEventClick={setSelectedEvent} />
+          </TabsContent>
+
+          <TabsContent value="timeline" className="space-y-4 outline-none">
+            <AgendaTimeline onEventClick={setSelectedEvent} />
           </TabsContent>
           
           <TabsContent value="dashboard" className="space-y-4 outline-none">

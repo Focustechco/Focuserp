@@ -121,92 +121,82 @@ export function ColaboradorSheet({ open, onOpenChange, colaboradorParaEditar }: 
     }
   }, [colaboradorParaEditar, open]);
 
-  const handleSave = () => {
-    const colabNome = nomeCompleto.trim() || 'Novo Colaborador';
-    
-    // Auto-criação da pasta no DMS
-    const pastaRhExiste = pastas.find(p => p.caminhoCompleto === '/RH' || p.nome === 'RH');
-    let rhFolderId = pastaRhExiste ? pastaRhExiste.id : undefined;
+  const handleSave = async () => {
+    try {
+      const colabNome = nomeCompleto.trim() || 'Novo Colaborador';
+      const colabId = colaboradorParaEditar?.id || crypto.randomUUID();
 
-    if (!pastaRhExiste) {
-      rhFolderId = createFolder('RH', undefined, 'RH & Gestão de Pessoas', 'rh');
-    }
+      const novoColab: Partial<Colaborador> = {
+        id: colabId,
+        nomeCompleto: colabNome,
+        nomeSocial: nomeSocial.trim() || undefined,
+        cpf: cpf.trim() || '000.000.000-00',
+        rg: rg.trim() || undefined,
+        dataNascimento: dataNascimento || '1990-01-01',
+        telefone: telefone.trim() || '(11) 99999-9999',
+        emailCorporativo: emailCorporativo.trim() || `${colabNome.toLowerCase().replace(/\s+/g, '.')}@focustecnologia.com.br`,
+        foto: foto.trim() || undefined,
+        fotoUrl: foto.trim() || undefined,
+        avatarUrl: foto.trim() || undefined,
+        matricula: colaboradorParaEditar?.matricula || `FC-${Math.floor(1000 + Math.random() * 9000)}`,
+        cargo: cargo.trim() || 'Desenvolvedor Full Stack',
+        departamento: departamento || 'Tecnologia',
+        gestorImediatoNome: gestorImediatoNome || 'Adriano Leal',
+        tipoContrato: (tipoContrato || 'CLT') as any,
+        regime: (regime || 'Presencial') as any,
+        dataAdmissao: dataAdmissao || new Date().toISOString().split('T')[0],
+        salarioBase: parseFloat(salarioBase) || 7500,
+        jornadaTrabalho: jornadaTrabalho || 'Seg a Sex 09:00 às 18:00',
+        status: (status || 'Ativo') as any,
+        metodoPagamento: {
+          formaPagamento,
+          tipoChavePix: formaPagamento === 'PIX' ? (tipoChavePix as any) : undefined,
+          chavePix: formaPagamento === 'PIX' ? (chavePix.trim() || cpf.trim()) : undefined,
+          banco: banco.trim() || 'Itaú Unibanco',
+          agencia: agencia.trim(),
+          conta: conta.trim(),
+          tipoConta: tipoConta as any,
+          titularConta: titularConta.trim() || colabNome
+        },
+        documentos: documentos || []
+      };
 
-    const subPastaNome = colabNome;
-    const subPastaExiste = pastas.find(p => p.caminhoCompleto === `/RH/${subPastaNome}` || (p.nome === subPastaNome && p.parentId === rhFolderId));
-    
-    let colabFolderId = subPastaExiste ? subPastaExiste.id : undefined;
-    if (!subPastaExiste) {
-      colabFolderId = createFolder(subPastaNome, rhFolderId, `Pasta de documentos do colaborador ${colabNome}`, 'rh');
-    }
+      await saveColaborador(novoColab as any);
 
-    // Auto-criação de arquivos no DMS para cada documento adicionado
-    documentos.forEach((doc) => {
-      const docJaExiste = false;
-      if (!docJaExiste) {
-        uploadDocument({
-          nome: doc.nome,
-          formato: (doc.formato || 'PDF') as any,
-          tamanhoBytes: doc.tamanhoBytes || 1024 * 350,
-          pastaId: colabFolderId,
-          categoria: 'Documentos Pessoais',
-          moduloVinculado: 'rh',
-          tags: ['RH', 'Colaborador', colabNome, doc.tipo],
-          urlDownload: doc.urlDownload || 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=800&auto=format&fit=crop&q=60',
-          versaoAtual: 1,
-          confidencial: true
+      // Auto-criação / sincronização de arquivos no DMS para cada anexo adicionado
+      if (documentos && documentos.length > 0) {
+        documentos.forEach((doc) => {
+          try {
+            dmsService.uploadFileFromModule({
+              nome: doc.nome,
+              colaboradorId: colabId,
+              colaboradorNome: colabNome,
+              moduloOrigem: 'RH',
+              categoria: doc.categoria || 'Documentos Pessoais',
+              urlConteudo: doc.urlDownload || (doc as any).urlConteudo || undefined,
+            });
+          } catch {}
         });
       }
-    });
 
-    const novoColab: Partial<Colaborador> = {
-      id: colaboradorParaEditar ? colaboradorParaEditar.id : crypto.randomUUID(),
-      nomeCompleto: colabNome,
-      nomeSocial: nomeSocial.trim() || undefined,
-      cpf: cpf.trim() || '000.000.000-00',
-      rg: rg.trim() || undefined,
-      dataNascimento: dataNascimento || undefined,
-      telefone: telefone.trim() || undefined,
-      emailCorporativo: emailCorporativo.trim() || `${colabNome.toLowerCase().replace(/\s+/g, '.')}@focustecnologia.com.br`,
-      foto: foto.trim() || undefined,
-      matricula: colaboradorParaEditar?.matricula || `FC-${Math.floor(1000 + Math.random() * 9000)}`,
-      cargo: cargo.trim() || 'Desenvolvedor Full Stack',
-      departamento: departamento || 'Tecnologia',
-      gestorImediatoNome: gestorImediatoNome || 'Adriano Leal',
-      tipoContrato: tipoContrato || 'CLT',
-      regime: regime || 'Presencial',
-      dataAdmissao: dataAdmissao || new Date().toISOString().split('T')[0],
-      salarioBase: parseFloat(salarioBase) || 7500,
-      jornadaTrabalho: jornadaTrabalho || 'Seg a Sex 09:00 às 18:00',
-      status: status || 'Ativo',
-      metodoPagamento: {
-        formaPagamento,
-        tipoChavePix: formaPagamento === 'PIX' ? (tipoChavePix as any) : undefined,
-        chavePix: formaPagamento === 'PIX' ? (chavePix.trim() || cpf.trim()) : undefined,
-        banco: banco.trim() || 'Itaú Unibanco',
-        agencia: agencia.trim(),
-        conta: conta.trim(),
-        tipoConta: tipoConta as any,
-        titularConta: titularConta.trim() || colabNome
-      },
-      documentos
-    };
+      // Disparar Notificação Real
+      try {
+        notificar({
+          titulo: `Novo Colaborador no RH: ${novoColab.nomeCompleto}`,
+          descricao: `Perfil de ${novoColab.cargo} registrado em ${novoColab.departamento}.`,
+          origem: 'RH',
+          tipo: 'Sucesso',
+          prioridade: 'Alta',
+          targetUrl: '/rh',
+          responsavel: gestorImediatoNome || 'Você'
+        });
+      } catch {}
 
-    saveColaborador(novoColab as any);
-    toast.success(`Colaborador "${colabNome}" salvo com sucesso!`);
-
-    // Disparar Notificação Real
-    notificar({
-      titulo: `Novo Colaborador no RH: ${novoColab.nomeCompleto}`,
-      descricao: `Perfil de ${novoColab.cargo} registrado em ${novoColab.departamento}. Pasta DMS criada em /RH/${novoColab.nomeCompleto}.`,
-      origem: 'RH',
-      tipo: 'Sucesso',
-      prioridade: 'Alta',
-      targetUrl: '/rh',
-      responsavel: gestorImediatoNome || 'Você'
-    });
-
-    onOpenChange(false);
+      onOpenChange(false);
+    } catch (err: any) {
+      console.error('[ColaboradorSheet.handleSave] Erro:', err);
+      toast.error(`Erro ao salvar colaborador: ${err?.message || 'Verifique os dados informados'}`);
+    }
   };
 
   return (

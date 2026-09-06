@@ -22,7 +22,18 @@ export const colaboradorService = {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('[colaboradorService.getColaboradores] Supabase Error:', error.message);
+        console.warn('[colaboradorService.getColaboradores] Supabase Error/Fallback:', error.message);
+        if (typeof window !== 'undefined') {
+          for (const key of ['focus_rh_colaboradores', 'focus_colaboradores', 'focus_app_focus_colaboradores']) {
+            const raw = window.localStorage.getItem(key);
+            if (raw) {
+              try {
+                const list = JSON.parse(raw);
+                if (Array.isArray(list) && list.length > 0) return list;
+              } catch {}
+            }
+          }
+        }
         return [];
       }
 
@@ -130,7 +141,18 @@ export const colaboradorService = {
 
       return [];
     } catch (err) {
-      console.error('[colaboradorService.getColaboradores] Erro de conexão:', err);
+      console.warn('[colaboradorService.getColaboradores] Erro de conexão/Fallback:', err);
+      if (typeof window !== 'undefined') {
+        for (const key of ['focus_rh_colaboradores', 'focus_colaboradores', 'focus_app_focus_colaboradores']) {
+          const raw = window.localStorage.getItem(key);
+          if (raw) {
+            try {
+              const list = JSON.parse(raw);
+              if (Array.isArray(list) && list.length > 0) return list;
+            } catch {}
+          }
+        }
+      }
       return [];
     }
   },
