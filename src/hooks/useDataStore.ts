@@ -599,31 +599,33 @@ function toSnakeCasePayload(table: string, item: any): any {
   if (table.includes('centros_custo') || table.includes('centro_custos')) {
     return {
       ...base,
-      ...objectToSnakeCase(item),
       codigo: item.codigo || `CC-${validId.slice(0, 4).toUpperCase()}`,
       nome: item.nome || 'Centro de Custo',
+      tipo: item.tipo || 'Despesa',
+      categoria: item.categoria || 'Geral',
       departamento: item.departamento || 'Geral',
-      responsavel_nome: item.responsavelNome || item.responsavel_nome || item.responsavel || null,
+      responsavel_nome: item.responsavelNome || item.responsavel_nome || item.responsavel || 'Responsável',
+      responsavel_email: item.responsavelEmail || item.responsavel_email || null,
       orcamento_mensal: Number(item.orcamentoMensal ?? item.orcamento_mensal ?? 0) || 0,
+      orcamento_anual: Number(item.orcamentoAnual ?? item.orcamento_anual ?? 0) || 0,
       gasto_acumulado: Number(item.gastoAcumulado ?? item.gasto_acumulado ?? 0) || 0,
       status: item.status || 'Ativo',
       descricao: item.descricao || null,
-      centro_pai_id: item.centroPaiId || item.centro_pai_id || null,
+      centro_pai_id: toNullableValidUuid(item.centroPaiId || item.centro_pai_id),
     };
   }
 
   if (table.includes('plano_contas') || table.includes('categorias')) {
     return {
       ...base,
-      ...objectToSnakeCase(item),
       codigo: item.codigo || `PC-${validId.slice(0, 4).toUpperCase()}`,
       nome: item.nome || 'Categoria',
       tipo: item.tipo || 'Despesa',
       natureza: item.natureza || 'Operacional',
-      status: item.status || 'Ativo',
+      status: item.status === 'Inativa' ? 'Inativo' : (item.status || 'Ativo'),
       cor: item.cor || '#64748B',
       descricao: item.descricao || null,
-      categoria_pai_id: item.categoriaPaiId || item.categoria_pai_id || null,
+      categoria_pai_id: toNullableValidUuid(item.parentId || item.categoriaPaiId || item.categoria_pai_id),
     };
   }
 
@@ -881,17 +883,46 @@ function fromSnakeCaseRow(table: string, row: any): any {
     return {
       ...objectFromSnakeCase(row),
       id: String(row.id),
-      responsavelNome: row.responsavel_nome || row.responsavelNome,
+      codigo: row.codigo || `CC-${String(row.id).slice(0, 4).toUpperCase()}`,
+      nome: row.nome || 'Centro de Custo',
+      tipo: row.tipo || 'Despesa',
+      categoria: row.categoria || 'Geral',
+      departamento: row.departamento || 'Geral',
+      responsavel: row.responsavel_nome || row.responsavel || row.responsavelNome || 'Responsável',
+      responsavelNome: row.responsavel_nome || row.responsavelNome || row.responsavel || 'Responsável',
       orcamentoMensal: Number(row.orcamento_mensal ?? row.orcamentoMensal ?? 0) || 0,
+      orcamentoAnual: Number(row.orcamento_anual ?? row.orcamentoAnual ?? 0) || 0,
       gastoAcumulado: Number(row.gasto_acumulado ?? row.gastoAcumulado ?? 0) || 0,
+      status: (row.status === 'Inativo' ? 'Inativo' : 'Ativo'),
+      descricao: row.descricao || '',
+      centroPaiId: row.centro_pai_id || row.centroPaiId || undefined,
+      rateios: Array.isArray(row.rateios) ? row.rateios : [],
+      projetosVinculados: Array.isArray(row.projetos_vinculados) ? row.projetos_vinculados : [],
+      contratosVinculados: Array.isArray(row.contratos_vinculados) ? row.contratos_vinculados : [],
+      totalReceitaClassificada: Number(row.total_receita_classificada || 0),
+      totalDespesaClassificada: Number(row.total_despesa_classificada || 0),
+      quantidadeLancamentos: Number(row.quantidade_lancamentos || 0),
+      dataCadastro: row.created_at || row.data_cadastro || new Date().toISOString(),
+      ultimaAtualizacao: row.updated_at || row.ultima_atualizacao || new Date().toISOString(),
+      historico: Array.isArray(row.historico) ? row.historico : [],
     };
   }
   if (table.includes('plano_contas') || table.includes('categorias')) {
     return {
       ...objectFromSnakeCase(row),
       id: String(row.id),
+      codigo: row.codigo || `PC-${String(row.id).slice(0, 4).toUpperCase()}`,
       nome: row.nome || 'Categoria',
-      categoriaPaiId: row.categoria_pai_id || row.categoriaPaiId || null,
+      tipo: row.tipo || 'Despesa',
+      natureza: row.natureza || 'Operacional',
+      parentId: row.categoria_pai_id || row.categoriaPaiId || row.parent_id || row.parentId || undefined,
+      categoriaPaiId: row.categoria_pai_id || row.categoriaPaiId || row.parent_id || row.parentId || undefined,
+      status: (row.status === 'Inativo' || row.status === 'Inativa') ? 'Inativa' : 'Ativa',
+      cor: row.cor || '#64748B',
+      descricao: row.descricao || '',
+      dataAtualizacao: row.updated_at || row.data_atualizacao || new Date().toISOString(),
+      qtdLancamentos: Number(row.qtd_lancamentos || 0),
+      saldoAcumuladoMensal: Number(row.saldo_acumulado_mensal || 0),
     };
   }
   if (table.includes('cobrancas') || table.includes('cobranca')) {
@@ -1128,6 +1159,16 @@ const TABLE_MAP: Record<string, string> = {
   'focus_itam_manutencoes': 'manutencoes',
   'manutencoes': 'manutencoes',
   'focus_manutencoes': 'manutencoes',
+
+  // 13. Centros de Custo & Plano de Contas (Categorias)
+  'focus_centro_custos': 'centros_custo',
+  'focus_centros_custo': 'centros_custo',
+  'centros_custo': 'centros_custo',
+  'centro_custos': 'centros_custo',
+  'focus_plano_contas': 'plano_contas',
+  'plano_contas': 'plano_contas',
+  'categorias': 'plano_contas',
+  'focus_categorias': 'plano_contas',
 };
 
 /**
@@ -1150,6 +1191,8 @@ export function useLocalStorageState<T extends { id: string }>(
   const isProjetos = table === 'focus_projetos' || table === 'projetos';
   const isFornecedores = table === 'focus_fornecedores' || table === 'fornecedores';
   const isColaboradores = table === 'focus_colaboradores' || table === 'colaboradores' || table === 'focus_rh_colaboradores';
+  const isCentrosCusto = table === 'focus_centro_custos' || table === 'centros_custo' || table === 'centro_custos' || table === 'focus_centros_custo';
+  const isPlanoContas = table === 'focus_plano_contas' || table === 'plano_contas' || table === 'categorias' || table === 'focus_categorias';
 
   const isMountedRef = useRef(true);
   const isFetchingRef = useRef(false);
@@ -1464,6 +1507,79 @@ export function useLocalStorageState<T extends { id: string }>(
           if (dedupedClientes.length > 0) {
             await supabase.from('clientes').upsert(dedupedClientes, { onConflict: 'id' });
           }
+        } else if (isCentrosCusto) {
+          const payload = items.map((item: any) => {
+            const validId = toValidUuid(item.id);
+            item.id = validId;
+            return {
+              id: validId,
+              codigo: item.codigo || `CC-${validId.slice(0, 4).toUpperCase()}`,
+              nome: item.nome || 'Centro de Custo',
+              tipo: item.tipo || 'Despesa',
+              categoria: item.categoria || 'Geral',
+              departamento: item.departamento || 'Geral',
+              responsavel_nome: item.responsavelNome || item.responsavel || item.responsavel_nome || 'Responsável',
+              responsavel_email: item.responsavelEmail || item.responsavel_email || null,
+              orcamento_mensal: Number(item.orcamentoMensal ?? item.orcamento_mensal ?? 0) || 0,
+              orcamento_anual: Number(item.orcamentoAnual ?? item.orcamento_anual ?? 0) || 0,
+              gasto_acumulado: Number(item.gastoAcumulado ?? item.gasto_acumulado ?? 0) || 0,
+              status: item.status || 'Ativo',
+              descricao: item.descricao || null,
+              centro_pai_id: toNullableValidUuid(item.centroPaiId || item.centro_pai_id),
+              updated_at: new Date().toISOString(),
+            };
+          });
+          const deduped = deduplicateById(payload);
+          if (deduped.length > 0) {
+            const { error: upsertErr } = await supabase.from('centros_custo').upsert(deduped, { onConflict: 'id' });
+            if (upsertErr) {
+              const minimal = deduped.map((c: any) => ({
+                id: c.id,
+                codigo: c.codigo,
+                nome: c.nome,
+                departamento: c.departamento,
+                responsavel_nome: c.responsavel_nome,
+                status: c.status,
+                descricao: c.descricao,
+                updated_at: c.updated_at,
+              }));
+              await supabase.from('centros_custo').upsert(minimal, { onConflict: 'id' });
+            }
+          }
+        } else if (isPlanoContas) {
+          const payload = items.map((item: any) => {
+            const validId = toValidUuid(item.id);
+            item.id = validId;
+            return {
+              id: validId,
+              codigo: item.codigo || `PC-${validId.slice(0, 4).toUpperCase()}`,
+              nome: item.nome || 'Categoria',
+              tipo: item.tipo || 'Despesa',
+              natureza: item.natureza || 'Operacional',
+              categoria_pai_id: toNullableValidUuid(item.parentId || item.categoriaPaiId || item.categoria_pai_id),
+              status: item.status === 'Inativa' ? 'Inativo' : (item.status || 'Ativo'),
+              cor: item.cor || '#64748B',
+              descricao: item.descricao || null,
+              updated_at: new Date().toISOString(),
+            };
+          });
+          const deduped = deduplicateById(payload);
+          if (deduped.length > 0) {
+            const { error: upsertErr } = await supabase.from('plano_contas').upsert(deduped, { onConflict: 'id' });
+            if (upsertErr) {
+              const minimal = deduped.map((p: any) => ({
+                id: p.id,
+                codigo: p.codigo,
+                nome: p.nome,
+                tipo: p.tipo,
+                natureza: p.natureza,
+                status: p.status,
+                descricao: p.descricao,
+                updated_at: p.updated_at,
+              }));
+              await supabase.from('plano_contas').upsert(minimal, { onConflict: 'id' });
+            }
+          }
         } else if (primaryDbTable) {
           const payload = items.map((item: any) => toSnakeCasePayload(primaryDbTable, item));
           const deduped = deduplicateById(payload);
@@ -1486,7 +1602,7 @@ export function useLocalStorageState<T extends { id: string }>(
         console.warn(`[Supabase] Erro ao sincronizar '${table}' com o banco de dados:`, err?.message);
       }
     },
-    [isClientsTable, isColaboradores, isContasPagar, isContasReceber, isContratos, isFornecedores, isProjetos, isUsersTable, primaryDbTable, table]
+    [isCentrosCusto, isClientsTable, isColaboradores, isContasPagar, isContasReceber, isContratos, isFornecedores, isPlanoContas, isProjetos, isUsersTable, primaryDbTable, table]
   );
 
   // ---------------------------------------------------------------------------
@@ -2025,7 +2141,63 @@ export function useLocalStorageState<T extends { id: string }>(
           }
         }
 
-        if (primaryDbTable && !isContasReceber && !isContasPagar && !isContratos && !isProjetos && !isFornecedores && !isColaboradores && !isClientsTable && !isUsersTable) {
+        if (isCentrosCusto) {
+          const { data: dbRows, error: dbErr } = await supabase
+            .from('centros_custo')
+            .select('*')
+            .order('codigo', { ascending: true });
+
+          if (!isMountedRef.current) return;
+
+          if (!dbErr && Array.isArray(dbRows)) {
+            if (dbRows.length > 0) {
+              const mapped = dbRows.map((r: any) => fromSnakeCaseRow('centros_custo', r)) as unknown as T[];
+              setData(mapped);
+              writeLocalCache(table, mapped);
+              setError(null);
+              return;
+            } else {
+              const seedData = (localCached.length > 0 ? localCached : initialValue) as T[];
+              if (seedData.length > 0) {
+                setData(seedData);
+                writeLocalCache(table, seedData);
+                await syncToCloud(seedData);
+              }
+              setError(null);
+              return;
+            }
+          }
+        }
+
+        if (isPlanoContas) {
+          const { data: dbRows, error: dbErr } = await supabase
+            .from('plano_contas')
+            .select('*')
+            .order('codigo', { ascending: true });
+
+          if (!isMountedRef.current) return;
+
+          if (!dbErr && Array.isArray(dbRows)) {
+            if (dbRows.length > 0) {
+              const mapped = dbRows.map((r: any) => fromSnakeCaseRow('plano_contas', r)) as unknown as T[];
+              setData(mapped);
+              writeLocalCache(table, mapped);
+              setError(null);
+              return;
+            } else {
+              const seedData = (localCached.length > 0 ? localCached : initialValue) as T[];
+              if (seedData.length > 0) {
+                setData(seedData);
+                writeLocalCache(table, seedData);
+                await syncToCloud(seedData);
+              }
+              setError(null);
+              return;
+            }
+          }
+        }
+
+        if (primaryDbTable && !isContasReceber && !isContasPagar && !isContratos && !isProjetos && !isFornecedores && !isColaboradores && !isClientsTable && !isUsersTable && !isCentrosCusto && !isPlanoContas) {
           const { data: dbRows, error: dbErr } = await supabase
             .from(primaryDbTable)
             .select('*')

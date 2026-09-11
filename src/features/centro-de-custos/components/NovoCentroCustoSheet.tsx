@@ -66,7 +66,7 @@ export function NovoCentroCustoSheet({ children }: { children?: React.ReactNode 
     const catNome = selectedCatObj ? selectedCatObj.nome : (categoria || (tipo === 'Receita' ? 'Receitas Operacionais' : 'Despesas Operacionais'));
 
     const novoCC: CentroCusto = {
-      id: `cc-${Date.now()}`,
+      id: crypto.randomUUID(),
       codigo: codigo.trim(),
       nome: nome.trim(),
       tipo: (tipo as any) || 'Despesa',

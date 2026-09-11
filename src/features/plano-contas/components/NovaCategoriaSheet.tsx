@@ -154,7 +154,7 @@ export function NovaCategoriaSheet({
       toast.success("Categoria contábil atualizada com sucesso!");
     } else {
       const novaCat: CategoriaFinanceira = {
-        id: `cat-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        id: crypto.randomUUID(),
         codigo: finalCodigo,
         nome: nome.trim(),
         tipo: (tipo as any) || 'Despesa',
