@@ -88,6 +88,14 @@ export interface ReportModelTemplate {
   filterDefaults: Partial<ReportFilterConfig>;
 }
 
+export interface ReportHierarchyGroup {
+  groupTitle: string;
+  groupSubtitle?: string;
+  groupBadge?: string;
+  rows: Array<Record<string, any>>;
+  subtotals?: Array<{ label: string; value: string; color?: string }>;
+}
+
 export interface GeneratedReportData {
   definition: ReportDefinition;
   filters: ReportFilterConfig;
@@ -95,5 +103,8 @@ export interface GeneratedReportData {
   reportNumber: string;
   metricsSummary: Array<{ label: string; value: string; color?: string }>;
   rows: Array<Record<string, any>>;
+  hierarchicalGroups?: ReportHierarchyGroup[];
+  grandTotals?: Array<{ label: string; value: string; color?: string }>;
   chartData?: Array<{ name: string; valor: number }>;
 }
+

@@ -266,6 +266,8 @@ export function useRelatoriosStore() {
 
     let rows: Array<Record<string, any>> = [];
     let metricsSummary: Array<{ label: string; value: string; color?: string }> = [];
+    let hierarchicalGroups: Array<{ groupTitle: string; groupSubtitle?: string; groupBadge?: string; rows: Array<Record<string, any>>; subtotals?: Array<{ label: string; value: string; color?: string }> }> = [];
+    let grandTotals: Array<{ label: string; value: string; color?: string }> = [];
     let chartData: Array<{ name: string; valor: number }> = [];
 
     const formatCurrency = (val: number) => 
@@ -276,7 +278,7 @@ export function useRelatoriosStore() {
       return `${((Math.abs(valor) / Math.abs(base)) * 100).toFixed(1)}%`;
     };
 
-    // 1. FLUXO DE CAIXA (rep-fin-001) - 100% Real
+    // 1. FLUXO DE CAIXA (rep-fin-001) - 100% Real Hierárquico
     if (definition.id === 'rep-fin-001') {
       let accSaldo = 0;
       const todasEntradas = contasReceber.map(c => {
@@ -285,9 +287,9 @@ export function useRelatoriosStore() {
         return {
           data: c.dataVencimento ? new Date(c.dataVencimento).toLocaleDateString('pt-BR') : '-',
           descricao: `${c.cliente || 'Cliente'} - ${c.descricao || 'Recebimento'}`,
-          categoria: 'Entrada',
+          categoria: 'Entrada Operacional',
           entradas: formatCurrency(val),
-          saidas: formatCurrency(0),
+          saidas: '-',
           saldoAcumulado: formatCurrency(accSaldo),
           status: c.status || 'Pendente'
         };
@@ -299,8 +301,8 @@ export function useRelatoriosStore() {
         return {
           data: c.dataVencimento ? new Date(c.dataVencimento).toLocaleDateString('pt-BR') : '-',
           descricao: `${c.fornecedor || 'Fornecedor'} - ${c.descricao || 'Pagamento'}`,
-          categoria: 'Saída',
-          entradas: formatCurrency(0),
+          categoria: c.categoria || 'Saída Operacional',
+          entradas: '-',
           saidas: formatCurrency(val),
           saldoAcumulado: formatCurrency(accSaldo),
           status: c.status || 'Pendente'
@@ -313,10 +315,37 @@ export function useRelatoriosStore() {
       const totalSaidas = contasPagar.reduce((acc, c) => acc + (c.valorOriginal || 0), 0);
       const saldoLiquido = totalEntradas - totalSaidas;
 
+      hierarchicalGroups = [
+        {
+          groupTitle: '1. RECEBIMENTOS & ENTRADAS OPERACIONAIS',
+          groupSubtitle: 'Contas a Receber, faturamentos e entradas de clientes',
+          groupBadge: `${todasEntradas.length} títulos`,
+          rows: todasEntradas,
+          subtotals: [
+            { label: 'Subtotal Entradas', value: formatCurrency(totalEntradas), color: 'text-emerald-600 font-bold' }
+          ]
+        },
+        {
+          groupTitle: '2. DESPESAS & SAÍDAS OPERACIONAIS',
+          groupSubtitle: 'Contas a Pagar, fornecedores, infraestrutura e custos operacionais',
+          groupBadge: `${todasSaidas.length} títulos`,
+          rows: todasSaidas,
+          subtotals: [
+            { label: 'Subtotal Saídas', value: formatCurrency(totalSaidas), color: 'text-rose-600 font-bold' }
+          ]
+        }
+      ];
+
+      grandTotals = [
+        { label: 'Total Geral de Entradas', value: formatCurrency(totalEntradas), color: 'text-emerald-600' },
+        { label: 'Total Geral de Saídas', value: formatCurrency(totalSaidas), color: 'text-rose-600' },
+        { label: 'Resultado Operacional Líquido', value: formatCurrency(saldoLiquido), color: saldoLiquido >= 0 ? 'text-emerald-600' : 'text-rose-600' }
+      ];
+
       metricsSummary = [
-        { label: 'Total Entradas Previstas', value: formatCurrency(totalEntradas), color: 'text-emerald-600' },
-        { label: 'Total Saídas Previstas', value: formatCurrency(totalSaidas), color: 'text-rose-600' },
-        { label: 'Saldo Operacional Líquido', value: formatCurrency(saldoLiquido), color: saldoLiquido >= 0 ? 'text-emerald-600' : 'text-rose-600' }
+        { label: 'Total Entradas', value: formatCurrency(totalEntradas), color: 'text-emerald-600' },
+        { label: 'Total Saídas', value: formatCurrency(totalSaidas), color: 'text-rose-600' },
+        { label: 'Saldo Líquido', value: formatCurrency(saldoLiquido), color: saldoLiquido >= 0 ? 'text-emerald-600' : 'text-rose-600' }
       ];
 
       chartData = [
@@ -324,7 +353,7 @@ export function useRelatoriosStore() {
         { name: 'Saídas', valor: totalSaidas }
       ];
     }
-    // 2. DRE GERENCIAL (rep-fin-002) - 100% Dados Reais sem Mock
+    // 2. DRE GERENCIAL (rep-fin-002) - 100% Dados Reais Hierárquicos
     else if (definition.id === 'rep-fin-002') {
       let receitaBruta = 0;
       let deducoes = 0;
@@ -360,17 +389,61 @@ export function useRelatoriosStore() {
       const lucroLiquido = ebit - despesasFinanceiras;
       const totalBase = receitaBruta || 1;
 
-      rows = [
-        { conta: '1.0 Receita Bruta de Vendas e Serviços', realizado: formatCurrency(receitaBruta), av: '100.0%' },
-        { conta: '2.0 (-) Deduções da Receita Bruta (Impostos/Devoluções)', realizado: formatCurrency(-deducoes), av: calcAV(deducoes, totalBase) },
-        { conta: '3.0 (=) Receita Líquida', realizado: formatCurrency(receitaLiquida), av: calcAV(receitaLiquida, totalBase) },
-        { conta: '4.0 (-) Custos dos Serviços Prestados (CSP/CPV)', realizado: formatCurrency(-custosOperacionais), av: calcAV(custosOperacionais, totalBase) },
-        { conta: '5.0 (=) Lucro Bruto', realizado: formatCurrency(lucroBruto), av: calcAV(lucroBruto, totalBase) },
-        { conta: '6.0 (-) Despesas Administrativas & Operacionais', realizado: formatCurrency(-despesasAdm), av: calcAV(despesasAdm, totalBase) },
-        { conta: '7.0 (-) Despesas Comerciais e Marketing', realizado: formatCurrency(-despesasComerciais), av: calcAV(despesasComerciais, totalBase) },
-        { conta: '8.0 (=) EBITDA (Lucro Antes de Juros e Impostos)', realizado: formatCurrency(ebitda), av: calcAV(ebitda, totalBase) },
-        { conta: '9.0 (-) Despesas Financeiras Líquidas', realizado: formatCurrency(-despesasFinanceiras), av: calcAV(despesasFinanceiras, totalBase) },
-        { conta: '10.0 (=) Lucro Líquido do Exercício', realizado: formatCurrency(lucroLiquido), av: calcAV(lucroLiquido, totalBase) }
+      const groupReceita = [
+        { conta: '1.1 Vendas e Serviços Realizados', realizado: formatCurrency(receitaBruta), av: '100.0%' },
+        { conta: '1.2 (-) Deduções e Impostos Incidentes', realizado: formatCurrency(-deducoes), av: calcAV(deducoes, totalBase) },
+        { conta: '(=) Receita Operacional Líquida', realizado: formatCurrency(receitaLiquida), av: calcAV(receitaLiquida, totalBase) }
+      ];
+
+      const groupCustos = [
+        { conta: '2.1 Custos dos Serviços Prestados (CSP/CPV)', realizado: formatCurrency(-custosOperacionais), av: calcAV(custosOperacionais, totalBase) },
+        { conta: '(=) Lucro Bruto Operacional', realizado: formatCurrency(lucroBruto), av: calcAV(lucroBruto, totalBase) }
+      ];
+
+      const groupDespesas = [
+        { conta: '3.1 Despesas Administrativas & Pessoal', realizado: formatCurrency(-despesasAdm), av: calcAV(despesasAdm, totalBase) },
+        { conta: '3.2 Despesas Comerciais e Marketing', realizado: formatCurrency(-despesasComerciais), av: calcAV(despesasComerciais, totalBase) },
+        { conta: '(=) EBITDA (Lucro Operacional Antes Juros/Impostos)', realizado: formatCurrency(ebitda), av: calcAV(ebitda, totalBase) }
+      ];
+
+      const groupFinanceiro = [
+        { conta: '4.1 Despesas Financeiras e Tarifas Bancárias', realizado: formatCurrency(-despesasFinanceiras), av: calcAV(despesasFinanceiras, totalBase) },
+        { conta: '(=) Lucro Líquido Consolidado do Exercício', realizado: formatCurrency(lucroLiquido), av: calcAV(lucroLiquido, totalBase) }
+      ];
+
+      rows = [...groupReceita, ...groupCustos, ...groupDespesas, ...groupFinanceiro];
+
+      hierarchicalGroups = [
+        {
+          groupTitle: '1.0 ESTRUTURA DE RECEITAS',
+          groupSubtitle: 'Faturamento bruto e deduções tributárias',
+          rows: groupReceita,
+          subtotals: [{ label: 'Receita Líquida', value: formatCurrency(receitaLiquida), color: 'text-emerald-600 font-bold' }]
+        },
+        {
+          groupTitle: '2.0 CUSTOS OPERACIONAIS & MARGEM BRUTA',
+          groupSubtitle: 'Custos diretos de prestação de serviços e infraestrutura',
+          rows: groupCustos,
+          subtotals: [{ label: 'Lucro Bruto', value: formatCurrency(lucroBruto), color: 'text-primary font-bold' }]
+        },
+        {
+          groupTitle: '3.0 DESPESAS OPERACIONAIS & EBITDA',
+          groupSubtitle: 'Gastos administrativos, comerciais e capacidade de geração de caixa',
+          rows: groupDespesas,
+          subtotals: [{ label: 'EBITDA', value: formatCurrency(ebitda), color: 'text-blue-600 font-bold' }]
+        },
+        {
+          groupTitle: '4.0 RESULTADO FINANCEIRO & LUCRO FINAL',
+          groupSubtitle: 'Custo de capital e resultado final',
+          rows: groupFinanceiro,
+          subtotals: [{ label: 'Lucro Líquido Final', value: formatCurrency(lucroLiquido), color: lucroLiquido >= 0 ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold' }]
+        }
+      ];
+
+      grandTotals = [
+        { label: 'Receita Bruta Total', value: formatCurrency(receitaBruta), color: 'text-emerald-600' },
+        { label: 'EBITDA Consolidado', value: formatCurrency(ebitda), color: 'text-blue-600' },
+        { label: 'Lucro Líquido do Exercício', value: formatCurrency(lucroLiquido), color: lucroLiquido >= 0 ? 'text-emerald-600' : 'text-rose-600' }
       ];
 
       metricsSummary = [
@@ -389,198 +462,546 @@ export function useRelatoriosStore() {
         { name: 'Lucro Líquido', valor: lucroLiquido }
       ];
     }
-    // 3. CONTAS A RECEBER (rep-fin-003) - 100% Real
+    // 3. CONTAS A RECEBER (rep-fin-003) - Hierárquico
     else if (definition.id === 'rep-fin-003') {
-      rows = contasReceber.map(c => ({
-        numero: c.numero || `REC-${c.id}`,
-        cliente: c.cliente || 'Cliente não identificado',
-        descricao: c.descricao || 'Título a receber',
-        dataVencimento: c.dataVencimento ? new Date(c.dataVencimento).toLocaleDateString('pt-BR') : '-',
-        valorOriginal: formatCurrency(c.valorOriginal || 0),
-        valorRecebido: formatCurrency(c.valorRecebido || 0),
-        saldo: formatCurrency(c.saldo !== undefined ? c.saldo : ((c.valorOriginal || 0) - (c.valorRecebido || 0))),
-        status: c.status || 'Pendente'
-      }));
+      const hoje = new Date();
+      const vencidos: Array<Record<string, any>> = [];
+      const aVencer: Array<Record<string, any>> = [];
+      const quitados: Array<Record<string, any>> = [];
 
-      const total = contasReceber.reduce((acc, c) => acc + (c.valorOriginal || 0), 0);
-      const recebido = contasReceber.reduce((acc, c) => acc + (c.valorRecebido || 0), 0);
-      const saldoPendente = total - recebido;
+      contasReceber.forEach(c => {
+        const item = {
+          numero: c.numero || `REC-${c.id}`,
+          cliente: c.cliente || 'Cliente não identificado',
+          descricao: c.descricao || 'Título a receber',
+          dataVencimento: c.dataVencimento ? new Date(c.dataVencimento).toLocaleDateString('pt-BR') : '-',
+          valorOriginal: formatCurrency(c.valorOriginal || 0),
+          valorRecebido: formatCurrency(c.valorRecebido || 0),
+          saldo: formatCurrency(c.saldo !== undefined ? c.saldo : ((c.valorOriginal || 0) - (c.valorRecebido || 0))),
+          status: c.status || 'Pendente'
+        };
+
+        if (c.status === 'Pago') {
+          quitados.push(item);
+        } else if (c.dataVencimento && new Date(c.dataVencimento) < hoje) {
+          vencidos.push(item);
+        } else {
+          aVencer.push(item);
+        }
+      });
+
+      rows = [...vencidos, ...aVencer, ...quitados];
+
+      const totalVencido = contasReceber.filter(c => c.status !== 'Pago' && c.dataVencimento && new Date(c.dataVencimento) < hoje).reduce((acc, c) => acc + (c.valorOriginal || 0), 0);
+      const totalAVencer = contasReceber.filter(c => c.status !== 'Pago' && (!c.dataVencimento || new Date(c.dataVencimento) >= hoje)).reduce((acc, c) => acc + (c.valorOriginal || 0), 0);
+      const totalRecebido = contasReceber.filter(c => c.status === 'Pago').reduce((acc, c) => acc + (c.valorRecebido || c.valorOriginal || 0), 0);
+      const totalGeral = contasReceber.reduce((acc, c) => acc + (c.valorOriginal || 0), 0);
+
+      hierarchicalGroups = [
+        {
+          groupTitle: '1. TÍTULOS VENCIDOS EM ABERTO',
+          groupSubtitle: 'Títulos com vencimento expirado que necessitam cobrança imediata',
+          groupBadge: `${vencidos.length} títulos`,
+          rows: vencidos,
+          subtotals: [{ label: 'Subtotal Vencido', value: formatCurrency(totalVencido), color: 'text-rose-600 font-bold' }]
+        },
+        {
+          groupTitle: '2. TÍTULOS A VENCER (CARTEIRA REGULAR)',
+          groupSubtitle: 'Títulos em dia com vencimento futuro no cronograma',
+          groupBadge: `${aVencer.length} títulos`,
+          rows: aVencer,
+          subtotals: [{ label: 'Subtotal a Vencer', value: formatCurrency(totalAVencer), color: 'text-amber-600 font-bold' }]
+        },
+        {
+          groupTitle: '3. TÍTULOS LIQUIDADOS / RECEBIDOS',
+          groupSubtitle: 'Títulos quitados com conciliação realizada',
+          groupBadge: `${quitados.length} títulos`,
+          rows: quitados,
+          subtotals: [{ label: 'Subtotal Recebido', value: formatCurrency(totalRecebido), color: 'text-emerald-600 font-bold' }]
+        }
+      ];
+
+      grandTotals = [
+        { label: 'Total Carteira Emitida', value: formatCurrency(totalGeral) },
+        { label: 'Total Já Recebido', value: formatCurrency(totalRecebido), color: 'text-emerald-600' },
+        { label: 'Saldo Total em Aberto', value: formatCurrency(totalVencido + totalAVencer), color: 'text-rose-600' }
+      ];
 
       metricsSummary = [
-        { label: 'Total a Receber', value: formatCurrency(total) },
-        { label: 'Total Já Recebido', value: formatCurrency(recebido), color: 'text-emerald-600' },
-        { label: 'Saldo Pendente', value: formatCurrency(saldoPendente), color: 'text-amber-600' }
+        { label: 'Total Carteira', value: formatCurrency(totalGeral) },
+        { label: 'Total Recebido', value: formatCurrency(totalRecebido), color: 'text-emerald-600' },
+        { label: 'Saldo em Aberto', value: formatCurrency(totalVencido + totalAVencer), color: 'text-amber-600' }
       ];
     }
-    // 4. CONTAS A PAGAR (rep-fin-004) - 100% Real
+    // 4. CONTAS A PAGAR (rep-fin-004) - Hierárquico
     else if (definition.id === 'rep-fin-004') {
-      rows = contasPagar.map(c => ({
-        numero: c.numero || `PAG-${c.id}`,
-        fornecedor: c.fornecedor || 'Fornecedor',
-        descricao: c.descricao || 'Despesa Operacional',
-        dataVencimento: c.dataVencimento ? new Date(c.dataVencimento).toLocaleDateString('pt-BR') : '-',
-        valorOriginal: formatCurrency(c.valorOriginal || 0),
-        valorPago: formatCurrency(c.valorPago || 0),
-        status: c.status || 'Pendente'
-      }));
+      const hoje = new Date();
+      const vencidas: Array<Record<string, any>> = [];
+      const aVencer: Array<Record<string, any>> = [];
+      const quitadas: Array<Record<string, any>> = [];
 
-      const total = contasPagar.reduce((acc, c) => acc + (c.valorOriginal || 0), 0);
-      const pago = contasPagar.reduce((acc, c) => acc + (c.valorPago || 0), 0);
-      const saldoLiquidar = total - pago;
+      contasPagar.forEach(c => {
+        const item = {
+          numero: c.numero || `PAG-${c.id}`,
+          fornecedor: c.fornecedor || 'Fornecedor',
+          descricao: c.descricao || 'Despesa Operacional',
+          dataVencimento: c.dataVencimento ? new Date(c.dataVencimento).toLocaleDateString('pt-BR') : '-',
+          valorOriginal: formatCurrency(c.valorOriginal || 0),
+          valorPago: formatCurrency(c.valorPago || 0),
+          status: c.status || 'Pendente'
+        };
+
+        if (c.status === 'Pago' || c.status === 'Liquidado') {
+          quitadas.push(item);
+        } else if (c.dataVencimento && new Date(c.dataVencimento) < hoje) {
+          vencidas.push(item);
+        } else {
+          aVencer.push(item);
+        }
+      });
+
+      rows = [...vencidas, ...aVencer, ...quitadas];
+
+      const totalVencido = contasPagar.filter(c => c.status !== 'Pago' && c.dataVencimento && new Date(c.dataVencimento) < hoje).reduce((acc, c) => acc + (c.valorOriginal || 0), 0);
+      const totalAVencer = contasPagar.filter(c => c.status !== 'Pago' && (!c.dataVencimento || new Date(c.dataVencimento) >= hoje)).reduce((acc, c) => acc + (c.valorOriginal || 0), 0);
+      const totalPago = contasPagar.filter(c => c.status === 'Pago').reduce((acc, c) => acc + (c.valorPago || c.valorOriginal || 0), 0);
+      const totalGeral = contasPagar.reduce((acc, c) => acc + (c.valorOriginal || 0), 0);
+
+      hierarchicalGroups = [
+        {
+          groupTitle: '1. OBRIGAÇÕES VENCIDAS PENDENTES',
+          groupSubtitle: 'Contas com prazo expirado pendentes de liquidação',
+          groupBadge: `${vencidas.length} contas`,
+          rows: vencidas,
+          subtotals: [{ label: 'Subtotal Vencido', value: formatCurrency(totalVencido), color: 'text-rose-600 font-bold' }]
+        },
+        {
+          groupTitle: '2. COMPROMISSOS A VENCER (PROGRAMADOS)',
+          groupSubtitle: 'Despesas com vencimento programado nos próximos períodos',
+          groupBadge: `${aVencer.length} contas`,
+          rows: aVencer,
+          subtotals: [{ label: 'Subtotal a Vencer', value: formatCurrency(totalAVencer), color: 'text-amber-600 font-bold' }]
+        },
+        {
+          groupTitle: '3. CONTAS QUITADAS / PAGAS',
+          groupSubtitle: 'Despesas liquidadas com comprovante bancário',
+          groupBadge: `${quitadas.length} contas`,
+          rows: quitadas,
+          subtotals: [{ label: 'Subtotal Pago', value: formatCurrency(totalPago), color: 'text-emerald-600 font-bold' }]
+        }
+      ];
+
+      grandTotals = [
+        { label: 'Total de Obrigações', value: formatCurrency(totalGeral) },
+        { label: 'Total Já Quitado', value: formatCurrency(totalPago), color: 'text-emerald-600' },
+        { label: 'Saldo a Liquidar', value: formatCurrency(totalVencido + totalAVencer), color: 'text-rose-600' }
+      ];
 
       metricsSummary = [
-        { label: 'Total Geral a Pagar', value: formatCurrency(total) },
-        { label: 'Total Quitados', value: formatCurrency(pago), color: 'text-emerald-600' },
-        { label: 'Saldo a Liquidar', value: formatCurrency(saldoLiquidar), color: 'text-rose-600' }
+        { label: 'Total Geral a Pagar', value: formatCurrency(totalGeral) },
+        { label: 'Total Quitados', value: formatCurrency(totalPago), color: 'text-emerald-600' },
+        { label: 'Saldo a Liquidar', value: formatCurrency(totalVencido + totalAVencer), color: 'text-rose-600' }
       ];
     }
-    // 5. INADIMPLÊNCIA & RÉGUA DE COBRANÇA (rep-fin-005) - 100% Real
+    // 5. INADIMPLÊNCIA & RÉGUA DE COBRANÇA (rep-fin-005) - Hierárquico por Faixas de Dias
     else if (definition.id === 'rep-fin-005') {
       const hoje = new Date();
+      const faixa30: Array<Record<string, any>> = [];
+      const faixa60: Array<Record<string, any>> = [];
+      const faixa90Plus: Array<Record<string, any>> = [];
+
       const vencidos = contasReceber.filter(c => {
         if (c.status === 'Vencido') return true;
         if (c.dataVencimento && new Date(c.dataVencimento) < hoje && c.status !== 'Pago') return true;
         return false;
       });
 
-      rows = vencidos.map(c => {
+      vencidos.forEach(c => {
         const vencDate = c.dataVencimento ? new Date(c.dataVencimento) : hoje;
         const diffMs = hoje.getTime() - vencDate.getTime();
         const diasAtrasoCalculado = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
         const cobrancaVinculada = cobrancas.find(cob => cob.clienteId === c.clienteId || cob.clienteNome === c.cliente);
 
-        return {
+        const item = {
           cliente: c.cliente || 'Cliente em atraso',
           titulosVencidos: 1,
           totalVencido: formatCurrency(c.valorOriginal || 0),
           diasAtraso: diasAtrasoCalculado,
           statusCobranca: cobrancaVinculada ? cobrancaVinculada.etapaAtual : 'Aguardando Régua'
         };
+
+        if (diasAtrasoCalculado <= 30) {
+          faixa30.push(item);
+        } else if (diasAtrasoCalculado <= 60) {
+          faixa60.push(item);
+        } else {
+          faixa90Plus.push(item);
+        }
       });
 
+      rows = [...faixa30, ...faixa60, ...faixa90Plus];
+
+      const val30 = faixa30.reduce((acc, c) => acc + (parseFloat(String(c.totalVencido).replace(/[^0-9,-]+/g, '').replace(',', '.')) || 0), 0);
+      const val60 = faixa60.reduce((acc, c) => acc + (parseFloat(String(c.totalVencido).replace(/[^0-9,-]+/g, '').replace(',', '.')) || 0), 0);
+      const val90 = faixa90Plus.reduce((acc, c) => acc + (parseFloat(String(c.totalVencido).replace(/[^0-9,-]+/g, '').replace(',', '.')) || 0), 0);
       const totalInadimplente = vencidos.reduce((acc, c) => acc + (c.valorOriginal || 0), 0);
+
+      hierarchicalGroups = [
+        {
+          groupTitle: '1. FAIXA DE ATÉ 30 DIAS (LEVE)',
+          groupSubtitle: 'Cobrança preventiva e lembretes automáticos',
+          groupBadge: `${faixa30.length} títulos`,
+          rows: faixa30,
+          subtotals: [{ label: 'Subtotal 1 a 30 dias', value: formatCurrency(val30), color: 'text-amber-600 font-bold' }]
+        },
+        {
+          groupTitle: '2. FAIXA DE 31 A 60 DIAS (MODERADO)',
+          groupSubtitle: 'Notificação extrajudicial e contato direto da equipe de cobrança',
+          groupBadge: `${faixa60.length} títulos`,
+          rows: faixa60,
+          subtotals: [{ label: 'Subtotal 31 a 60 dias', value: formatCurrency(val60), color: 'text-orange-600 font-bold' }]
+        },
+        {
+          groupTitle: '3. FAIXA CRÍTICA (61+ DIAS / JURÍDICO)',
+          groupSubtitle: 'Títulos em cobrança contenciosa, protesto ou negativação',
+          groupBadge: `${faixa90Plus.length} títulos`,
+          rows: faixa90Plus,
+          subtotals: [{ label: 'Subtotal 61+ dias', value: formatCurrency(val90), color: 'text-rose-600 font-bold' }]
+        }
+      ];
+
+      grandTotals = [
+        { label: 'Total Geral Vencido', value: formatCurrency(totalInadimplente), color: 'text-rose-600' },
+        { label: 'Qtd Total Títulos Vencidos', value: `${vencidos.length}` }
+      ];
+
       metricsSummary = [
         { label: 'Inadimplência Total', value: formatCurrency(totalInadimplente), color: 'text-rose-600' },
         { label: 'Títulos em Atraso', value: `${vencidos.length}` }
       ];
     }
-    // 6. CADASTRO DE CLIENTES (rep-cli-001) - 100% Real
+    // 6. CADASTRO DE CLIENTES (rep-cli-001) - Hierárquico
     else if (definition.id === 'rep-cli-001') {
-      rows = clientes.map(c => ({
-        codigo: c.codigo || `CLI-${c.id}`,
-        nomeFantasia: c.nomeFantasia || c.razaoSocial || 'Cliente',
-        documento: c.documento || '-',
-        segmento: c.segmento || 'Geral',
-        status: c.status || 'Ativo',
-        dataCadastro: c.dataCadastro ? new Date(c.dataCadastro).toLocaleDateString('pt-BR') : '-'
-      }));
+      const ativos: Array<Record<string, any>> = [];
+      const outros: Array<Record<string, any>> = [];
+
+      clientes.forEach(c => {
+        const item = {
+          codigo: c.codigo || `CLI-${c.id}`,
+          nomeFantasia: c.nomeFantasia || c.razaoSocial || 'Cliente',
+          documento: c.documento || '-',
+          segmento: c.segmento || 'Geral',
+          status: c.status || 'Ativo',
+          dataCadastro: c.dataCadastro ? new Date(c.dataCadastro).toLocaleDateString('pt-BR') : '-'
+        };
+
+        if (c.status === 'Ativo') {
+          ativos.push(item);
+        } else {
+          outros.push(item);
+        }
+      });
+
+      rows = [...ativos, ...outros];
+
+      hierarchicalGroups = [
+        {
+          groupTitle: '1. CLIENTES EM OPERAÇÃO ATIVA',
+          groupSubtitle: 'Parceiros comerciais com contrato ou faturamento ativo',
+          groupBadge: `${ativos.length} clientes`,
+          rows: ativos,
+          subtotals: [{ label: 'Total Ativos', value: `${ativos.length}`, color: 'text-emerald-600 font-bold' }]
+        },
+        {
+          groupTitle: '2. CLIENTES EM PROSPECÇÃO / INATIVOS',
+          groupSubtitle: 'Cadastros pendentes, em negociação ou arquivados',
+          groupBadge: `${outros.length} clientes`,
+          rows: outros,
+          subtotals: [{ label: 'Total Outros', value: `${outros.length}`, color: 'text-slate-600 font-bold' }]
+        }
+      ];
+
+      grandTotals = [
+        { label: 'Base Total Cadastrada', value: `${clientes.length}` },
+        { label: 'Total Clientes Ativos', value: `${ativos.length}`, color: 'text-emerald-600' }
+      ];
 
       metricsSummary = [
         { label: 'Total de Clientes', value: `${clientes.length}` },
-        { label: 'Clientes Ativos', value: `${clientes.filter(c => c.status === 'Ativo').length}`, color: 'text-emerald-600' }
+        { label: 'Clientes Ativos', value: `${ativos.length}`, color: 'text-emerald-600' }
       ];
     }
-    // 7. SAÚDE FINANCEIRA E LTV (rep-cli-002) - 100% Real sem frações artificiais
+    // 7. SAÚDE FINANCEIRA E LTV (rep-cli-002) - Hierárquico por Score
     else if (definition.id === 'rep-cli-002') {
-      rows = clientes.map(c => {
+      const scoreA: Array<Record<string, any>> = [];
+      const scoreB: Array<Record<string, any>> = [];
+      const scoreC: Array<Record<string, any>> = [];
+
+      clientes.forEach(c => {
         const titulosDoCliente = contasReceber.filter(t => t.clienteId === c.id || t.cliente === c.nomeFantasia);
         const ltv = titulosDoCliente.reduce((acc, t) => acc + (t.valorOriginal || 0), 0);
         const recebidoReal = titulosDoCliente.reduce((acc, t) => acc + (t.valorRecebido || 0), 0);
         const saldoAbertoReal = titulosDoCliente.reduce((acc, t) => acc + (t.saldo !== undefined ? t.saldo : ((t.valorOriginal || 0) - (t.valorRecebido || 0))), 0);
         
         let score = 'Excelente (A)';
-        if (saldoAbertoReal > recebidoReal) score = 'Atenção (C)';
+        if (saldoAbertoReal > recebidoReal && saldoAbertoReal > 0) score = 'Atenção (C)';
         else if (saldoAbertoReal > 0) score = 'Bom (B)';
 
-        return {
+        const item = {
           nomeFantasia: c.nomeFantasia || c.razaoSocial || 'Cliente',
           ltvTotal: formatCurrency(ltv),
           recebidoNoPeriodo: formatCurrency(recebidoReal),
           saldoAberto: formatCurrency(saldoAbertoReal),
           scoreSaude: score
         };
+
+        if (score.includes('(A)')) scoreA.push(item);
+        else if (score.includes('(B)')) scoreB.push(item);
+        else scoreC.push(item);
       });
 
+      rows = [...scoreA, ...scoreB, ...scoreC];
+
       const totalLtv = contasReceber.reduce((acc, t) => acc + (t.valorOriginal || 0), 0);
+
+      hierarchicalGroups = [
+        {
+          groupTitle: '1. CLIENTES TIER A (EXCELENTE SAÚDE FINANCEIRA)',
+          groupSubtitle: 'Alta adimplência e histórico exemplar de pagamentos',
+          groupBadge: `${scoreA.length} clientes`,
+          rows: scoreA
+        },
+        {
+          groupTitle: '2. CLIENTES TIER B (BOM / REGULAR)',
+          groupSubtitle: 'Contratos vigentes com pequenos saldos em aberto dentro do prazo',
+          groupBadge: `${scoreB.length} clientes`,
+          rows: scoreB
+        },
+        {
+          groupTitle: '3. CLIENTES TIER C (ATENÇÃO / RISCO)',
+          groupSubtitle: 'Saldos em aberto superiores ao histórico realizado',
+          groupBadge: `${scoreC.length} clientes`,
+          rows: scoreC
+        }
+      ];
+
+      grandTotals = [
+        { label: 'LTV Geral Consolidado', value: formatCurrency(totalLtv), color: 'text-primary' },
+        { label: 'Ticket Médio por Cliente', value: formatCurrency(clientes.length ? totalLtv / clientes.length : 0) }
+      ];
+
       metricsSummary = [
         { label: 'LTV Geral Consolidado', value: formatCurrency(totalLtv), color: 'text-primary' },
         { label: 'Ticket Médio / Cliente', value: formatCurrency(clientes.length ? totalLtv / clientes.length : 0) }
       ];
     }
-    // 8. PROJETOS E RENTABILIDADE (rep-prj-001) - 100% Real
+    // 8. PROJETOS E RENTABILIDADE (rep-prj-001) - Hierárquico
     else if (definition.id === 'rep-prj-001') {
-      rows = projetos.map(p => ({
-        codigo: p.codigo || `PRJ-${p.id}`,
-        nome: p.nome || 'Projeto Empresarial',
-        responsavelPrincipal: p.responsavelPrincipal || 'Gerente de Projeto',
-        valorContratado: formatCurrency(p.valorContratado || 0),
-        progressoGlobal: `${p.progressoGlobal || 0}%`,
-        horasRealizadas: p.horasRealizadas || 0,
-        status: p.status || 'Em Andamento'
-      }));
+      const emAndamento: Array<Record<string, any>> = [];
+      const outros: Array<Record<string, any>> = [];
 
+      projetos.forEach(p => {
+        const item = {
+          codigo: p.codigo || `PRJ-${p.id}`,
+          nome: p.nome || 'Projeto Empresarial',
+          responsavelPrincipal: p.responsavelPrincipal || 'Gerente de Projeto',
+          valorContratado: formatCurrency(p.valorContratado || 0),
+          progressoGlobal: `${p.progressoGlobal || 0}%`,
+          horasRealizadas: p.horasRealizadas || 0,
+          status: p.status || 'Em Andamento'
+        };
+
+        if (p.status === 'Em Andamento') emAndamento.push(item);
+        else outros.push(item);
+      });
+
+      rows = [...emAndamento, ...outros];
+
+      const valAndamento = emAndamento.reduce((acc, p) => acc + (parseFloat(String(p.valorContratado).replace(/[^0-9,-]+/g, '').replace(',', '.')) || 0), 0);
       const valTotal = projetos.reduce((acc, p) => acc + (p.valorContratado || 0), 0);
+
+      hierarchicalGroups = [
+        {
+          groupTitle: '1. PROJETOS ATIVOS EM EXECUÇÃO',
+          groupSubtitle: 'Sprints em andamento com entregas no cronograma',
+          groupBadge: `${emAndamento.length} projetos`,
+          rows: emAndamento,
+          subtotals: [{ label: 'Subtotal em Andamento', value: formatCurrency(valAndamento), color: 'text-primary font-bold' }]
+        },
+        {
+          groupTitle: '2. PROJETOS CONCLUÍDOS / PLANEJAMENTO',
+          groupSubtitle: 'Entregas finalizadas ou em backlog de início',
+          groupBadge: `${outros.length} projetos`,
+          rows: outros
+        }
+      ];
+
+      grandTotals = [
+        { label: 'Total Geral Projetos', value: `${projetos.length}` },
+        { label: 'Valor Total Contratado', value: formatCurrency(valTotal), color: 'text-primary' }
+      ];
+
       metricsSummary = [
         { label: 'Projetos Registrados', value: `${projetos.length}` },
         { label: 'Valor Total Contratado', value: formatCurrency(valTotal), color: 'text-primary' }
       ];
     }
-    // 9. GESTÃO DE PESSOAS (RH) (rep-rh-001) - 100% Real
+    // 9. GESTÃO DE PESSOAS (RH) (rep-rh-001) - Hierárquico por Departamento
     else if (definition.id === 'rep-rh-001') {
-      rows = colaboradores.map(col => ({
-        nome: col.nome || 'Colaborador',
-        cargo: col.cargo || 'Colaborador',
-        departamento: col.departamento || 'Geral',
-        salarioBase: formatCurrency(col.salarioBase || 0),
-        status: col.status || 'Ativo',
-        dataAdmissao: col.dataAdmissao ? new Date(col.dataAdmissao).toLocaleDateString('pt-BR') : '-'
-      }));
+      const deptMap: Record<string, Array<Record<string, any>>> = {};
+
+      colaboradores.forEach(col => {
+        const dept = col.departamento || 'Geral';
+        if (!deptMap[dept]) deptMap[dept] = [];
+
+        deptMap[dept].push({
+          nome: col.nome || 'Colaborador',
+          cargo: col.cargo || 'Colaborador',
+          departamento: dept,
+          salarioBase: formatCurrency(col.salarioBase || 0),
+          status: col.status || 'Ativo',
+          dataAdmissao: col.dataAdmissao ? new Date(col.dataAdmissao).toLocaleDateString('pt-BR') : '-'
+        });
+      });
+
+      rows = Object.values(deptMap).flat();
+
+      hierarchicalGroups = Object.entries(deptMap).map(([deptName, deptRows], idx) => {
+        const subtotal = deptRows.reduce((acc, r) => acc + (parseFloat(String(r.salarioBase).replace(/[^0-9,-]+/g, '').replace(',', '.')) || 0), 0);
+        return {
+          groupTitle: `${idx + 1}. DEPARTAMENTO: ${deptName.toUpperCase()}`,
+          groupSubtitle: `Quadro funcional e folha de pagamento de ${deptName}`,
+          groupBadge: `${deptRows.length} colaboradores`,
+          rows: deptRows,
+          subtotals: [{ label: `Custo Folha (${deptName})`, value: formatCurrency(subtotal), color: 'text-rose-600 font-bold' }]
+        };
+      });
 
       const totalFolha = colaboradores.reduce((acc, c) => acc + (c.salarioBase || 0), 0);
+
+      grandTotals = [
+        { label: 'Total de Colaboradores', value: `${colaboradores.length}` },
+        { label: 'Custo Mensal Total da Folha', value: formatCurrency(totalFolha), color: 'text-rose-600' }
+      ];
+
       metricsSummary = [
         { label: 'Total de Colaboradores', value: `${colaboradores.length}` },
         { label: 'Custo Mensal de Folha', value: formatCurrency(totalFolha), color: 'text-rose-600' }
       ];
     }
-    // 10. MARKETING & MÍDIA (rep-mkt-001) - 100% Real
+    // 10. MARKETING & MÍDIA (rep-mkt-001) - Hierárquico
     else if (definition.id === 'rep-mkt-001') {
-      rows = campanhas.map(camp => ({
-        nome: camp.nome || 'Campanha de Marketing',
-        objetivo: camp.objetivo || 'Geração de Leads',
-        orcamentoTotal: camp.orcamentoTotal ? formatCurrency(typeof camp.orcamentoTotal === 'number' ? camp.orcamentoTotal : parseFloat(String(camp.orcamentoTotal).replace(/[^0-9,.-]/g, '').replace(',', '.')) || 0) : 'R$ 0,00',
-        gasto: camp.gasto ? formatCurrency(typeof camp.gasto === 'number' ? camp.gasto : parseFloat(String(camp.gasto).replace(/[^0-9,.-]/g, '').replace(',', '.')) || 0) : 'R$ 0,00',
-        progresso: `${camp.progresso || 0}%`,
-        status: camp.status || 'Ativa'
-      }));
+      const ativas: Array<Record<string, any>> = [];
+      const concluidas: Array<Record<string, any>> = [];
+
+      campanhas.forEach(camp => {
+        const item = {
+          nome: camp.nome || 'Campanha de Marketing',
+          objetivo: camp.objetivo || 'Geração de Leads',
+          orcamentoTotal: camp.orcamentoTotal ? formatCurrency(typeof camp.orcamentoTotal === 'number' ? camp.orcamentoTotal : parseFloat(String(camp.orcamentoTotal).replace(/[^0-9,.-]/g, '').replace(',', '.')) || 0) : 'R$ 0,00',
+          gasto: camp.gasto ? formatCurrency(typeof camp.gasto === 'number' ? camp.gasto : parseFloat(String(camp.gasto).replace(/[^0-9,.-]/g, '').replace(',', '.')) || 0) : 'R$ 0,00',
+          progresso: `${camp.progresso || 0}%`,
+          status: camp.status || 'Ativa'
+        };
+
+        if (camp.status === 'Ativa') ativas.push(item);
+        else concluidas.push(item);
+      });
+
+      rows = [...ativas, ...concluidas];
+
+      hierarchicalGroups = [
+        {
+          groupTitle: '1. CAMPANHAS ATIVAS EM VEICULAÇÃO',
+          groupSubtitle: 'Investimentos ativos em tráfego e captação',
+          groupBadge: `${ativas.length} campanhas`,
+          rows: ativas
+        },
+        {
+          groupTitle: '2. CAMPANHAS PLANEJADAS / FINALIZADAS',
+          groupSubtitle: 'Histórico de ações e campanhas futuras',
+          groupBadge: `${concluidas.length} campanhas`,
+          rows: concluidas
+        }
+      ];
+
+      grandTotals = [
+        { label: 'Total Geral de Campanhas', value: `${campanhas.length}` }
+      ];
 
       metricsSummary = [
-        { label: 'Campanhas Ativas', value: `${campanhas.length}` }
+        { label: 'Campanhas Ativas', value: `${ativas.length}` }
       ];
     }
-    // 11. CONTRATOS (rep-ct-001 / fallback contratos) - 100% Real
+    // 11. CONTRATOS (rep-ct-001) - Hierárquico
     else if (definition.category === 'Contratos' || definition.id.includes('ct')) {
-      rows = contratos.map(ct => ({
-        numero: ct.numero || `CTR-${ct.id}`,
-        titulo: ct.titulo || 'Contrato Comercial',
-        cliente: ct.clienteNome || 'Cliente',
-        valorTotal: formatCurrency(ct.valorTotal || 0),
-        status: ct.status || 'Vigente',
-        vigenciaFim: ct.dataFim ? new Date(ct.dataFim).toLocaleDateString('pt-BR') : '-'
-      }));
+      const vigentes: Array<Record<string, any>> = [];
+      const outros: Array<Record<string, any>> = [];
 
+      contratos.forEach(ct => {
+        const item = {
+          numero: ct.numero || `CTR-${ct.id}`,
+          titulo: ct.titulo || 'Contrato Comercial',
+          cliente: ct.clienteNome || 'Cliente',
+          valorTotal: formatCurrency(ct.valorTotal || 0),
+          status: ct.status || 'Vigente',
+          vigenciaFim: ct.dataFim ? new Date(ct.dataFim).toLocaleDateString('pt-BR') : '-'
+        };
+
+        if (ct.status === 'Vigente' || ct.status === 'Ativo') vigentes.push(item);
+        else outros.push(item);
+      });
+
+      rows = [...vigentes, ...outros];
+
+      const valVigentes = vigentes.reduce((acc, ct) => acc + (parseFloat(String(ct.valorTotal).replace(/[^0-9,-]+/g, '').replace(',', '.')) || 0), 0);
       const totalCt = contratos.reduce((acc, ct) => acc + (ct.valorTotal || 0), 0);
+
+      hierarchicalGroups = [
+        {
+          groupTitle: '1. CONTRATOS VIGENTES & ATIVOS',
+          groupSubtitle: 'Acordos comerciais com prestação contínua de serviços',
+          groupBadge: `${vigentes.length} contratos`,
+          rows: vigentes,
+          subtotals: [{ label: 'Subtotal Vigentes', value: formatCurrency(valVigentes), color: 'text-emerald-600 font-bold' }]
+        },
+        {
+          groupTitle: '2. CONTRATOS EM RENOVAÇÃO / FINALIZADOS',
+          groupSubtitle: 'Histórico e renovações em tratativa',
+          groupBadge: `${outros.length} contratos`,
+          rows: outros
+        }
+      ];
+
+      grandTotals = [
+        { label: 'Contratos Vigentes', value: `${vigentes.length}`, color: 'text-emerald-600' },
+        { label: 'Valor Global dos Contratos', value: formatCurrency(totalCt), color: 'text-emerald-600' }
+      ];
+
       metricsSummary = [
-        { label: 'Contratos Vigentes', value: `${contratos.length}` },
+        { label: 'Contratos Vigentes', value: `${vigentes.length}` },
         { label: 'Valor Global Contratado', value: formatCurrency(totalCt), color: 'text-emerald-600' }
       ];
     }
-    // 12. DEMAIS RELATÓRIOS DIVERSOS - 100% Real baseados no módulo correspondente
+    // 12. DEMAIS RELATÓRIOS DIVERSOS - Hierárquico
     else {
       rows = clientes.map(c => ({
         item: c.nomeFantasia || c.razaoSocial,
         status: c.status || 'Ativo',
         data: c.dataCadastro ? new Date(c.dataCadastro).toLocaleDateString('pt-BR') : '-'
       }));
+
+      hierarchicalGroups = [
+        {
+          groupTitle: '1. REGISTROS CONSOLIDADOS',
+          groupSubtitle: 'Base oficial de dados cadastrais e operacionais',
+          rows: rows
+        }
+      ];
+
+      grandTotals = [
+        { label: 'Total Registros', value: `${rows.length}` }
+      ];
 
       metricsSummary = [
         { label: 'Total Registros Reais', value: `${rows.length}` },
@@ -595,9 +1016,12 @@ export function useRelatoriosStore() {
       reportNumber,
       metricsSummary,
       rows,
+      hierarchicalGroups,
+      grandTotals,
       chartData
     };
   };
+
 
   const saveReportToDmsVault = (data: GeneratedReportData, format: ReportFormat, fileUrl?: string) => {
     const category = data.definition.category;
