@@ -16,9 +16,14 @@ export interface EventoTimeline {
 export interface Cobranca {
   id: string;
   cliente: string;
+  clienteNome?: string;
+  clienteId?: string;
+  tituloId?: string;
   tituloReferencia: string;
   valor: number;
+  valorTotal?: number;
   vencimento: string; // ISO Date
+  dataVencimento?: string;
   canal: CanalEnvio[];
   dataHoraEnvio?: string; // ISO Datetime
   dataHoraPagamento?: string; // ISO Datetime
@@ -26,7 +31,10 @@ export interface Cobranca {
   statusCobranca: StatusCobranca;
   statusEntrega: StatusEntrega;
   statusLeitura: StatusLeitura;
+  status?: string;
   
+  diasAtraso?: number;
+  etapaAtual?: string;
   responsavel: string;
   
   // Conteúdo gerado/anexado
@@ -45,4 +53,5 @@ export interface Cobranca {
   classificacaoResposta?: TipoResposta;
   
   timeline: EventoTimeline[];
+  historicoInteracoes?: any[];
 }

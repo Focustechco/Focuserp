@@ -86,27 +86,38 @@ export function NovaCobrancaSheet({ children }: { children?: React.ReactNode }) 
       return;
     }
 
-    const cobId = `COB-${Math.floor(1000 + Math.random() * 9000)}`;
+    const cobId = crypto.randomUUID();
     const nowIso = new Date().toISOString();
     const pixChave = `00020126580014br.gov.bcb.pix0136${crypto.randomUUID()}5204000053039865405${valorNum.toFixed(2)}5802BR5913FOCUS ERP6009SAO PAULO62070503***6304`;
+
+    const matchedCliente = clientes.find(c => 
+      c.nomeFantasia?.toLowerCase() === clienteNome.trim().toLowerCase() ||
+      c.razaoSocial?.toLowerCase() === clienteNome.trim().toLowerCase()
+    );
 
     const novaCobranca: Cobranca = {
       id: cobId,
       cliente: clienteNome.trim(),
-      tituloReferencia: referencia || `REC-${Math.floor(1000 + Math.random() * 9000)}`,
+      clienteNome: clienteNome.trim(),
+      clienteId: matchedCliente?.id,
+      tituloId: tituloId || undefined,
+      tituloReferencia: referencia || `REC-${cobId.slice(0, 4).toUpperCase()}`,
       valor: valorNum,
+      valorTotal: valorNum,
       vencimento: vencimento || new Date().toISOString().split('T')[0],
+      dataVencimento: vencimento || new Date().toISOString().split('T')[0],
       canal: canais,
       dataHoraEnvio: agendado ? undefined : nowIso,
       agendamento: agendado ? (dataAgendamento || nowIso) : undefined,
       statusCobranca: agendado ? 'Agendada' : 'Enviada',
+      status: agendado ? 'Agendada' : 'Enviada',
       statusEntrega: agendado ? 'Pendente' : 'Entregue',
       statusLeitura: 'Não lida',
       responsavel: 'Usuário Focus',
       mensagemPersonalizada: mensagem,
       pixCopiaECola: pixChave,
       linhaDigitavel: "34191.79001 01043.510047 91020.150008 8 98760000540000",
-      linkBoleto: `https://focuserp.com.br/boletos/${referencia || cobId}.pdf`,
+      linkBoleto: `https://focuserp.com.br/boletos/${referencia || cobId.slice(0, 8)}.pdf`,
       timeline: [
         {
           id: `t-${Date.now()}-1`,

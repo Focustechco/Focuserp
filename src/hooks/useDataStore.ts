@@ -342,6 +342,16 @@ export function getCandidateKeysForTable(table: string): string[] {
     ].forEach((k) => keys.add(k));
   }
 
+  if (table.includes('cobranca')) {
+    [
+      'focus_cobrancas',
+      'focus_app_focus_cobrancas',
+      'cobrancas',
+      'focus_app_cobrancas',
+      'focus_cobrancas_multicanal',
+    ].forEach((k) => keys.add(k));
+  }
+
   return Array.from(keys);
 }
 
@@ -637,15 +647,43 @@ function toSnakeCasePayload(table: string, item: any): any {
   }
 
   if (table.includes('cobrancas') || table.includes('cobranca')) {
+    const canalList = Array.isArray(item.canal) ? item.canal : (item.canal ? [item.canal] : ['WhatsApp', 'E-mail']);
+    const rawTimeline = Array.isArray(item.timeline) ? item.timeline : (Array.isArray(item.historicoInteracoes) ? item.historicoInteracoes : []);
+    const rawStatus = item.statusCobranca || item.status || 'Pendente';
+    const rawValor = Number(item.valor ?? item.valorTotal ?? item.valor_total ?? 0) || 0;
+    const rawVenc = item.vencimento || item.dataVencimento || item.data_vencimento || new Date().toISOString().split('T')[0];
+
     return {
       ...base,
-      cliente_id: toNullableValidUuid(item.clienteId),
-      cliente_nome: item.clienteNome || item.cliente || 'Cliente',
-      valor: Number(item.valor ?? item.valorTotal ?? 0) || 0,
-      status: item.status || 'Pendente',
-      data_vencimento: item.dataVencimento || item.vencimento || new Date().toISOString().split('T')[0],
-      forma_pagamento: item.formaPagamento || 'Boleto',
-      link_pagamento: item.linkPagamento || null,
+      cliente_id: toNullableValidUuid(item.clienteId || item.cliente_id),
+      cliente_nome: item.cliente || item.clienteNome || item.cliente_nome || 'Cliente',
+      titulo_id: toNullableValidUuid(item.tituloId || item.titulo_id),
+      titulo_referencia: item.tituloReferencia || item.titulo_referencia || item.referencia || `REC-${validId.slice(0, 4).toUpperCase()}`,
+      valor_total: rawValor,
+      valor: rawValor,
+      vencimento: rawVenc,
+      data_vencimento: rawVenc,
+      dias_atraso: Number(item.diasAtraso ?? item.dias_atraso ?? 0) || 0,
+      etapa_atual: item.etapaAtual || item.etapa_atual || 'Lembrete Preventivo',
+      status: rawStatus,
+      status_cobranca: item.statusCobranca || item.status_cobranca || rawStatus,
+      status_entrega: item.statusEntrega || item.status_entrega || 'Pendente',
+      status_leitura: item.statusLeitura || item.status_leitura || 'Não lida',
+      canal: canalList,
+      data_hora_envio: item.dataHoraEnvio || item.data_hora_envio || null,
+      data_hora_pagamento: item.dataHoraPagamento || item.data_hora_pagamento || null,
+      responsavel: item.responsavel || 'Usuário Focus',
+      mensagem_personalizada: item.mensagemPersonalizada || item.mensagem_personalizada || item.mensagem || null,
+      pix_copia_e_cola: item.pixCopiaECola || item.pix_copia_e_cola || null,
+      qr_code_pix: item.qrCodePix || item.qr_code_pix || null,
+      linha_digitavel: item.linhaDigitavel || item.linha_digitavel || null,
+      link_boleto: item.linkBoleto || item.link_boleto || null,
+      agendamento: item.agendamento || null,
+      lembretes_programados: Array.isArray(item.lembretesProgramados) ? item.lembretesProgramados : (item.lembretes_programados || []),
+      resposta_cliente: item.respostaCliente || item.resposta_cliente || null,
+      classificacao_resposta: item.classificacaoResposta || item.classificacao_resposta || null,
+      timeline: rawTimeline,
+      historico_interacoes: rawTimeline,
     };
   }
 
@@ -1003,15 +1041,49 @@ function fromSnakeCaseRow(table: string, row: any): any {
     };
   }
   if (table.includes('cobrancas') || table.includes('cobranca')) {
+    const rawCanal = Array.isArray(row.canal) ? row.canal : (typeof row.canal === 'string' ? [row.canal] : ['WhatsApp', 'E-mail']);
+    const rawTimeline = Array.isArray(row.timeline) ? row.timeline : (Array.isArray(row.historico_interacoes) ? row.historico_interacoes : (Array.isArray(row.historicoInteracoes) ? row.historicoInteracoes : []));
+    const rawStatus = row.status_cobranca || row.statusCobranca || row.status || 'Pendente';
+    const rawStatusEntrega = row.status_entrega || row.statusEntrega || 'Pendente';
+    const rawStatusLeitura = row.status_leitura || row.statusLeitura || 'Não lida';
+    const rawValor = Number(row.valor ?? row.valor_total ?? row.valorTotal ?? 0) || 0;
+    const rawVencimento = row.vencimento || row.data_vencimento || row.dataVencimento || row.created_at || new Date().toISOString().split('T')[0];
+    const clienteName = row.cliente || row.cliente_nome || row.clienteNome || 'Cliente';
+    const tituloRef = row.titulo_referencia || row.tituloReferencia || row.referencia || `REC-${String(row.id).slice(0, 4).toUpperCase()}`;
+
     return {
       ...row,
       id: String(row.id),
-      clienteNome: row.cliente_nome || row.cliente,
-      clienteId: row.cliente_id,
-      valor: Number(row.valor ?? 0) || 0,
-      dataVencimento: row.data_vencimento,
-      formaPagamento: row.forma_pagamento,
-      linkPagamento: row.link_pagamento,
+      cliente: clienteName,
+      clienteNome: clienteName,
+      clienteId: row.cliente_id || row.clienteId || undefined,
+      tituloId: row.titulo_id || row.tituloId || undefined,
+      tituloReferencia: tituloRef,
+      valor: rawValor,
+      valorTotal: rawValor,
+      vencimento: String(rawVencimento).split('T')[0],
+      dataVencimento: String(rawVencimento).split('T')[0],
+      canal: rawCanal,
+      dataHoraEnvio: row.data_hora_envio || row.dataHoraEnvio || undefined,
+      dataHoraPagamento: row.data_hora_pagamento || row.dataHoraPagamento || undefined,
+      statusCobranca: rawStatus,
+      status: rawStatus,
+      statusEntrega: rawStatusEntrega,
+      statusLeitura: rawStatusLeitura,
+      diasAtraso: Number(row.dias_atraso ?? row.diasAtraso ?? 0) || 0,
+      etapaAtual: row.etapa_atual || row.etapaAtual || 'Lembrete Preventivo',
+      responsavel: row.responsavel || 'Usuário Focus',
+      mensagemPersonalizada: row.mensagem_personalizada || row.mensagemPersonalizada || undefined,
+      pixCopiaECola: row.pix_copia_e_cola || row.pixCopiaECola || undefined,
+      qrCodePix: row.qr_code_pix || row.qrCodePix || undefined,
+      linhaDigitavel: row.linha_digitavel || row.linhaDigitavel || undefined,
+      linkBoleto: row.link_boleto || row.linkBoleto || undefined,
+      agendamento: row.agendamento || undefined,
+      lembretesProgramados: Array.isArray(row.lembretes_programados) ? row.lembretes_programados : (Array.isArray(row.lembretesProgramados) ? row.lembretesProgramados : []),
+      respostaCliente: row.resposta_cliente || row.respostaCliente || undefined,
+      classificacaoResposta: row.classificacao_resposta || row.classificacaoResposta || undefined,
+      timeline: rawTimeline,
+      historicoInteracoes: rawTimeline,
     };
   }
   if (table.includes('produtos')) {
@@ -1238,6 +1310,10 @@ const TABLE_MAP: Record<string, string> = {
   'marketing_planejamento_seo': 'marketing_planejamento_seo',
 
   // 11. Permissões, Agenda & Cobranças
+  'focus_cobrancas': 'cobrancas',
+  'cobrancas': 'cobrancas',
+  'focus_app_cobrancas': 'cobrancas',
+  'focus_cobrancas_multicanal': 'cobrancas',
   'focus_permissoes_perfis': 'permissoes_roles',
   'permissoes_roles': 'permissoes_roles',
   'focus_agenda_custom': 'agenda_eventos',
@@ -1301,6 +1377,7 @@ export function useLocalStorageState<T extends { id: string }>(
   const isColaboradores = table === 'focus_colaboradores' || table === 'colaboradores' || table === 'focus_rh_colaboradores';
   const isCentrosCusto = table === 'focus_centro_custos' || table === 'centros_custo' || table === 'centro_custos' || table === 'focus_centros_custo';
   const isPlanoContas = table === 'focus_plano_contas' || table === 'plano_contas' || table === 'categorias' || table === 'focus_categorias';
+  const isCobrancas = table === 'focus_cobrancas' || table === 'cobrancas' || table === 'focus_app_cobrancas' || table === 'focus_cobrancas_multicanal';
 
   const isMountedRef = useRef(true);
   const isFetchingRef = useRef(false);
@@ -1688,6 +1765,28 @@ export function useLocalStorageState<T extends { id: string }>(
               await supabase.from('plano_contas').upsert(minimal, { onConflict: 'id' });
             }
           }
+        } else if (isCobrancas) {
+          const payload = items.map((item: any) => toSnakeCasePayload('cobrancas', item));
+          const deduped = deduplicateById(payload);
+          if (deduped.length > 0) {
+            const { error: upsertErr } = await supabase.from('cobrancas').upsert(deduped, { onConflict: 'id' });
+            if (upsertErr) {
+              const fallbackPayload = deduped.map((c: any) => ({
+                id: c.id,
+                cliente_id: null,
+                titulo_id: null,
+                cliente_nome: c.cliente_nome,
+                titulo_referencia: c.titulo_referencia,
+                valor_total: c.valor_total,
+                dias_atraso: c.dias_atraso,
+                etapa_atual: c.etapa_atual,
+                status: c.status,
+                historico_interacoes: c.historico_interacoes,
+                updated_at: c.updated_at,
+              }));
+              await supabase.from('cobrancas').upsert(fallbackPayload, { onConflict: 'id' });
+            }
+          }
         } else if (primaryDbTable) {
           const payload = items.map((item: any) => toSnakeCasePayload(primaryDbTable, item));
           const deduped = deduplicateById(payload);
@@ -1710,7 +1809,7 @@ export function useLocalStorageState<T extends { id: string }>(
         console.warn(`[Supabase] Erro ao sincronizar '${table}' com o banco de dados:`, err?.message);
       }
     },
-    [isCentrosCusto, isClientsTable, isColaboradores, isContasPagar, isContasReceber, isContratos, isFornecedores, isPlanoContas, isProjetos, isUsersTable, primaryDbTable, table]
+    [isCentrosCusto, isClientsTable, isCobrancas, isColaboradores, isContasPagar, isContasReceber, isContratos, isFornecedores, isPlanoContas, isProjetos, isUsersTable, primaryDbTable, table]
   );
 
   // ---------------------------------------------------------------------------
