@@ -525,12 +525,21 @@ function toSnakeCasePayload(table: string, item: any): any {
     return {
       ...base,
       codigo_patrimonial: item.codigoPatrimonial || item.numeroPatrimonial || item.codigoInterno || `PAT-${validId.slice(0, 4).toUpperCase()}`,
+      numero_patrimonial: item.numeroPatrimonial || item.codigoPatrimonial,
+      codigo_interno: item.codigoInterno,
       nome: item.nome || item.descricao || 'Ativo Patrimonial',
       categoria: item.categoria || 'Geral',
       valor: Number(item.valor ?? item.valorAquisicao ?? item.valorCompra ?? 0) || 0,
+      valor_compra: Number(item.valorCompra ?? item.valor ?? 0) || 0,
+      valor_atual: Number(item.valorAtual ?? 0) || 0,
+      vida_util_anos: Number(item.vidaUtilAnos ?? 0) || 0,
+      depreciacao_acumulada: Number(item.depreciacaoAcumulada ?? 0) || 0,
+      estado_conservacao: item.estadoConservacao || 'Bom',
+      situacao: item.situacao || item.status || 'Ativo',
+      status: item.status || item.situacao || 'Ativo',
+      centro_custo_nome: item.centroCustoNome || item.departamento || null,
       data_aquisicao: item.dataAquisicao || new Date().toISOString().split('T')[0],
       localizacao: item.localizacao || 'Sede Principal',
-      status: item.status || 'Ativo',
       responsavel: item.responsavel || item.responsavelNome || null,
     };
   }
@@ -768,7 +777,7 @@ function fromSnakeCaseRow(table: string, row: any): any {
 
   if (table.includes('equipamento')) {
     return {
-      ...row,
+      ...objectFromSnakeCase(row),
       id: String(row.id),
       codigoPatrimonial: row.codigo_patrimonial || row.codigoPatrimonial,
       valorCompra: Number(row.valor_compra ?? row.valorCompra ?? 0) || 0,
@@ -784,7 +793,7 @@ function fromSnakeCaseRow(table: string, row: any): any {
   }
   if (table.includes('estoque') || table.includes('almoxarifado')) {
     return {
-      ...row,
+      ...objectFromSnakeCase(row),
       id: String(row.id),
       quantidade: Number(row.quantidade ?? 0) || 0,
       quantidadeMinima: Number(row.quantidade_minima ?? row.quantidadeMinima ?? 0) || 0,
@@ -795,7 +804,7 @@ function fromSnakeCaseRow(table: string, row: any): any {
   }
   if (table.includes('licenca') || table.includes('software')) {
     return {
-      ...row,
+      ...objectFromSnakeCase(row),
       id: String(row.id),
       software: row.software || row.nome || 'Software',
       fabricante: row.fabricante || 'Fabricante',
@@ -808,16 +817,24 @@ function fromSnakeCaseRow(table: string, row: any): any {
   }
   if (table.includes('patrimonio') || table.includes('ativo')) {
     return {
-      ...row,
+      ...objectFromSnakeCase(row),
       id: String(row.id),
-      codigoPatrimonial: row.codigo_patrimonial || row.numeroPatrimonial,
-      valor: Number(row.valor ?? 0) || 0,
-      dataAquisicao: row.data_aquisicao,
+      numeroPatrimonial: row.numero_patrimonial || row.codigo_patrimonial || row.numeroPatrimonial || row.codigoPatrimonial,
+      codigoPatrimonial: row.codigo_patrimonial || row.numero_patrimonial || row.codigoPatrimonial || row.numeroPatrimonial,
+      codigoInterno: row.codigo_interno || row.codigoInterno,
+      valorCompra: Number(row.valor_compra ?? row.valorCompra ?? row.valor ?? 0) || 0,
+      valorAtual: Number(row.valor_atual ?? row.valorAtual ?? 0) || 0,
+      vidaUtilAnos: Number(row.vida_util_anos ?? row.vidaUtilAnos ?? 0) || 0,
+      depreciacaoAcumulada: Number(row.depreciacao_acumulada ?? row.depreciacaoAcumulada ?? 0) || 0,
+      estadoConservacao: row.estado_conservacao || row.estadoConservacao || 'Bom',
+      situacao: row.situacao || row.status || 'Ativo',
+      centroCustoNome: row.centro_custo_nome || row.centroCustoNome || row.departamento || null,
+      dataAquisicao: row.data_aquisicao || row.dataAquisicao,
     };
   }
   if (table.includes('movimentac')) {
     return {
-      ...row,
+      ...objectFromSnakeCase(row),
       id: String(row.id),
       equipamentoId: row.equipamento_id || row.equipamentoId,
       equipamentoNome: row.equipamento_nome || row.equipamentoNome,
@@ -833,7 +850,7 @@ function fromSnakeCaseRow(table: string, row: any): any {
   }
   if (table.includes('manutenc')) {
     return {
-      ...row,
+      ...objectFromSnakeCase(row),
       id: String(row.id),
       equipamentoId: row.equipamento_id || row.equipamentoId,
       equipamentoNome: row.equipamento_nome || row.equipamentoNome,
@@ -846,7 +863,7 @@ function fromSnakeCaseRow(table: string, row: any): any {
   }
   if (table.includes('inventario')) {
     return {
-      ...row,
+      ...objectFromSnakeCase(row),
       id: String(row.id),
       dataInicio: row.data_inicio || row.dataInicio,
       dataConclusao: row.data_conclusao || row.dataConclusao,
