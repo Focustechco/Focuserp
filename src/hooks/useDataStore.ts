@@ -159,6 +159,12 @@ function isValidItem(table: string, item: any): boolean {
   if (table.includes('fiscal')) {
     return Boolean(item.id && (item.numero || item.tipo || item.entidade || item.entidade_nome || item.entidadeNome));
   }
+  if (table.includes('contas_bancarias') || table.includes('conta_bancaria')) {
+    return Boolean(item.id && (item.banco || item.banco_nome || item.titular || item.nome_conta || item.conta || item.conta_corrente));
+  }
+  if (table.includes('extratos_bancarios') || table.includes('extrato')) {
+    return Boolean(item.id && (item.historico || item.descricao_banco || item.descricao || item.valor !== undefined));
+  }
 
   // Expurgar dados mockados residuais antigos em RH, Comercial e Assinaturas
   const LEGACY_MOCK_IDS = [
@@ -704,34 +710,50 @@ function toSnakeCasePayload(table: string, item: any): any {
   }
 
   if (table.includes('contas_bancarias') || table.includes('conta_bancaria')) {
+    const rawConta = item.conta || item.contaCorrente || item.conta_corrente || '';
+    const rawDigito = item.digito || item.bancoCodigo || item.banco_codigo || '';
+    const rawBanco = item.banco || item.bancoNome || item.banco_nome || 'Banco';
+    const rawTitular = item.titular || item.nomeConta || item.nome_conta || 'Conta Bancária';
     return {
       ...base,
-      nome_conta: item.titular || item.nomeConta || item.banco || 'Conta Bancária',
-      banco_nome: item.banco || item.bancoNome || 'Banco',
-      banco_codigo: item.bancoCodigo || item.digito || '000',
+      nome_conta: rawTitular,
+      banco_nome: rawBanco,
+      banco: rawBanco,
+      banco_codigo: rawDigito || '000',
       agencia: item.agencia || '',
-      conta_corrente: item.conta ? `${item.conta}${item.digito ? `-${item.digito}` : ''}` : (item.contaCorrente || ''),
+      conta: rawConta,
+      digito: rawDigito,
+      conta_corrente: rawConta.includes('-') ? rawConta : `${rawConta}${rawDigito ? `-${rawDigito}` : ''}`,
       tipo_conta: item.tipoConta || item.tipo_conta || 'Corrente',
-      titular: item.titular || '',
+      titular: rawTitular,
       cnpj: item.cnpj || '',
       chave_pix: item.chavePix || item.chave_pix || '',
       saldo_inicial: Number(item.saldoInicial ?? item.saldo_inicial ?? 0) || 0,
       saldo_atual: Number(item.saldoAtual ?? item.saldo_atual ?? 0) || 0,
-      status: item.status || 'Ativa',
+      status: (item.status === 'Inativa' || item.status === 'Inativo') ? 'Inativa' : 'Ativa',
     };
   }
 
   if (table.includes('extratos_bancarios') || table.includes('extrato')) {
+    const rawDesc = item.historico || item.descricaoBanco || item.descricao_banco || item.descricao || 'Movimentação Bancária';
+    const rawDoc = item.documento || item.documentoRef || item.documento_ref || null;
+    const rawData = item.data || item.dataMovimentacao || item.data_movimentacao || new Date().toISOString().split('T')[0];
+    const rawStatus = item.status || item.statusConciliacao || item.status_conciliacao || 'Não Conciliado';
     return {
       ...base,
       conta_bancaria_id: toNullableValidUuid(item.contaBancariaId || item.conta_bancaria_id),
-      data_movimentacao: item.data || item.dataMovimentacao || item.data_movimentacao || new Date().toISOString().split('T')[0],
-      descricao_banco: item.historico || item.descricaoBanco || item.descricao_banco || 'Movimentação Bancária',
-      documento_ref: item.documento || item.documentoRef || item.documento_ref || null,
+      data_movimentacao: String(rawData).split('T')[0],
+      data: String(rawData).split('T')[0],
+      descricao_banco: rawDesc,
+      historico: rawDesc,
+      documento_ref: rawDoc,
+      documento: rawDoc,
       tipo: item.tipo || 'Crédito',
       valor: Number(item.valor ?? 0) || 0,
-      status_conciliacao: item.status || item.statusConciliacao || item.status_conciliacao || 'Não Conciliado',
+      status_conciliacao: rawStatus,
+      status: rawStatus,
       conta_vinculada_id: toNullableValidUuid(item.lancamentoFinanceiroId || item.contaVinculadaId || item.conta_vinculada_id),
+      lancamento_financeiro_id: toNullableValidUuid(item.lancamentoFinanceiroId || item.contaVinculadaId || item.conta_vinculada_id),
       conta_vinculada_tipo: item.contaVinculadaTipo || item.conta_vinculada_tipo || null,
     };
   }
@@ -1095,22 +1117,23 @@ function fromSnakeCaseRow(table: string, row: any): any {
     };
   }
   if (table.includes('contas_bancarias') || table.includes('conta_bancaria')) {
-    const rawConta = row.conta_corrente || row.conta || '';
-    const parts = rawConta.includes('-') ? rawConta.split('-') : [rawConta, ''];
+    const rawConta = row.conta || row.conta_corrente || row.contaCorrente || '';
+    const rawDigito = row.digito || row.banco_codigo || row.bancoCodigo || '';
+    const parts = rawConta.includes('-') ? rawConta.split('-') : [rawConta, rawDigito];
     return {
       ...row,
       id: String(row.id),
-      banco: row.banco_nome || row.banco || 'Banco',
+      banco: row.banco || row.banco_nome || row.bancoNome || 'Banco',
       agencia: row.agencia || '',
       conta: parts[0] || rawConta,
-      digito: parts[1] || row.banco_codigo || row.digito || '',
+      digito: parts[1] || rawDigito || '0',
       tipoConta: row.tipo_conta || row.tipoConta || 'Corrente',
-      titular: row.titular || row.nome_conta || '',
+      titular: row.titular || row.nome_conta || row.nomeConta || '',
       cnpj: row.cnpj || '',
       chavePix: row.chave_pix || row.chavePix || '',
       saldoInicial: Number(row.saldo_inicial ?? row.saldoInicial ?? 0) || 0,
       saldoAtual: Number(row.saldo_atual ?? row.saldoAtual ?? 0) || 0,
-      status: row.status || 'Ativa',
+      status: (row.status === 'Inativa' || row.status === 'Inativo') ? 'Inativa' : 'Ativa',
     };
   }
   if (table.includes('extratos_bancarios') || table.includes('extrato')) {
@@ -1118,13 +1141,13 @@ function fromSnakeCaseRow(table: string, row: any): any {
       ...row,
       id: String(row.id),
       contaBancariaId: row.conta_bancaria_id || row.contaBancariaId || '',
-      data: row.data_movimentacao || row.data || row.created_at || new Date().toISOString().split('T')[0],
-      historico: row.descricao_banco || row.historico || 'Movimentação Bancária',
-      documento: row.documento_ref || row.documento || '',
+      data: row.data || row.data_movimentacao || row.dataMovimentacao || row.created_at || new Date().toISOString().split('T')[0],
+      historico: row.historico || row.descricao_banco || row.descricaoBanco || 'Movimentação Bancária',
+      documento: row.documento || row.documento_ref || row.documentoRef || '',
       valor: Number(row.valor ?? 0) || 0,
       tipo: row.tipo || 'Crédito',
-      status: row.status_conciliacao || row.status || 'Não Conciliado',
-      lancamentoFinanceiroId: row.conta_vinculada_id || row.lancamentoFinanceiroId || undefined,
+      status: row.status || row.status_conciliacao || row.statusConciliacao || 'Não Conciliado',
+      lancamentoFinanceiroId: row.lancamento_financeiro_id || row.conta_vinculada_id || row.lancamentoFinanceiroId || undefined,
     };
   }
   if (table.includes('fiscal_documentos') || table === 'fiscal_documentos' || table === 'focus_fiscal_documentos' || table === 'focus_documentos_fiscais') {
@@ -1378,6 +1401,8 @@ export function useLocalStorageState<T extends { id: string }>(
   const isCentrosCusto = table === 'focus_centro_custos' || table === 'centros_custo' || table === 'centro_custos' || table === 'focus_centros_custo';
   const isPlanoContas = table === 'focus_plano_contas' || table === 'plano_contas' || table === 'categorias' || table === 'focus_categorias';
   const isCobrancas = table === 'focus_cobrancas' || table === 'cobrancas' || table === 'focus_app_cobrancas' || table === 'focus_cobrancas_multicanal';
+  const isContasBancarias = table === 'focus_contas_bancarias' || table === 'contas_bancarias' || table === 'focus_app_contas_bancarias' || table.includes('conta_bancaria');
+  const isExtratosBancarios = table === 'focus_extratos' || table === 'extratos_bancarios' || table === 'extratos' || table === 'focus_app_extratos' || table === 'focus_extratos_bancarios' || table.includes('extrato');
 
   const isMountedRef = useRef(true);
   const isFetchingRef = useRef(false);
@@ -1787,6 +1812,47 @@ export function useLocalStorageState<T extends { id: string }>(
               await supabase.from('cobrancas').upsert(fallbackPayload, { onConflict: 'id' });
             }
           }
+        } else if (isContasBancarias) {
+          const payload = items.map((item: any) => toSnakeCasePayload('contas_bancarias', item));
+          const deduped = deduplicateById(payload);
+          if (deduped.length > 0) {
+            const { error: upsertErr } = await supabase.from('contas_bancarias').upsert(deduped, { onConflict: 'id' });
+            if (upsertErr) {
+              const fallbackPayload = deduped.map((c: any) => ({
+                id: c.id,
+                nome_conta: c.nome_conta || 'Conta Bancária',
+                banco_nome: c.banco_nome || 'Banco',
+                banco_codigo: c.banco_codigo || '000',
+                agencia: c.agencia || '',
+                conta_corrente: c.conta_corrente || '',
+                tipo_conta: c.tipo_conta || 'Conta Corrente PJ',
+                saldo_inicial: c.saldo_inicial || 0,
+                saldo_atual: c.saldo_atual || 0,
+                status: c.status || 'Ativa',
+                updated_at: c.updated_at,
+              }));
+              await supabase.from('contas_bancarias').upsert(fallbackPayload, { onConflict: 'id' });
+            }
+          }
+        } else if (isExtratosBancarios) {
+          const payload = items.map((item: any) => toSnakeCasePayload('extratos_bancarios', item));
+          const deduped = deduplicateById(payload);
+          if (deduped.length > 0) {
+            const { error: upsertErr } = await supabase.from('extratos_bancarios').upsert(deduped, { onConflict: 'id' });
+            if (upsertErr) {
+              const fallbackPayload = deduped.map((e: any) => ({
+                id: e.id,
+                conta_bancaria_id: e.conta_bancaria_id,
+                data_movimentacao: e.data_movimentacao,
+                descricao_banco: e.descricao_banco,
+                documento_ref: e.documento_ref,
+                tipo: e.tipo,
+                valor: e.valor,
+                status_conciliacao: e.status_conciliacao,
+              }));
+              await supabase.from('extratos_bancarios').upsert(fallbackPayload, { onConflict: 'id' });
+            }
+          }
         } else if (primaryDbTable) {
           const payload = items.map((item: any) => toSnakeCasePayload(primaryDbTable, item));
           const deduped = deduplicateById(payload);
@@ -1809,7 +1875,7 @@ export function useLocalStorageState<T extends { id: string }>(
         console.warn(`[Supabase] Erro ao sincronizar '${table}' com o banco de dados:`, err?.message);
       }
     },
-    [isCentrosCusto, isClientsTable, isCobrancas, isColaboradores, isContasPagar, isContasReceber, isContratos, isFornecedores, isPlanoContas, isProjetos, isUsersTable, primaryDbTable, table]
+    [isCentrosCusto, isClientsTable, isCobrancas, isColaboradores, isContasBancarias, isContasPagar, isContasReceber, isContratos, isExtratosBancarios, isFornecedores, isPlanoContas, isProjetos, isUsersTable, primaryDbTable, table]
   );
 
   // ---------------------------------------------------------------------------

@@ -84,7 +84,7 @@ export function ImportarExtrato() {
         const tipo = rawAmount >= 0 ? 'Crédito' : 'Débito';
 
         transacoes.push({
-          id: `mov-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+          id: crypto.randomUUID(),
           contaBancariaId: contaId,
           data: formattedDate,
           historico,
@@ -107,7 +107,7 @@ export function ImportarExtrato() {
           const tipo = valCandidate >= 0 ? 'Crédito' : 'Débito';
 
           transacoes.push({
-            id: `mov-${Date.now()}-${i}`,
+            id: crypto.randomUUID(),
             contaBancariaId: contaId,
             data: dateCandidate || hoje,
             historico: histCandidate,
@@ -123,7 +123,7 @@ export function ImportarExtrato() {
     // Se o parser não capturou nenhuma linha estruturada, gera entradas fiéis ao arquivo importado
     if (transacoes.length === 0) {
       transacoes.push({
-        id: `mov-${Date.now()}-1`,
+        id: crypto.randomUUID(),
         contaBancariaId: contaId,
         data: hoje,
         historico: `EXTRATO IMPORTADO: ${fileToParse.name}`,
@@ -201,7 +201,7 @@ export function ImportarExtrato() {
     }
 
     const novaMov: MovimentacaoBancaria = {
-      id: `mov-${Date.now()}`,
+      id: crypto.randomUUID(),
       contaBancariaId: contaSelecionada,
       data: manualData || new Date().toISOString().split('T')[0],
       historico: manualHistorico.trim(),

@@ -133,7 +133,7 @@ export function NovaContaBancariaSheet({
       toast.success(`Conta bancária "${nomeBancoFinal}" atualizada com sucesso!`);
     } else {
       const novaConta: ContaBancaria = {
-        id: `cb-${Date.now()}`,
+        id: crypto.randomUUID(),
         banco: nomeBancoFinal,
         agencia: agencia.trim(),
         conta: conta.trim(),
