@@ -1,10 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
   Download, Printer, FileText, FileSpreadsheet, ShieldCheck, QrCode, Lock,
-  X, Loader2, ArrowLeft, ChevronDown, Layers, FileCheck
+  X, Loader2, ArrowLeft, ChevronDown, Layers, FileCheck, ChevronUp,
+  Maximize2, Minimize2, ZoomIn, ZoomOut
 } from 'lucide-react';
 import { GeneratedReportData, ReportFormat, ReportHierarchyGroup } from '../types';
 import { toast } from 'sonner';
@@ -37,8 +38,10 @@ interface ReportPageData {
 export function ReportDocumentPreviewModal({ data, isOpen, onClose }: PreviewProps) {
   const { registerExecution } = useRelatoriosStore();
   const [isExporting, setIsExporting] = useState(false);
+  const [activeViewPage, setActiveViewPage] = useState(1);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // Paginação Inteligente do Documento em Folhas A4
+  // Paginação Inteligente e Completa do Documento em Folhas A4
   const pages: ReportPageData[] = useMemo(() => {
     if (!data) return [];
 
@@ -48,13 +51,13 @@ export function ReportDocumentPreviewModal({ data, isOpen, onClose }: PreviewPro
           {
             groupTitle: '1. REGISTROS CONSOLIDADOS',
             groupSubtitle: 'Listagem completa de registros',
-            rows: data.rows,
+            rows: data.rows || [],
           }
         ];
 
-    // Se o total de registros for pequeno (até 7 linhas e 1-2 grupos), tudo cabe em 1 única página
-    const totalRowsCount = rawGroups.reduce((acc, g) => acc + g.rows.length, 0);
-    if (totalRowsCount <= 7 && rawGroups.length <= 2) {
+    // Se o total de registros for pequeno (até 6 linhas e 1-2 grupos), cabe em 1 única folha
+    const totalRowsCount = rawGroups.reduce((acc, g) => acc + (g.rows?.length || 0), 0);
+    if (totalRowsCount <= 6 && rawGroups.length <= 2) {
       return [
         {
           pageNumber: 1,
@@ -66,23 +69,28 @@ export function ReportDocumentPreviewModal({ data, isOpen, onClose }: PreviewPro
       ];
     }
 
-    // Caso contrário, dividimos os grupos e registros em páginas organizadas (máx ~7-8 linhas por página)
+    // Caso contrário, dividimos os grupos e registros em páginas de forma limpa e sequencial
     const pageList: Array<{ groups: ReportHierarchyGroup[] }> = [];
     let currentGroups: ReportHierarchyGroup[] = [];
     let currentCount = 0;
-    const maxRowsFirstPage = 5; // Primeira página tem resumo executivo e cabeçalho completo
-    const maxRowsOtherPages = 8; // Páginas seguintes têm mais espaço para tabelas
+    const maxRowsFirstPage = 4; // Página 1 possui cabeçalho institucional amplo e KPIs
+    const maxRowsOtherPages = 7; // Páginas seguintes possuem mais espaço para linhas
 
     rawGroups.forEach((group) => {
       const isFirst = pageList.length === 0;
       const limit = isFirst ? maxRowsFirstPage : maxRowsOtherPages;
+      const groupRows = group.rows || [];
 
-      if (group.rows.length <= limit - currentCount) {
+      if (groupRows.length === 0) {
         currentGroups.push(group);
-        currentCount += group.rows.length + 1;
+        return;
+      }
+
+      if (groupRows.length <= Math.max(1, limit - currentCount)) {
+        currentGroups.push(group);
+        currentCount += groupRows.length + 1;
       } else {
-        // Se o grupo for muito grande, quebramos em pedaços continuados
-        let remainingRows = [...group.rows];
+        let remainingRows = [...groupRows];
         let partIndex = 1;
 
         while (remainingRows.length > 0) {
@@ -128,44 +136,77 @@ export function ReportDocumentPreviewModal({ data, isOpen, onClose }: PreviewPro
 
   if (!data) return null;
 
+  // Rolagem suave para página específica
+  const scrollToPage = (pageNum: number) => {
+    const target = document.getElementById(`report-sheet-page-${pageNum}`);
+    if (target && scrollContainerRef.current) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setActiveViewPage(pageNum);
+    }
+  };
+
   const handleExport = async (fmt: ReportFormat) => {
     setIsExporting(true);
 
     if (fmt === 'PDF') {
       const pageElements = document.querySelectorAll<HTMLElement>('.report-page-sheet');
       if (pageElements && pageElements.length > 0) {
-        toast.loading(`Gerando PDF homologado (${pages.length} página${pages.length > 1 ? 's' : ''})... Aguarde.`, { id: 'pdf-toast' });
+        toast.loading(`Gerando PDF corporativo completo (${pageElements.length} página${pageElements.length > 1 ? 's' : ''})... Aguarde.`, { id: 'pdf-toast' });
         
         try {
-          const pdf = new jsPDF('p', 'mm', 'a4');
-          const pdfWidth = pdf.internal.pageSize.getWidth();
+          const pdf = new jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'a4',
+            compress: true
+          });
+
+          const pdfWidth = pdf.internal.pageSize.getWidth(); // 210mm
+          const pdfHeight = pdf.internal.pageSize.getHeight(); // 297mm
           const margin = 8;
-          const finalWidth = pdfWidth - (margin * 2);
+          const maxW = pdfWidth - (margin * 2);
+          const maxH = pdfHeight - (margin * 2);
 
           for (let i = 0; i < pageElements.length; i++) {
             const pageEl = pageElements[i];
+            
             const imgData = await toJpeg(pageEl, { 
               quality: 0.98, 
               backgroundColor: '#ffffff',
-              pixelRatio: 2.2
+              pixelRatio: 2.2,
+              cacheBust: true,
+              style: {
+                transform: 'none',
+                margin: '0',
+              }
             });
 
-            const elWidth = pageEl.offsetWidth;
-            const elHeight = pageEl.offsetHeight;
-            const finalHeight = (elHeight * finalWidth) / elWidth;
+            const elWidth = pageEl.offsetWidth || 800;
+            const elHeight = pageEl.offsetHeight || 1100;
+            
+            let finalWidth = maxW;
+            let finalHeight = (elHeight * finalWidth) / elWidth;
 
-            if (i > 0) {
-              pdf.addPage();
+            if (finalHeight > maxH) {
+              finalHeight = maxH;
+              finalWidth = (elWidth * finalHeight) / elHeight;
             }
 
-            pdf.addImage(imgData, 'JPEG', margin, margin, finalWidth, finalHeight);
+            const posX = margin + (maxW - finalWidth) / 2;
+            const posY = margin + (maxH - finalHeight) / 2;
+
+            if (i > 0) {
+              pdf.addPage('a4', 'p');
+            }
+
+            pdf.addImage(imgData, 'JPEG', posX, posY, finalWidth, finalHeight, undefined, 'FAST');
           }
 
           pdf.save(`Relatorio-Focus-${data.reportNumber}.pdf`);
           
           // Registrar execução e salvar cópia no DMS
           registerExecution(data.definition.id, fmt, data.filters, data);
-          toast.success(`Relatório exportado em PDF (${pages.length} páginas) e arquivado no DMS!`, { id: 'pdf-toast' });
+          toast.success(`Relatório completo exportado em PDF (${pageElements.length} páginas) e arquivado no DMS!`, { id: 'pdf-toast' });
         } catch (err: any) {
           console.error('Erro na exportação PDF:', err);
           toast.error(`Erro ao gerar PDF: ${err.message || 'Falha de processamento'}`, { id: 'pdf-toast' });
@@ -255,7 +296,7 @@ export function ReportDocumentPreviewModal({ data, isOpen, onClose }: PreviewPro
               className="gap-1.5 text-xs h-8 sm:h-9 bg-orange-600 hover:bg-orange-700 text-white font-bold px-3 sm:px-4 rounded-xl shadow-xs shrink-0 active:scale-95 transition-all"
             >
               {isExporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-              <span className="hidden xs:inline">Exportar</span> PDF ({pages.length}p)
+              <span className="hidden xs:inline">Baixar</span> PDF ({pages.length}p)
             </Button>
 
             <DropdownMenu>
@@ -318,13 +359,62 @@ export function ReportDocumentPreviewModal({ data, isOpen, onClose }: PreviewPro
           </div>
         </div>
 
-        {/* 2. ÁREA DE VISUALIZAÇÃO MULTI-PÁGINA (FOLHAS A4 SEQUENCIAIS COM SEPARAÇÃO ESTRUTURADA) */}
-        <div className="bg-slate-200/90 dark:bg-slate-950 p-2 sm:p-6 lg:p-8 flex flex-col items-center flex-1 overflow-y-auto min-h-0 w-full pb-24 sm:pb-8 space-y-6">
-          
+        {/* NAVEGADOR DE PÁGINAS RÁPIDO (SE HOUVER MÚLTIPLAS PÁGINAS) */}
+        {pages.length > 1 && (
+          <div className="bg-slate-900/90 border-b border-slate-800 px-3 py-1.5 flex items-center justify-between text-xs text-slate-300 shrink-0">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] text-slate-400">Navegar:</span>
+              <div className="flex items-center gap-1">
+                {pages.map((p) => (
+                  <button
+                    key={p.pageNumber}
+                    type="button"
+                    onClick={() => scrollToPage(p.pageNumber)}
+                    className={`px-2 py-0.5 rounded text-[11px] font-bold transition-all ${
+                      activeViewPage === p.pageNumber
+                        ? 'bg-orange-600 text-white shadow-xs'
+                        : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                    }`}
+                  >
+                    Pág {p.pageNumber}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => scrollToPage(Math.max(1, activeViewPage - 1))}
+                disabled={activeViewPage === 1}
+                className="h-6 px-1.5 text-[10px] text-slate-300 hover:text-white"
+              >
+                <ChevronUp className="w-3 h-3 mr-0.5" /> Anterior
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => scrollToPage(Math.min(pages.length, activeViewPage + 1))}
+                disabled={activeViewPage === pages.length}
+                className="h-6 px-1.5 text-[10px] text-slate-300 hover:text-white"
+              >
+                Próxima <ChevronDown className="w-3 h-3 ml-0.5" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* 2. ÁREA DE VISUALIZAÇÃO MULTI-PÁGINA COM ROLAGEM 100% FLUIDA */}
+        <div 
+          ref={scrollContainerRef}
+          className="bg-slate-200/90 dark:bg-slate-950 p-2 sm:p-6 lg:p-8 flex flex-col items-center flex-1 overflow-y-scroll overscroll-contain touch-pan-y min-h-0 w-full pb-24 sm:pb-8 space-y-6 scrollbar-thin scrollbar-thumb-slate-400 dark:scrollbar-thumb-slate-600"
+          style={{ WebkitOverflowScrolling: 'touch' }}
+        >
           {pages.map((page) => (
             <div 
+              id={`report-sheet-page-${page.pageNumber}`}
               key={page.pageNumber}
-              className="report-page-sheet w-full max-w-4xl bg-white text-slate-900 rounded-xl sm:rounded-2xl shadow-2xl border border-slate-200 p-4 sm:p-8 md:p-10 flex flex-col justify-between transition-all duration-200 overflow-hidden relative"
+              className="report-page-sheet w-full max-w-4xl bg-white text-slate-900 rounded-xl sm:rounded-2xl shadow-2xl border border-slate-200 p-4 sm:p-8 md:p-10 flex flex-col justify-between transition-all duration-200 overflow-hidden relative min-h-[500px] sm:min-h-[750px]"
               style={{ backgroundColor: '#ffffff', color: '#0f172a' }}
             >
               {/* CORPO DA PÁGINA */}
@@ -354,7 +444,9 @@ export function ReportDocumentPreviewModal({ data, isOpen, onClose }: PreviewPro
                       <span className="font-bold text-slate-800">{data.definition.title}</span>
                       <span className="font-mono">#{data.reportNumber}</span>
                     </div>
-                    <span className="font-semibold text-slate-700">Página {page.pageNumber} de {page.totalPages}</span>
+                    <span className="font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">
+                      Página {page.pageNumber} de {page.totalPages}
+                    </span>
                   </div>
                 )}
 
@@ -536,5 +628,6 @@ export function ReportDocumentPreviewModal({ data, isOpen, onClose }: PreviewPro
     </Dialog>
   );
 }
+
 
 
