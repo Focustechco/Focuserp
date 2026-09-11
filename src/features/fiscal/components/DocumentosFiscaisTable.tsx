@@ -42,10 +42,10 @@ export function DocumentosFiscaisTable({ onImportClick, onNewClick, onEditClick 
   const filteredDocs = documentos.filter(doc => {
     const term = searchTerm.toLowerCase();
     return (
-      doc.numero.toLowerCase().includes(term) ||
-      doc.tipo.toLowerCase().includes(term) ||
-      doc.entidade.nome.toLowerCase().includes(term) ||
-      doc.entidade.cnpjCpf.toLowerCase().includes(term) ||
+      (doc.numero || '').toLowerCase().includes(term) ||
+      (doc.tipo || '').toLowerCase().includes(term) ||
+      (doc.entidade?.nome || '').toLowerCase().includes(term) ||
+      (doc.entidade?.cnpjCpf || '').toLowerCase().includes(term) ||
       (doc.vinculos?.projetoNome && doc.vinculos.projetoNome.toLowerCase().includes(term))
     );
   });
@@ -115,13 +115,13 @@ export function DocumentosFiscaisTable({ onImportClick, onNewClick, onEditClick 
 
                 <TableCell>
                   <div className="flex flex-col">
-                    <span className="font-semibold text-xs truncate max-w-[200px]">{doc.entidade.nome}</span>
-                    <span className="text-[10px] text-muted-foreground font-mono">{doc.entidade.cnpjCpf}</span>
+                    <span className="font-semibold text-xs truncate max-w-[200px]">{doc.entidade?.nome || 'Entidade'}</span>
+                    <span className="text-[10px] text-muted-foreground font-mono">{doc.entidade?.cnpjCpf || ''}</span>
                   </div>
                 </TableCell>
 
                 <TableCell>
-                  <span className="text-xs text-muted-foreground">{new Date(doc.dataEmissao).toLocaleDateString('pt-BR')}</span>
+                  <span className="text-xs text-muted-foreground">{doc.dataEmissao ? new Date(doc.dataEmissao).toLocaleDateString('pt-BR') : 'Data N/A'}</span>
                 </TableCell>
 
                 <TableCell>

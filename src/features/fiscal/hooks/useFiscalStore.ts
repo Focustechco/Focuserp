@@ -4,7 +4,7 @@ import { useDocumentosStore } from '@/features/documentos/hooks/useDocumentosSto
 
 const INITIAL_FISCAL_DOCS: DocumentoFiscal[] = [
   {
-    id: 'fisc-001',
+    id: 'd1000000-0000-4000-8000-000000000001',
     tipo: 'NFS-e',
     numero: '1042',
     serie: '1',
@@ -13,12 +13,12 @@ const INITIAL_FISCAL_DOCS: DocumentoFiscal[] = [
     dataEntrada: '2026-07-15',
     entidade: {
       tipo: 'Cliente',
-      id: 'cli-001',
+      id: 'c1000000-0000-4000-8000-000000000001',
       nome: 'TechServices Brasil Ltda',
       cnpjCpf: '12.345.678/0001-90'
     },
     vinculos: {
-      projetoId: 'prj-001',
+      projetoId: 'a1000000-0000-4000-8000-000000000001',
       projetoNome: 'Implantação ERP Focus',
       centroCusto: 'Tecnologia'
     },
@@ -56,7 +56,7 @@ const INITIAL_FISCAL_DOCS: DocumentoFiscal[] = [
     dataAtualizacao: new Date().toISOString()
   },
   {
-    id: 'fisc-002',
+    id: 'd2000000-0000-4000-8000-000000000002',
     tipo: 'NF-e',
     numero: '4589',
     serie: '2',
@@ -65,7 +65,7 @@ const INITIAL_FISCAL_DOCS: DocumentoFiscal[] = [
     dataEntrada: '2026-07-19',
     entidade: {
       tipo: 'Fornecedor',
-      id: 'forn-001',
+      id: 'f1000000-0000-4000-8000-000000000001',
       nome: 'Kalunga Comércio de Suprimentos',
       cnpjCpf: '98.765.432/0001-10'
     },

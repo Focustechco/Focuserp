@@ -43,7 +43,10 @@ export function MobileFiscalView() {
 
     documentos.forEach((doc) => {
       totalValor += Number(doc.valorTotal || 0);
-      totalImpostos += Number(doc.impostos?.valorTotalImpostos || 0);
+      const taxSum = Array.isArray(doc.impostos)
+        ? doc.impostos.reduce((acc, imp) => acc + Number(imp.valor || 0), 0)
+        : 0;
+      totalImpostos += taxSum;
 
       if (doc.status === 'Emitido') countEmitidos++;
       else if (doc.status === 'Recebido') countRecebidos++;
@@ -56,10 +59,10 @@ export function MobileFiscalView() {
     return documentos.filter((doc) => {
       const term = searchTerm.toLowerCase();
       const matchSearch =
-        doc.numero.toLowerCase().includes(term) ||
-        doc.tipo.toLowerCase().includes(term) ||
-        doc.entidade.nome.toLowerCase().includes(term) ||
-        doc.entidade.cnpjCpf.toLowerCase().includes(term) ||
+        (doc.numero || '').toLowerCase().includes(term) ||
+        (doc.tipo || '').toLowerCase().includes(term) ||
+        (doc.entidade?.nome || '').toLowerCase().includes(term) ||
+        (doc.entidade?.cnpjCpf || '').toLowerCase().includes(term) ||
         (doc.vinculos?.projetoNome && doc.vinculos.projetoNome.toLowerCase().includes(term));
 
       if (!matchSearch) return false;
@@ -393,10 +396,10 @@ export function MobileFiscalView() {
                         {getStatusBadge(doc.status)}
                       </div>
                       <h4 className="font-bold text-sm text-foreground truncate">
-                        {doc.entidade.nome}
+                        {doc.entidade?.nome || 'Entidade'}
                       </h4>
                       <p className="text-xs text-muted-foreground truncate">
-                        {doc.entidade.cnpjCpf} {doc.vinculos?.projetoNome ? `• ${doc.vinculos.projetoNome}` : ''}
+                        {doc.entidade?.cnpjCpf || ''} {doc.vinculos?.projetoNome ? `• ${doc.vinculos.projetoNome}` : ''}
                       </p>
                     </div>
 
@@ -412,7 +415,7 @@ export function MobileFiscalView() {
 
                   {/* Ações e Detalhes */}
                   <div className="flex items-center justify-between pt-1 border-t border-dashed text-[10px] text-muted-foreground">
-                    <span>Série: {doc.serie || '1'} • {doc.naturezaOperacao || 'Prestação de Serviços'}</span>
+                    <span>Série: {doc.serie || '1'} • {(doc as any).naturezaOperacao || 'Prestação de Serviços'}</span>
 
                     <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                       <Button

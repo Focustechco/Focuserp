@@ -156,6 +156,9 @@ function isValidItem(table: string, item: any): boolean {
   if (table.includes('manutenc')) {
     return Boolean(item.id && (item.equipamentoNome || item.equipamentoCodigo || item.descricao || item.tipo));
   }
+  if (table.includes('fiscal')) {
+    return Boolean(item.id && (item.numero || item.tipo || item.entidade || item.entidade_nome || item.entidadeNome));
+  }
 
   // Expurgar dados mockados residuais antigos em RH, Comercial e Assinaturas
   const LEGACY_MOCK_IDS = [
@@ -326,6 +329,16 @@ export function getCandidateKeysForTable(table: string): string[] {
       'focus_extratos_bancarios',
       'focus_app_extratos_bancarios',
       'extratos',
+    ].forEach((k) => keys.add(k));
+  }
+
+  if (table.includes('fiscal')) {
+    [
+      'focus_fiscal_documentos',
+      'focus_app_focus_fiscal_documentos',
+      'fiscal_documentos',
+      'focus_app_fiscal_documentos',
+      'focus_documentos_fiscais',
     ].forEach((k) => keys.add(k));
   }
 
@@ -685,6 +698,33 @@ function toSnakeCasePayload(table: string, item: any): any {
     };
   }
 
+  if (table.includes('fiscal_documentos') || table === 'fiscal_documentos' || table === 'focus_fiscal_documentos' || table === 'focus_documentos_fiscais') {
+    const ent = item.entidade || {};
+    const vinc = item.vinculos || {};
+    return {
+      ...base,
+      tipo: item.tipo || 'NFS-e',
+      numero: item.numero || `${validId.slice(0, 6).toUpperCase()}`,
+      serie: item.serie || '1',
+      chave_acesso: item.chaveAcesso || item.chave_acesso || null,
+      data_emissao: item.dataEmissao ? item.dataEmissao.split('T')[0] : (item.data_emissao || new Date().toISOString().split('T')[0]),
+      data_entrada: item.dataEntrada ? item.dataEntrada.split('T')[0] : (item.data_entrada || null),
+      entidade_tipo: ent.tipo || item.entidadeTipo || item.entidade_tipo || 'Cliente',
+      entidade_id: toNullableValidUuid(ent.id || item.entidadeId || item.entidade_id),
+      entidade_nome: ent.nome || item.entidadeNome || item.entidade_nome || 'Entidade',
+      entidade_cnpj_cpf: ent.cnpjCpf || item.entidadeCnpjCpf || item.entidade_cnpj_cpf || null,
+      projeto_id: toNullableValidUuid(vinc.projetoId || item.projetoId || item.projeto_id),
+      projeto_nome: vinc.projetoNome || item.projetoNome || item.projeto_nome || null,
+      centro_custo: vinc.centroCusto || item.centroCusto || item.centro_custo || null,
+      valor_total: Number(item.valorTotal ?? item.valor_total ?? item.valor ?? 0) || 0,
+      impostos: Array.isArray(item.impostos) ? item.impostos : [],
+      retencoes: Array.isArray(item.retencoes) ? item.retencoes : [],
+      anexos: Array.isArray(item.anexos) ? item.anexos : [],
+      status: item.status || 'Emitido',
+      observacoes: item.observacoes || null,
+    };
+  }
+
   // Conversão genérica automática camelCase -> snake_case para todas as novas tabelas
   const converted = objectToSnakeCase(item);
   return { ...converted, id: validId, updated_at: new Date().toISOString() };
@@ -1013,6 +1053,37 @@ function fromSnakeCaseRow(table: string, row: any): any {
       tipo: row.tipo || 'Crédito',
       status: row.status_conciliacao || row.status || 'Não Conciliado',
       lancamentoFinanceiroId: row.conta_vinculada_id || row.lancamentoFinanceiroId || undefined,
+    };
+  }
+  if (table.includes('fiscal_documentos') || table === 'fiscal_documentos' || table === 'focus_fiscal_documentos' || table === 'focus_documentos_fiscais') {
+    return {
+      ...row,
+      id: String(row.id),
+      tipo: row.tipo || 'NFS-e',
+      numero: row.numero || '',
+      serie: row.serie || '1',
+      chaveAcesso: row.chave_acesso || row.chaveAcesso,
+      dataEmissao: row.data_emissao || row.dataEmissao || row.created_at || new Date().toISOString().split('T')[0],
+      dataEntrada: row.data_entrada || row.dataEntrada,
+      entidade: {
+        tipo: row.entidade_tipo || row.entidade?.tipo || 'Cliente',
+        id: row.entidade_id || row.entidade?.id || '',
+        nome: row.entidade_nome || row.entidade?.nome || 'Entidade',
+        cnpjCpf: row.entidade_cnpj_cpf || row.entidade?.cnpjCpf || '',
+      },
+      vinculos: {
+        projetoId: row.projeto_id || row.vinculos?.projetoId,
+        projetoNome: row.projeto_nome || row.vinculos?.projetoNome,
+        centroCusto: row.centro_custo || row.vinculos?.centroCusto,
+      },
+      valorTotal: Number(row.valor_total ?? row.valorTotal ?? 0) || 0,
+      impostos: Array.isArray(row.impostos) ? row.impostos : [],
+      retencoes: Array.isArray(row.retencoes) ? row.retencoes : [],
+      anexos: Array.isArray(row.anexos) ? row.anexos : [],
+      historico: Array.isArray(row.historico) ? row.historico : [],
+      status: row.status || 'Emitido',
+      observacoes: row.observacoes || '',
+      dataAtualizacao: row.updated_at || row.dataAtualizacao || new Date().toISOString(),
     };
   }
   return objectFromSnakeCase(row);

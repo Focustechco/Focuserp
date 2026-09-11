@@ -231,7 +231,7 @@ export function DocumentoFiscalSheet({ open, onOpenChange, documentoParaEditar }
     const contratoSelecionado = contratos.find(c => c.id === contratoId);
 
     const docFinal: DocumentoFiscal = {
-      id: documentoParaEditar ? documentoParaEditar.id : `fisc-${Date.now()}`,
+      id: documentoParaEditar ? documentoParaEditar.id : crypto.randomUUID(),
       tipo,
       numero,
       serie,
