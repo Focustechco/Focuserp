@@ -5,9 +5,9 @@ import { Badge } from '@/components/ui/badge';
 import {
   Download, Printer, FileText, FileSpreadsheet, ShieldCheck, QrCode, Lock,
   X, Loader2, ArrowLeft, ChevronDown, Layers, FileCheck, ChevronUp,
-  Maximize2, Minimize2, ZoomIn, ZoomOut
+  Building2, Calendar, CheckCircle2, TrendingUp
 } from 'lucide-react';
-import { GeneratedReportData, ReportFormat, ReportHierarchyGroup } from '../types';
+import { GeneratedReportData, ReportFormat, ReportHierarchyGroup, ReportColumn } from '../types';
 import { toast } from 'sonner';
 import { jsPDF } from 'jspdf';
 import { toJpeg } from 'html-to-image';
@@ -69,12 +69,12 @@ export function ReportDocumentPreviewModal({ data, isOpen, onClose }: PreviewPro
       ];
     }
 
-    // Caso contrário, dividimos os grupos e registros em páginas de forma limpa e sequencial
+    // Divisão sequencial e equilibrada em folhas A4
     const pageList: Array<{ groups: ReportHierarchyGroup[] }> = [];
     let currentGroups: ReportHierarchyGroup[] = [];
     let currentCount = 0;
-    const maxRowsFirstPage = 4; // Página 1 possui cabeçalho institucional amplo e KPIs
-    const maxRowsOtherPages = 7; // Páginas seguintes possuem mais espaço para linhas
+    const maxRowsFirstPage = 4; // Página 1 inclui cabeçalho institucional completo e cards de KPIs
+    const maxRowsOtherPages = 7; // Páginas seguintes têm mais espaço vertical para tabelas
 
     rawGroups.forEach((group) => {
       const isFirst = pageList.length === 0;
@@ -136,13 +136,107 @@ export function ReportDocumentPreviewModal({ data, isOpen, onClose }: PreviewPro
 
   if (!data) return null;
 
-  // Rolagem suave para página específica
+  // Rolagem suave para folha específica
   const scrollToPage = (pageNum: number) => {
     const target = document.getElementById(`report-sheet-page-${pageNum}`);
     if (target && scrollContainerRef.current) {
       target.scrollIntoView({ behavior: 'smooth', block: 'start' });
       setActiveViewPage(pageNum);
     }
+  };
+
+  // Alinhamento inteligente de colunas corporativas
+  const getColumnAlignment = (col: ReportColumn) => {
+    const key = col.key.toLowerCase();
+    const type = col.type;
+
+    if (
+      type === 'currency' || 
+      type === 'number' || 
+      key.includes('valor') || 
+      key.includes('total') || 
+      key.includes('realizado') || 
+      key.includes('entradas') || 
+      key.includes('saidas') || 
+      key.includes('saldo') || 
+      key.includes('salario') || 
+      key.includes('gasto') || 
+      key.includes('orcamento') || 
+      key === 'av'
+    ) {
+      return 'text-right font-mono';
+    }
+
+    if (
+      type === 'date' || 
+      type === 'badge' || 
+      key === 'status' || 
+      key === 'data' || 
+      key.includes('vencimento') || 
+      key.includes('cadastro') || 
+      key.includes('admissao') || 
+      key.includes('vigencia') || 
+      key.includes('scoresaude') || 
+      key.includes('statuscobranca')
+    ) {
+      return 'text-center';
+    }
+
+    return 'text-left';
+  };
+
+  // Renderizador de célula com badges semânticos para o padrão corporativo
+  const renderCellContent = (col: ReportColumn, value: any) => {
+    if (value === undefined || value === null || value === '' || value === '-') {
+      return <span className="text-slate-400 font-normal">-</span>;
+    }
+
+    const key = col.key.toLowerCase();
+    const isBadgeType = col.type === 'badge' || key === 'status' || key === 'scoresaude' || key === 'statuscobranca';
+
+    if (isBadgeType) {
+      const str = String(value);
+      const isSuccess = 
+        str.includes('Ativo') || 
+        str.includes('Pago') || 
+        str.includes('Concluído') || 
+        str.includes('Excelente') || 
+        str.includes('Vigente') || 
+        str.includes('Entrada') || 
+        str.includes('Liquidado');
+
+      const isDanger = 
+        str.includes('Vencido') || 
+        str.includes('Inativo') || 
+        str.includes('Atenção') || 
+        str.includes('Crítica') || 
+        str.includes('Saída') || 
+        str.includes('Bloqueado');
+
+      const isWarning = 
+        str.includes('Pendente') || 
+        str.includes('Em Aberto') || 
+        str.includes('Em Andamento') || 
+        str.includes('Bom') || 
+        str.includes('Aguardando') || 
+        str.includes('Renovação');
+
+      const badgeClasses = isSuccess
+        ? 'bg-emerald-100/90 text-emerald-800 border border-emerald-300'
+        : isDanger
+        ? 'bg-rose-100/90 text-rose-800 border border-rose-300'
+        : isWarning
+        ? 'bg-amber-100/90 text-amber-800 border border-amber-300'
+        : 'bg-slate-100 text-slate-800 border border-slate-300';
+
+      return (
+        <span className={`inline-flex items-center justify-center px-2 py-0.5 rounded-md text-[10px] font-bold ${badgeClasses}`}>
+          {str}
+        </span>
+      );
+    }
+
+    return <span className="font-medium text-slate-900">{value}</span>;
   };
 
   const handleExport = async (fmt: ReportFormat) => {
@@ -204,7 +298,6 @@ export function ReportDocumentPreviewModal({ data, isOpen, onClose }: PreviewPro
 
           pdf.save(`Relatorio-Focus-${data.reportNumber}.pdf`);
           
-          // Registrar execução e salvar cópia no DMS
           registerExecution(data.definition.id, fmt, data.filters, data);
           toast.success(`Relatório completo exportado em PDF (${pageElements.length} páginas) e arquivado no DMS!`, { id: 'pdf-toast' });
         } catch (err: any) {
@@ -253,13 +346,13 @@ export function ReportDocumentPreviewModal({ data, isOpen, onClose }: PreviewPro
         {/* Acessibilidade DialogHeader oculto */}
         <div className="sr-only">
           <DialogTitle>Visualização do Relatório {data.definition.title}</DialogTitle>
-          <DialogDescription>Relatório Corporativo Homologado Focus Finance ({pages.length} páginas)</DialogDescription>
+          <DialogDescription>Relatório Corporativo Focus Finance ({pages.length} páginas)</DialogDescription>
         </div>
 
-        {/* 1. BARRA DE FERRAMENTAS SUPERIOR (FIXA, COMTOUCH TARGETS AMPLOS E CONTROLES DIRETOS) */}
+        {/* 1. BARRA DE FERRAMENTAS SUPERIOR (TAG HOMOLOGADO REMOVIDA NO MOBILE) */}
         <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md border-b px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between gap-2 shadow-xs shrink-0 pt-[max(0.625rem,env(safe-area-inset-top))]">
           
-          {/* LADO ESQUERDO: Botão Sair/Voltar Mobile + Info do Relatório */}
+          {/* LADO ESQUERDO: Botão Sair Mobile + Info do Relatório (Sem a tag Homologado no mobile) */}
           <div className="flex items-center gap-2 min-w-0">
             <Button
               type="button"
@@ -274,13 +367,16 @@ export function ReportDocumentPreviewModal({ data, isOpen, onClose }: PreviewPro
             </Button>
 
             <div className="flex items-center gap-1.5 min-w-0">
-              <Badge variant="outline" className="gap-1 border-orange-500/40 text-orange-600 dark:text-orange-400 bg-orange-50/60 dark:bg-orange-950/40 text-[10px] sm:text-xs font-semibold shrink-0 py-0.5 px-2">
+              {/* Tag Homologado VISÍVEL APENAS NO DESKTOP, REMOVIDA NO MOBILE CONFORME SOLICITADO */}
+              <Badge variant="outline" className="hidden sm:inline-flex gap-1 border-orange-500/40 text-orange-600 dark:text-orange-400 bg-orange-50/60 dark:bg-orange-950/40 text-xs font-semibold shrink-0 py-0.5 px-2">
                 <ShieldCheck className="w-3.5 h-3.5 text-orange-600" />
                 <span>Homologado</span>
               </Badge>
-              <span className="text-[11px] sm:text-xs text-muted-foreground font-mono font-bold truncate">
+              
+              <span className="text-xs text-foreground sm:text-muted-foreground font-mono font-bold truncate">
                 #{data.reportNumber}
               </span>
+              
               <Badge variant="secondary" className="text-[10px] hidden md:inline-flex items-center gap-1">
                 <Layers className="w-3 h-3 text-muted-foreground" /> {pages.length} {pages.length === 1 ? 'Página' : 'Páginas'}
               </Badge>
@@ -414,7 +510,7 @@ export function ReportDocumentPreviewModal({ data, isOpen, onClose }: PreviewPro
             <div 
               id={`report-sheet-page-${page.pageNumber}`}
               key={page.pageNumber}
-              className="report-page-sheet w-full max-w-4xl bg-white text-slate-900 rounded-xl sm:rounded-2xl shadow-2xl border border-slate-200 p-4 sm:p-8 md:p-10 flex flex-col justify-between transition-all duration-200 overflow-hidden relative min-h-[500px] sm:min-h-[750px]"
+              className="report-page-sheet w-full max-w-4xl bg-white text-slate-900 rounded-xl sm:rounded-2xl shadow-2xl border border-slate-200 p-4 sm:p-8 md:p-10 flex flex-col justify-between transition-all duration-200 overflow-hidden relative min-h-[520px] sm:min-h-[750px]"
               style={{ backgroundColor: '#ffffff', color: '#0f172a' }}
             >
               {/* CORPO DA PÁGINA */}
@@ -472,7 +568,7 @@ export function ReportDocumentPreviewModal({ data, isOpen, onClose }: PreviewPro
                     {data.metricsSummary && data.metricsSummary.length > 0 && (
                       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
                         {data.metricsSummary.map((m, i) => (
-                          <div key={i} className="border border-slate-200 rounded-lg p-2 sm:p-2.5 bg-slate-50">
+                          <div key={i} className="border border-slate-200 rounded-lg p-2.5 bg-slate-50">
                             <p className="text-[10px] text-slate-500 font-medium truncate">{m.label}</p>
                             <p className={`text-xs sm:text-sm font-bold mt-0.5 truncate ${m.color || 'text-slate-900'}`}>
                               {m.value}
@@ -484,16 +580,15 @@ export function ReportDocumentPreviewModal({ data, isOpen, onClose }: PreviewPro
                   </>
                 )}
 
-                {/* GRUPOS HIERÁRQUICOS DA PÁGINA ATUAL */}
+                {/* GRUPOS HIERÁRQUICOS COM ALINHAMENTO PRECISO */}
                 <div className="space-y-4">
                   {page.groups.map((grp, gIdx) => (
                     <div key={gIdx} className="space-y-2 border border-slate-200 rounded-xl p-3 bg-white shadow-2xs">
                       
-                      {/* Cabeçalho do Grupo Hierárquico */}
-                      <div className="flex justify-between items-start border-b border-slate-100 pb-2">
+                      {/* Cabeçalho de Destaque da Seção Hierárquica */}
+                      <div className="flex justify-between items-start border-l-4 border-orange-500 pl-2.5 pb-0.5">
                         <div>
                           <h3 className="font-bold text-xs sm:text-sm text-slate-900 flex items-center gap-1.5">
-                            <FileCheck className="w-3.5 h-3.5 text-orange-600 shrink-0" />
                             <span>{grp.groupTitle}</span>
                           </h3>
                           {grp.groupSubtitle && (
@@ -507,14 +602,14 @@ export function ReportDocumentPreviewModal({ data, isOpen, onClose }: PreviewPro
                         )}
                       </div>
 
-                      {/* Tabela de Registros do Grupo */}
+                      {/* Tabela de Dados Corporativa */}
                       <div className="border border-slate-200 rounded-lg overflow-hidden w-full max-w-full bg-white">
                         <div className="overflow-x-auto w-full max-w-full scrollbar-thin">
                           <table className="w-full text-xs text-left min-w-[320px] sm:min-w-full border-collapse">
                             <thead className="bg-slate-100/90 border-b border-slate-200 text-slate-700 font-semibold uppercase text-[9px] sm:text-[10px]">
                               <tr>
                                 {data.definition.columns.map(col => (
-                                  <th key={col.key} className="p-2 whitespace-nowrap">
+                                  <th key={col.key} className={`p-2 sm:p-2.5 whitespace-nowrap ${getColumnAlignment(col)}`}>
                                     {col.label}
                                   </th>
                                 ))}
@@ -524,8 +619,8 @@ export function ReportDocumentPreviewModal({ data, isOpen, onClose }: PreviewPro
                               {grp.rows.map((row, rIdx) => (
                                 <tr key={rIdx} className="hover:bg-slate-50/80 transition-colors even:bg-slate-50/40">
                                   {data.definition.columns.map(col => (
-                                    <td key={col.key} className="p-2 font-medium text-slate-800 text-[10px] sm:text-xs whitespace-nowrap sm:whitespace-normal">
-                                      {row[col.key] || '-'}
+                                    <td key={col.key} className={`p-2 sm:p-2.5 text-[10px] sm:text-xs whitespace-nowrap sm:whitespace-normal ${getColumnAlignment(col)}`}>
+                                      {renderCellContent(col, row[col.key])}
                                     </td>
                                   ))}
                                 </tr>
@@ -535,13 +630,13 @@ export function ReportDocumentPreviewModal({ data, isOpen, onClose }: PreviewPro
                         </div>
                       </div>
 
-                      {/* Subtotais do Grupo */}
+                      {/* Subtotais do Grupo com Destaque */}
                       {grp.subtotals && grp.subtotals.length > 0 && (
-                        <div className="flex flex-wrap justify-end gap-3 pt-1.5 px-2 bg-slate-50/70 rounded-lg border border-slate-100 text-[11px]">
+                        <div className="flex flex-wrap justify-end gap-3 pt-2 px-3 bg-slate-50 rounded-lg border border-slate-200/80 text-[11px]">
                           {grp.subtotals.map((st, stIdx) => (
                             <div key={stIdx} className="flex items-center gap-1.5">
-                              <span className="text-slate-500">{st.label}:</span>
-                              <span className={`font-bold ${st.color || 'text-slate-900'}`}>{st.value}</span>
+                              <span className="text-slate-500 uppercase text-[10px] font-semibold">{st.label}:</span>
+                              <span className={`font-bold text-xs ${st.color || 'text-slate-900'}`}>{st.value}</span>
                             </div>
                           ))}
                         </div>
@@ -552,14 +647,15 @@ export function ReportDocumentPreviewModal({ data, isOpen, onClose }: PreviewPro
 
                 {/* TOTAIS GERAIS CONSOLIDADOS (Apenas na Última Página) */}
                 {page.isLastPage && data.grandTotals && data.grandTotals.length > 0 && (
-                  <div className="border-2 border-orange-500/30 rounded-xl p-3 sm:p-4 bg-orange-50/30 space-y-2">
-                    <h4 className="text-xs font-bold text-orange-950 uppercase tracking-wider">
-                      Resumo & Totais Gerais Consolidados
+                  <div className="border-2 border-orange-500/40 rounded-xl p-3 sm:p-4 bg-orange-50/20 space-y-2.5">
+                    <h4 className="text-xs font-bold text-orange-950 uppercase tracking-wider flex items-center gap-1.5">
+                      <TrendingUp className="w-3.5 h-3.5 text-orange-600" />
+                      Consolidação Geral & Resultados Finais
                     </h4>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
                       {data.grandTotals.map((gt, gtIdx) => (
-                        <div key={gtIdx} className="bg-white p-2 sm:p-2.5 rounded-lg border border-orange-200/60">
-                          <p className="text-[10px] text-slate-500 font-medium">{gt.label}</p>
+                        <div key={gtIdx} className="bg-white p-2.5 rounded-lg border border-orange-200/80 shadow-2xs">
+                          <p className="text-[10px] text-slate-500 font-medium uppercase">{gt.label}</p>
                           <p className={`text-xs sm:text-sm font-bold mt-0.5 ${gt.color || 'text-slate-900'}`}>{gt.value}</p>
                         </div>
                       ))}
@@ -590,7 +686,7 @@ export function ReportDocumentPreviewModal({ data, isOpen, onClose }: PreviewPro
 
                 <div className="text-left xs:text-right text-[9px] text-slate-500 w-full xs:w-auto border-t xs:border-t-0 pt-1.5 xs:pt-0">
                   <p className="font-semibold text-slate-700">Página {page.pageNumber} de {page.totalPages} • Focus ERP</p>
-                  <p>Documento Corporativo Homologado</p>
+                  <p>Documento Corporativo Oficial</p>
                 </div>
               </div>
 
@@ -628,6 +724,7 @@ export function ReportDocumentPreviewModal({ data, isOpen, onClose }: PreviewPro
     </Dialog>
   );
 }
+
 
 
 
