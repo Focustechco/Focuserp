@@ -41,8 +41,8 @@ export function MobileCentroCustosView() {
 
   // Expansão de nós
   const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({
-    'cc-1': true,
-    'cc-2': true,
+    '07a25ef0-56db-4ba5-b9ed-9e21c208676e': true,
+    'e8135bf3-e5a1-4608-a0ca-14dd1fd52298': true,
   });
 
   const toggleNode = (id: string, e?: React.MouseEvent) => {

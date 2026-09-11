@@ -599,6 +599,7 @@ function toSnakeCasePayload(table: string, item: any): any {
   if (table.includes('centros_custo') || table.includes('centro_custos')) {
     return {
       ...base,
+      ...objectToSnakeCase(item),
       codigo: item.codigo || `CC-${validId.slice(0, 4).toUpperCase()}`,
       nome: item.nome || 'Centro de Custo',
       departamento: item.departamento || 'Geral',
@@ -607,12 +608,14 @@ function toSnakeCasePayload(table: string, item: any): any {
       gasto_acumulado: Number(item.gastoAcumulado ?? item.gasto_acumulado ?? 0) || 0,
       status: item.status || 'Ativo',
       descricao: item.descricao || null,
+      centro_pai_id: item.centroPaiId || item.centro_pai_id || null,
     };
   }
 
   if (table.includes('plano_contas') || table.includes('categorias')) {
     return {
       ...base,
+      ...objectToSnakeCase(item),
       codigo: item.codigo || `PC-${validId.slice(0, 4).toUpperCase()}`,
       nome: item.nome || 'Categoria',
       tipo: item.tipo || 'Despesa',
@@ -620,6 +623,7 @@ function toSnakeCasePayload(table: string, item: any): any {
       status: item.status || 'Ativo',
       cor: item.cor || '#64748B',
       descricao: item.descricao || null,
+      categoria_pai_id: item.categoriaPaiId || item.categoria_pai_id || null,
     };
   }
 
@@ -875,11 +879,19 @@ function fromSnakeCaseRow(table: string, row: any): any {
   }
   if (table.includes('centros_custo') || table.includes('centro_custos')) {
     return {
-      ...row,
+      ...objectFromSnakeCase(row),
       id: String(row.id),
       responsavelNome: row.responsavel_nome || row.responsavelNome,
       orcamentoMensal: Number(row.orcamento_mensal ?? row.orcamentoMensal ?? 0) || 0,
       gastoAcumulado: Number(row.gasto_acumulado ?? row.gastoAcumulado ?? 0) || 0,
+    };
+  }
+  if (table.includes('plano_contas') || table.includes('categorias')) {
+    return {
+      ...objectFromSnakeCase(row),
+      id: String(row.id),
+      nome: row.nome || 'Categoria',
+      categoriaPaiId: row.categoria_pai_id || row.categoriaPaiId || null,
     };
   }
   if (table.includes('cobrancas') || table.includes('cobranca')) {

@@ -42,8 +42,8 @@ export function MobileCategoriasView() {
 
   // Expansão de nós da árvore
   const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({
-    'cat-rec-1': true,
-    'cat-desp-2': true,
+    '67013282-9ab2-480f-b9bb-66ac2e1671fe': true,
+    '404b3d39-5a81-40b2-9641-9a4833b0ddf5': true,
   });
 
   const toggleNode = (id: string, e?: React.MouseEvent) => {

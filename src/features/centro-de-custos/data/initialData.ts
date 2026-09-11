@@ -2,7 +2,7 @@ import { CentroCusto } from '../types';
 
 export const INITIAL_CENTROS: CentroCusto[] = [
   {
-    id: 'cc-100',
+    id: '07a25ef0-56db-4ba5-b9ed-9e21c208676e',
     codigo: '1.0',
     nome: 'Operacional & Tecnologia',
     tipo: 'Despesa',
@@ -22,7 +22,7 @@ export const INITIAL_CENTROS: CentroCusto[] = [
     historico: []
   },
   {
-    id: 'cc-101',
+    id: 'e8135bf3-e5a1-4608-a0ca-14dd1fd52298',
     codigo: '1.1',
     nome: 'Infraestrutura Cloud & Servidores',
     tipo: 'Despesa',
@@ -30,7 +30,7 @@ export const INITIAL_CENTROS: CentroCusto[] = [
     departamento: 'Engenharia',
     responsavel: 'DevOps / SysAdmin',
     status: 'Ativo',
-    centroPaiId: 'cc-100',
+    centroPaiId: '07a25ef0-56db-4ba5-b9ed-9e21c208676e',
     descricao: 'Hospedagem AWS/Vercel e bancos de dados.',
     rateios: [],
     projetosVinculados: [],
@@ -43,7 +43,7 @@ export const INITIAL_CENTROS: CentroCusto[] = [
     historico: []
   },
   {
-    id: 'cc-200',
+    id: '984a2a6a-8070-438d-881b-45313edb5387',
     codigo: '2.0',
     nome: 'Comercial & Marketing',
     tipo: 'Despesa',
@@ -63,7 +63,7 @@ export const INITIAL_CENTROS: CentroCusto[] = [
     historico: []
   },
   {
-    id: 'cc-300',
+    id: '4c7611ec-4a40-4021-9ca8-061b9649e714',
     codigo: '3.0',
     nome: 'Receitas de Software & SaaS',
     tipo: 'Receita',
@@ -83,7 +83,7 @@ export const INITIAL_CENTROS: CentroCusto[] = [
     historico: []
   },
   {
-    id: 'cc-400',
+    id: '37bade2f-bbac-41a8-95e0-e8a64aef1140',
     codigo: '4.0',
     nome: 'Administrativo & Financeiro',
     tipo: 'Despesa',
