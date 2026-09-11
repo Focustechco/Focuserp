@@ -49,73 +49,125 @@ export function ReportSchedulesView() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in pt-2">
-      <div className="flex justify-between items-center">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in pt-1 sm:pt-2">
+      <div className="flex flex-col xs:flex-row justify-between items-start xs:items-center gap-3">
         <div>
-          <h3 className="font-bold text-base">Agendamentos Automáticos de Relatórios</h3>
+          <h3 className="font-bold text-sm sm:text-base">Agendamentos Automáticos de Relatórios</h3>
           <p className="text-xs text-muted-foreground">Programe emissões periódicas enviadas diretamente por e-mail.</p>
         </div>
-        <Button onClick={() => setOpenModal(true)} className="gap-2 bg-orange-600 hover:bg-orange-700 text-white">
+        <Button onClick={() => setOpenModal(true)} className="gap-2 bg-orange-600 hover:bg-orange-700 text-white text-xs h-9 rounded-xl shadow-xs shrink-0 w-full xs:w-auto">
           <Plus className="w-4 h-4" /> Novo Agendamento
         </Button>
       </div>
 
-      <Card>
-        <CardContent className="pt-6">
+      <Card className="rounded-2xl">
+        <CardContent className="p-3 sm:p-6">
           {schedules.length === 0 ? (
-            <div className="py-12 text-center text-muted-foreground border border-dashed rounded-lg">
+            <div className="py-12 text-center text-muted-foreground border border-dashed rounded-xl">
               <Calendar className="w-12 h-12 mx-auto mb-3 opacity-20" />
-              <p className="font-medium">Nenhum agendamento ativo no momento.</p>
+              <p className="font-medium text-sm">Nenhum agendamento ativo no momento.</p>
               <p className="text-xs mt-1">Clique em "Novo Agendamento" para programar o envio automático por e-mail.</p>
             </div>
           ) : (
-            <div className="border rounded-lg overflow-hidden bg-card">
-              <table className="w-full text-xs">
-                <thead className="bg-muted/50 border-b">
-                  <tr>
-                    <th className="p-3 text-left font-semibold">Relatório</th>
-                    <th className="p-3 text-left font-semibold">Frequência</th>
-                    <th className="p-3 text-left font-semibold">Horário</th>
-                    <th className="p-3 text-left font-semibold">Destinatários</th>
-                    <th className="p-3 text-left font-semibold">Formato</th>
-                    <th className="p-3 text-left font-semibold">Próxima Execução</th>
-                    <th className="p-3 text-left font-semibold">Status</th>
-                    <th className="p-3 text-right font-semibold">Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {schedules.map((item) => (
-                    <tr key={item.id} className="border-b hover:bg-muted/30 transition-colors">
-                      <td className="p-3 font-semibold text-primary">{item.reportTitle}</td>
-                      <td className="p-3">
-                        <Badge variant="outline">{item.frequency}</Badge>
-                      </td>
-                      <td className="p-3 font-medium">
-                        <div className="flex items-center gap-1"><Clock className="w-3 h-3 text-muted-foreground" /> {item.horario}</div>
-                      </td>
-                      <td className="p-3 text-muted-foreground">
-                        <div className="flex items-center gap-1"><Mail className="w-3 h-3" /> {item.destinatarions.join(', ')}</div>
-                      </td>
-                      <td className="p-3 font-bold uppercase">{item.format}</td>
-                      <td className="p-3 font-medium">{item.proximaExecucao}</td>
-                      <td className="p-3">
-                        <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">{item.status}</Badge>
-                      </td>
-                      <td className="p-3 text-right">
-                        <Button 
-                          size="icon" 
-                          variant="ghost" 
-                          onClick={() => removeSchedule(item.id)}
-                          className="h-7 w-7 text-rose-500 hover:bg-rose-50"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      </td>
+            <>
+              {/* Visualização Mobile: Cards */}
+              <div className="grid grid-cols-1 gap-2.5 sm:hidden">
+                {schedules.map((item) => (
+                  <div key={item.id} className="border p-3.5 rounded-xl bg-card space-y-2.5 shadow-2xs">
+                    <div className="flex justify-between items-start gap-2">
+                      <div>
+                        <Badge variant="outline" className="text-[10px] mb-1">
+                          {item.frequency}
+                        </Badge>
+                        <h4 className="font-bold text-xs text-foreground leading-tight">
+                          {item.reportTitle}
+                        </h4>
+                      </div>
+                      <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[10px] shrink-0">
+                        {item.status}
+                      </Badge>
+                    </div>
+
+                    <div className="space-y-1 text-[11px] text-muted-foreground pt-1 border-t">
+                      <div className="flex items-center gap-1">
+                        <Mail className="w-3 h-3 text-muted-foreground" />
+                        <span className="truncate">{item.destinatarions.join(', ')}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1">
+                          <Clock className="w-3 h-3 text-muted-foreground" />
+                          <span>{item.horario}</span>
+                        </div>
+                        <span>Próx: {item.proximaExecucao}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1 border-t">
+                      <Badge variant="secondary" className="text-[10px] uppercase font-bold">
+                        {item.format}
+                      </Badge>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => removeSchedule(item.id)}
+                        className="h-7 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 mr-1" /> Remover
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Visualização Desktop: Tabela */}
+              <div className="hidden sm:block border rounded-xl overflow-hidden bg-card">
+                <table className="w-full text-xs">
+                  <thead className="bg-muted/50 border-b">
+                    <tr>
+                      <th className="p-3 text-left font-semibold">Relatório</th>
+                      <th className="p-3 text-left font-semibold">Frequência</th>
+                      <th className="p-3 text-left font-semibold">Horário</th>
+                      <th className="p-3 text-left font-semibold">Destinatários</th>
+                      <th className="p-3 text-left font-semibold">Formato</th>
+                      <th className="p-3 text-left font-semibold">Próxima Execução</th>
+                      <th className="p-3 text-left font-semibold">Status</th>
+                      <th className="p-3 text-right font-semibold">Ações</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {schedules.map((item) => (
+                      <tr key={item.id} className="hover:bg-muted/30 transition-colors">
+                        <td className="p-3 font-semibold text-primary">{item.reportTitle}</td>
+                        <td className="p-3">
+                          <Badge variant="outline">{item.frequency}</Badge>
+                        </td>
+                        <td className="p-3 font-medium">
+                          <div className="flex items-center gap-1"><Clock className="w-3 h-3 text-muted-foreground" /> {item.horario}</div>
+                        </td>
+                        <td className="p-3 text-muted-foreground">
+                          <div className="flex items-center gap-1"><Mail className="w-3 h-3" /> {item.destinatarions.join(', ')}</div>
+                        </td>
+                        <td className="p-3 font-bold uppercase">{item.format}</td>
+                        <td className="p-3 font-medium">{item.proximaExecucao}</td>
+                        <td className="p-3">
+                          <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">{item.status}</Badge>
+                        </td>
+                        <td className="p-3 text-right">
+                          <Button 
+                            size="icon" 
+                            variant="ghost" 
+                            onClick={() => removeSchedule(item.id)}
+                            className="h-7 w-7 text-rose-500 hover:bg-rose-50"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
