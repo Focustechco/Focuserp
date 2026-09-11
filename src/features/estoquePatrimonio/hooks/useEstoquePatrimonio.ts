@@ -240,14 +240,14 @@ export function useEstoquePatrimonio() {
 
   // Operação: Novo Equipamento
   const registrarNovoEquipamento = (eq: Omit<Equipamento, 'id' | 'createdAt'>, gerarDespesa: boolean = false, vencimentoDespesa?: string) => {
-    const id = 'eq-' + Date.now();
+    const id = crypto.randomUUID();
     const newEq: Equipamento = {
       ...eq,
       id,
       createdAt: new Date().toISOString(),
       timeline: [
         {
-          id: 'tm-' + Date.now(),
+          id: crypto.randomUUID(),
           dataHora: new Date().toLocaleString('pt-BR'),
           tipo: 'Aquisição',
           descricao: `Equipamento cadastrado com valor de R$ ${(eq.valorCompra || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
@@ -260,9 +260,9 @@ export function useEstoquePatrimonio() {
 
     // Também cadastra no Patrimônio
     const newPatrimonio: Patrimonio = {
-      id: 'pat-' + Date.now(),
+      id: crypto.randomUUID(),
       numeroPatrimonial: eq.codigoPatrimonial,
-      codigoInterno: 'AST-' + id.substring(3),
+      codigoInterno: 'AST-' + id.substring(0, 4).toUpperCase(),
       categoria: eq.categoria,
       valorCompra: eq.valorCompra,
       valorAtual: eq.valorCompra * 0.9, // depreciação inicial estimada
@@ -276,7 +276,7 @@ export function useEstoquePatrimonio() {
 
     // Log de Movimentação
     addMovimentacao({
-      id: 'mov-' + Date.now(),
+      id: crypto.randomUUID(),
       tipo: 'Entrada',
       equipamentoId: id,
       equipamentoNome: `${eq.marca} ${eq.modelo} (${eq.codigoPatrimonial})`,
@@ -316,7 +316,7 @@ export function useEstoquePatrimonio() {
     const origemResp = target.colaboradorNome || 'Disponível em Estoque';
 
     const timelineEvent: EquipamentoTimelineEvent = {
-      id: 'tm-' + Date.now(),
+      id: crypto.randomUUID(),
       dataHora: new Date().toLocaleString('pt-BR'),
       tipo: 'Mudança Responsável',
       descricao: `Transferência de responsável para ${novoResponsavel} (${novoDepartamento}). Obs: ${observacao}`,
@@ -335,7 +335,7 @@ export function useEstoquePatrimonio() {
     });
 
     addMovimentacao({
-      id: 'mov-' + Date.now(),
+      id: crypto.randomUUID(),
       tipo: 'Transferência',
       equipamentoId,
       equipamentoNome: `${target.marca} ${target.modelo} (${target.codigoPatrimonial})`,
@@ -408,7 +408,7 @@ export function useEstoquePatrimonio() {
 
     // Registro na Timeline de Movimentações
     addMovimentacao({
-      id: 'mov-' + Date.now(),
+      id: crypto.randomUUID(),
       tipo: params.tipoOperacao === 'Entrada' ? 'Entrada' : params.tipoOperacao === 'Saída' ? 'Saída' : 'Transferência',
       estoqueItemId: params.itemId,
       estoqueItemNome: item.nome,
@@ -444,7 +444,7 @@ export function useEstoquePatrimonio() {
     const eqCod = eq ? eq.codigoPatrimonial : '';
 
     const newManut: Manutencao = {
-      id: 'manut-' + Date.now(),
+      id: crypto.randomUUID(),
       equipamentoId: params.equipamentoId,
       equipamentoCodigo: eqCod,
       equipamentoNome: eqNome,
@@ -464,7 +464,7 @@ export function useEstoquePatrimonio() {
         situacao: 'Manutenção',
         timeline: [
           {
-            id: 'tm-' + Date.now(),
+            id: crypto.randomUUID(),
             dataHora: new Date().toLocaleString('pt-BR'),
             tipo: 'Manutenção',
             descricao: `Ordem de manutenção [${params.tipo}] aberta. Descrição: ${params.descricao}`,
@@ -503,7 +503,7 @@ export function useEstoquePatrimonio() {
     }
 
     addMovimentacao({
-      id: 'mov-' + Date.now(),
+      id: crypto.randomUUID(),
       tipo: 'Manutenção',
       equipamentoId: params.equipamentoId,
       equipamentoNome: `${eqNome} (${eqCod})`,
@@ -526,7 +526,7 @@ export function useEstoquePatrimonio() {
     vencimentoFinanceiro?: string;
     categoria?: string;
   }) => {
-    const id = 'lic-' + Date.now();
+    const id = crypto.randomUUID();
     const novaLicenca: Licenca = {
       ...params.licenca,
       id,

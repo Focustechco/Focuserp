@@ -238,7 +238,7 @@ export function EstoqueView() {
     }
 
     const newItem: EstoqueItem = {
-      id: 'esc-' + Date.now(),
+      id: crypto.randomUUID(),
       codigo: itemForm.codigo || `ESC-${Math.floor(100 + Math.random() * 900)}`,
       nome: itemForm.nome,
       descricao: itemForm.descricao,
