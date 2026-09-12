@@ -369,13 +369,19 @@ function readLocalCache<T>(table: string, fallback: T[]): T[] {
   try {
     const keysToTry = getCandidateKeysForTable(table);
     const aggregatedItems = new Map<string, any>();
+    let foundAnyValidKey = false;
+    let foundExplicitEmptyArray = false;
 
     for (const k of keysToTry) {
       const raw = safeGetItem(k);
       if (raw !== null && raw !== undefined) {
+        foundAnyValidKey = true;
         try {
           const parsed = JSON.parse(raw);
           if (Array.isArray(parsed)) {
+            if (parsed.length === 0) {
+              foundExplicitEmptyArray = true;
+            }
             // Auto-heal: se o cache foi contaminado por pastas do DMS, expurgar a chave
             if (table !== 'focus_dms_pastas' && parsed.some(isDmsFolderObject)) {
               safeRemoveItem(k);
@@ -395,6 +401,10 @@ function readLocalCache<T>(table: string, fallback: T[]): T[] {
 
     if (aggregatedItems.size > 0) {
       return Array.from(aggregatedItems.values());
+    }
+
+    if (foundExplicitEmptyArray || (foundAnyValidKey && aggregatedItems.size === 0)) {
+      return [];
     }
   } catch {}
   return fallback;
@@ -654,30 +664,20 @@ function toSnakeCasePayload(table: string, item: any): any {
 
   if (table.includes('cobrancas') || table.includes('cobranca')) {
     const canalList = Array.isArray(item.canal) ? item.canal : (item.canal ? [item.canal] : ['WhatsApp', 'E-mail']);
-    const rawTimeline = Array.isArray(item.timeline) ? item.timeline : (Array.isArray(item.historicoInteracoes) ? item.historicoInteracoes : []);
+    const rawTimeline = Array.isArray(item.timeline) ? item.timeline : (Array.isArray(item.historicoInteracoes) ? item.historicoInteracoes : (Array.isArray(item.historico_interacoes) ? item.historico_interacoes : []));
     const rawStatus = item.statusCobranca || item.status || 'Pendente';
     const rawValor = Number(item.valor ?? item.valorTotal ?? item.valor_total ?? 0) || 0;
     const rawVenc = item.vencimento || item.dataVencimento || item.data_vencimento || new Date().toISOString().split('T')[0];
 
-    return {
-      ...base,
-      cliente_id: toNullableValidUuid(item.clienteId || item.cliente_id),
-      cliente_nome: item.cliente || item.clienteNome || item.cliente_nome || 'Cliente',
-      titulo_id: toNullableValidUuid(item.tituloId || item.titulo_id),
-      titulo_referencia: item.tituloReferencia || item.titulo_referencia || item.referencia || `REC-${validId.slice(0, 4).toUpperCase()}`,
-      valor_total: rawValor,
-      valor: rawValor,
+    const metaPayload = {
+      canal: canalList,
       vencimento: rawVenc,
       data_vencimento: rawVenc,
-      dias_atraso: Number(item.diasAtraso ?? item.dias_atraso ?? 0) || 0,
-      etapa_atual: item.etapaAtual || item.etapa_atual || 'Lembrete Preventivo',
-      status: rawStatus,
-      status_cobranca: item.statusCobranca || item.status_cobranca || rawStatus,
-      status_entrega: item.statusEntrega || item.status_entrega || 'Pendente',
-      status_leitura: item.statusLeitura || item.status_leitura || 'Não lida',
-      canal: canalList,
       data_hora_envio: item.dataHoraEnvio || item.data_hora_envio || null,
       data_hora_pagamento: item.dataHoraPagamento || item.data_hora_pagamento || null,
+      status_cobranca: item.statusCobranca || rawStatus,
+      status_entrega: item.statusEntrega || item.status_entrega || 'Pendente',
+      status_leitura: item.statusLeitura || item.status_leitura || 'Não lida',
       responsavel: item.responsavel || 'Usuário Focus',
       mensagem_personalizada: item.mensagemPersonalizada || item.mensagem_personalizada || item.mensagem || null,
       pix_copia_e_cola: item.pixCopiaECola || item.pix_copia_e_cola || null,
@@ -689,7 +689,20 @@ function toSnakeCasePayload(table: string, item: any): any {
       resposta_cliente: item.respostaCliente || item.resposta_cliente || null,
       classificacao_resposta: item.classificacaoResposta || item.classificacao_resposta || null,
       timeline: rawTimeline,
-      historico_interacoes: rawTimeline,
+    };
+
+    return {
+      id: validId,
+      cliente_id: toNullableValidUuid(item.clienteId || item.cliente_id),
+      cliente_nome: item.cliente || item.clienteNome || item.cliente_nome || 'Cliente',
+      titulo_id: toNullableValidUuid(item.tituloId || item.titulo_id),
+      titulo_referencia: item.tituloReferencia || item.titulo_referencia || item.referencia || `REC-${validId.slice(0, 4).toUpperCase()}`,
+      valor_total: rawValor,
+      dias_atraso: Number(item.diasAtraso ?? item.dias_atraso ?? 0) || 0,
+      etapa_atual: item.etapaAtual || item.etapa_atual || 'Lembrete Preventivo',
+      status: rawStatus,
+      historico_interacoes: metaPayload,
+      updated_at: new Date().toISOString(),
     };
   }
 
@@ -761,17 +774,19 @@ function toSnakeCasePayload(table: string, item: any): any {
   if (table.includes('fiscal_documentos') || table === 'fiscal_documentos' || table === 'focus_fiscal_documentos' || table === 'focus_documentos_fiscais') {
     const ent = item.entidade || {};
     const vinc = item.vinculos || {};
+    const entNome = ent.nome || item.entidadeNome || item.entidade_nome || 'Cliente Fiscal';
+    const numDoc = item.numero || `${validId.slice(0, 6).toUpperCase()}`;
     return {
-      ...base,
+      id: validId,
       tipo: item.tipo || 'NFS-e',
-      numero: item.numero || `${validId.slice(0, 6).toUpperCase()}`,
+      numero: numDoc,
       serie: item.serie || '1',
       chave_acesso: item.chaveAcesso || item.chave_acesso || null,
-      data_emissao: item.dataEmissao ? item.dataEmissao.split('T')[0] : (item.data_emissao || new Date().toISOString().split('T')[0]),
-      data_entrada: item.dataEntrada ? item.dataEntrada.split('T')[0] : (item.data_entrada || null),
+      data_emissao: item.dataEmissao ? String(item.dataEmissao).split('T')[0] : (item.data_emissao ? String(item.data_emissao).split('T')[0] : new Date().toISOString().split('T')[0]),
+      data_entrada: item.dataEntrada ? String(item.dataEntrada).split('T')[0] : (item.data_entrada ? String(item.data_entrada).split('T')[0] : null),
       entidade_tipo: ent.tipo || item.entidadeTipo || item.entidade_tipo || 'Cliente',
       entidade_id: toNullableValidUuid(ent.id || item.entidadeId || item.entidade_id),
-      entidade_nome: ent.nome || item.entidadeNome || item.entidade_nome || 'Entidade',
+      entidade_nome: entNome,
       entidade_cnpj_cpf: ent.cnpjCpf || item.entidadeCnpjCpf || item.entidade_cnpj_cpf || null,
       projeto_id: toNullableValidUuid(vinc.projetoId || item.projetoId || item.projeto_id),
       projeto_nome: vinc.projetoNome || item.projetoNome || item.projeto_nome || null,
@@ -782,6 +797,7 @@ function toSnakeCasePayload(table: string, item: any): any {
       anexos: Array.isArray(item.anexos) ? item.anexos : [],
       status: item.status || 'Emitido',
       observacoes: item.observacoes || null,
+      updated_at: new Date().toISOString(),
     };
   }
 
@@ -1063,13 +1079,14 @@ function fromSnakeCaseRow(table: string, row: any): any {
     };
   }
   if (table.includes('cobrancas') || table.includes('cobranca')) {
-    const rawCanal = Array.isArray(row.canal) ? row.canal : (typeof row.canal === 'string' ? [row.canal] : ['WhatsApp', 'E-mail']);
-    const rawTimeline = Array.isArray(row.timeline) ? row.timeline : (Array.isArray(row.historico_interacoes) ? row.historico_interacoes : (Array.isArray(row.historicoInteracoes) ? row.historicoInteracoes : []));
-    const rawStatus = row.status_cobranca || row.statusCobranca || row.status || 'Pendente';
-    const rawStatusEntrega = row.status_entrega || row.statusEntrega || 'Pendente';
-    const rawStatusLeitura = row.status_leitura || row.statusLeitura || 'Não lida';
+    const meta = (row.historico_interacoes && typeof row.historico_interacoes === 'object' && !Array.isArray(row.historico_interacoes)) ? row.historico_interacoes : {};
+    const rawCanal = Array.isArray(row.canal) ? row.canal : (Array.isArray(meta.canal) ? meta.canal : (typeof row.canal === 'string' ? [row.canal] : ['WhatsApp', 'E-mail']));
+    const rawTimeline = Array.isArray(row.timeline) ? row.timeline : (Array.isArray(meta.timeline) ? meta.timeline : (Array.isArray(row.historico_interacoes) ? row.historico_interacoes : (Array.isArray(row.historicoInteracoes) ? row.historicoInteracoes : [])));
+    const rawStatus = meta.status_cobranca || row.status_cobranca || row.statusCobranca || row.status || 'Pendente';
+    const rawStatusEntrega = meta.status_entrega || row.status_entrega || row.statusEntrega || 'Pendente';
+    const rawStatusLeitura = meta.status_leitura || row.status_leitura || row.statusLeitura || 'Não lida';
     const rawValor = Number(row.valor ?? row.valor_total ?? row.valorTotal ?? 0) || 0;
-    const rawVencimento = row.vencimento || row.data_vencimento || row.dataVencimento || row.created_at || new Date().toISOString().split('T')[0];
+    const rawVencimento = meta.vencimento || meta.data_vencimento || row.vencimento || row.data_vencimento || row.dataVencimento || row.created_at || new Date().toISOString().split('T')[0];
     const clienteName = row.cliente || row.cliente_nome || row.clienteNome || 'Cliente';
     const tituloRef = row.titulo_referencia || row.tituloReferencia || row.referencia || `REC-${String(row.id).slice(0, 4).toUpperCase()}`;
 
@@ -1086,24 +1103,24 @@ function fromSnakeCaseRow(table: string, row: any): any {
       vencimento: String(rawVencimento).split('T')[0],
       dataVencimento: String(rawVencimento).split('T')[0],
       canal: rawCanal,
-      dataHoraEnvio: row.data_hora_envio || row.dataHoraEnvio || undefined,
-      dataHoraPagamento: row.data_hora_pagamento || row.dataHoraPagamento || undefined,
+      dataHoraEnvio: meta.data_hora_envio || row.data_hora_envio || row.dataHoraEnvio || undefined,
+      dataHoraPagamento: meta.data_hora_pagamento || row.data_hora_pagamento || row.dataHoraPagamento || undefined,
       statusCobranca: rawStatus,
       status: rawStatus,
       statusEntrega: rawStatusEntrega,
       statusLeitura: rawStatusLeitura,
       diasAtraso: Number(row.dias_atraso ?? row.diasAtraso ?? 0) || 0,
       etapaAtual: row.etapa_atual || row.etapaAtual || 'Lembrete Preventivo',
-      responsavel: row.responsavel || 'Usuário Focus',
-      mensagemPersonalizada: row.mensagem_personalizada || row.mensagemPersonalizada || undefined,
-      pixCopiaECola: row.pix_copia_e_cola || row.pixCopiaECola || undefined,
-      qrCodePix: row.qr_code_pix || row.qrCodePix || undefined,
-      linhaDigitavel: row.linha_digitavel || row.linhaDigitavel || undefined,
-      linkBoleto: row.link_boleto || row.linkBoleto || undefined,
-      agendamento: row.agendamento || undefined,
-      lembretesProgramados: Array.isArray(row.lembretes_programados) ? row.lembretes_programados : (Array.isArray(row.lembretesProgramados) ? row.lembretesProgramados : []),
-      respostaCliente: row.resposta_cliente || row.respostaCliente || undefined,
-      classificacaoResposta: row.classificacao_resposta || row.classificacaoResposta || undefined,
+      responsavel: meta.responsavel || row.responsavel || 'Usuário Focus',
+      mensagemPersonalizada: meta.mensagem_personalizada || row.mensagem_personalizada || row.mensagemPersonalizada || undefined,
+      pixCopiaECola: meta.pix_copia_e_cola || row.pix_copia_e_cola || row.pixCopiaECola || undefined,
+      qrCodePix: meta.qr_code_pix || row.qr_code_pix || row.qrCodePix || undefined,
+      linhaDigitavel: meta.linha_digitavel || row.linha_digitavel || row.linhaDigitavel || undefined,
+      linkBoleto: meta.link_boleto || row.link_boleto || row.linkBoleto || undefined,
+      agendamento: meta.agendamento || row.agendamento || undefined,
+      lembretesProgramados: Array.isArray(meta.lembretes_programados) ? meta.lembretes_programados : (Array.isArray(row.lembretes_programados) ? row.lembretes_programados : (Array.isArray(row.lembretesProgramados) ? row.lembretesProgramados : [])),
+      respostaCliente: meta.resposta_cliente || row.resposta_cliente || row.respostaCliente || undefined,
+      classificacaoResposta: meta.classificacao_resposta || row.classificacao_resposta || row.classificacaoResposta || undefined,
       timeline: rawTimeline,
       historicoInteracoes: rawTimeline,
     };
@@ -1157,9 +1174,9 @@ function fromSnakeCaseRow(table: string, row: any): any {
       tipo: row.tipo || 'NFS-e',
       numero: row.numero || '',
       serie: row.serie || '1',
-      chaveAcesso: row.chave_acesso || row.chaveAcesso,
-      dataEmissao: row.data_emissao || row.dataEmissao || row.created_at || new Date().toISOString().split('T')[0],
-      dataEntrada: row.data_entrada || row.dataEntrada,
+      chaveAcesso: row.chave_acesso || row.chaveAcesso || '',
+      dataEmissao: row.data_emissao ? String(row.data_emissao).split('T')[0] : (row.dataEmissao ? String(row.dataEmissao).split('T')[0] : (row.created_at ? String(row.created_at).split('T')[0] : new Date().toISOString().split('T')[0])),
+      dataEntrada: row.data_entrada ? String(row.data_entrada).split('T')[0] : (row.dataEntrada ? String(row.dataEntrada).split('T')[0] : undefined),
       entidade: {
         tipo: row.entidade_tipo || row.entidade?.tipo || 'Cliente',
         id: row.entidade_id || row.entidade?.id || '',
@@ -1401,6 +1418,7 @@ export function useLocalStorageState<T extends { id: string }>(
   const isCentrosCusto = table === 'focus_centro_custos' || table === 'centros_custo' || table === 'centro_custos' || table === 'focus_centros_custo';
   const isPlanoContas = table === 'focus_plano_contas' || table === 'plano_contas' || table === 'categorias' || table === 'focus_categorias';
   const isCobrancas = table === 'focus_cobrancas' || table === 'cobrancas' || table === 'focus_app_cobrancas' || table === 'focus_cobrancas_multicanal';
+  const isFiscal = table === 'focus_fiscal_documentos' || table === 'fiscal_documentos' || table === 'focus_documentos_fiscais' || table.includes('fiscal');
   const isContasBancarias = table === 'focus_contas_bancarias' || table === 'contas_bancarias' || table === 'focus_app_contas_bancarias' || table.includes('conta_bancaria');
   const isExtratosBancarios = table === 'focus_extratos' || table === 'extratos_bancarios' || table === 'extratos' || table === 'focus_app_extratos' || table === 'focus_extratos_bancarios' || table.includes('extrato');
 
@@ -1425,10 +1443,16 @@ export function useLocalStorageState<T extends { id: string }>(
     ? 'clientes'
     : isUsersTable
     ? 'users'
+    : isCobrancas
+    ? 'cobrancas'
+    : isFiscal
+    ? 'fiscal_documentos'
     : TABLE_MAP[table]
     ? TABLE_MAP[table]
     : table === 'focus_cobrancas' || table === 'cobrancas'
     ? 'cobrancas'
+    : table === 'focus_fiscal_documentos' || table === 'fiscal_documentos'
+    ? 'fiscal_documentos'
     : table === 'focus_centro_custos' || table === 'centros_custo' || table === 'centro_custos'
     ? 'centros_custo'
     : table === 'focus_plano_contas' || table === 'plano_contas' || table === 'categorias'
@@ -1800,16 +1824,35 @@ export function useLocalStorageState<T extends { id: string }>(
                 id: c.id,
                 cliente_id: null,
                 titulo_id: null,
-                cliente_nome: c.cliente_nome,
-                titulo_referencia: c.titulo_referencia,
-                valor_total: c.valor_total,
-                dias_atraso: c.dias_atraso,
-                etapa_atual: c.etapa_atual,
-                status: c.status,
-                historico_interacoes: c.historico_interacoes,
+                cliente_nome: c.cliente_nome || 'Cliente',
+                titulo_referencia: c.titulo_referencia || 'REC-000',
+                valor_total: c.valor_total || 0,
+                dias_atraso: c.dias_atraso || 0,
+                etapa_atual: c.etapa_atual || 'Lembrete Preventivo',
+                status: c.status || 'Pendente',
+                historico_interacoes: c.historico_interacoes || {},
                 updated_at: c.updated_at,
               }));
               await supabase.from('cobrancas').upsert(fallbackPayload, { onConflict: 'id' });
+            }
+          }
+        } else if (isFiscal) {
+          const payload = items.map((item: any) => toSnakeCasePayload('fiscal_documentos', item));
+          const deduped = deduplicateById(payload);
+          if (deduped.length > 0) {
+            const { error: upsertErr } = await supabase.from('fiscal_documentos').upsert(deduped, { onConflict: 'id' });
+            if (upsertErr) {
+              const fallbackPayload = deduped.map((f: any) => ({
+                id: f.id,
+                tipo: f.tipo || 'NFS-e',
+                numero: f.numero || '1000',
+                serie: f.serie || '1',
+                entidade_nome: f.entidade_nome || 'Cliente Fiscal',
+                valor_total: f.valor_total || 0,
+                status: f.status || 'Emitido',
+                updated_at: f.updated_at,
+              }));
+              await supabase.from('fiscal_documentos').upsert(fallbackPayload, { onConflict: 'id' });
             }
           }
         } else if (isContasBancarias) {
@@ -2470,7 +2513,65 @@ export function useLocalStorageState<T extends { id: string }>(
           }
         }
 
-        if (primaryDbTable && !isContasReceber && !isContasPagar && !isContratos && !isProjetos && !isFornecedores && !isColaboradores && !isClientsTable && !isUsersTable && !isCentrosCusto && !isPlanoContas) {
+        if (isFiscal) {
+          const { data: dbRows, error: dbErr } = await supabase
+            .from('fiscal_documentos')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+          if (!isMountedRef.current) return;
+
+          const rawDeletedIds = safeGetItem('focus_app_deleted_fiscal_ids');
+          const deletedSet = new Set<string>(rawDeletedIds ? JSON.parse(rawDeletedIds) : []);
+
+          if (!dbErr && Array.isArray(dbRows)) {
+            const mapped = dbRows
+              .filter((r: any) => !deletedSet.has(String(r.id)))
+              .map((r: any) => fromSnakeCaseRow('fiscal_documentos', r)) as unknown as T[];
+
+            localCached.forEach((lc: any) => {
+              if (lc && lc.id && !deletedSet.has(String(lc.id)) && !mapped.some((m: any) => m.id === lc.id)) {
+                mapped.push(lc);
+              }
+            });
+
+            setData(mapped);
+            writeLocalCache(table, mapped);
+            setError(null);
+            return;
+          }
+        }
+
+        if (isCobrancas) {
+          const { data: dbRows, error: dbErr } = await supabase
+            .from('cobrancas')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+          if (!isMountedRef.current) return;
+
+          const rawDeletedIds = safeGetItem('focus_app_deleted_cobrancas_ids');
+          const deletedSet = new Set<string>(rawDeletedIds ? JSON.parse(rawDeletedIds) : []);
+
+          if (!dbErr && Array.isArray(dbRows)) {
+            const mapped = dbRows
+              .filter((r: any) => !deletedSet.has(String(r.id)))
+              .map((r: any) => fromSnakeCaseRow('cobrancas', r)) as unknown as T[];
+
+            localCached.forEach((lc: any) => {
+              if (lc && lc.id && !deletedSet.has(String(lc.id)) && !mapped.some((m: any) => m.id === lc.id)) {
+                mapped.push(lc);
+              }
+            });
+
+            setData(mapped);
+            writeLocalCache(table, mapped);
+            setError(null);
+            return;
+          }
+        }
+
+        if (primaryDbTable && !isContasReceber && !isContasPagar && !isContratos && !isProjetos && !isFornecedores && !isColaboradores && !isClientsTable && !isUsersTable && !isCentrosCusto && !isPlanoContas && !isFiscal && !isCobrancas) {
           const { data: dbRows, error: dbErr } = await supabase
             .from(primaryDbTable)
             .select('*')
@@ -2666,6 +2767,26 @@ export function useLocalStorageState<T extends { id: string }>(
         } catch {}
       }
 
+      if (isFiscal || table === 'focus_fiscal_documentos' || table === 'fiscal_documentos' || primaryDbTable === 'fiscal_documentos') {
+        try {
+          const rawDel = localStorage.getItem('focus_app_deleted_fiscal_ids');
+          const deletedSet = new Set(rawDel ? JSON.parse(rawDel) : []);
+          deletedSet.add(String(id));
+          localStorage.setItem('focus_app_deleted_fiscal_ids', JSON.stringify(Array.from(deletedSet)));
+          await supabase.from('fiscal_documentos').delete().eq('id', id);
+        } catch {}
+      }
+
+      if (isCobrancas || table === 'focus_cobrancas' || table === 'cobrancas' || primaryDbTable === 'cobrancas') {
+        try {
+          const rawDel = localStorage.getItem('focus_app_deleted_cobrancas_ids');
+          const deletedSet = new Set(rawDel ? JSON.parse(rawDel) : []);
+          deletedSet.add(String(id));
+          localStorage.setItem('focus_app_deleted_cobrancas_ids', JSON.stringify(Array.from(deletedSet)));
+          await supabase.from('cobrancas').delete().eq('id', id);
+        } catch {}
+      }
+
       if (isUsersTable) {
         try {
           await userService.deleteUser(id);
@@ -2688,7 +2809,7 @@ export function useLocalStorageState<T extends { id: string }>(
         window.dispatchEvent(new Event('focus_storage_update'));
       }
     },
-    [isClientsTable, isUsersTable, primaryDbTable, table]
+    [isClientsTable, isCobrancas, isFiscal, isFornecedores, isUsersTable, primaryDbTable, table]
   );
 
   const saveItem = useCallback(

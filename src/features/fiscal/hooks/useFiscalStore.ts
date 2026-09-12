@@ -104,7 +104,7 @@ const INITIAL_FISCAL_DOCS: DocumentoFiscal[] = [
 ];
 
 export function useFiscalStore() {
-  const { data: documentos, addItem, updateItem, removeItem, setItems } = useLocalStorageState<DocumentoFiscal>(
+  const { data: documentos = [], addItem, updateItem, deleteItem, removeItem, setAllItems } = useLocalStorageState<DocumentoFiscal>(
     'focus_fiscal_documentos',
     INITIAL_FISCAL_DOCS
   );
@@ -178,7 +178,10 @@ export function useFiscalStore() {
   return {
     documentos,
     saveDocumentoAndSyncDMS,
-    deleteDocumento: removeItem,
-    setDocumentos: setItems
+    deleteDocumento: (id: string) => {
+      deleteItem(id);
+      if (removeItem) removeItem(id);
+    },
+    setDocumentos: setAllItems
   };
 }
