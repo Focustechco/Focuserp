@@ -82,18 +82,24 @@ export function MobileRecebimentosView() {
     let totalAReceber = 0;
     let totalVencido = 0;
     let totalRecebido = 0;
+    let countAReceber = 0;
+    let countVencidos = 0;
+    let countRecebidos = 0;
 
     enrichedTitulos.forEach((t) => {
       if (t.isPago) {
         totalRecebido += (t.valorRecebido || t.valorNum);
+        countRecebidos++;
       } else if (t.isVencido) {
         totalVencido += t.valorNum;
+        countVencidos++;
       } else {
         totalAReceber += t.valorNum;
+        countAReceber++;
       }
     });
 
-    return { totalAReceber, totalVencido, totalRecebido };
+    return { totalAReceber, totalVencido, totalRecebido, countAReceber, countVencidos, countRecebidos };
   }, [enrichedTitulos]);
 
   const categoriasDisponiveis = useMemo(() => {
@@ -188,238 +194,378 @@ export function MobileRecebimentosView() {
     <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-zinc-950 pb-24">
       {/* 1. STICKY TOP CONTROLS: BUSCA + FILTROS + SELETOR DE SEÇÕES */}
       <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md border-b px-3.5 py-2.5 space-y-2">
-        {/* Busca, Filtros, Refresh & Botão Novo */}
-        <div className="flex items-center gap-1.5">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-            <Input
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Buscar cliente, descrição, doc..."
-              className="h-8.5 pl-8.5 pr-3 text-xs rounded-xl bg-muted/40 border-muted-foreground/20 focus-visible:ring-1 focus-visible:ring-[#FF6A00]"
-            />
-          </div>
-
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={handleRefresh}
-            className="h-8.5 w-8.5 rounded-xl shrink-0 border-muted-foreground/20 text-muted-foreground hover:text-foreground"
-            aria-label="Atualizar"
-            title="Sincronizar"
+        {/* Seletor de Seções Principais (Tabs Mobile) */}
+        <div className="flex items-center gap-1 p-1 bg-muted/60 rounded-xl border">
+          <button
+            type="button"
+            onClick={() => setActiveSection('titulos')}
+            className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
+              activeSection === 'titulos'
+                ? 'bg-white dark:bg-zinc-800 text-foreground shadow-xs'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-[#FF6A00]' : ''}`} />
-          </Button>
+            <DollarSign className="w-3.5 h-3.5 text-[#FF6A00]" />
+            <span>Títulos</span>
+          </button>
 
-          <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
-            <SheetTrigger asChild>
-              <Button
-                variant={categoriaFilter !== 'todas' ? 'default' : 'outline'}
-                size="icon"
-                className={`h-8.5 w-8.5 rounded-xl shrink-0 ${
-                  categoriaFilter !== 'todas'
-                    ? 'bg-[#FF6A00] text-white'
-                    : 'border-muted-foreground/20 text-muted-foreground hover:text-foreground'
-                }`}
-                aria-label="Filtrar"
-              >
-                <Filter className="w-3.5 h-3.5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="bottom" hideCloseButton className="rounded-t-2xl max-h-[80vh] p-4 bg-background">
-              <SheetHeader className="pb-3 border-b flex flex-row items-center justify-between">
-                <div>
-                  <SheetTitle className="text-base font-bold text-left">Filtros de Recebimentos</SheetTitle>
-                  <p className="text-xs text-muted-foreground text-left">Filtre por categoria e status financeiro</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setFilterSheetOpen(false)}
-                  className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100/90 dark:bg-zinc-800/90 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-500 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-white transition-all active:scale-95 cursor-pointer shadow-xs"
-                  aria-label="Fechar"
+          <button
+            type="button"
+            onClick={() => setActiveSection('futuros')}
+            className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
+              activeSection === 'futuros'
+                ? 'bg-white dark:bg-zinc-800 text-foreground shadow-xs'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Clock className="w-3.5 h-3.5 text-blue-500" />
+            <span>Futuros</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveSection('dashboard')}
+            className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
+              activeSection === 'dashboard'
+                ? 'bg-white dark:bg-zinc-800 text-foreground shadow-xs'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <BarChart3 className="w-3.5 h-3.5 text-emerald-500" />
+            <span>Dashboard</span>
+          </button>
+        </div>
+
+        {/* Busca, Filtros, Refresh & Botão Novo (Visível na aba de títulos) */}
+        {activeSection === 'titulos' && (
+          <div className="flex items-center gap-1.5">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <Input
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Buscar cliente, descrição, doc..."
+                className="h-8.5 pl-8.5 pr-3 text-xs rounded-xl bg-muted/40 border-muted-foreground/20 focus-visible:ring-1 focus-visible:ring-[#FF6A00]"
+              />
+            </div>
+
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleRefresh}
+              className="h-8.5 w-8.5 rounded-xl shrink-0 border-muted-foreground/20 text-muted-foreground hover:text-foreground"
+              aria-label="Atualizar"
+              title="Sincronizar"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-[#FF6A00]' : ''}`} />
+            </Button>
+
+            <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
+              <SheetTrigger asChild>
+                <Button
+                  variant={categoriaFilter !== 'todas' ? 'default' : 'outline'}
+                  size="icon"
+                  className={`h-8.5 w-8.5 rounded-xl shrink-0 ${
+                    categoriaFilter !== 'todas'
+                      ? 'bg-[#FF6A00] text-white'
+                      : 'border-muted-foreground/20 text-muted-foreground hover:text-foreground'
+                  }`}
+                  aria-label="Filtrar"
                 >
-                  <span className="text-sm font-bold leading-none">&times;</span>
-                </button>
-              </SheetHeader>
-              <div className="py-4 space-y-4 text-xs">
-                <div>
-                  <label className="font-semibold text-foreground block mb-2">Categoria</label>
-                  <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto">
-                    <button
-                      type="button"
-                      onClick={() => setCategoriaFilter('todas')}
-                      className={`px-3 py-1.5 rounded-lg text-xs transition-colors border ${
-                        categoriaFilter === 'todas'
-                          ? 'bg-[#FF6A00] text-white border-[#FF6A00] font-semibold'
-                          : 'bg-muted/40 border-border text-foreground hover:bg-muted'
-                      }`}
-                    >
-                      Todas ({enrichedTitulos.length})
-                    </button>
-                    {categoriasDisponiveis.map(cat => (
+                  <Filter className="w-3.5 h-3.5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="bottom" hideCloseButton className="rounded-t-2xl max-h-[80vh] p-4 bg-background">
+                <SheetHeader className="pb-3 border-b flex flex-row items-center justify-between">
+                  <div>
+                    <SheetTitle className="text-base font-bold text-left">Filtros de Recebimentos</SheetTitle>
+                    <p className="text-xs text-muted-foreground text-left">Filtre por categoria e status financeiro</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setFilterSheetOpen(false)}
+                    className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100/90 dark:bg-zinc-800/90 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-500 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-white transition-all active:scale-95 cursor-pointer shadow-xs"
+                    aria-label="Fechar"
+                  >
+                    <span className="text-sm font-bold leading-none">&times;</span>
+                  </button>
+                </SheetHeader>
+                <div className="py-4 space-y-4 text-xs">
+                  <div>
+                    <label className="font-semibold text-foreground block mb-2">Categoria</label>
+                    <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto">
                       <button
-                        key={cat}
                         type="button"
-                        onClick={() => setCategoriaFilter(cat)}
+                        onClick={() => setCategoriaFilter('todas')}
                         className={`px-3 py-1.5 rounded-lg text-xs transition-colors border ${
-                          categoriaFilter === cat
+                          categoriaFilter === 'todas'
                             ? 'bg-[#FF6A00] text-white border-[#FF6A00] font-semibold'
                             : 'bg-muted/40 border-border text-foreground hover:bg-muted'
                         }`}
                       >
-                        {cat}
+                        Todas ({enrichedTitulos.length})
                       </button>
-                    ))}
+                      {categoriasDisponiveis.map(cat => (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => setCategoriaFilter(cat)}
+                          className={`px-3 py-1.5 rounded-lg text-xs transition-colors border ${
+                            categoriaFilter === cat
+                              ? 'bg-[#FF6A00] text-white border-[#FF6A00] font-semibold'
+                              : 'bg-muted/40 border-border text-foreground hover:bg-muted'
+                          }`}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="pt-2 flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setCategoriaFilter('todas');
+                        setSearchTerm('');
+                      }}
+                      className="flex-1 h-10 rounded-xl"
+                    >
+                      Limpar
+                    </Button>
+                    <Button
+                      onClick={() => setFilterSheetOpen(false)}
+                      className="flex-1 bg-[#FF6A00] hover:bg-orange-600 text-white h-10 rounded-xl font-bold"
+                    >
+                      Aplicar ({filteredList.length})
+                    </Button>
                   </div>
                 </div>
+              </SheetContent>
+            </Sheet>
 
-                <div className="pt-2 flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setCategoriaFilter('todas');
-                      setSearchTerm('');
-                    }}
-                    className="flex-1 h-10 rounded-xl"
-                  >
-                    Limpar
-                  </Button>
-                  <Button
-                    onClick={() => setFilterSheetOpen(false)}
-                    className="flex-1 bg-[#FF6A00] hover:bg-orange-600 text-white h-10 rounded-xl font-bold"
-                  >
-                    Aplicar ({filteredList.length})
-                  </Button>
-                </div>
-              </div>
-            </SheetContent>
-          </Sheet>
-
-          <Button
-            size="sm"
-            onClick={() => setNovoRecebimentoOpen(true)}
-            className="h-8.5 px-3 rounded-xl bg-[#FF6A00] hover:bg-orange-600 text-white font-bold text-xs shadow-xs gap-1 shrink-0"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            Novo
-          </Button>
-        </div>
+            <Button
+              size="sm"
+              onClick={() => setNovoRecebimentoOpen(true)}
+              className="h-8.5 px-3 rounded-xl bg-[#FF6A00] hover:bg-orange-600 text-white font-bold text-xs shadow-xs gap-1 shrink-0"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Novo
+            </Button>
+          </div>
+        )}
       </div>
 
-      {/* 2. CARDS KPI */}
-      <div className="bg-gradient-to-b from-background to-muted/20 border-b p-3.5 space-y-3">
-          {/* Mini Cards de Resumo Financeiro */}
-          <div className="grid grid-cols-3 gap-2">
-            <div className="bg-white dark:bg-card p-2.5 rounded-xl border border-border/80 shadow-xs">
-              <div className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
-                <Clock className="w-3 h-3 text-[#FF6A00]" /> A Receber
-              </div>
-              <div className="text-xs font-bold text-foreground mt-0.5 truncate">
-                {formatCurrency(stats.totalAReceber)}
-              </div>
+      {/* RENDERIZAÇÃO DA SEÇÃO ATIVA */}
+      {activeSection === 'futuros' && (
+        <div className="p-3.5">
+          <RecebimentosFuturosTab />
+        </div>
+      )}
+
+      {activeSection === 'dashboard' && (
+        <div className="p-3.5">
+          <Dashboard />
+        </div>
+      )}
+
+      {activeSection === 'titulos' && (
+        <>
+          {/* 2. CARDS KPI INTERATIVOS */}
+          <div className="bg-gradient-to-b from-background to-muted/20 border-b p-3.5 space-y-2.5">
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => setActiveTab(activeTab === 'a_receber' ? 'todos' : 'a_receber')}
+                className={`p-2.5 rounded-xl border text-left transition-all duration-200 cursor-pointer shadow-xs ${
+                  activeTab === 'a_receber'
+                    ? 'bg-amber-50/80 border-amber-400 ring-2 ring-amber-500/20 dark:bg-amber-950/40 dark:border-amber-600'
+                    : 'bg-white dark:bg-card border-border/80'
+                }`}
+              >
+                <div className="text-[10px] text-amber-700 dark:text-amber-400 font-medium flex items-center gap-1">
+                  <Clock className="w-3 h-3 text-amber-500" /> A Receber
+                </div>
+                <div className="text-xs font-bold text-foreground mt-0.5 truncate">
+                  {formatCurrency(stats.totalAReceber)}
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab(activeTab === 'vencidos' ? 'todos' : 'vencidos')}
+                className={`p-2.5 rounded-xl border text-left transition-all duration-200 cursor-pointer shadow-xs ${
+                  activeTab === 'vencidos'
+                    ? 'bg-rose-50/80 border-rose-400 ring-2 ring-rose-500/20 dark:bg-rose-950/40 dark:border-rose-600'
+                    : 'bg-white dark:bg-card border-border/80'
+                }`}
+              >
+                <div className="text-[10px] text-rose-700 dark:text-rose-400 font-medium flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3 text-rose-500" /> Vencidos
+                </div>
+                <div className="text-xs font-bold text-rose-600 dark:text-rose-400 mt-0.5 truncate">
+                  {formatCurrency(stats.totalVencido)}
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab(activeTab === 'recebidos' ? 'todos' : 'recebidos')}
+                className={`p-2.5 rounded-xl border text-left transition-all duration-200 cursor-pointer shadow-xs ${
+                  activeTab === 'recebidos'
+                    ? 'bg-emerald-50/80 border-emerald-400 ring-2 ring-emerald-500/20 dark:bg-emerald-950/40 dark:border-emerald-600'
+                    : 'bg-white dark:bg-card border-border/80'
+                }`}
+              >
+                <div className="text-[10px] text-emerald-700 dark:text-emerald-400 font-medium flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-500" /> Recebido
+                </div>
+                <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-0.5 truncate">
+                  {formatCurrency(stats.totalRecebido)}
+                </div>
+              </button>
             </div>
-            <div className="bg-white dark:bg-card p-2.5 rounded-xl border border-border/80 shadow-xs">
-              <div className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
-                <AlertTriangle className="w-3 h-3 text-rose-500" /> Vencidos
-              </div>
-              <div className="text-xs font-bold text-rose-600 dark:text-rose-400 mt-0.5 truncate">
-                {formatCurrency(stats.totalVencido)}
-              </div>
-            </div>
-            <div className="bg-white dark:bg-card p-2.5 rounded-xl border border-border/80 shadow-xs">
-              <div className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3 text-emerald-500" /> Recebido
-              </div>
-              <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-0.5 truncate">
-                {formatCurrency(stats.totalRecebido)}
-              </div>
+
+            {/* Chips de Filtro Rápido por Status */}
+            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide pt-1">
+              <button
+                type="button"
+                onClick={() => setActiveTab('todos')}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                  activeTab === 'todos'
+                    ? 'bg-orange-500 text-white shadow-xs'
+                    : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                }`}
+              >
+                Todos ({enrichedTitulos.length})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('a_receber')}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1 ${
+                  activeTab === 'a_receber'
+                    ? 'bg-amber-500 text-white shadow-xs'
+                    : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                }`}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                A Receber ({stats.countAReceber})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('vencidos')}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1 ${
+                  activeTab === 'vencidos'
+                    ? 'bg-rose-500 text-white shadow-xs'
+                    : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                }`}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                Vencidos ({stats.countVencidos})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('recebidos')}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1 ${
+                  activeTab === 'recebidos'
+                    ? 'bg-emerald-500 text-white shadow-xs'
+                    : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                }`}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                Recebidos ({stats.countRecebidos})
+              </button>
             </div>
           </div>
-        </div>
 
-      {/* 3. LISTA DE TÍTULOS */}
-      <div className="p-3 space-y-2.5">
-          {filteredList.length === 0 ? (
-            <div className="bg-card rounded-2xl border p-8 text-center space-y-3 mt-4">
-              <TrendingUp className="w-10 h-10 text-muted-foreground mx-auto opacity-40" />
-              <div className="font-semibold text-sm text-foreground">Nenhum recebimento encontrado</div>
-              <p className="text-xs text-muted-foreground">
-                Altere os filtros ou adicione um novo recebimento.
-              </p>
-            </div>
-          ) : (
-            filteredList.map((t) => (
-              <div
-                key={t.id}
-                onClick={() => {
-                  setTituloSelecionado(t);
-                  setDetalhesOpen(true);
-                }}
-                className="bg-card rounded-2xl border border-border/80 p-3.5 shadow-xs transition-all active:scale-[0.99] cursor-pointer space-y-2.5"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="font-semibold text-xs text-foreground truncate">
-                      {t.clienteNome || 'Cliente não identificado'}
+          {/* 3. LISTA DE TÍTULOS */}
+          <div className="p-3 space-y-2.5">
+            {filteredList.length === 0 ? (
+              <div className="bg-card rounded-2xl border p-8 text-center space-y-3 mt-4">
+                <TrendingUp className="w-10 h-10 text-muted-foreground mx-auto opacity-40" />
+                <div className="font-semibold text-sm text-foreground">Nenhum recebimento encontrado</div>
+                <p className="text-xs text-muted-foreground">
+                  Altere os filtros ou adicione um novo recebimento.
+                </p>
+              </div>
+            ) : (
+              filteredList.map((t) => (
+                <div
+                  key={t.id}
+                  onClick={() => {
+                    setTituloSelecionado(t);
+                    setDetalhesOpen(true);
+                  }}
+                  className="bg-card rounded-2xl border border-border/80 p-3.5 shadow-xs transition-all active:scale-[0.99] cursor-pointer space-y-2.5 hover:border-orange-500/40"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="font-semibold text-xs text-foreground truncate">
+                        {t.clienteNome || 'Cliente não identificado'}
+                      </div>
+                      <div className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">
+                        {t.descricao || 'Título a Receber'}
+                      </div>
+                      {t.categoria && (
+                        <span className="inline-block mt-1 text-[10px] bg-muted/60 text-muted-foreground px-2 py-0.5 rounded-md font-medium">
+                          {t.categoria}
+                        </span>
+                      )}
                     </div>
-                    <div className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">
-                      {t.descricao || 'Título a Receber'}
+
+                    <div className="text-right shrink-0">
+                      <div className="font-bold text-sm text-foreground">
+                        {formatCurrency(t.valorNum)}
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className={`text-[9px] px-1.5 py-0 mt-0.5 rounded-md font-semibold ${
+                          t.isPago
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400'
+                            : t.isVencido
+                            ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400'
+                            : 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400'
+                        }`}
+                      >
+                        {t.isPago ? 'Recebido' : t.isVencido ? 'Vencido' : 'Pendente'}
+                      </Badge>
                     </div>
-                    {t.categoria && (
-                      <span className="inline-block mt-1 text-[10px] bg-muted/60 text-muted-foreground px-2 py-0.5 rounded-md font-medium">
-                        {t.categoria}
+                  </div>
+
+                  {/* Data de Vencimento e Ação Rápida */}
+                  <div className="flex items-center justify-between pt-2 border-t border-dashed border-border/60 text-[11px] text-muted-foreground">
+                    <div className="flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>
+                        Vencimento: {t.dataVencimento ? formatDateBrasilia(t.dataVencimento) : 'Sem data'}
+                      </span>
+                    </div>
+
+                    {!t.isPago ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => handleBaixarTitulo(t, e)}
+                        className="h-7 px-2.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-lg gap-1"
+                      >
+                        <Check className="w-3 h-3" />
+                        Baixar
+                      </Button>
+                    ) : (
+                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
+                        Liquidado
                       </span>
                     )}
                   </div>
-
-                  <div className="text-right shrink-0">
-                    <div className="font-bold text-sm text-foreground">
-                      {formatCurrency(t.valorNum)}
-                    </div>
-                    <Badge
-                      variant="outline"
-                      className={`text-[9px] px-1.5 py-0 mt-0.5 rounded-md font-semibold ${
-                        t.isPago
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400'
-                          : t.isVencido
-                          ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400'
-                          : 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400'
-                      }`}
-                    >
-                      {t.isPago ? 'Recebido' : t.isVencido ? 'Vencido' : 'Pendente'}
-                    </Badge>
-                  </div>
                 </div>
-
-                {/* Data de Vencimento e Ação Rápida */}
-                <div className="flex items-center justify-between pt-2 border-t border-dashed border-border/60 text-[11px] text-muted-foreground">
-                  <div className="flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5" />
-                    <span>
-                      Vencimento: {t.dataVencimento ? formatDateBrasilia(t.dataVencimento) : 'Sem data'}
-                    </span>
-                  </div>
-
-                  {!t.isPago ? (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={(e) => handleBaixarTitulo(t, e)}
-                      className="h-7 px-2.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-lg gap-1"
-                    >
-                      <Check className="w-3 h-3" />
-                      Baixar
-                    </Button>
-                  ) : (
-                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
-                      Liquidado
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))
-          )}
-        </div>
+              ))
+            )}
+          </div>
+        </>
+      )}
 
       {/* Sheet de Detalhes da Conta Selecionada (Descrição e Dados Completos) */}
       <DetalhesRecebimentoSheet

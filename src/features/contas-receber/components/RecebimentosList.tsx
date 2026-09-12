@@ -207,6 +207,52 @@ export function RecebimentosList() {
     return { filterStart: null, filterEnd: null };
   }, [datePreset, dataInicio, dataFim]);
 
+  const hojeIso = getBrasiliaTodayIso();
+
+  // Contagens e totais globais por seção
+  const counts = useMemo(() => {
+    let todos = titulos.length;
+    let aberto = 0;
+    let atrasado = 0;
+    let recebido = 0;
+    let recorrencia = 0;
+
+    let valorTotal = 0;
+    let valorAberto = 0;
+    let valorAtrasado = 0;
+    let valorRecebido = 0;
+
+    titulos.forEach(t => {
+      const valor = Number(t.valorOriginal || t.valor || 0);
+      const valRec = Number(t.valorRecebido || 0);
+      const saldo = Number(t.saldo ?? (valor - valRec));
+
+      valorTotal += valor;
+
+      const norm = (t.status || '').trim().toLowerCase();
+      const isPago = norm === 'recebido' || norm === 'liquidado' || norm === 'pago';
+      const isVenc = !isPago && ((t.dataVencimento && t.dataVencimento < hojeIso) || norm === 'atrasado' || norm === 'vencido');
+      const isRec = (t.descricao || '').toLowerCase().includes('recorrência') || 
+                    (t.descricao || '').toLowerCase().includes('mensalidade') ||
+                    (t.categoria || '').toLowerCase().includes('recorrência');
+
+      if (isPago) {
+        recebido++;
+        valorRecebido += (valRec || valor);
+      } else if (isVenc) {
+        atrasado++;
+        valorAtrasado += (saldo || valor);
+      } else {
+        aberto++;
+        valorAberto += (saldo || valor);
+      }
+
+      if (isRec) recorrencia++;
+    });
+
+    return { todos, aberto, atrasado, recebido, recorrencia, valorTotal, valorAberto, valorAtrasado, valorRecebido };
+  }, [titulos, hojeIso]);
+
   // Aplicar filtros compostos
   const filteredData = useMemo(() => {
     return titulos.filter(t => {
@@ -218,10 +264,15 @@ export function RecebimentosList() {
 
       if (!matchesSearch) return false;
 
-      // 2. Filtro de Status
-      if (statusFilter === 'aberto' && t.status !== 'Pendente' && t.status !== 'Em Aberto') return false;
-      if (statusFilter === 'recebido' && t.status !== 'Recebido') return false;
-      if (statusFilter === 'atrasado' && t.status !== 'Atrasado') return false;
+      // 2. Filtro de Status / Seção
+      const norm = (t.status || '').trim().toLowerCase();
+      const isPago = norm === 'recebido' || norm === 'liquidado' || norm === 'pago';
+      const isVenc = !isPago && ((t.dataVencimento && t.dataVencimento < hojeIso) || norm === 'atrasado' || norm === 'vencido');
+      const isAberto = !isPago && !isVenc;
+
+      if (statusFilter === 'aberto' && !isAberto) return false;
+      if (statusFilter === 'recebido' && !isPago) return false;
+      if (statusFilter === 'atrasado' && !isVenc) return false;
 
       // 3. Filtro de Categoria / Origem
       if (categoriaFilter === 'recorrencia') {
@@ -254,15 +305,21 @@ export function RecebimentosList() {
 
       return true;
     });
-  }, [titulos, searchTerm, statusFilter, categoriaFilter, dateField, filterStart, filterEnd]);
+  }, [titulos, searchTerm, statusFilter, categoriaFilter, dateField, filterStart, filterEnd, hojeIso]);
 
   // Métricas do período filtrado
   const totalFiltrado = filteredData.reduce((acc, t) => acc + (t.valorOriginal || 0), 0);
   const totalRecebido = filteredData
-    .filter(t => t.status === 'Recebido' || t.status === 'Recebido Parcialmente')
+    .filter(t => {
+      const norm = (t.status || '').trim().toLowerCase();
+      return norm === 'recebido' || norm === 'liquidado' || norm === 'pago';
+    })
     .reduce((acc, t) => acc + (t.valorRecebido || t.valorOriginal || 0), 0);
   const totalPendente = filteredData
-    .filter(t => t.status === 'Pendente' || t.status === 'Em Aberto' || t.status === 'Atrasado')
+    .filter(t => {
+      const norm = (t.status || '').trim().toLowerCase();
+      return norm !== 'recebido' && norm !== 'liquidado' && norm !== 'pago';
+    })
     .reduce((acc, t) => acc + (t.saldo || t.valorOriginal || 0), 0);
 
   const limparFiltros = () => {
@@ -296,51 +353,200 @@ export function RecebimentosList() {
         <MobileRecebimentosView />
       </div>
       <div className="hidden md:block space-y-4 animate-fade-in">
-      {/* Cards de Resumo dos Títulos Filtrados */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="p-3.5 rounded-lg border bg-card flex items-center justify-between shadow-sm">
-          <div>
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Total em Títulos</p>
-            <h3 className="text-xl font-bold text-foreground mt-0.5">{formatCurrency(totalFiltrado)}</h3>
-            <span className="text-[11px] text-muted-foreground">{filteredData.length} registros listados</span>
+      {/* Cards Interativos de Resumo e Filtro de Seções */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {/* Card 1: Todos os Títulos */}
+        <button
+          type="button"
+          onClick={() => {
+            setStatusFilter('todos');
+            setCategoriaFilter('todas');
+          }}
+          className={`p-3.5 rounded-xl border text-left transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md ${
+            statusFilter === 'todos' && categoriaFilter === 'todas'
+              ? 'bg-orange-50/70 border-orange-400 ring-2 ring-orange-500/20 dark:bg-orange-950/30 dark:border-orange-600'
+              : 'bg-card hover:border-border/90'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total Geral</p>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+              statusFilter === 'todos' && categoriaFilter === 'todas' ? 'bg-orange-500 text-white' : 'bg-primary/10 text-primary'
+            }`}>
+              <Calendar className="w-4 h-4" />
+            </div>
           </div>
-          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-            <Calendar className="w-5 h-5" />
-          </div>
-        </div>
+          <h3 className="text-xl font-bold text-foreground mt-1">{formatCurrency(counts.valorTotal)}</h3>
+          <span className="text-[11px] text-muted-foreground mt-0.5 block">{counts.todos} títulos cadastrados</span>
+        </button>
 
-        <div className="p-3.5 rounded-lg border bg-card flex items-center justify-between shadow-sm">
-          <div>
-            <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Recebido / Liquidado (Caixa)</p>
-            <h3 className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">{formatCurrency(totalRecebido)}</h3>
-            <span className="text-[11px] text-muted-foreground">Contabilizado no Fluxo de Caixa Real</span>
+        {/* Card 2: Em Aberto / A Receber */}
+        <button
+          type="button"
+          onClick={() => {
+            setStatusFilter(statusFilter === 'aberto' ? 'todos' : 'aberto');
+            if (categoriaFilter === 'recorrencia') setCategoriaFilter('todas');
+          }}
+          className={`p-3.5 rounded-xl border text-left transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md ${
+            statusFilter === 'aberto'
+              ? 'bg-amber-50/80 border-amber-400 ring-2 ring-amber-500/20 dark:bg-amber-950/30 dark:border-amber-600'
+              : 'bg-card hover:border-border/90'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wider">A Receber / Em Aberto</p>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+              statusFilter === 'aberto' ? 'bg-amber-500 text-white' : 'bg-amber-500/10 text-amber-600'
+            }`}>
+              <Clock className="w-4 h-4" />
+            </div>
           </div>
-          <div className="w-9 h-9 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-600">
-            <CheckCircle2 className="w-5 h-5" />
-          </div>
-        </div>
+          <h3 className="text-xl font-bold text-amber-700 dark:text-amber-400 mt-1">{formatCurrency(counts.valorAberto)}</h3>
+          <span className="text-[11px] text-muted-foreground mt-0.5 block">{counts.aberto} títulos a vencer</span>
+        </button>
 
-        <div className="p-3.5 rounded-lg border bg-card flex items-center justify-between shadow-sm">
-          <div>
-            <p className="text-xs font-medium text-amber-600 dark:text-amber-400 uppercase tracking-wider">Pendente de Aprovação / Baixa</p>
-            <h3 className="text-xl font-bold text-amber-600 dark:text-amber-400 mt-0.5">{formatCurrency(totalPendente)}</h3>
-            <span className="text-[11px] text-muted-foreground">Aguardando quitação para entrar no caixa</span>
+        {/* Card 3: Atrasados / Vencidos */}
+        <button
+          type="button"
+          onClick={() => {
+            setStatusFilter(statusFilter === 'atrasado' ? 'todos' : 'atrasado');
+            if (categoriaFilter === 'recorrencia') setCategoriaFilter('todas');
+          }}
+          className={`p-3.5 rounded-xl border text-left transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md ${
+            statusFilter === 'atrasado'
+              ? 'bg-rose-50/80 border-rose-400 ring-2 ring-rose-500/20 dark:bg-rose-950/30 dark:border-rose-600'
+              : 'bg-card hover:border-border/90'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold text-rose-700 dark:text-rose-400 uppercase tracking-wider">Atrasados / Vencidos</p>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+              statusFilter === 'atrasado' ? 'bg-rose-500 text-white' : 'bg-rose-500/10 text-rose-600'
+            }`}>
+              <AlertTriangle className="w-4 h-4" />
+            </div>
           </div>
-          <div className="w-9 h-9 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-600">
-            <Clock className="w-5 h-5" />
+          <h3 className="text-xl font-bold text-rose-600 dark:text-rose-400 mt-1">{formatCurrency(counts.valorAtrasado)}</h3>
+          <span className="text-[11px] text-muted-foreground mt-0.5 block">{counts.atrasado} títulos vencidos</span>
+        </button>
+
+        {/* Card 4: Recebidos / Liquidados */}
+        <button
+          type="button"
+          onClick={() => {
+            setStatusFilter(statusFilter === 'recebido' ? 'todos' : 'recebido');
+            if (categoriaFilter === 'recorrencia') setCategoriaFilter('todas');
+          }}
+          className={`p-3.5 rounded-xl border text-left transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md ${
+            statusFilter === 'recebido'
+              ? 'bg-emerald-50/80 border-emerald-400 ring-2 ring-emerald-500/20 dark:bg-emerald-950/30 dark:border-emerald-600'
+              : 'bg-card hover:border-border/90'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">Recebido / Liquidado</p>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+              statusFilter === 'recebido' ? 'bg-emerald-500 text-white' : 'bg-emerald-500/10 text-emerald-600'
+            }`}>
+              <CheckCircle2 className="w-4 h-4" />
+            </div>
           </div>
-        </div>
+          <h3 className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{formatCurrency(counts.valorRecebido)}</h3>
+          <span className="text-[11px] text-muted-foreground mt-0.5 block">{counts.recebido} títulos quitados</span>
+        </button>
+      </div>
+
+      {/* Barra de Filtros Rápidos de Seção / Abas */}
+      <div className="flex flex-wrap items-center gap-1.5 p-1.5 rounded-xl bg-muted/40 border">
+        <button
+          type="button"
+          onClick={() => {
+            setStatusFilter('todos');
+            setCategoriaFilter('todas');
+          }}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+            statusFilter === 'todos' && categoriaFilter === 'todas'
+              ? 'bg-white dark:bg-zinc-800 text-foreground shadow-xs'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+          }`}
+        >
+          Todos ({counts.todos})
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setStatusFilter('aberto');
+            setCategoriaFilter('todas');
+          }}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+            statusFilter === 'aberto'
+              ? 'bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-300 shadow-xs'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+          }`}
+        >
+          <span className="w-2 h-2 rounded-full bg-amber-500" />
+          Em Aberto ({counts.aberto})
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setStatusFilter('atrasado');
+            setCategoriaFilter('todas');
+          }}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+            statusFilter === 'atrasado'
+              ? 'bg-rose-100 text-rose-900 dark:bg-rose-950/60 dark:text-rose-300 shadow-xs'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+          }`}
+        >
+          <span className="w-2 h-2 rounded-full bg-rose-500" />
+          Atrasados ({counts.atrasado})
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setStatusFilter('recebido');
+            setCategoriaFilter('todas');
+          }}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+            statusFilter === 'recebido'
+              ? 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-300 shadow-xs'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+          }`}
+        >
+          <span className="w-2 h-2 rounded-full bg-emerald-500" />
+          Recebidos ({counts.recebido})
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setStatusFilter('todos');
+            setCategoriaFilter(categoriaFilter === 'recorrencia' ? 'todas' : 'recorrencia');
+          }}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+            categoriaFilter === 'recorrencia'
+              ? 'bg-blue-100 text-blue-900 dark:bg-blue-950/60 dark:text-blue-300 shadow-xs'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+          }`}
+        >
+          <RefreshCw className="w-3 h-3 text-blue-500" />
+          Recorrências ({counts.recorrencia})
+        </button>
       </div>
 
       {/* Painel Avançado de Filtros e Datas */}
-      <div className="p-4 rounded-lg border bg-card space-y-3 shadow-sm">
+      <div className="p-4 rounded-xl border bg-card space-y-3 shadow-xs">
         {/* Linha 1: Busca e Ações Principais */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3">
           <div className="relative w-full lg:w-96">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input 
               placeholder="Buscar por cliente, nº do título ou descrição..." 
-              className="pl-8 text-xs h-9"
+              className="pl-8 text-xs h-9 rounded-lg"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -361,19 +567,19 @@ export function RecebimentosList() {
                 setIsSelectionMode(nextMode);
                 if (!nextMode) setSelectedIds([]);
               }}
-              className={`text-xs h-9 gap-1.5 ${isSelectionMode ? 'bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-950/40 dark:text-orange-300 dark:border-orange-800 font-semibold' : ''}`}
+              className={`text-xs h-9 gap-1.5 rounded-lg ${isSelectionMode ? 'bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-950/40 dark:text-orange-300 dark:border-orange-800 font-semibold' : ''}`}
               title="Ativar/Desativar seleção múltipla para exclusão"
             >
               <CheckSquare className="w-3.5 h-3.5 text-orange-600" />
               {isSelectionMode ? 'Cancelar Seleção' : 'Selecionar'}
             </Button>
 
-            <Button variant="outline" size="sm" className="text-xs h-9">
+            <Button variant="outline" size="sm" className="text-xs h-9 rounded-lg">
               <Download className="mr-1.5 h-3.5 w-3.5" /> Exportar
             </Button>
 
             <NovoRecebimentoSheet>
-              <Button size="sm" className="text-xs h-9 bg-orange-600 hover:bg-orange-700 text-white">
+              <Button size="sm" className="text-xs h-9 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-semibold">
                 <Plus className="mr-1.5 h-3.5 w-3.5" /> Novo Recebimento
               </Button>
             </NovoRecebimentoSheet>
@@ -426,8 +632,8 @@ export function RecebimentosList() {
               <SelectContent>
                 <SelectItem value="todos">Todos os Status</SelectItem>
                 <SelectItem value="aberto">Em Aberto / Pendente</SelectItem>
+                <SelectItem value="atrasado">Atrasado / Vencido</SelectItem>
                 <SelectItem value="recebido">Recebido / Liquidado</SelectItem>
-                <SelectItem value="atrasado">Atrasado</SelectItem>
               </SelectContent>
             </Select>
           </div>

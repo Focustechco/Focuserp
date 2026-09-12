@@ -9,11 +9,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
   Search, Filter, Plus, TrendingDown, CheckCircle2, Clock,
-  AlertTriangle, ChevronRight, Check, RefreshCw, Trash2
+  AlertTriangle, ChevronRight, Check, RefreshCw, Trash2,
+  DollarSign, BarChart3, Layers
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { NovaContaSheet } from './NovaContaSheet';
 import { DetalhesContaPagarSheet } from './DetalhesContaPagarSheet';
+import { PagamentosFuturosTab } from './PagamentosFuturosTab';
+import { Dashboard } from './Dashboard';
 import { formatDateBrasilia, getBrasiliaTodayIso } from '@/lib/dateUtils';
 import { toast } from 'sonner';
 
@@ -26,6 +29,7 @@ export function MobileContasPagarView() {
   const { data: localContas = [], saveItem: saveLocalConta, removeItem: deleteLocalConta } = useLocalStorageState<ContaPagar>('focus_contas_pagar');
   const { contas: queryContas = [], isLoading, refetch, saveConta: saveQueryConta, deleteConta: deleteQueryConta } = useContasPagarQuery();
 
+  const [activeSection, setActiveSection] = useState<'despesas' | 'futuros' | 'dashboard'>('despesas');
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<'todos' | 'a_pagar' | 'vencidas' | 'pagas'>('todos');
   const [categoriaFilter, setCategoriaFilter] = useState<string>('todas');
@@ -78,18 +82,24 @@ export function MobileContasPagarView() {
     let totalAPagar = 0;
     let totalVencido = 0;
     let totalPago = 0;
+    let countAPagar = 0;
+    let countVencidas = 0;
+    let countPagas = 0;
 
     enrichedContas.forEach((c) => {
       if (c.isPago) {
         totalPago += (c.valorPago || c.valorNum);
+        countPagas++;
       } else if (c.isVencido) {
         totalVencido += c.valorNum;
+        countVencidas++;
       } else {
         totalAPagar += c.valorNum;
+        countAPagar++;
       }
     });
 
-    return { totalAPagar, totalVencido, totalPago };
+    return { totalAPagar, totalVencido, totalPago, countAPagar, countVencidas, countPagas };
   }, [enrichedContas]);
 
   const categoriasDisponiveis = useMemo(() => {
@@ -182,239 +192,380 @@ export function MobileContasPagarView() {
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-zinc-950 pb-24">
-      {/* 1. STICKY TOP CONTROLS: BUSCA + FILTROS */}
+      {/* 1. STICKY TOP CONTROLS: SELETOR DE SEÇÕES + BUSCA + FILTROS */}
       <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md border-b px-3.5 py-2.5 space-y-2">
-        {/* Busca, Filtros, Refresh & Botão Novo */}
-        <div className="flex items-center gap-1.5">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-            <Input
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Buscar fornecedor, despesa..."
-              className="h-8.5 pl-8.5 pr-3 text-xs rounded-xl bg-muted/40 border-muted-foreground/20 focus-visible:ring-1 focus-visible:ring-[#FF6A00]"
-            />
-          </div>
-
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={handleRefresh}
-            className="h-8.5 w-8.5 rounded-xl shrink-0 border-muted-foreground/20 text-muted-foreground hover:text-foreground"
-            aria-label="Atualizar"
-            title="Sincronizar"
+        {/* Seletor de Seções Principais (Tabs Mobile) */}
+        <div className="flex items-center gap-1 p-1 bg-muted/60 rounded-xl border">
+          <button
+            type="button"
+            onClick={() => setActiveSection('despesas')}
+            className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
+              activeSection === 'despesas'
+                ? 'bg-white dark:bg-zinc-800 text-foreground shadow-xs'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-[#FF6A00]' : ''}`} />
-          </Button>
+            <DollarSign className="w-3.5 h-3.5 text-[#FF6A00]" />
+            <span>Despesas</span>
+          </button>
 
-          <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
-            <SheetTrigger asChild>
-              <Button
-                variant={categoriaFilter !== 'todas' ? 'default' : 'outline'}
-                size="icon"
-                className={`h-8.5 w-8.5 rounded-xl shrink-0 ${
-                  categoriaFilter !== 'todas'
-                    ? 'bg-[#FF6A00] text-white'
-                    : 'border-muted-foreground/20 text-muted-foreground hover:text-foreground'
-                }`}
-                aria-label="Filtrar"
-              >
-                <Filter className="w-3.5 h-3.5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="bottom" hideCloseButton className="rounded-t-2xl max-h-[80vh] p-4 bg-background">
-              <SheetHeader className="pb-3 border-b flex flex-row items-center justify-between">
-                <div>
-                  <SheetTitle className="text-base font-bold text-left">Filtros de Pagamentos</SheetTitle>
-                  <p className="text-xs text-muted-foreground text-left">Filtre por categoria e status de pagamento</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setFilterSheetOpen(false)}
-                  className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100/90 dark:bg-zinc-800/90 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-500 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-white transition-all active:scale-95 cursor-pointer shadow-xs"
-                  aria-label="Fechar"
+          <button
+            type="button"
+            onClick={() => setActiveSection('futuros')}
+            className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
+              activeSection === 'futuros'
+                ? 'bg-white dark:bg-zinc-800 text-foreground shadow-xs'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Clock className="w-3.5 h-3.5 text-blue-500" />
+            <span>Futuros</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveSection('dashboard')}
+            className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
+              activeSection === 'dashboard'
+                ? 'bg-white dark:bg-zinc-800 text-foreground shadow-xs'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <BarChart3 className="w-3.5 h-3.5 text-emerald-500" />
+            <span>Dashboard</span>
+          </button>
+        </div>
+
+        {/* Busca, Filtros, Refresh & Botão Nova (Visível na aba de despesas) */}
+        {activeSection === 'despesas' && (
+          <div className="flex items-center gap-1.5">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <Input
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Buscar fornecedor, despesa..."
+                className="h-8.5 pl-8.5 pr-3 text-xs rounded-xl bg-muted/40 border-muted-foreground/20 focus-visible:ring-1 focus-visible:ring-[#FF6A00]"
+              />
+            </div>
+
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleRefresh}
+              className="h-8.5 w-8.5 rounded-xl shrink-0 border-muted-foreground/20 text-muted-foreground hover:text-foreground"
+              aria-label="Atualizar"
+              title="Sincronizar"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-[#FF6A00]' : ''}`} />
+            </Button>
+
+            <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
+              <SheetTrigger asChild>
+                <Button
+                  variant={categoriaFilter !== 'todas' ? 'default' : 'outline'}
+                  size="icon"
+                  className={`h-8.5 w-8.5 rounded-xl shrink-0 ${
+                    categoriaFilter !== 'todas'
+                      ? 'bg-[#FF6A00] text-white'
+                      : 'border-muted-foreground/20 text-muted-foreground hover:text-foreground'
+                  }`}
+                  aria-label="Filtrar"
                 >
-                  <span className="text-sm font-bold leading-none">&times;</span>
-                </button>
-              </SheetHeader>
-              <div className="py-4 space-y-4 text-xs">
-                <div>
-                  <label className="font-semibold text-foreground block mb-2">Categoria</label>
-                  <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto">
-                    <button
-                      type="button"
-                      onClick={() => setCategoriaFilter('todas')}
-                      className={`px-3 py-1.5 rounded-lg text-xs transition-colors border ${
-                        categoriaFilter === 'todas'
-                          ? 'bg-[#FF6A00] text-white border-[#FF6A00] font-semibold'
-                          : 'bg-muted/40 border-border text-foreground hover:bg-muted'
-                      }`}
-                    >
-                      Todas ({enrichedContas.length})
-                    </button>
-                    {categoriasDisponiveis.map(cat => (
+                  <Filter className="w-3.5 h-3.5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="bottom" hideCloseButton className="rounded-t-2xl max-h-[80vh] p-4 bg-background">
+                <SheetHeader className="pb-3 border-b flex flex-row items-center justify-between">
+                  <div>
+                    <SheetTitle className="text-base font-bold text-left">Filtros de Pagamentos</SheetTitle>
+                    <p className="text-xs text-muted-foreground text-left">Filtre por categoria e status de pagamento</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setFilterSheetOpen(false)}
+                    className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100/90 dark:bg-zinc-800/90 hover:bg-slate-200 dark:hover:bg-zinc-700 text-slate-500 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-white transition-all active:scale-95 cursor-pointer shadow-xs"
+                    aria-label="Fechar"
+                  >
+                    <span className="text-sm font-bold leading-none">&times;</span>
+                  </button>
+                </SheetHeader>
+                <div className="py-4 space-y-4 text-xs">
+                  <div>
+                    <label className="font-semibold text-foreground block mb-2">Categoria</label>
+                    <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto">
                       <button
-                        key={cat}
                         type="button"
-                        onClick={() => setCategoriaFilter(cat)}
+                        onClick={() => setCategoriaFilter('todas')}
                         className={`px-3 py-1.5 rounded-lg text-xs transition-colors border ${
-                          categoriaFilter === cat
+                          categoriaFilter === 'todas'
                             ? 'bg-[#FF6A00] text-white border-[#FF6A00] font-semibold'
                             : 'bg-muted/40 border-border text-foreground hover:bg-muted'
                         }`}
                       >
-                        {cat}
+                        Todas ({enrichedContas.length})
                       </button>
-                    ))}
+                      {categoriasDisponiveis.map(cat => (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => setCategoriaFilter(cat)}
+                          className={`px-3 py-1.5 rounded-lg text-xs transition-colors border ${
+                            categoriaFilter === cat
+                              ? 'bg-[#FF6A00] text-white border-[#FF6A00] font-semibold'
+                              : 'bg-muted/40 border-border text-foreground hover:bg-muted'
+                          }`}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="pt-2 flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setCategoriaFilter('todas');
+                        setSearchTerm('');
+                      }}
+                      className="flex-1 h-10 rounded-xl"
+                    >
+                      Limpar
+                    </Button>
+                    <Button
+                      onClick={() => setFilterSheetOpen(false)}
+                      className="flex-1 bg-[#FF6A00] hover:bg-orange-600 text-white h-10 rounded-xl font-bold"
+                    >
+                      Aplicar ({filteredList.length})
+                    </Button>
                   </div>
                 </div>
+              </SheetContent>
+            </Sheet>
 
-                <div className="pt-2 flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setCategoriaFilter('todas');
-                      setSearchTerm('');
-                    }}
-                    className="flex-1 h-10 rounded-xl"
-                  >
-                    Limpar
-                  </Button>
-                  <Button
-                    onClick={() => setFilterSheetOpen(false)}
-                    className="flex-1 bg-[#FF6A00] hover:bg-orange-600 text-white h-10 rounded-xl font-bold"
-                  >
-                    Aplicar ({filteredList.length})
-                  </Button>
-                </div>
-              </div>
-            </SheetContent>
-          </Sheet>
-
-          <Button
-            size="sm"
-            onClick={() => setNovaContaOpen(true)}
-            className="h-8.5 px-3 rounded-xl bg-[#FF6A00] hover:bg-orange-600 text-white font-bold text-xs shadow-xs gap-1 shrink-0"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            Nova
-          </Button>
-        </div>
-      </div>
-
-      {/* 2. CARDS KPI (ABAIXO DO HEADER STICKY) */}
-      <div className="bg-gradient-to-b from-background to-muted/20 border-b p-3.5 space-y-3">
-        <div className="grid grid-cols-3 gap-2">
-          <div className="bg-card p-2.5 rounded-xl border shadow-2xs">
-            <div className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
-              <Clock className="w-3 h-3 text-amber-500" /> A Pagar
-            </div>
-            <div className="text-xs font-bold text-foreground mt-0.5 truncate">
-              {formatCurrency(stats.totalAPagar)}
-            </div>
-          </div>
-          <div className="bg-card p-2.5 rounded-xl border shadow-2xs">
-            <div className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
-              <AlertTriangle className="w-3 h-3 text-rose-500" /> Vencidas
-            </div>
-            <div className="text-xs font-bold text-rose-600 dark:text-rose-400 mt-0.5 truncate">
-              {formatCurrency(stats.totalVencido)}
-            </div>
-          </div>
-          <div className="bg-card p-2.5 rounded-xl border shadow-2xs">
-            <div className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
-              <CheckCircle2 className="w-3 h-3 text-emerald-500" /> Pagas
-            </div>
-            <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-0.5 truncate">
-              {formatCurrency(stats.totalPago)}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Lista de Cards Touch */}
-      <div className="p-3 space-y-2.5">
-        {filteredList.length === 0 ? (
-          <div className="bg-card rounded-2xl border p-8 text-center space-y-3 mt-4">
-            <TrendingDown className="w-10 h-10 text-muted-foreground mx-auto opacity-40" />
-            <div className="font-semibold text-sm text-foreground">Nenhuma conta encontrada</div>
-            <p className="text-xs text-muted-foreground">
-              Altere os filtros ou adicione uma nova despesa a pagar.
-            </p>
-          </div>
-        ) : (
-          filteredList.map((c) => (
-            <div
-              key={c.id}
-              onClick={() => {
-                setContaSelecionada(c);
-                setDetalhesOpen(true);
-              }}
-              className="bg-card rounded-2xl border border-border/80 p-3.5 shadow-xs transition-all active:scale-[0.99] cursor-pointer flex flex-col gap-2.5 hover:border-orange-500/40"
+            <Button
+              size="sm"
+              onClick={() => setNovaContaOpen(true)}
+              className="h-8.5 px-3 rounded-xl bg-[#FF6A00] hover:bg-orange-600 text-white font-bold text-xs shadow-xs gap-1 shrink-0"
             >
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="font-semibold text-xs text-foreground truncate">
-                    {c.fornecedorNome || 'Fornecedor não informado'}
-                  </div>
-                  <div className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">
-                    {c.descricao || 'Despesa / Conta a Pagar'}
-                  </div>
-                  {c.categoria && (
-                    <span className="inline-block mt-1 text-[10px] bg-muted/60 text-muted-foreground px-2 py-0.5 rounded-md font-medium">
-                      {c.categoria}
-                    </span>
-                  )}
-                </div>
-
-                <div className="text-right shrink-0">
-                  <div className="font-bold text-sm text-foreground">
-                    {formatCurrency(c.valorNum)}
-                  </div>
-                  <Badge
-                    variant="outline"
-                    className={`text-[9px] px-1.5 py-0 mt-0.5 rounded-md font-semibold ${
-                      c.isPago
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400'
-                        : c.isVencido
-                        ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400'
-                        : 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400'
-                    }`}
-                  >
-                    {c.isPago ? 'Pago' : c.isVencido ? 'Vencido' : 'A Pagar'}
-                  </Badge>
-                </div>
-              </div>
-
-              {/* Data de Vencimento e Ação Rápida */}
-              <div className="flex items-center justify-between pt-2 border-t border-dashed border-border/60 text-[11px] text-muted-foreground">
-                <div className="flex items-center gap-1.5">
-                  <Clock className="w-3.5 h-3.5" />
-                  <span>
-                    Vencimento: {c.dataVencimento ? formatDateBrasilia(c.dataVencimento) : 'Sem data'}
-                  </span>
-                </div>
-
-                {!c.isPago ? (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={(e) => handlePagarConta(c, e)}
-                    className="h-7 px-2.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-lg gap-1"
-                  >
-                    <Check className="w-3 h-3" />
-                    Pagar
-                  </Button>
-                ) : (
-                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
-                    Liquidado
-                  </span>
-                )}
-              </div>
-            </div>
-          ))
+              <Plus className="w-3.5 h-3.5" />
+              Nova
+            </Button>
+          </div>
         )}
       </div>
+
+      {/* RENDERIZAÇÃO DA SEÇÃO ATIVA */}
+      {activeSection === 'futuros' && (
+        <div className="p-3.5">
+          <PagamentosFuturosTab />
+        </div>
+      )}
+
+      {activeSection === 'dashboard' && (
+        <div className="p-3.5">
+          <Dashboard />
+        </div>
+      )}
+
+      {activeSection === 'despesas' && (
+        <>
+          {/* 2. CARDS KPI INTERATIVOS */}
+          <div className="bg-gradient-to-b from-background to-muted/20 border-b p-3.5 space-y-2.5">
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => setActiveTab(activeTab === 'a_pagar' ? 'todos' : 'a_pagar')}
+                className={`p-2.5 rounded-xl border text-left transition-all duration-200 cursor-pointer shadow-xs ${
+                  activeTab === 'a_pagar'
+                    ? 'bg-amber-50/80 border-amber-400 ring-2 ring-amber-500/20 dark:bg-amber-950/40 dark:border-amber-600'
+                    : 'bg-card border-border/80'
+                }`}
+              >
+                <div className="text-[10px] text-amber-700 dark:text-amber-400 font-medium flex items-center gap-1">
+                  <Clock className="w-3 h-3 text-amber-500" /> A Pagar
+                </div>
+                <div className="text-xs font-bold text-foreground mt-0.5 truncate">
+                  {formatCurrency(stats.totalAPagar)}
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab(activeTab === 'vencidas' ? 'todos' : 'vencidas')}
+                className={`p-2.5 rounded-xl border text-left transition-all duration-200 cursor-pointer shadow-xs ${
+                  activeTab === 'vencidas'
+                    ? 'bg-rose-50/80 border-rose-400 ring-2 ring-rose-500/20 dark:bg-rose-950/40 dark:border-rose-600'
+                    : 'bg-card border-border/80'
+                }`}
+              >
+                <div className="text-[10px] text-rose-700 dark:text-rose-400 font-medium flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3 text-rose-500" /> Vencidas
+                </div>
+                <div className="text-xs font-bold text-rose-600 dark:text-rose-400 mt-0.5 truncate">
+                  {formatCurrency(stats.totalVencido)}
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab(activeTab === 'pagas' ? 'todos' : 'pagas')}
+                className={`p-2.5 rounded-xl border text-left transition-all duration-200 cursor-pointer shadow-xs ${
+                  activeTab === 'pagas'
+                    ? 'bg-emerald-50/80 border-emerald-400 ring-2 ring-emerald-500/20 dark:bg-emerald-950/40 dark:border-emerald-600'
+                    : 'bg-card border-border/80'
+                }`}
+              >
+                <div className="text-[10px] text-emerald-700 dark:text-emerald-400 font-medium flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-500" /> Pagas
+                </div>
+                <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mt-0.5 truncate">
+                  {formatCurrency(stats.totalPago)}
+                </div>
+              </button>
+            </div>
+
+            {/* Chips de Filtro Rápido por Status */}
+            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide pt-1">
+              <button
+                type="button"
+                onClick={() => setActiveTab('todos')}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                  activeTab === 'todos'
+                    ? 'bg-orange-500 text-white shadow-xs'
+                    : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                }`}
+              >
+                Todas ({enrichedContas.length})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('a_pagar')}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1 ${
+                  activeTab === 'a_pagar'
+                    ? 'bg-amber-500 text-white shadow-xs'
+                    : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                }`}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                A Pagar ({stats.countAPagar})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('vencidas')}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1 ${
+                  activeTab === 'vencidas'
+                    ? 'bg-rose-500 text-white shadow-xs'
+                    : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                }`}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                Vencidas ({stats.countVencidas})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('pagas')}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1 ${
+                  activeTab === 'pagas'
+                    ? 'bg-emerald-500 text-white shadow-xs'
+                    : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                }`}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                Pagas ({stats.countPagas})
+              </button>
+            </div>
+          </div>
+
+          {/* Lista de Cards Touch */}
+          <div className="p-3 space-y-2.5">
+            {filteredList.length === 0 ? (
+              <div className="bg-card rounded-2xl border p-8 text-center space-y-3 mt-4">
+                <TrendingDown className="w-10 h-10 text-muted-foreground mx-auto opacity-40" />
+                <div className="font-semibold text-sm text-foreground">Nenhuma conta encontrada</div>
+                <p className="text-xs text-muted-foreground">
+                  Altere os filtros ou adicione uma nova despesa a pagar.
+                </p>
+              </div>
+            ) : (
+              filteredList.map((c) => (
+                <div
+                  key={c.id}
+                  onClick={() => {
+                    setContaSelecionada(c);
+                    setDetalhesOpen(true);
+                  }}
+                  className="bg-card rounded-2xl border border-border/80 p-3.5 shadow-xs transition-all active:scale-[0.99] cursor-pointer flex flex-col gap-2.5 hover:border-orange-500/40"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="font-semibold text-xs text-foreground truncate">
+                        {c.fornecedorNome || 'Fornecedor não informado'}
+                      </div>
+                      <div className="text-[11px] text-muted-foreground line-clamp-2 mt-0.5">
+                        {c.descricao || 'Despesa / Conta a Pagar'}
+                      </div>
+                      {c.categoria && (
+                        <span className="inline-block mt-1 text-[10px] bg-muted/60 text-muted-foreground px-2 py-0.5 rounded-md font-medium">
+                          {c.categoria}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="text-right shrink-0">
+                      <div className="font-bold text-sm text-foreground">
+                        {formatCurrency(c.valorNum)}
+                      </div>
+                      <Badge
+                        variant="outline"
+                        className={`text-[9px] px-1.5 py-0 mt-0.5 rounded-md font-semibold ${
+                          c.isPago
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400'
+                            : c.isVencido
+                            ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400'
+                            : 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400'
+                        }`}
+                      >
+                        {c.isPago ? 'Pago' : c.isVencido ? 'Vencido' : 'A Pagar'}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  {/* Data de Vencimento e Ação Rápida */}
+                  <div className="flex items-center justify-between pt-2 border-t border-dashed border-border/60 text-[11px] text-muted-foreground">
+                    <div className="flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>
+                        Vencimento: {c.dataVencimento ? formatDateBrasilia(c.dataVencimento) : 'Sem data'}
+                      </span>
+                    </div>
+
+                    {!c.isPago ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => handlePagarConta(c, e)}
+                        className="h-7 px-2.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-lg gap-1"
+                      >
+                        <Check className="w-3 h-3" />
+                        Pagar
+                      </Button>
+                    ) : (
+                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
+                        Liquidado
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </>
+      )}
 
       {/* Sheet de Detalhes da Conta Selecionada (Descrição e Dados Completos) */}
       <DetalhesContaPagarSheet

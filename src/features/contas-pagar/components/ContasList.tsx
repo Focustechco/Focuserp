@@ -200,6 +200,54 @@ export function ContasList() {
     return { filterStart: null, filterEnd: null };
   }, [datePreset, dataInicio, dataFim]);
 
+  const hojeIso = getBrasiliaTodayIso();
+
+  // Contagens e totais globais por seção
+  const counts = useMemo(() => {
+    let todos = contas.length;
+    let aberto = 0;
+    let vencido = 0;
+    let pago = 0;
+    let recorrencia = 0;
+
+    let valorTotal = 0;
+    let valorAberto = 0;
+    let valorVencido = 0;
+    let valorPago = 0;
+
+    contas.forEach(c => {
+      const valor = Number(c.valorOriginal || c.valor || 0);
+      const valPago = Number(c.valorPago || 0);
+      const saldo = Number(c.saldo ?? (valor - valPago));
+
+      valorTotal += valor;
+
+      const norm = (c.status || '').trim().toLowerCase();
+      const isPago = norm === 'pago' || norm === 'liquidado' || norm === 'paga';
+      const isVenc = !isPago && ((c.dataVencimento && c.dataVencimento < hojeIso) || norm === 'vencido' || norm === 'atrasado');
+      const isRec = Boolean(c.recorrente) || 
+                    (c.descricao || '').toLowerCase().includes('recorrência') || 
+                    (c.descricao || '').toLowerCase().includes('mensalidade') ||
+                    (c.categoria || '').toLowerCase().includes('recorrência') ||
+                    (c.categoria || '').toLowerCase().includes('fixa');
+
+      if (isPago) {
+        pago++;
+        valorPago += (valPago || valor);
+      } else if (isVenc) {
+        vencido++;
+        valorVencido += (saldo || valor);
+      } else {
+        aberto++;
+        valorAberto += (saldo || valor);
+      }
+
+      if (isRec) recorrencia++;
+    });
+
+    return { todos, aberto, vencido, pago, recorrencia, valorTotal, valorAberto, valorVencido, valorPago };
+  }, [contas, hojeIso]);
+
   // Aplicar filtros compostos
   const filteredData = useMemo(() => {
     return contas.filter(t => {
@@ -211,13 +259,25 @@ export function ContasList() {
 
       if (!matchesSearch) return false;
 
-      // 2. Filtro de Status
-      if (statusFilter === 'aberto' && t.status !== 'Pendente' && t.status !== 'Em Aberto') return false;
-      if (statusFilter === 'pago' && t.status !== 'Pago') return false;
-      if (statusFilter === 'vencido' && t.status !== 'Vencido') return false;
+      // 2. Filtro de Status / Seção
+      const norm = (t.status || '').trim().toLowerCase();
+      const isPago = norm === 'pago' || norm === 'liquidado' || norm === 'paga';
+      const isVenc = !isPago && ((t.dataVencimento && t.dataVencimento < hojeIso) || norm === 'vencido' || norm === 'atrasado');
+      const isAberto = !isPago && !isVenc;
 
-      // 3. Filtro de Categoria
-      if (categoriaFilter !== 'todas') {
+      if (statusFilter === 'aberto' && !isAberto) return false;
+      if (statusFilter === 'pago' && !isPago) return false;
+      if (statusFilter === 'vencido' && !isVenc) return false;
+
+      // 3. Filtro de Categoria / Recorrência
+      if (categoriaFilter === 'recorrencia') {
+        const isRec = Boolean(t.recorrente) || 
+                      (t.descricao || '').toLowerCase().includes('recorrência') || 
+                      (t.descricao || '').toLowerCase().includes('mensalidade') ||
+                      (t.categoria || '').toLowerCase().includes('recorrência') ||
+                      (t.categoria || '').toLowerCase().includes('fixa');
+        if (!isRec) return false;
+      } else if (categoriaFilter !== 'todas') {
         if ((t.categoria || '').toLowerCase() !== categoriaFilter.toLowerCase()) return false;
       }
 
@@ -242,15 +302,21 @@ export function ContasList() {
 
       return true;
     });
-  }, [contas, searchTerm, statusFilter, categoriaFilter, dateField, filterStart, filterEnd]);
+  }, [contas, searchTerm, statusFilter, categoriaFilter, dateField, filterStart, filterEnd, hojeIso]);
 
   // Métricas do período filtrado
   const totalFiltrado = filteredData.reduce((acc, t) => acc + (t.valorOriginal || 0), 0);
   const totalPago = filteredData
-    .filter(t => t.status === 'Pago' || t.status === 'Pago Parcialmente')
+    .filter(t => {
+      const norm = (t.status || '').trim().toLowerCase();
+      return norm === 'pago' || norm === 'liquidado' || norm === 'paga';
+    })
     .reduce((acc, t) => acc + (t.valorPago || t.valorOriginal || 0), 0);
   const totalPendente = filteredData
-    .filter(t => t.status === 'Pendente' || t.status === 'Em Aberto' || t.status === 'Vencido')
+    .filter(t => {
+      const norm = (t.status || '').trim().toLowerCase();
+      return norm !== 'pago' && norm !== 'liquidado' && norm !== 'paga';
+    })
     .reduce((acc, t) => acc + (t.saldo || t.valorOriginal || 0), 0);
 
   const limparFiltros = () => {
@@ -280,51 +346,200 @@ export function ContasList() {
         <MobileContasPagarView />
       </div>
       <div className="hidden md:block space-y-4 animate-fade-in">
-      {/* Cards de Resumo das Contas Filtradas */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="p-3.5 rounded-lg border bg-card flex items-center justify-between shadow-sm">
-          <div>
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Total em Contas a Pagar</p>
-            <h3 className="text-xl font-bold text-foreground mt-0.5">{formatCurrency(totalFiltrado)}</h3>
-            <span className="text-[11px] text-muted-foreground">{filteredData.length} contas listadas</span>
+      {/* Cards Interativos de Resumo e Filtro de Seções */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {/* Card 1: Total Geral */}
+        <button
+          type="button"
+          onClick={() => {
+            setStatusFilter('todos');
+            setCategoriaFilter('todas');
+          }}
+          className={`p-3.5 rounded-xl border text-left transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md ${
+            statusFilter === 'todos' && categoriaFilter === 'todas'
+              ? 'bg-orange-50/70 border-orange-400 ring-2 ring-orange-500/20 dark:bg-orange-950/30 dark:border-orange-600'
+              : 'bg-card hover:border-border/90'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total Geral</p>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+              statusFilter === 'todos' && categoriaFilter === 'todas' ? 'bg-orange-500 text-white' : 'bg-primary/10 text-primary'
+            }`}>
+              <Calendar className="w-4 h-4" />
+            </div>
           </div>
-          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-            <Calendar className="w-5 h-5" />
-          </div>
-        </div>
+          <h3 className="text-xl font-bold text-foreground mt-1">{formatCurrency(counts.valorTotal)}</h3>
+          <span className="text-[11px] text-muted-foreground mt-0.5 block">{counts.todos} contas registradas</span>
+        </button>
 
-        <div className="p-3.5 rounded-lg border bg-card flex items-center justify-between shadow-sm">
-          <div>
-            <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Total Pago / Liquidado (Saídas)</p>
-            <h3 className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">{formatCurrency(totalPago)}</h3>
-            <span className="text-[11px] text-muted-foreground">Contabilizado no Fluxo de Caixa Real</span>
+        {/* Card 2: A Pagar / Em Aberto */}
+        <button
+          type="button"
+          onClick={() => {
+            setStatusFilter(statusFilter === 'aberto' ? 'todos' : 'aberto');
+            if (categoriaFilter === 'recorrencia') setCategoriaFilter('todas');
+          }}
+          className={`p-3.5 rounded-xl border text-left transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md ${
+            statusFilter === 'aberto'
+              ? 'bg-amber-50/80 border-amber-400 ring-2 ring-amber-500/20 dark:bg-amber-950/30 dark:border-amber-600'
+              : 'bg-card hover:border-border/90'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wider">A Pagar / Em Aberto</p>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+              statusFilter === 'aberto' ? 'bg-amber-500 text-white' : 'bg-amber-500/10 text-amber-600'
+            }`}>
+              <Clock className="w-4 h-4" />
+            </div>
           </div>
-          <div className="w-9 h-9 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-600">
-            <CheckCircle2 className="w-5 h-5" />
-          </div>
-        </div>
+          <h3 className="text-xl font-bold text-amber-700 dark:text-amber-400 mt-1">{formatCurrency(counts.valorAberto)}</h3>
+          <span className="text-[11px] text-muted-foreground mt-0.5 block">{counts.aberto} contas a vencer</span>
+        </button>
 
-        <div className="p-3.5 rounded-lg border bg-card flex items-center justify-between shadow-sm">
-          <div>
-            <p className="text-xs font-medium text-rose-600 dark:text-rose-400 uppercase tracking-wider">Total a Pagar (Pendente)</p>
-            <h3 className="text-xl font-bold text-rose-600 dark:text-rose-400 mt-0.5">{formatCurrency(totalPendente)}</h3>
-            <span className="text-[11px] text-muted-foreground">Aguardando quitação para sair do caixa</span>
+        {/* Card 3: Vencidas / Atrasadas */}
+        <button
+          type="button"
+          onClick={() => {
+            setStatusFilter(statusFilter === 'vencido' ? 'todos' : 'vencido');
+            if (categoriaFilter === 'recorrencia') setCategoriaFilter('todas');
+          }}
+          className={`p-3.5 rounded-xl border text-left transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md ${
+            statusFilter === 'vencido'
+              ? 'bg-rose-50/80 border-rose-400 ring-2 ring-rose-500/20 dark:bg-rose-950/30 dark:border-rose-600'
+              : 'bg-card hover:border-border/90'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold text-rose-700 dark:text-rose-400 uppercase tracking-wider">Vencidas / Atrasadas</p>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+              statusFilter === 'vencido' ? 'bg-rose-500 text-white' : 'bg-rose-500/10 text-rose-600'
+            }`}>
+              <AlertTriangle className="w-4 h-4" />
+            </div>
           </div>
-          <div className="w-9 h-9 rounded-full bg-rose-500/10 flex items-center justify-center text-rose-600">
-            <Clock className="w-5 h-5" />
+          <h3 className="text-xl font-bold text-rose-600 dark:text-rose-400 mt-1">{formatCurrency(counts.valorVencido)}</h3>
+          <span className="text-[11px] text-muted-foreground mt-0.5 block">{counts.vencido} contas vencidas</span>
+        </button>
+
+        {/* Card 4: Total Pago / Liquidado */}
+        <button
+          type="button"
+          onClick={() => {
+            setStatusFilter(statusFilter === 'pago' ? 'todos' : 'pago');
+            if (categoriaFilter === 'recorrencia') setCategoriaFilter('todas');
+          }}
+          className={`p-3.5 rounded-xl border text-left transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md ${
+            statusFilter === 'pago'
+              ? 'bg-emerald-50/80 border-emerald-400 ring-2 ring-emerald-500/20 dark:bg-emerald-950/30 dark:border-emerald-600'
+              : 'bg-card hover:border-border/90'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">Pago / Liquidado</p>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+              statusFilter === 'pago' ? 'bg-emerald-500 text-white' : 'bg-emerald-500/10 text-emerald-600'
+            }`}>
+              <CheckCircle2 className="w-4 h-4" />
+            </div>
           </div>
-        </div>
+          <h3 className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{formatCurrency(counts.valorPago)}</h3>
+          <span className="text-[11px] text-muted-foreground mt-0.5 block">{counts.pago} contas liquidadas</span>
+        </button>
+      </div>
+
+      {/* Barra de Filtros Rápidos de Seção / Abas */}
+      <div className="flex flex-wrap items-center gap-1.5 p-1.5 rounded-xl bg-muted/40 border">
+        <button
+          type="button"
+          onClick={() => {
+            setStatusFilter('todos');
+            setCategoriaFilter('todas');
+          }}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+            statusFilter === 'todos' && categoriaFilter === 'todas'
+              ? 'bg-white dark:bg-zinc-800 text-foreground shadow-xs'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+          }`}
+        >
+          Todas ({counts.todos})
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setStatusFilter('aberto');
+            setCategoriaFilter('todas');
+          }}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+            statusFilter === 'aberto'
+              ? 'bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-300 shadow-xs'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+          }`}
+        >
+          <span className="w-2 h-2 rounded-full bg-amber-500" />
+          A Pagar ({counts.aberto})
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setStatusFilter('vencido');
+            setCategoriaFilter('todas');
+          }}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+            statusFilter === 'vencido'
+              ? 'bg-rose-100 text-rose-900 dark:bg-rose-950/60 dark:text-rose-300 shadow-xs'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+          }`}
+        >
+          <span className="w-2 h-2 rounded-full bg-rose-500" />
+          Vencidas ({counts.vencido})
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setStatusFilter('pago');
+            setCategoriaFilter('todas');
+          }}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+            statusFilter === 'pago'
+              ? 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-300 shadow-xs'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+          }`}
+        >
+          <span className="w-2 h-2 rounded-full bg-emerald-500" />
+          Pagas ({counts.pago})
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setStatusFilter('todos');
+            setCategoriaFilter(categoriaFilter === 'recorrencia' ? 'todas' : 'recorrencia');
+          }}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+            categoriaFilter === 'recorrencia'
+              ? 'bg-blue-100 text-blue-900 dark:bg-blue-950/60 dark:text-blue-300 shadow-xs'
+              : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+          }`}
+        >
+          <Clock className="w-3 h-3 text-blue-500" />
+          Recorrências / Fixas ({counts.recorrencia})
+        </button>
       </div>
 
       {/* Painel Avançado de Filtros e Datas */}
-      <div className="p-4 rounded-lg border bg-card space-y-3 shadow-sm">
+      <div className="p-4 rounded-xl border bg-card space-y-3 shadow-xs">
         {/* Linha 1: Busca e Ações Principais */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3">
           <div className="relative w-full lg:w-96">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input 
               placeholder="Buscar por fornecedor, nº do documento ou descrição..." 
-              className="pl-8 text-xs h-9"
+              className="pl-8 text-xs h-9 rounded-lg"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -345,20 +560,20 @@ export function ContasList() {
                 setIsSelectionMode(nextMode);
                 if (!nextMode) setSelectedIds([]);
               }}
-              className={`text-xs h-9 gap-1.5 ${isSelectionMode ? 'bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-950/40 dark:text-orange-300 dark:border-orange-800 font-semibold' : ''}`}
+              className={`text-xs h-9 gap-1.5 rounded-lg ${isSelectionMode ? 'bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-950/40 dark:text-orange-300 dark:border-orange-800 font-semibold' : ''}`}
               title="Ativar/Desativar seleção múltipla para exclusão"
             >
               <CheckSquare className="w-3.5 h-3.5 text-orange-600" />
               {isSelectionMode ? 'Cancelar Seleção' : 'Selecionar'}
             </Button>
 
-            <Button variant="outline" size="sm" className="text-xs h-9">
+            <Button variant="outline" size="sm" className="text-xs h-9 rounded-lg">
               <Download className="mr-1.5 h-3.5 w-3.5" /> Exportar
             </Button>
 
             <NovaContaSheet>
-              <Button size="sm" className="text-xs h-9 bg-orange-600 hover:bg-orange-700 text-white">
-                <Plus className="mr-1.5 h-3.5 w-3.5" /> Nova Conta
+              <Button size="sm" className="text-xs h-9 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-semibold">
+                <Plus className="mr-1.5 h-3.5 w-3.5" /> Nova Despesa
               </Button>
             </NovaContaSheet>
           </div>
@@ -409,27 +624,27 @@ export function ContasList() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos os Status</SelectItem>
-                <SelectItem value="aberto">Aberto / Pendente</SelectItem>
+                <SelectItem value="aberto">Em Aberto / A Pagar</SelectItem>
+                <SelectItem value="vencido">Vencido / Atrasado</SelectItem>
                 <SelectItem value="pago">Pago / Liquidado</SelectItem>
-                <SelectItem value="vencido">Vencido</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {/* Seletor de Categoria */}
           <div>
-            <label className="text-[11px] font-medium text-muted-foreground block mb-1">Categoria</label>
+            <label className="text-[11px] font-medium text-muted-foreground block mb-1">Origem / Categoria</label>
             <Select value={categoriaFilter} onValueChange={setCategoriaFilter}>
               <SelectTrigger className="h-8 text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todas">Todas as Categorias</SelectItem>
-                <SelectItem value="operacional">Operacional</SelectItem>
+                <SelectItem value="recorrencia">Recorrência / Despesa Fixa</SelectItem>
                 <SelectItem value="infraestrutura">Infraestrutura</SelectItem>
-                <SelectItem value="fornecedores">Fornecedores</SelectItem>
+                <SelectItem value="serviços">Serviços</SelectItem>
                 <SelectItem value="impostos">Impostos</SelectItem>
-                <SelectItem value="folha">Folha de Pagamento</SelectItem>
+                <SelectItem value="pessoal">Pessoal / Folha</SelectItem>
               </SelectContent>
             </Select>
           </div>

@@ -365,47 +365,117 @@ export function PagamentosFuturosTab() {
         </div>
       </div>
 
-      {/* Barra de Filtros */}
-      <div className="p-4 rounded-xl border bg-card space-y-3">
-        <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
-          <div className="relative w-full sm:w-80">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input 
-              placeholder="Buscar por fornecedor, serviço, categoria..." 
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              className="pl-9 text-xs"
-            />
+      {/* Barra de Filtros de Seção e Período */}
+      <div className="p-4 rounded-xl border bg-card space-y-3 shadow-xs">
+        {/* Filtros Rápidos de Seção Temporal */}
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3">
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-0.5">
+            <span className="text-[11px] font-semibold text-muted-foreground mr-1 shrink-0">Janela:</span>
+            <button
+              type="button"
+              onClick={() => setPeriodoFilter('30dias')}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                periodoFilter === '30dias'
+                  ? 'bg-amber-500 text-white shadow-xs'
+                  : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+              }`}
+            >
+              Próximos 30 dias
+            </button>
+            <button
+              type="button"
+              onClick={() => setPeriodoFilter('3meses')}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                periodoFilter === '3meses'
+                  ? 'bg-amber-500 text-white shadow-xs'
+                  : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+              }`}
+            >
+              3 Meses
+            </button>
+            <button
+              type="button"
+              onClick={() => setPeriodoFilter('6meses')}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                periodoFilter === '6meses'
+                  ? 'bg-amber-500 text-white shadow-xs'
+                  : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+              }`}
+            >
+              6 Meses
+            </button>
+            <button
+              type="button"
+              onClick={() => setPeriodoFilter('12meses')}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                periodoFilter === '12meses'
+                  ? 'bg-amber-500 text-white shadow-xs'
+                  : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+              }`}
+            >
+              12 Meses
+            </button>
+            <button
+              type="button"
+              onClick={() => setPeriodoFilter('todos')}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                periodoFilter === 'todos'
+                  ? 'bg-amber-500 text-white shadow-xs'
+                  : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+              }`}
+            >
+              Todas ({todosFuturos.length})
+            </button>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-            {/* Filtro Período */}
-            <Select value={periodoFilter} onValueChange={(v: any) => setPeriodoFilter(v)}>
-              <SelectTrigger className="w-full sm:w-44 text-xs h-9">
-                <Calendar className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
-                <SelectValue placeholder="Período" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="30dias">Próximos 30 dias</SelectItem>
-                <SelectItem value="3meses">Próximos 3 meses</SelectItem>
-                <SelectItem value="6meses">Próximos 6 meses</SelectItem>
-                <SelectItem value="12meses">Próximos 12 meses</SelectItem>
-                <SelectItem value="todos">Todas as Previsões</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-0.5">
+            <span className="text-[11px] font-semibold text-muted-foreground mr-1 shrink-0">Origem:</span>
+            <button
+              type="button"
+              onClick={() => setOrigemFilter('todas')}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                origemFilter === 'todas'
+                  ? 'bg-orange-600 text-white shadow-xs'
+                  : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+              }`}
+            >
+              Todas
+            </button>
+            <button
+              type="button"
+              onClick={() => setOrigemFilter('Recorrência')}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                origemFilter === 'Recorrência'
+                  ? 'bg-orange-600 text-white shadow-xs'
+                  : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+              }`}
+            >
+              Recorrências
+            </button>
+            <button
+              type="button"
+              onClick={() => setOrigemFilter('Parcelamento')}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                origemFilter === 'Parcelamento'
+                  ? 'bg-orange-600 text-white shadow-xs'
+                  : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+              }`}
+            >
+              Parcelamentos
+            </button>
+          </div>
+        </div>
 
-            {/* Filtro Origem */}
-            <Select value={origemFilter} onValueChange={(v: any) => setOrigemFilter(v)}>
-              <SelectTrigger className="w-full sm:w-40 text-xs h-9">
-                <Filter className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
-                <SelectValue placeholder="Origem" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todas">Todas as Origens</SelectItem>
-                <SelectItem value="Recorrência">Recorrências</SelectItem>
-                <SelectItem value="Parcelamento">Parcelamentos</SelectItem>
-              </SelectContent>
-            </Select>
+        {/* Linha de Busca Textual */}
+        <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input 
+              placeholder="Buscar previsões por fornecedor, serviço, categoria..." 
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="pl-9 text-xs h-9 rounded-lg"
+            />
           </div>
         </div>
       </div>
