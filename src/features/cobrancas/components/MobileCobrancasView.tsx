@@ -132,180 +132,308 @@ export function MobileCobrancasView() {
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-zinc-950 pb-24">
-      {/* 1. STICKY TOP CONTROLS: BUSCA + FILTROS + SELETOR DE SEÇÕES */}
+      {/* 1. STICKY TOP CONTROLS: SELETOR DE SEÇÕES PRINCIPAIS + BUSCA + FILTROS */}
       <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md border-b px-3.5 py-2.5 space-y-2">
-        {/* Busca, Filtros & Botão Nova */}
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Buscar cliente, título, valor..."
-              className="h-9 pl-9 pr-3 text-xs rounded-xl bg-muted/40 border-muted-foreground/20 focus-visible:ring-1 focus-visible:ring-primary"
-            />
-          </div>
+        {/* Seletor de Seções Principais (Tabs Mobile) */}
+        <div className="flex items-center gap-1 p-1 bg-muted/60 rounded-xl border">
+          <button
+            type="button"
+            onClick={() => setActiveSection('cobrancas')}
+            className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
+              activeSection === 'cobrancas'
+                ? 'bg-white dark:bg-zinc-800 text-foreground shadow-xs'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Send className="w-3.5 h-3.5 text-primary" />
+            <span>Cobranças</span>
+          </button>
 
-          {/* Botão de Filtros */}
-          <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
-            <SheetTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-9 w-9 rounded-xl shrink-0 border-muted-foreground/20 text-muted-foreground hover:text-foreground relative"
-                aria-label="Filtrar"
-              >
-                <Filter className="w-4 h-4" />
-                {(statusFilter !== 'todos' || canalFilter !== 'todos') && (
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" />
-                )}
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="bottom" className="rounded-t-2xl max-h-[85vh] p-4">
-              <SheetHeader className="pb-3 border-b">
-                <SheetTitle className="text-base font-bold text-left">Filtros de Cobrança</SheetTitle>
-                <SheetDescription className="text-xs text-muted-foreground text-left">
-                  Filtre por canal de comunicação e status de envio.
-                </SheetDescription>
-              </SheetHeader>
+          <button
+            type="button"
+            onClick={() => setActiveSection('historico')}
+            className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
+              activeSection === 'historico'
+                ? 'bg-white dark:bg-zinc-800 text-foreground shadow-xs'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <History className="w-3.5 h-3.5 text-blue-500" />
+            <span>Histórico</span>
+          </button>
 
-              <div className="py-4 space-y-4 text-xs">
-                {/* Status */}
-                <div>
-                  <label className="font-semibold text-muted-foreground block mb-2">Status da Cobrança</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[
-                      { id: 'todos', label: 'Todos' },
-                      { id: 'Pendente', label: 'Pendente' },
-                      { id: 'Enviada', label: 'Enviada' },
-                      { id: 'Lida', label: 'Lida' },
-                      { id: 'Vencida', label: 'Vencida' },
-                      { id: 'Paga', label: 'Paga' },
-                    ].map((st) => (
-                      <Button
-                        key={st.id}
-                        type="button"
-                        variant={statusFilter === st.id ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setStatusFilter(st.id)}
-                        className={`text-xs h-8 ${statusFilter === st.id ? 'bg-primary text-white' : ''}`}
-                      >
-                        {st.label}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
+          <button
+            type="button"
+            onClick={() => setActiveSection('dashboard')}
+            className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
+              activeSection === 'dashboard'
+                ? 'bg-white dark:bg-zinc-800 text-foreground shadow-xs'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <BarChart3 className="w-3.5 h-3.5 text-emerald-500" />
+            <span>Dashboard</span>
+          </button>
+        </div>
 
-                {/* Canal */}
-                <div>
-                  <label className="font-semibold text-muted-foreground block mb-2">Canal de Disparo</label>
-                  <div className="grid grid-cols-4 gap-2">
-                    {[
-                      { id: 'todos', label: 'Todos' },
-                      { id: 'WhatsApp', label: 'WhatsApp' },
-                      { id: 'E-mail', label: 'E-mail' },
-                      { id: 'SMS', label: 'SMS' },
-                    ].map((c) => (
-                      <Button
-                        key={c.id}
-                        type="button"
-                        variant={canalFilter === c.id ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setCanalFilter(c.id)}
-                        className={`text-xs h-8 ${canalFilter === c.id ? 'bg-primary text-white' : ''}`}
-                      >
-                        {c.label}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
+        {/* Busca, Filtros & Botão Nova (Visível na aba de cobranças) */}
+        {activeSection === 'cobrancas' && (
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Buscar cliente, título, valor..."
+                className="h-9 pl-9 pr-3 text-xs rounded-xl bg-muted/40 border-muted-foreground/20 focus-visible:ring-1 focus-visible:ring-primary"
+              />
+            </div>
 
+            {/* Botão de Filtros */}
+            <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
+              <SheetTrigger asChild>
                 <Button
-                  onClick={() => setFilterSheetOpen(false)}
-                  className="w-full bg-primary hover:bg-primary/90 text-white mt-4 h-10 rounded-xl font-bold"
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9 rounded-xl shrink-0 border-muted-foreground/20 text-muted-foreground hover:text-foreground relative"
+                  aria-label="Filtrar"
                 >
-                  Aplicar Filtros ({filteredData.length} resultados)
+                  <Filter className="w-4 h-4" />
+                  {(statusFilter !== 'todos' || canalFilter !== 'todos') && (
+                    <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" />
+                  )}
                 </Button>
+              </SheetTrigger>
+              <SheetContent side="bottom" className="rounded-t-2xl max-h-[85vh] p-4">
+                <SheetHeader className="pb-3 border-b">
+                  <SheetTitle className="text-base font-bold text-left">Filtros de Cobrança</SheetTitle>
+                  <SheetDescription className="text-xs text-muted-foreground text-left">
+                    Filtre por canal de comunicação e status de envio.
+                  </SheetDescription>
+                </SheetHeader>
+
+                <div className="py-4 space-y-4 text-xs">
+                  {/* Status */}
+                  <div>
+                    <label className="font-semibold text-muted-foreground block mb-2">Status da Cobrança</label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { id: 'todos', label: 'Todos' },
+                        { id: 'Pendente', label: 'Pendente' },
+                        { id: 'Enviada', label: 'Enviada' },
+                        { id: 'Lida', label: 'Lida' },
+                        { id: 'Vencida', label: 'Vencida' },
+                        { id: 'Paga', label: 'Paga' },
+                      ].map((st) => (
+                        <Button
+                          key={st.id}
+                          type="button"
+                          variant={statusFilter === st.id ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setStatusFilter(st.id)}
+                          className={`text-xs h-8 ${statusFilter === st.id ? 'bg-primary text-white' : ''}`}
+                        >
+                          {st.label}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Canal */}
+                  <div>
+                    <label className="font-semibold text-muted-foreground block mb-2">Canal de Disparo</label>
+                    <div className="grid grid-cols-4 gap-2">
+                      {[
+                        { id: 'todos', label: 'Todos' },
+                        { id: 'WhatsApp', label: 'WhatsApp' },
+                        { id: 'E-mail', label: 'E-mail' },
+                        { id: 'SMS', label: 'SMS' },
+                      ].map((c) => (
+                        <Button
+                          key={c.id}
+                          type="button"
+                          variant={canalFilter === c.id ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setCanalFilter(c.id)}
+                          className={`text-xs h-8 ${canalFilter === c.id ? 'bg-primary text-white' : ''}`}
+                        >
+                          {c.label}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <Button
+                    onClick={() => setFilterSheetOpen(false)}
+                    className="w-full bg-primary hover:bg-primary/90 text-white mt-4 h-10 rounded-xl font-bold"
+                  >
+                    Aplicar Filtros ({filteredData.length} resultados)
+                  </Button>
+                </div>
+              </SheetContent>
+            </Sheet>
+
+            {/* Botão Nova Cobrança */}
+            <Button
+              size="sm"
+              onClick={() => setNovoCobrancaOpen(true)}
+              className="h-9 px-3 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-xs shadow-xs gap-1 shrink-0"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Nova
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* RENDERIZAÇÃO DA SEÇÃO ATIVA */}
+      {activeSection === 'historico' && (
+        <div className="p-3.5">
+          <HistoricoInteracoes />
+        </div>
+      )}
+
+      {activeSection === 'dashboard' && (
+        <div className="p-3.5">
+          <Dashboard />
+        </div>
+      )}
+
+      {activeSection === 'cobrancas' && (
+        <>
+          {/* 2. CARDS & RESUMO KPI (ABAIXO DOS CONTROLES DO TOPO) */}
+          <div className="bg-gradient-to-b from-background to-muted/20 border-b p-3.5 space-y-3">
+            {/* Card Principal: Total em Carteira */}
+            <div 
+              onClick={() => setActiveTab(activeTab === 'todas' ? 'todas' : 'todas')}
+              className="bg-white dark:bg-card border border-border/80 rounded-2xl p-4 shadow-xs flex items-center justify-between cursor-pointer"
+            >
+              <div className="space-y-1 min-w-0">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <Send className="w-3.5 h-3.5 text-primary" />
+                  Total em Cobrança
+                </span>
+                <div className="text-2xl font-black tracking-tight text-foreground">
+                  {formatCurrency(stats.totalValor)}
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  {stats.taxaRecuperacao.toFixed(1)}% recuperado ({formatCurrency(stats.totalPago)})
+                </p>
               </div>
-            </SheetContent>
-          </Sheet>
 
-          {/* Botão Nova Cobrança */}
-          <Button
-            size="sm"
-            onClick={() => setNovoCobrancaOpen(true)}
-            className="h-9 px-3 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-xs shadow-xs gap-1 shrink-0"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            Nova
-          </Button>
-        </div>
-
-      </div>
-
-      {/* 2. CARDS & RESUMO KPI (ABAIXO DOS CONTROLES DO TOPO) */}
-      <div className="bg-gradient-to-b from-background to-muted/20 border-b p-3.5 space-y-3">
-        {/* Card Principal: Total em Carteira */}
-        <div className="bg-white dark:bg-card border border-border/80 rounded-2xl p-4 shadow-xs flex items-center justify-between">
-          <div className="space-y-1 min-w-0">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-              <Send className="w-3.5 h-3.5 text-primary" />
-              Total em Cobrança
-            </span>
-            <div className="text-2xl font-black tracking-tight text-foreground">
-              {formatCurrency(stats.totalValor)}
+              <div className="flex flex-col items-end gap-1.5 shrink-0">
+                <Badge variant="outline" className="text-[10px] font-bold px-2 py-0.5 bg-primary/10 text-primary border-primary/30">
+                  {cobrancas.length} títulos
+                </Badge>
+              </div>
             </div>
-            <p className="text-[10px] text-muted-foreground">
-              {stats.taxaRecuperacao.toFixed(1)}% recuperado ({formatCurrency(stats.totalPago)})
-            </p>
+
+            {/* Mini Cards Interativos: Pendentes & Vencidas */}
+            <div className="grid grid-cols-2 gap-2.5">
+              <div 
+                onClick={() => setActiveTab(activeTab === 'pendentes' ? 'todas' : 'pendentes')}
+                className={`bg-white dark:bg-card border rounded-2xl p-3 shadow-xs space-y-1 cursor-pointer transition-all active:scale-[0.99] ${
+                  activeTab === 'pendentes' ? 'border-amber-500 ring-2 ring-amber-500/20 bg-amber-50/50 dark:bg-amber-950/30' : 'border-border/80'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
+                    <Clock className="w-3 h-3 text-amber-500" />
+                    Pendentes
+                  </span>
+                  <span className="w-2 h-2 rounded-full bg-amber-500" />
+                </div>
+                <div className="text-base font-black text-amber-600 dark:text-amber-400">
+                  {stats.countPendentes} cobranças
+                </div>
+              </div>
+
+              <div 
+                onClick={() => setActiveTab(activeTab === 'vencidas' ? 'todas' : 'vencidas')}
+                className={`bg-white dark:bg-card border rounded-2xl p-3 shadow-xs space-y-1 cursor-pointer transition-all active:scale-[0.99] ${
+                  activeTab === 'vencidas' ? 'border-rose-500 ring-2 ring-rose-500/20 bg-rose-50/50 dark:bg-rose-950/30' : 'border-border/80'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
+                    <AlertTriangle className="w-3 h-3 text-rose-500" />
+                    Vencidas
+                  </span>
+                  <span className="w-2 h-2 rounded-full bg-rose-500" />
+                </div>
+                <div className="text-base font-black text-rose-600 dark:text-rose-400 truncate">
+                  {formatCurrency(stats.totalVencido)}
+                </div>
+              </div>
+            </div>
+
+            {/* Chips de Status Rápidos */}
+            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide pt-1">
+              <button
+                type="button"
+                onClick={() => setActiveTab('todas')}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                  activeTab === 'todas'
+                    ? 'bg-primary text-white shadow-xs'
+                    : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                }`}
+              >
+                Todas ({cobrancas.length})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('pendentes')}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1 ${
+                  activeTab === 'pendentes'
+                    ? 'bg-amber-500 text-white shadow-xs'
+                    : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                }`}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                Pendentes ({stats.countPendentes})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('vencidas')}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1 ${
+                  activeTab === 'vencidas'
+                    ? 'bg-rose-500 text-white shadow-xs'
+                    : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                }`}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                Vencidas ({stats.countVencidas})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('pagas')}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1 ${
+                  activeTab === 'pagas'
+                    ? 'bg-emerald-500 text-white shadow-xs'
+                    : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                }`}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                Pagas ({stats.countPagas})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab(activeTab === 'whatsapp' ? 'todas' : 'whatsapp')}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1 ${
+                  activeTab === 'whatsapp'
+                    ? 'bg-green-600 text-white shadow-xs'
+                    : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                }`}
+              >
+                <MessageSquare className="w-3 h-3 text-green-500" />
+                WhatsApp
+              </button>
+            </div>
           </div>
-
-          <div className="flex flex-col items-end gap-1.5 shrink-0">
-            <Badge variant="outline" className="text-[10px] font-bold px-2 py-0.5 bg-primary/10 text-primary border-primary/30">
-              {cobrancas.length} títulos
-            </Badge>
-          </div>
-        </div>
-
-        {/* Mini Cards: Pendentes & Vencidas */}
-        <div className="grid grid-cols-2 gap-2.5">
-          <div 
-            onClick={() => setActiveTab(activeTab === 'pendentes' ? 'todas' : 'pendentes')}
-            className={`bg-white dark:bg-card border rounded-2xl p-3 shadow-xs space-y-1 cursor-pointer transition-all active:scale-[0.99] ${
-              activeTab === 'pendentes' ? 'border-primary ring-1 ring-primary/20' : 'border-border/80'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
-                <Clock className="w-3 h-3 text-amber-500" />
-                Pendentes
-              </span>
-              <span className="w-2 h-2 rounded-full bg-amber-500" />
-            </div>
-            <div className="text-base font-black text-amber-600 dark:text-amber-400">
-              {stats.countPendentes} cobranças
-            </div>
-          </div>
-
-          <div 
-            onClick={() => setActiveTab(activeTab === 'vencidas' ? 'todas' : 'vencidas')}
-            className={`bg-white dark:bg-card border rounded-2xl p-3 shadow-xs space-y-1 cursor-pointer transition-all active:scale-[0.99] ${
-              activeTab === 'vencidas' ? 'border-rose-500 ring-1 ring-rose-500/20' : 'border-border/80'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
-                <AlertTriangle className="w-3 h-3 text-rose-500" />
-                Vencidas
-              </span>
-              <span className="w-2 h-2 rounded-full bg-rose-500" />
-            </div>
-            <div className="text-base font-black text-rose-600 dark:text-rose-400 truncate">
-              {formatCurrency(stats.totalVencido)}
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* 3. LISTA DE COBRANÇAS */}
       <div className="p-3.5 space-y-2.5">
@@ -420,6 +548,8 @@ export function MobileCobrancasView() {
           })
         )}
       </div>
+      </>
+      )}
 
       {/* Modais Integrados */}
       <NovaCobrancaSheet open={novaCobrancaOpen} onOpenChange={setNovoCobrancaOpen} />
