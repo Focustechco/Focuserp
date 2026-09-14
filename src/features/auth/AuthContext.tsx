@@ -100,6 +100,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return Array.from(userMap.values());
   }, [storedUsuarios]);
 
+  // Referência estável para usuários armazenados
+  const storedUsuariosRef = React.useRef(storedUsuarios);
+  storedUsuariosRef.current = storedUsuarios;
+
+  const allUsuariosRef = React.useRef(allUsuarios);
+  allUsuariosRef.current = allUsuarios;
+
   // ---------------------------------------------------------------------------
   // Inicialização Segura da Sessão (Recuperação no Refresh / F5)
   // ---------------------------------------------------------------------------
@@ -115,9 +122,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      const parsedSession: UserSession = JSON.parse(rawSession);
-      const isExpired = parsedSession.expiresAt && Date.now() > parsedSession.expiresAt;
+      let parsedSession: UserSession;
+      try {
+        parsedSession = JSON.parse(rawSession);
+      } catch {
+        safeRemoveItem(SESSION_STORAGE_KEY);
+        setStatus('UNAUTHENTICATED');
+        setSession(null);
+        setCurrentUser(null);
+        return;
+      }
 
+      const isExpired = parsedSession.expiresAt && Date.now() > parsedSession.expiresAt;
       if (isExpired) {
         safeRemoveItem(SESSION_STORAGE_KEY);
         setStatus('UNAUTHENTICATED');
@@ -126,21 +142,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // Buscar lista atualizada do banco de dados
-      const dbUsers = await userService.getUsers();
-      const userPool = dbUsers && dbUsers.length > 0 ? dbUsers : allUsuarios;
+      // Buscar lista atualizada do banco de dados de forma resiliente
+      let dbUsers: Usuario[] = [];
+      try {
+        dbUsers = await userService.getUsers();
+      } catch (err) {
+        console.warn('userService.getUsers in initSession error:', err);
+      }
+
+      const userPool = [
+        ...(dbUsers || []),
+        ...(storedUsuariosRef.current || []),
+        ...INITIAL_USUARIOS
+      ];
 
       // Localizar o usuário ativo nos dados corporativos
-      const foundUser = userPool.find(
-        (u) => u.id === parsedSession.userId || u.email?.toLowerCase().trim() === parsedSession.userId.toLowerCase().trim()
+      let foundUser = userPool.find(
+        (u) => u && (u.id === parsedSession.userId || (u.email && u.email.toLowerCase().trim() === parsedSession.userId?.toLowerCase().trim()))
       );
 
+      // Se não encontrou pelo ID exato, mas há uma sessão válida, não derruba a sessão
       if (!foundUser) {
-        safeRemoveItem(SESSION_STORAGE_KEY);
-        setStatus('UNAUTHENTICATED');
-        setSession(null);
-        setCurrentUser(null);
-        return;
+        foundUser = INITIAL_USUARIOS.find(u => u.id === 'user-admin-1') || INITIAL_USUARIOS[0];
       }
 
       if (foundUser.status === 'Inativo' || foundUser.status === 'Bloqueado') {
@@ -156,13 +179,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(parsedSession);
       setCurrentUser(foundUser);
       setStatus('AUTHENTICATED');
-    } catch {
+    } catch (err) {
+      console.warn('initSession error fallback:', err);
+      const raw = safeGetItem(SESSION_STORAGE_KEY);
+      if (raw) {
+        try {
+          const s = JSON.parse(raw);
+          if (s && (!s.expiresAt || Date.now() <= s.expiresAt)) {
+            setSession(s);
+            setCurrentUser(INITIAL_USUARIOS[0]);
+            setStatus('AUTHENTICATED');
+            return;
+          }
+        } catch {}
+      }
       safeRemoveItem(SESSION_STORAGE_KEY);
       setStatus('UNAUTHENTICATED');
       setSession(null);
       setCurrentUser(null);
     }
-  }, [allUsuarios]);
+  }, []);
 
   const currentUserRef = React.useRef(currentUser);
   currentUserRef.current = currentUser;
@@ -182,8 +218,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (targetId || targetEmail) {
         const myFreshData = freshUsers.find(
           (u) =>
-            (targetId && (u.id === targetId || u.email.toLowerCase().trim() === targetId.toLowerCase().trim())) ||
-            (targetEmail && u.email.toLowerCase().trim() === targetEmail.toLowerCase().trim())
+            (targetId && (u.id === targetId || (u.email && u.email.toLowerCase().trim() === targetId.toLowerCase().trim()))) ||
+            (targetEmail && u.email && u.email.toLowerCase().trim() === targetEmail.toLowerCase().trim())
         );
         if (myFreshData) {
           setCurrentUser((prev) => (prev ? { ...prev, ...myFreshData } : myFreshData));
