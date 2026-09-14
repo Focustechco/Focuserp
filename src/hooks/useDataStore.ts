@@ -431,41 +431,29 @@ function toSnakeCasePayload(table: string, item: any): any {
 
   if (table.includes('dms_pasta') || table === 'dms_pastas' || table === 'focus_dms_pastas') {
     return {
-      id: String(item.id),
-      nome: item.nome,
-      parent_id: item.parentId || item.parent_id || null,
+      id: validId,
+      nome: item.nome || 'Pasta',
+      pasta_pai_id: toNullableValidUuid(item.parentId || item.parent_id || item.pasta_pai_id),
       caminho_completo: item.caminhoCompleto || item.caminho_completo || `/${item.nome}`,
       modulo_vinculado: item.moduloVinculado || item.modulo_vinculado || null,
-      data_criacao: item.dataCriacao || item.data_criacao || new Date().toISOString(),
-      criado_por: item.criadoPor || item.criado_por || 'Sistema',
       updated_at: new Date().toISOString(),
     };
   }
 
   if (table.includes('dms_doc') || table === 'dms_documentos' || table === 'focus_dms_documentos') {
     return {
-      id: String(item.id),
-      codigo: item.codigo || `DOC-${String(item.id).slice(0, 6).toUpperCase()}`,
-      nome: item.nome,
+      id: validId,
+      nome_arquivo: item.nome || item.nomeArquivo || item.nome_arquivo || `Doc_${validId.slice(0, 6)}`,
       extensao: item.extensao || item.nome?.split('.').pop() || 'pdf',
-      tamanho: item.tamanho || '1.0 MB',
       tamanho_bytes: Number(item.tamanhoBytes ?? item.tamanho_bytes ?? 0) || 0,
-      pasta_id: item.pastaId || item.pasta_id || 'root',
-      caminho_pasta: item.caminhoPasta || item.caminho_pasta || '/',
-      modulo_origem: item.moduloOrigem || item.modulo_origem || 'Geral',
+      pasta_id: toNullableValidUuid(item.pastaId || item.pasta_id),
+      url_storage: (item.urlConteudo && item.urlConteudo.startsWith('data:') && item.urlConteudo.length > 2000)
+        ? 'data:blob-stored-locally'
+        : (item.urlStorage || item.url_storage || item.urlConteudo || item.url_conteudo || 'https://placeholder.dms'),
+      tipo_documento: item.categoria || item.tipoDocumento || item.tipo_documento || item.moduloOrigem || 'Geral',
       tags: Array.isArray(item.tags) ? item.tags : [],
-      categoria: item.categoria || 'Geral',
-      responsavel_upload: item.responsavelUpload || item.responsavel_upload || 'Sistema',
-      data_upload: item.dataUpload || item.data_upload || new Date().toISOString(),
-      versao_atual: item.versaoAtual || item.versao_atual || '1.0',
-      favorito: Boolean(item.favorito),
-      status: item.status || 'Ativo',
-      historico_versoes: Array.isArray(item.historicoVersoes) ? item.historicoVersoes : [],
-      url_conteudo: (item.urlConteudo && item.urlConteudo.startsWith('data:') && item.urlConteudo.length > 2000) ? null : (item.urlConteudo || item.url_conteudo || null),
-      cliente_id: toNullableValidUuid(item.clienteId || item.cliente_id),
-      projeto_id: toNullableValidUuid(item.projetoId || item.projeto_id),
-      contrato_id: toNullableValidUuid(item.contratoId || item.contrato_id),
-      colaborador_id: toNullableValidUuid(item.colaboradorId || item.colaborador_id),
+      entidade_tipo: item.moduloOrigem || item.modulo_origem || 'Geral',
+      entidade_id: toNullableValidUuid(item.clienteId || item.projetoId || item.contratoId || item.colaboradorId),
       updated_at: new Date().toISOString(),
     };
   }
@@ -843,11 +831,11 @@ function fromSnakeCaseRow(table: string, row: any): any {
     return {
       ...row,
       id: String(row.id),
-      parentId: row.parent_id ?? row.parentId ?? null,
+      parentId: row.pasta_pai_id ?? row.parent_id ?? row.parentId ?? null,
       caminhoCompleto: row.caminho_completo || row.caminhoCompleto || `/${row.nome}`,
       moduloVinculado: row.modulo_vinculado || row.moduloVinculado,
-      dataCriacao: row.data_criacao || row.created_at || row.dataCriacao,
-      criadoPor: row.criado_por || row.criadoPor || 'Sistema',
+      dataCriacao: row.data_criacao || row.created_at || row.dataCriacao || new Date().toISOString(),
+      criadoPor: row.criado_por || row.criadoPor || 'Sistema Integrado',
     };
   }
 
@@ -855,17 +843,19 @@ function fromSnakeCaseRow(table: string, row: any): any {
     return {
       ...row,
       id: String(row.id),
+      nome: row.nome_arquivo || row.nome || 'Documento',
       tamanhoBytes: Number(row.tamanho_bytes ?? row.tamanhoBytes ?? 0),
       pastaId: row.pasta_id || row.pastaId,
-      caminhoPasta: row.caminho_pasta || row.caminhoPasta,
-      moduloOrigem: row.modulo_origem || row.moduloOrigem,
-      responsavelUpload: row.responsavel_upload || row.responsavelUpload,
-      dataUpload: row.data_upload || row.created_at || row.dataUpload,
-      dataUltimaAlteracao: row.updated_at || row.data_upload || row.dataUpload,
+      caminhoPasta: row.caminho_pasta || row.caminhoPasta || '/',
+      moduloOrigem: row.tipo_documento || row.modulo_origem || row.moduloOrigem || 'Geral',
+      categoria: row.tipo_documento || row.categoria || 'Geral',
+      responsavelUpload: row.responsavel_upload || row.responsavelUpload || 'Sistema',
+      dataUpload: row.created_at || row.data_upload || row.dataUpload || new Date().toISOString(),
+      dataUltimaAlteracao: row.updated_at || row.data_upload || row.dataUpload || new Date().toISOString(),
       versaoAtual: row.versao_atual || row.versaoAtual || '1.0',
-      urlConteudo: row.url_conteudo || row.urlConteudo,
+      urlConteudo: row.url_storage || row.url_conteudo || row.urlConteudo,
       historicoVersoes: Array.isArray(row.historico_versoes) ? row.historico_versoes : (row.historicoVersoes || []),
-      clienteId: row.cliente_id || row.clienteId,
+      clienteId: row.entidade_id || row.cliente_id || row.clienteId,
       projetoId: row.projeto_id || row.projetoId,
       contratoId: row.contrato_id || row.contratoId,
       colaboradorId: row.colaborador_id || row.colaboradorId,

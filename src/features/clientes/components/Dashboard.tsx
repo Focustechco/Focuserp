@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Building2, UserCircle, Activity } from 'lucide-react';
+import { Users, Building2, UserCircle, Activity, CheckCircle2 as CheckCircle } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { useClientesQuery } from '../hooks/useClientesQuery';
 import { Cliente } from '../types';

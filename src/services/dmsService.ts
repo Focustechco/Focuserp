@@ -54,16 +54,20 @@ export const dmsService = {
     await this.savePastas(updated);
 
     try {
-      await supabase.from('dms_pastas').upsert({
-        id: pasta.id,
-        nome: pasta.nome,
-        parent_id: pasta.parentId,
-        caminho_completo: pasta.caminhoCompleto,
-        modulo_vinculado: pasta.moduloVinculado,
-        data_criacao: pasta.dataCriacao,
-        criado_por: pasta.criadoPor,
-        updated_at: new Date().toISOString(),
-      });
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const validId = uuidRegex.test(pasta.id) ? pasta.id : undefined;
+      const validParentId = pasta.parentId && uuidRegex.test(pasta.parentId) ? pasta.parentId : null;
+
+      if (validId) {
+        await supabase.from('dms_pastas').upsert({
+          id: validId,
+          nome: pasta.nome,
+          pasta_pai_id: validParentId,
+          caminho_completo: pasta.caminhoCompleto,
+          modulo_vinculado: pasta.moduloVinculado,
+          updated_at: new Date().toISOString(),
+        });
+      }
     } catch {}
   },
 
